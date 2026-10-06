@@ -6,6 +6,12 @@ import { DeliveryUser } from '../components/AuthModal';
 import { API_BASE_URL } from '../config/api';
 
 const MAPTILER_KEY = (import.meta as any).env?.VITE_MAPTILER_KEY as string | undefined;
+const MAPBOX_TOKEN = (import.meta as any).env?.VITE_MAPBOX_ACCESS_TOKEN as string | undefined;
+
+interface RouteEstimate {
+  eta: string;
+  from: 'current-location' | 'pickup';
+}
 
 interface DeliveryOrder {
   id: string;
@@ -103,7 +109,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const formatDate = (value?: string) => value ? new Date(value).toLocaleString('en-IN') : '—';
 
-const DeliveryMap: React.FC<{ order: DeliveryOrder }> = ({ order }) => {
+const DeliveryMap: React.FC<{ order: DeliveryOrder; onEtaUpdate: (orderId: string, estimate: RouteEstimate | null) => void }> = ({ order, onEtaUpdate }) => {
   const mapContainer = React.useRef<HTMLDivElement>(null);
   const [mapError, setMapError] = useState('');
   const [mapNotice, setMapNotice] = useState('');
@@ -118,6 +124,7 @@ const DeliveryMap: React.FC<{ order: DeliveryOrder }> = ({ order }) => {
     let map: MapLibreMap | null = null;
     setMapError('');
     setMapNotice('');
+    onEtaUpdate(order.id, null);
 
     const knownCurrent = typeof order.last_known_location === 'object' && order.last_known_location
       && Number.isFinite(order.last_known_location.lat) && Number.isFinite(order.last_known_location.lng)
@@ -146,28 +153,65 @@ const DeliveryMap: React.FC<{ order: DeliveryOrder }> = ({ order }) => {
         .setPopup(new maplibregl.Popup({ offset: 24 }).setText(point.name))
         .addTo(mapInstance));
 
-      if (points.length >= 2) {
-        const route = points.map(point => point.coordinates);
+      const routeStart = knownCurrent || pickupCoords;
+      let routeCoords: [number, number][] = [];
+      let routeFromMapbox = false;
+      if (routeStart && destinationCoords && MAPBOX_TOKEN) {
+        const routeUrl = new URL(`https://api.mapbox.com/directions/v5/mapbox/driving/${routeStart.join(',')};${destinationCoords.join(',')}`);
+        routeUrl.searchParams.set('alternatives', 'false');
+        routeUrl.searchParams.set('geometries', 'geojson');
+        routeUrl.searchParams.set('overview', 'full');
+        routeUrl.searchParams.set('access_token', MAPBOX_TOKEN);
+        const response = await fetch(routeUrl, { signal: controller.signal });
+        if (!response.ok) {
+          setMapNotice(`Mapbox routing failed (HTTP ${response.status}); route ETA is unavailable.`);
+        } else {
+          const result = await response.json();
+          const route = result.routes?.[0];
+          const durationSeconds = Number(route?.duration);
+          const coordinates = route?.geometry?.coordinates;
+          if (Number.isFinite(durationSeconds) && durationSeconds >= 0 && Array.isArray(coordinates) && coordinates.length >= 2) {
+            routeCoords = coordinates as [number, number][];
+            routeFromMapbox = true;
+            onEtaUpdate(order.id, {
+              eta: new Date(Date.now() + durationSeconds * 1000).toISOString(),
+              from: knownCurrent ? 'current-location' : 'pickup'
+            });
+            setMapNotice(`Mapbox driving-route estimate from ${knownCurrent ? 'last known carrier location' : 'pickup'}; it is not live and may differ from the courier's actual ETA.`);
+          } else {
+            setMapNotice('Mapbox returned no usable route; route ETA is unavailable.');
+          }
+        }
+      } else if (routeStart && destinationCoords) {
+        setMapNotice(MAPBOX_TOKEN
+          ? 'Saved coordinates are needed for a Mapbox route and ETA.'
+          : 'Add VITE_MAPBOX_ACCESS_TOKEN to enable route-based ETA. The map will not estimate ETA without it.');
+      }
+
+      if (routeCoords.length < 2 && routeStart && destinationCoords) routeCoords = [routeStart, destinationCoords];
+      if (routeCoords.length >= 2) {
         mapInstance.addSource('delivery-route', {
           type: 'geojson',
-          data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route } }
+          data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: routeCoords } }
         });
         mapInstance.addLayer({
           id: 'delivery-route-line',
           type: 'line',
           source: 'delivery-route',
-          paint: { 'line-color': '#6d28d9', 'line-width': 3, 'line-dasharray': [2, 2] }
+          paint: { 'line-color': '#6d28d9', 'line-width': 3, ...(!routeFromMapbox ? { 'line-dasharray': [2, 2] } : {}) }
         });
-        const bounds = new maplibregl.LngLatBounds(route[0], route[0]);
-        route.slice(1).forEach(point => bounds.extend(point));
+        const bounds = new maplibregl.LngLatBounds(routeCoords[0], routeCoords[0]);
+        routeCoords.slice(1).forEach(point => bounds.extend(point));
         mapInstance.fitBounds(bounds, { padding: 56, maxZoom: 13 });
-        setMapNotice('Line is a visual connection between known points, not a navigation route.');
+        if (!MAPBOX_TOKEN && !mapNotice) setMapNotice('Dashed line is a visual connection, not a navigation route. ETA unavailable.');
       } else if (points.length === 1) {
         mapInstance.setCenter(points[0].coordinates);
         mapInstance.setZoom(12);
         setMapNotice('Only one saved coordinate is available for this order.');
-      } else {
+      } else if (!points.length) {
         setMapNotice('No coordinates are saved for this order yet. The map is showing India without order markers.');
+      } else {
+        setMapNotice('Pickup and destination coordinates are required to draw a route or calculate ETA.');
       }
     };
 
@@ -197,8 +241,9 @@ const DeliveryMap: React.FC<{ order: DeliveryOrder }> = ({ order }) => {
     return () => {
       controller.abort();
       map?.remove();
+      onEtaUpdate(order.id, null);
     };
-  }, [order]);
+  }, [order, onEtaUpdate]);
 
   return (
     <div className="space-y-2">
@@ -224,6 +269,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<DeliveryOrder | null>(null);
+  const [routeEstimates, setRouteEstimates] = useState<Record<string, RouteEstimate>>({});
   const [porterOrder, setPorterOrder] = useState<DeliveryOrder | null>(null);
   const [porterTrackingId, setPorterTrackingId] = useState('');
   const [porterTrackingUrl, setPorterTrackingUrl] = useState('');
@@ -238,6 +284,15 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
   const [otpRequested, setOtpRequested] = useState(false);
   const [busy, setBusy] = useState(false);
   const canManagePorterTracking = currentUser?.role === 'admin' || currentUser?.role === 'dispatcher';
+  const handleRouteEta = useCallback((orderId: string, estimate: RouteEstimate | null) => {
+    setRouteEstimates(previous => {
+      if (!estimate && !previous[orderId]) return previous;
+      const next = { ...previous };
+      if (estimate) next[orderId] = estimate;
+      else delete next[orderId];
+      return next;
+    });
+  }, []);
 
   const token = localStorage.getItem('iw_delivery_token') || '';
   const headers = { Authorization: `Bearer ${token}` };
@@ -446,7 +501,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
                       <td className="max-w-64 px-4 py-3"><p><strong>From:</strong> {order.pickup_address || '—'}</p><p className="mt-1"><strong>To:</strong> {order.drop_address || order.destination_address || '—'}</p></td>
                       <td className="px-4 py-3 text-slate-600">{formatDate(order.scheduled_time)}</td>
                       <td className="px-4 py-3 text-slate-600">{formatDate(order.dispatch_time || order.dispatched_at)}</td>
-                      <td className="px-4 py-3 text-slate-600">{order.tracking_eta ? formatDate(order.tracking_eta) : 'ETA unavailable'}</td>
+                      <td className="px-4 py-3 text-slate-600">{routeEstimates[order.id] ? `${formatDate(routeEstimates[order.id].eta)} · ${routeEstimates[order.id].from === 'current-location' ? 'from last GPS' : 'from pickup'}` : order.tracking_eta ? formatDate(order.tracking_eta) : 'ETA unavailable'}</td>
                       <td className="max-w-48 px-4 py-3"><p className="flex items-center gap-1 text-slate-700"><MapPin className="h-3.5 w-3.5 shrink-0" />{location || 'GPS location unavailable'}</p><p className="mt-1 text-slate-400">{order.last_location_updated_at ? `Last known · ${formatDate(order.last_location_updated_at)}` : 'No location update recorded'}</p></td>
                       <td className="px-4 py-3"><div className="flex flex-wrap gap-1.5">
                         <button onClick={() => setSelectedOrder(order)} className="rounded-lg border border-slate-200 px-2.5 py-1.5 font-bold text-slate-700">Details</button>
@@ -505,7 +560,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
                 ['Coordinates', typeof selectedOrder.last_known_location === 'object' && selectedOrder.last_known_location?.lat != null && selectedOrder.last_known_location?.lng != null ? `${selectedOrder.last_known_location.lat}, ${selectedOrder.last_known_location.lng}` : 'Unavailable'],
                 ['Location freshness', locationFreshness(selectedOrder.last_location_updated_at)],
                 ['Location last updated', formatDate(selectedOrder.last_location_updated_at)],
-                ['Estimated arrival', selectedOrder.tracking_eta ? formatDate(selectedOrder.tracking_eta) : 'ETA unavailable — no verified route/tracking feed'],
+                ['Estimated arrival', routeEstimates[selectedOrder.id] ? `${formatDate(routeEstimates[selectedOrder.id].eta)} · Mapbox route from ${routeEstimates[selectedOrder.id].from === 'current-location' ? 'last known location' : 'pickup'}` : selectedOrder.tracking_eta ? formatDate(selectedOrder.tracking_eta) : 'ETA unavailable — Mapbox token and route coordinates required'],
                 ['Scheduled delivery', formatDate(selectedOrder.scheduled_time)],
                 ['Dispatch time', formatDate(selectedOrder.dispatch_time || selectedOrder.dispatched_at)],
                 ['Delivered at', formatDate(selectedOrder.delivered_at)],
@@ -525,7 +580,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
                 <h3 className="font-bold text-slate-900">MapTiler delivery map</h3>
                 <p className="mt-1 text-xs text-slate-500">Markers use saved coordinates only. Customer delivery addresses are not sent to MapTiler for lookup.</p>
               </div>
-              <DeliveryMap order={selectedOrder} />
+              <DeliveryMap order={selectedOrder} onEtaUpdate={handleRouteEta} />
               <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
                 Live location tracking is not connected. Markers use only saved GPS coordinates and do not represent a live carrier position.
                 {selectedOrder.last_location_updated_at ? ` Last GPS update: ${formatDate(selectedOrder.last_location_updated_at)}.` : ' No last-known GPS coordinate has been recorded.'}

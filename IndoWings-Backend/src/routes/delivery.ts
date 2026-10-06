@@ -1362,6 +1362,10 @@ router.post('/store/orders', async (req, res) => {
   ]
     .filter(Boolean)
     .join(', ');
+  const destinationLat = address.lat === undefined || address.lat === null || address.lat === '' ? NaN : Number(address.lat);
+  const destinationLng = address.lng === undefined || address.lng === null || address.lng === '' ? NaN : Number(address.lng);
+  const hasDestinationCoordinates = Number.isFinite(destinationLat) && destinationLat >= -90 && destinationLat <= 90
+    && Number.isFinite(destinationLng) && destinationLng >= -180 && destinationLng <= 180;
   const order = {
     id: orderId,
     order_type: 'drone_purchase',
@@ -1375,6 +1379,12 @@ router.post('/store/orders', async (req, res) => {
     pickup_address: 'IndoWings Manufacturing & Dispatch Center, Noida',
     drop_address: dropAddress,
     destination_address: dropAddress,
+    ...(hasDestinationCoordinates ? {
+      destination_lat: destinationLat,
+      destination_lng: destinationLng,
+      drop_lat: destinationLat,
+      drop_lng: destinationLng
+    } : {}),
     address_id: address.id || null,
     delivery_notes: typeof req.body.delivery_notes === 'string' ? req.body.delivery_notes.trim() : '',
     items,
