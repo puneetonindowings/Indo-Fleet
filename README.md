@@ -52,9 +52,8 @@ secret, email credentials, and SMS provider keys on the backend only.
 | `JWT_SECRET` | Long, unique secret used to sign authentication tokens. |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | Optional initial administrator account settings. |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Payment-provider credentials; keep the secret private. |
-| `RESEND_API_KEY`, `FROM_EMAIL` | Resend email delivery configuration for general app mail. |
-| `SUPPORT_EMAIL`, `SUPPORT_EMAIL_NAME`, `RESEND_FROM_EMAIL`, `RESEND_FROM_NAME` | Support mailbox and verified Resend sender. Support replies use Resend only and do not fall back to SMTP. |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | Optional SMTP email configuration (Microsoft 365 commonly uses `smtp.office365.com`, port `587`, with SMTP AUTH/OAuth configured by the tenant). |
+| `RESEND_API_KEY`, `FROM_EMAIL` | Resend API key and verified sender address used for all application email. |
+| `SUPPORT_EMAIL`, `SUPPORT_EMAIL_NAME`, `RESEND_FROM_EMAIL`, `RESEND_FROM_NAME` | Support address and sender identity. The configured verified Resend sender is used for account, order, status, and Support Desk notifications; there is no SMTP fallback. |
 | `SERVICEHUB_SUPABASE_URL`, `SERVICEHUB_SUPABASE_ANON_KEY` | Optional separate Supabase project used by the SMS OTP integration. |
 | `FAST2SMS_API_KEY` | Optional Fast2SMS credential. |
 | `FRONTEND_URL` | Public frontend origin used in account and booking emails. |
