@@ -1,0 +1,28 @@
+# IndoWings / IndoFleet Robots Directive File
+# https://indowings.com
+
+User-agent: *
+Allow: /
+Allow: /platform
+Allow: /command-center
+Allow: /gcs
+Allow: /downloads
+Allow: /versions
+Allow: /track
+Allow: /docs
+Allow: /support
+Allow: /company
+Allow: /feedback
+Allow: /legal
+
+# Disallow private operational desks & API endpoints
+Disallow: /admin
+Disallow: /fleet
+Disallow: /dispatch
+Disallow: /support-desk
+Disallow: /profile
+Disallow: /orders
+Disallow: /api/
+
+# XML Sitemap Location
+Sitemap: https://indowings.com/sitemap.xml
