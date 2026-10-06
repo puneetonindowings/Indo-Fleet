@@ -8,11 +8,12 @@ Indo-Fleet is the workspace for the IndoWings frontend and backend applications.
 - `IndoWings-Backend/` — Express and TypeScript API, Supabase schema, and migrations.
 
 The Delivery Tracking workspace supports searchable order lifecycles, RPAV
-details, Porter references, MapTiler views of saved coordinates, ETA only when a
-tracking feed provides one, and OTP-audited dispatch/hold/unhold/reschedule/
-delivery/cancellation actions. Live GPS and route-based ETA are not claimed
-until a real provider feed is connected. Admins can open it from Admin; other
-authorized delivery operators can use `/delivery-tracking`.
+details, Porter references, MapTiler maps, Mapbox driving-route ETA from saved
+GPS/pickup coordinates, and OTP-audited dispatch/hold/unhold/reschedule/
+delivery/cancellation actions. ETA is an estimate, not live courier telemetry;
+without route coordinates or a valid Mapbox token it remains unavailable.
+Admins can open it from Admin; other authorized delivery operators can use
+`/delivery-tracking`.
 
 ## Getting started
 
@@ -65,6 +66,7 @@ the backend. See `IndoWings-Backend/README.md` and
 | --- | --- |
 | `VITE_RAZORPAY_KEY_ID` | Public Razorpay key ID used by the frontend; do not put the Razorpay secret here. |
 | `VITE_MAPTILER_KEY` | MapTiler browser key for delivery maps. Restrict it to your deployed frontend domains. |
+| `VITE_MAPBOX_ACCESS_TOKEN` | Restricted public Mapbox token with Directions API access. Used in the browser to estimate road-route ETA from saved coordinates; restrict it to your deployed frontend domains. |
 
 From the workspace root, `npm run dev` starts both apps after root dependencies
 are installed. Alternatively, run `npm run dev` separately in each app folder.

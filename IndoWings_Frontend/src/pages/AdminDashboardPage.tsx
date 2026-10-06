@@ -1233,13 +1233,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     <h3 className="text-base font-bold text-slate-900">Drone Shipments &amp; Client Consignments</h3>
                     <p className="text-xs text-slate-500 mt-0.5">Ship manufactured UAV batches to enterprise and defense clients with verified technical handover challans.</p>
                   </div>
-                  <button
-                    onClick={() => setShowDispatchModal(true)}
-                    className="px-4 py-2.5 rounded-xl bg-[#3b0080] hover:bg-[#2c0060] text-white text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm shrink-0"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Dispatch Drones to Client</span>
-                  </button>
                 </div>
 
                 <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
