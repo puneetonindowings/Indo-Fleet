@@ -7,6 +7,13 @@ Indo-Fleet is the workspace for the IndoWings frontend and backend applications.
 - `IndoWings_Frontend/` — React, TypeScript, and Vite web application.
 - `IndoWings-Backend/` — Express and TypeScript API, Supabase schema, and migrations.
 
+The Delivery Tracking workspace supports searchable order lifecycles, RPAV
+details, Porter references, MapTiler views of saved coordinates, ETA only when a
+tracking feed provides one, and OTP-audited dispatch/hold/unhold/reschedule/
+delivery/cancellation actions. Live GPS and route-based ETA are not claimed
+until a real provider feed is connected. Admins can open it from Admin; other
+authorized delivery operators can use `/delivery-tracking`.
+
 ## Getting started
 
 Install dependencies in each application:

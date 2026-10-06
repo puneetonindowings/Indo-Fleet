@@ -87,15 +87,8 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [updating, setUpdating] = useState<string | null>(null);
   const [updatingEnquiryId, setUpdatingEnquiryId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Modals
-  const [adminCancelModal, setAdminCancelModal] = useState<any | null>(null);
-  const [adminCancelReason, setAdminCancelReason] = useState('Airspace Traffic / Weather Advisory');
-  const [isCancelling, setIsCancelling] = useState(false);
-  const [cancelError, setCancelError] = useState('');
 
   const [selectedDrone, setSelectedDrone] = useState<any | null>(null);
   const [updatingDrone, setUpdatingDrone] = useState(false);
@@ -211,49 +204,6 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
 
     return () => clearInterval(timer);
   }, [currentUser]);
-
-  const updateStatus = async (orderId: string, status: string) => {
-    setUpdating(orderId);
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/delivery/orders/${orderId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status })
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Could not update order status.');
-      await refreshAll();
-    } catch (err) {
-      setToastMessage(err instanceof Error ? err.message : 'Could not update order status.');
-      setTimeout(() => setToastMessage(null), 6000);
-    } finally {
-      setUpdating(null);
-    }
-  };
-
-  const handleAdminCancel = async () => {
-    if (!adminCancelModal) return;
-    setIsCancelling(true);
-    setCancelError('');
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/delivery/orders/${adminCancelModal.id}/cancel`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ reason: adminCancelReason })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setCancelError(data.error || 'Failed to cancel order.');
-        return;
-      }
-      setAdminCancelModal(null);
-      await refreshAll();
-    } catch {
-      setCancelError('Network error while cancelling order.');
-    } finally {
-      setIsCancelling(false);
-    }
-  };
 
   const handleUpdateDroneState = async (droneId: string, newState: string) => {
     setUpdatingDrone(true);
@@ -659,43 +609,37 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
 
                         {!isDelivered && !isCancelled && order.status !== 'on-hold' && (
                           <button
-                            onClick={() => updateStatus(order.id, 'on-hold')}
-                            disabled={updating === order.id}
+                            onClick={() => onNavigate('delivery-tracking')}
                             className="px-3 py-1.5 text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors cursor-pointer text-center"
                           >
-                            {order.order_type === 'drone_purchase' ? 'Pause Shipment' : 'Hold In Air'}
+                            Manage Hold · OTP
                           </button>
                         )}
 
                         {!isDelivered && !isCancelled && order.status !== 'in-flight' && (
                           <button
-                            onClick={() => updateStatus(order.id, 'in-flight')}
-                            disabled={updating === order.id}
+                            onClick={() => onNavigate(order.order_type === 'drone_purchase' ? 'drone-dispatch' : 'delivery-tracking')}
                             className="px-3 py-1.5 text-xs font-bold bg-sky-50 text-sky-800 border border-sky-200 rounded-xl hover:bg-sky-100 transition-colors cursor-pointer text-center"
                           >
-                            {order.order_type === 'drone_purchase' ? 'Mark Dispatched' : 'Dispatch Mission'}
+                            {order.order_type === 'drone_purchase' ? 'Secure Drone Dispatch' : 'Dispatch · OTP'}
                           </button>
                         )}
 
                         {!isDelivered && !isCancelled && (
                           <button
-                            onClick={() => updateStatus(order.id, 'delivered')}
-                            disabled={updating === order.id}
+                            onClick={() => onNavigate('delivery-tracking')}
                             className="px-3 py-1.5 text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-colors cursor-pointer text-center"
                           >
-                            Confirm Delivered
+                            Mark Delivered · OTP
                           </button>
                         )}
 
                         {!isDelivered && !isCancelled && (
                           <button
-                            onClick={() => {
-                              setAdminCancelModal(order);
-                              setCancelError('');
-                            }}
+                            onClick={() => onNavigate('delivery-tracking')}
                             className="px-3 py-1.5 text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 rounded-xl hover:bg-rose-100 transition-colors cursor-pointer text-center"
                           >
-                            {order.order_type === 'drone_purchase' ? 'Cancel Booking' : 'Abort Mission'}
+                            Cancel · OTP
                           </button>
                         )}
                       </div>
@@ -1535,66 +1479,6 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
         </div>
       )}
 
-      {/* ── ADMIN CANCEL MISSION MODAL ────────────────────────────────────── */}
-      {adminCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
-                <AlertCircle className="w-5 h-5" />
-              </div>
-              <button type="button" onClick={() => setAdminCancelModal(null)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <h3 className="text-lg font-bold text-[#171222] mb-1">HQ Command: Abort Delivery Mission</h3>
-            <p className="text-xs text-slate-500 mb-4 leading-relaxed">
-              You are issuing an emergency abort order for flight <span className="font-mono font-bold text-[#171222]">{adminCancelModal.id}</span>. The assigned UAV will return to the base hub
-              immediately and the customer will be notified.
-            </p>
-
-            {cancelError && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl mb-4">{cancelError}</div>}
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Select Abort Reason</label>
-                <select
-                  value={adminCancelReason}
-                  onChange={(e) => setAdminCancelReason(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-medium text-[#171222] focus:outline-none focus:border-[#3b0080] bg-white"
-                >
-                  <option value="Airspace Traffic / Weather Advisory">Airspace Traffic / Weather Advisory</option>
-                  <option value="Hardware / Battery Telemetry Alert">Hardware / Battery Telemetry Alert</option>
-                  <option value="Customer Requested Cancellation via HQ">Customer Requested Cancellation via HQ</option>
-                  <option value="Landing Zone Restricted / Unreachable">Landing Zone Restricted / Unreachable</option>
-                  <option value="Operational Maintenance Hold">Operational Maintenance Hold</option>
-                </select>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  disabled={isCancelling}
-                  onClick={() => setAdminCancelModal(null)}
-                  className="flex-1 py-3 border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs rounded-xl transition-colors cursor-pointer"
-                >
-                  Resume Mission
-                </button>
-                <button
-                  type="button"
-                  disabled={isCancelling}
-                  onClick={handleAdminCancel}
-                  className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-rose-900/10 flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer"
-                >
-                  {isCancelling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />}
-                  <span>{isCancelling ? 'Aborting...' : 'Confirm Abort Order'}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

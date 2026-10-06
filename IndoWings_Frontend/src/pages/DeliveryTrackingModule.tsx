@@ -9,8 +9,15 @@ const MAPTILER_KEY = (import.meta as any).env?.VITE_MAPTILER_KEY as string | und
 
 interface DeliveryOrder {
   id: string;
+  delivery_id?: string;
+  order_type?: string;
   status: string;
+  delivery_core_status?: string;
   customer_name?: string;
+  client_name?: string;
+  organization_name?: string;
+  organization_id?: string;
+  creator_id?: string;
   customer_phone?: string;
   customer_email?: string;
   drone_id?: string;
@@ -27,6 +34,17 @@ interface DeliveryOrder {
   destination_lat?: number;
   destination_lng?: number;
   last_location_updated_at?: string;
+  dispatch_time?: string;
+  dispatched_at?: string;
+  tracking_eta?: string;
+  rpav_info?: {
+    id: string;
+    name?: string;
+    status?: string;
+    battery?: number | null;
+    current_location?: string | null;
+    last_location_updated_at?: string;
+  } | null;
   porter_tracking_id?: string;
   porter_tracking_url?: string;
   porter_contact?: string;
@@ -35,6 +53,9 @@ interface DeliveryOrder {
   scheduled_time?: string;
   created_at?: string;
   updated_at?: string;
+  delivered_at?: string;
+  cancelled_at?: string;
+  cancellation_reason?: string;
   delivery_audit_log?: Array<Record<string, string | boolean>>;
   timeline?: Array<Record<string, string | boolean | null>>;
   status_before_hold?: string;
@@ -45,7 +66,27 @@ interface DeliveryDashboardData {
   orders: DeliveryOrder[];
 }
 
-type DeliveryAction = 'hold' | 'unhold' | 'reschedule';
+type DeliveryAction = 'hold' | 'unhold' | 'reschedule' | 'dispatch' | 'delivered' | 'cancel';
+
+const DELIVERY_STAGES = ['Booking Created', 'Scheduled', 'RPAV Assigned', 'Dispatched', 'In Transit', 'Delivered'];
+
+function deliveryStage(order: DeliveryOrder) {
+  const baseStatus = order.status === 'on-hold' ? order.status_before_hold || order.delivery_core_status || 'pending' : order.status;
+  const sourceStatus = baseStatus === 'rescheduled' ? order.delivery_core_status || 'assigned' : order.delivery_core_status || baseStatus;
+  if (sourceStatus === 'delivered') return 5;
+  if (['in-flight', 'approaching', 'out-for-delivery', 'in-transit'].includes(sourceStatus)) return 4;
+  if (['taking-off'].includes(sourceStatus)) return 3;
+  if (sourceStatus === 'assigned') return order.dispatch_time || order.dispatched_at ? 3 : 2;
+  if (order.scheduled_time) return 1;
+  return 0;
+}
+
+function locationFreshness(updatedAt?: string) {
+  if (!updatedAt) return 'GPS unavailable';
+  const ageMinutes = Math.max(0, (Date.now() - new Date(updatedAt).getTime()) / 60000);
+  if (!Number.isFinite(ageMinutes)) return 'Update time unavailable';
+  return ageMinutes <= 5 ? 'Recently updated' : 'Last known location';
+}
 
 const EMPTY_DATA: DeliveryDashboardData = {
   counts: { total: 0, pending: 0, in_transit: 0, delivered: 0, on_hold: 0, rescheduled: 0, delayed: 0, failed: 0 },
@@ -53,9 +94,10 @@ const EMPTY_DATA: DeliveryDashboardData = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pending', assigned: 'Ready for delivery', 'taking-off': 'Picked up',
+  pending: 'Booking created', assigned: 'RPAV assigned', 'taking-off': 'Dispatched',
   'in-flight': 'In transit', approaching: 'Out for delivery', delivered: 'Delivered',
   'on-hold': 'On hold', rescheduled: 'Rescheduled', delayed: 'Delayed',
+  'out-for-delivery': 'Out for delivery', 'in-transit': 'In transit',
   failed: 'Failed delivery', cancelled: 'Cancelled'
 };
 
@@ -172,7 +214,7 @@ const DeliveryMap: React.FC<{ order: DeliveryOrder }> = ({ order }) => {
   );
 };
 
-export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null }> = ({ currentUser }) => {
+export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null; onNavigate?: (page: string) => void }> = ({ currentUser, onNavigate }) => {
   const [data, setData] = useState(EMPTY_DATA);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -224,7 +266,8 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
     const searchMatches = !query || [
       order.id, order.customer_name, order.customer_phone, order.customer_email,
       order.drone_id, order.drone_model, order.drop_address, order.pickup_address,
-      order.porter_tracking_id, order.porter_contact
+      order.porter_tracking_id, order.porter_contact, order.delivery_id, order.client_name,
+      order.creator_id, order.organization_name, order.organization_id, order.rpav_info?.id, order.rpav_info?.name
     ].some(value => String(value || '').toLowerCase().includes(query));
     const date = String(order.created_at || '').slice(0, 10);
     const statusMatches = statusFilter === 'all'
@@ -387,35 +430,35 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
           <div className="p-12 text-center text-sm text-slate-500">No delivery orders found.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1050px] text-left text-xs">
+            <table className="w-full min-w-[1680px] text-left text-xs">
               <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500">
-                <tr>{['Order / Customer', 'Drone', 'Pickup → Destination', 'Porter tracking ID', 'Location', 'Status', 'Updated', 'Actions'].map(label => <th key={label} className="px-4 py-3">{label}</th>)}</tr>
+                <tr>{['Delivery ID / Order ID', 'Customer / Organization', 'RPAV / Status', 'Delivery status', 'Pickup → Destination', 'Scheduled', 'Dispatched', 'ETA', 'Last location update', 'Actions'].map(label => <th key={label} className="px-4 py-3">{label}</th>)}</tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredOrders.map(order => {
                   const location = typeof order.last_known_location === 'string' ? order.last_known_location : order.last_known_location?.address;
                   return (
                     <tr key={order.id} className="align-top hover:bg-slate-50/70">
-                      <td className="px-4 py-3"><button onClick={() => setSelectedOrder(order)} className="font-mono font-bold text-purple-800 hover:underline">{order.id}</button><p className="mt-1 font-semibold text-slate-800">{order.customer_name || 'Customer'}</p><p className="text-slate-500">{order.customer_phone || order.customer_email || '—'}</p></td>
-                      <td className="px-4 py-3"><p className="font-mono font-bold text-slate-700">{order.drone_id || 'Not assigned'}</p><p className="text-slate-500">{order.drone_model || order.package_type || '—'}</p></td>
+                      <td className="px-4 py-3"><button onClick={() => setSelectedOrder(order)} className="font-mono font-bold text-purple-800 hover:underline">{order.delivery_id || `DEL-${order.id}`}</button><p className="mt-1 font-mono text-slate-600">{order.id}</p></td>
+                      <td className="px-4 py-3"><p className="font-semibold text-slate-800">{order.client_name || order.customer_name || 'Customer'}</p><p className="text-slate-500">{order.customer_phone || '—'} · {order.customer_email || '—'}</p></td>
+                      <td className="px-4 py-3"><p className="font-mono font-bold text-slate-700">{order.rpav_info?.id || order.drone_id || 'Not assigned'}</p><p className="text-slate-500">{order.rpav_info?.name || order.drone_model || order.package_type || '—'}</p><p className="mt-1 text-slate-500">{order.rpav_info?.status || 'RPAV status unavailable'}{order.rpav_info?.battery != null ? ` · ${order.rpav_info.battery}% battery` : ''}</p></td>
+                      <td className="px-4 py-3"><span className="rounded-full bg-purple-50 px-2.5 py-1 font-bold text-purple-800">{STATUS_LABELS[order.status] || order.status}</span>{order.status === 'on-hold' && <p className="mt-1 text-amber-700">On Hold</p>}{order.status === 'rescheduled' && <p className="mt-1 text-sky-700">Rescheduled</p>}</td>
                       <td className="max-w-64 px-4 py-3"><p><strong>From:</strong> {order.pickup_address || '—'}</p><p className="mt-1"><strong>To:</strong> {order.drop_address || order.destination_address || '—'}</p></td>
-                      <td className="px-4 py-3">
-                        {order.porter_tracking_id ? (
-                          <>
-                            <p className="font-mono font-bold text-slate-800">{order.porter_tracking_id}</p>
-                            {order.porter_tracking_url && <a href={order.porter_tracking_url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 hover:underline">Open tracking <ExternalLink className="h-3 w-3" /></a>}
-                          </>
-                        ) : <p className="text-slate-400">Not entered</p>}
-                      </td>
-                      <td className="max-w-48 px-4 py-3"><p className="flex items-center gap-1 text-slate-700"><MapPin className="h-3.5 w-3.5 shrink-0" />{location || 'GPS location unavailable'}</p><p className="mt-1 text-slate-400">{order.last_location_updated_at ? `Last updated ${formatDate(order.last_location_updated_at)}` : 'No location update recorded'}</p></td>
-                      <td className="px-4 py-3"><span className="rounded-full bg-purple-50 px-2.5 py-1 font-bold text-purple-800">{STATUS_LABELS[order.status] || order.status}</span></td>
-                      <td className="px-4 py-3 text-slate-500">{formatDate(order.updated_at || order.created_at)}</td>
+                      <td className="px-4 py-3 text-slate-600">{formatDate(order.scheduled_time)}</td>
+                      <td className="px-4 py-3 text-slate-600">{formatDate(order.dispatch_time || order.dispatched_at)}</td>
+                      <td className="px-4 py-3 text-slate-600">{order.tracking_eta ? formatDate(order.tracking_eta) : 'ETA unavailable'}</td>
+                      <td className="max-w-48 px-4 py-3"><p className="flex items-center gap-1 text-slate-700"><MapPin className="h-3.5 w-3.5 shrink-0" />{location || 'GPS location unavailable'}</p><p className="mt-1 text-slate-400">{order.last_location_updated_at ? `Last known · ${formatDate(order.last_location_updated_at)}` : 'No location update recorded'}</p></td>
                       <td className="px-4 py-3"><div className="flex flex-wrap gap-1.5">
                         <button onClick={() => setSelectedOrder(order)} className="rounded-lg border border-slate-200 px-2.5 py-1.5 font-bold text-slate-700">Details</button>
+                        {order.porter_tracking_id && order.porter_tracking_url && <a href={order.porter_tracking_url} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-sky-50 px-2.5 py-1.5 font-bold text-sky-800">Porter <ExternalLink className="inline h-3 w-3" /></a>}
                         {canManagePorterTracking && <button onClick={() => openPorterForm(order)} className="rounded-lg bg-sky-50 px-2.5 py-1.5 font-bold text-sky-800">{order.porter_tracking_id ? 'Edit Porter ID' : 'Add Porter ID'}</button>}
+                        {order.order_type === 'drone_purchase' && !order.dispatch_time && <button onClick={() => onNavigate?.('drone-dispatch')} className="rounded-lg bg-indigo-50 px-2.5 py-1.5 font-bold text-indigo-800">Secure Dispatch</button>}
+                        {canManagePorterTracking && order.order_type !== 'drone_purchase' && ['pending', 'assigned'].includes(order.status) && <button onClick={() => startAction(order, 'dispatch')} className="rounded-lg bg-indigo-50 px-2.5 py-1.5 font-bold text-indigo-800">Dispatch · OTP</button>}
                         {order.status !== 'on-hold' && !['delivered', 'cancelled', 'failed'].includes(order.status) && <button onClick={() => startAction(order, 'hold')} className="rounded-lg bg-amber-50 px-2.5 py-1.5 font-bold text-amber-800">Hold</button>}
                         {order.status === 'on-hold' && <button onClick={() => startAction(order, 'unhold')} className="rounded-lg bg-emerald-50 px-2.5 py-1.5 font-bold text-emerald-800">Unhold</button>}
                         {!['delivered', 'cancelled', 'failed'].includes(order.status) && <button onClick={() => startAction(order, 'reschedule')} className="rounded-lg bg-purple-50 px-2.5 py-1.5 font-bold text-purple-800">Reschedule</button>}
+                        {order.status !== 'on-hold' && (['taking-off', 'in-flight', 'approaching', 'out-for-delivery', 'in-transit'].includes(order.status) || Boolean(order.dispatch_time || order.dispatched_at)) && <button onClick={() => startAction(order, 'delivered')} className="rounded-lg bg-emerald-700 px-2.5 py-1.5 font-bold text-white">Mark Delivered</button>}
+                        {!['delivered', 'cancelled', 'failed'].includes(order.status) && <button onClick={() => startAction(order, 'cancel')} className="rounded-lg bg-rose-50 px-2.5 py-1.5 font-bold text-rose-700">Cancel</button>}
                       </div></td>
                     </tr>
                   );
@@ -429,19 +472,43 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
       {selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
           <section className="max-h-[90vh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
-            <div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase text-purple-700">Delivery details</p><h2 className="text-xl font-black">{selectedOrder.id}</h2></div><button onClick={() => setSelectedOrder(null)} aria-label="Close details"><X /></button></div>
+            <div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase text-purple-700">Delivery details</p><h2 className="text-xl font-black">{selectedOrder.delivery_id || `DEL-${selectedOrder.id}`}</h2><p className="mt-1 font-mono text-xs text-slate-500">Order ID: {selectedOrder.id}</p></div><button onClick={() => setSelectedOrder(null)} aria-label="Close details"><X /></button></div>
+            {selectedOrder.status === 'cancelled' ? (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-black text-rose-800">Cancelled · {selectedOrder.cancellation_reason || 'Reason recorded in history'}</div>
+            ) : (
+              <div className="space-y-3 rounded-2xl border border-slate-200 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-bold text-slate-900">Delivery progress</h3><div className="flex gap-2">{selectedOrder.status === 'on-hold' && <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">On Hold</span>}{selectedOrder.status === 'rescheduled' && <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-bold text-sky-800">Rescheduled</span>}</div></div>
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">{DELIVERY_STAGES.map((stage, index) => {
+                  const activeStage = deliveryStage(selectedOrder);
+                  const complete = index < activeStage || selectedOrder.status === 'delivered' && index === activeStage;
+                  const current = index === activeStage && selectedOrder.status !== 'delivered';
+                  return <div key={stage} className="space-y-1 text-center"><div className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full text-xs font-black ${complete ? 'bg-emerald-600 text-white' : current ? 'bg-purple-700 text-white' : 'bg-slate-100 text-slate-400'}`}>{complete ? '✓' : current ? '●' : '○'}</div><p className={`text-[10px] font-bold ${complete || current ? 'text-slate-800' : 'text-slate-400'}`}>{stage}</p></div>;
+                })}</div>
+              </div>
+            )}
             <div className="grid gap-3 sm:grid-cols-2">
               {[
                 ['Customer', selectedOrder.customer_name || '—'],
+                ['Customer ID', selectedOrder.creator_id || '—'],
                 ['Phone', selectedOrder.customer_phone || '—'],
-                ['Drone', `${selectedOrder.drone_id || 'Unassigned'} · ${selectedOrder.drone_model || ''}`],
+                ['Email', selectedOrder.customer_email || '—'],
+                ['Organization', selectedOrder.organization_name || selectedOrder.client_name || '—'],
+                ['Organization ID', selectedOrder.organization_id || '—'],
+                ['RPAV ID / model', `${selectedOrder.rpav_info?.id || selectedOrder.drone_id || 'Unassigned'} · ${selectedOrder.rpav_info?.name || selectedOrder.drone_model || ''}`],
+                ['RPAV status', selectedOrder.rpav_info?.status || 'Unavailable'],
+                ['Last recorded battery', selectedOrder.rpav_info?.battery != null ? `${selectedOrder.rpav_info.battery}%` : 'Telemetry unavailable'],
+                ['RPAV current location', selectedOrder.rpav_info?.current_location || 'Not recorded'],
                 ['Status', STATUS_LABELS[selectedOrder.status] || selectedOrder.status],
                 ['Pickup', selectedOrder.pickup_address || '—'],
                 ['Destination', selectedOrder.drop_address || selectedOrder.destination_address || '—'],
                 ['Last known location', typeof selectedOrder.last_known_location === 'string' ? selectedOrder.last_known_location : selectedOrder.last_known_location?.address || 'No GPS update recorded'],
+                ['Coordinates', typeof selectedOrder.last_known_location === 'object' && selectedOrder.last_known_location?.lat != null && selectedOrder.last_known_location?.lng != null ? `${selectedOrder.last_known_location.lat}, ${selectedOrder.last_known_location.lng}` : 'Unavailable'],
+                ['Location freshness', locationFreshness(selectedOrder.last_location_updated_at)],
                 ['Location last updated', formatDate(selectedOrder.last_location_updated_at)],
-                ['Estimated delivery', formatDate(selectedOrder.estimated_delivery)],
+                ['Estimated arrival', selectedOrder.tracking_eta ? formatDate(selectedOrder.tracking_eta) : 'ETA unavailable — no verified route/tracking feed'],
                 ['Scheduled delivery', formatDate(selectedOrder.scheduled_time)],
+                ['Dispatch time', formatDate(selectedOrder.dispatch_time || selectedOrder.dispatched_at)],
+                ['Delivered at', formatDate(selectedOrder.delivered_at)],
                 ['Porter booking / tracking ID', selectedOrder.porter_tracking_id || 'Not entered'],
                 ['Porter contact', selectedOrder.porter_contact || '—'],
                 ['Porter details updated', formatDate(selectedOrder.porter_updated_at)]
@@ -460,7 +527,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
               </div>
               <DeliveryMap order={selectedOrder} />
               <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-                Live location tracking is not connected. Address lookup markers are approximate and do not represent the carrier’s current location.
+                Live location tracking is not connected. Markers use only saved GPS coordinates and do not represent a live carrier position.
                 {selectedOrder.last_location_updated_at ? ` Last GPS update: ${formatDate(selectedOrder.last_location_updated_at)}.` : ' No last-known GPS coordinate has been recorded.'}
               </p>
             </div>
@@ -499,7 +566,8 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
       {actionOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
           <form onSubmit={confirmAction} className="w-full max-w-lg space-y-4 rounded-3xl bg-white p-6 shadow-2xl">
-            <div className="flex items-center justify-between"><div><h2 className="text-lg font-black capitalize">{action} delivery</h2><p className="text-xs text-slate-500">{actionOrder.id}</p></div><button type="button" onClick={() => setActionOrder(null)} aria-label="Close"><X /></button></div>
+            <div className="flex items-center justify-between"><div><h2 className="text-lg font-black">{action === 'delivered' ? 'Mark delivered' : action === 'cancel' ? 'Cancel delivery' : action === 'dispatch' ? 'Dispatch delivery' : `${action[0].toUpperCase()}${action.slice(1)} delivery`}</h2><p className="text-xs text-slate-500">{actionOrder.delivery_id || `DEL-${actionOrder.id}`} · {actionOrder.id}</p></div><button type="button" onClick={() => setActionOrder(null)} aria-label="Close"><X /></button></div>
+            {(action === 'delivered' || action === 'cancel' || action === 'dispatch') && <p className={`rounded-xl p-3 text-xs ${action === 'cancel' ? 'border border-rose-200 bg-rose-50 text-rose-800' : 'border border-emerald-200 bg-emerald-50 text-emerald-800'}`}>{action === 'cancel' ? 'Cancellation is terminal. A reason and OTP are required; the action is recorded in delivery history.' : action === 'dispatch' ? 'Dispatching changes this order to In Transit. Confirm the assigned RPAV is ready; the reason and OTP will be audited.' : 'Confirm that the customer has received the order. A reason and OTP are required before marking it delivered.'}</p>}
             <label className="block space-y-1 text-xs font-bold text-slate-700">Reason (required)<textarea required minLength={5} value={reason} onChange={event => setReason(event.target.value)} rows={3} className="w-full rounded-xl border border-slate-200 p-3 text-sm" /></label>
             {action === 'reschedule' && <label className="block space-y-1 text-xs font-bold text-slate-700">New delivery date and time<input required type="datetime-local" min={new Date().toISOString().slice(0, 16)} value={scheduledTime} onChange={event => setScheduledTime(event.target.value)} className="w-full rounded-xl border border-slate-200 p-3 text-sm" /></label>}
             <label className="block space-y-1 text-xs font-bold text-slate-700">Send OTP to
