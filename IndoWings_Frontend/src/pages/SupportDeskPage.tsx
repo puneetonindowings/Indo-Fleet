@@ -26,6 +26,7 @@ import {
   Check,
   Calendar,
   Hash,
+  Download,
   Zap,
   CheckCheck,
   PhoneCall,
@@ -300,6 +301,28 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
       setEmailFeedback(err instanceof Error ? err.message : 'Could not send the support reply.');
     } finally {
       setIsSendingEmail(false);
+    }
+  };
+
+  const downloadEmailAttachment = async (ticketId: string, emailId: string, attachment: any) => {
+    setSupportError('');
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/delivery/support/tickets/${encodeURIComponent(ticketId)}/emails/${encodeURIComponent(emailId)}/attachments/${encodeURIComponent(attachment.id)}`,
+        { headers: supportHeaders }
+      );
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || 'Could not download this attachment.');
+      }
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = attachment.filename || 'support-attachment';
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch (err) {
+      setSupportError(err instanceof Error ? err.message : 'Could not download this attachment.');
     }
   };
 
@@ -800,10 +823,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                           )}
                           {t.email_thread && t.email_thread.length > 0 && (
                             <span className="flex items-center gap-1 font-medium text-sky-700 bg-sky-50 px-2 py-0.5 rounded">
-                              {t.email_thread.filter((email: any) => email.delivery_status !== 'failed').length} sent
-                              {t.email_thread.some((email: any) => email.delivery_status === 'failed') && (
-                                <span className="text-rose-700">{t.email_thread.filter((email: any) => email.delivery_status === 'failed').length} failed</span>
-                              )}
+                              {t.email_thread.filter((email: any) => email.direction === 'inbound').length} received · {t.email_thread.filter((email: any) => email.direction !== 'inbound').length} sent
                             </span>
                           )}
                         </div>
@@ -881,13 +901,13 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
-                <h2 className="text-base font-bold text-slate-900">Direct Outbound Email Dispatches</h2>
-                <p className="text-xs text-slate-500">Audit log of {allEmails.length} custom email replies sent directly to customers from this desk.</p>
+                <h2 className="text-base font-bold text-slate-900">Support Email Inbox & Outbox</h2>
+                <p className="text-xs text-slate-500">{allEmails.filter((email: any) => email.direction === 'inbound').length} received · {allEmails.filter((email: any) => email.direction !== 'inbound').length} sent or pending.</p>
               </div>
             </div>
 
             {allEmails.length === 0 ? (
-              <div className="p-8 text-center text-slate-400 text-xs">No direct emails sent yet. Click &quot;Send Email&quot; on any ticket to send a personalized reply.</div>
+              <div className="p-8 text-center text-slate-400 text-xs">No support email messages yet.</div>
             ) : (
               <div className="space-y-3">
                 {allEmails.map((m: any, idx: number) => (
@@ -895,17 +915,36 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-bold text-[#3b0080]">{m.ticket_id}</span>
-                        <span className="text-slate-400">→</span>
+                        <span className="text-slate-400">{m.direction === 'inbound' ? '←' : '→'}</span>
                         <strong className="text-slate-800">{m.customer_name}</strong>
-                        <span className="text-slate-400">({m.to})</span>
+                        <span className="text-slate-400">({m.direction === 'inbound' ? m.from : m.to})</span>
                       </div>
                       <span className="text-slate-400 text-[11px]">{new Date(m.timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</span>
                     </div>
+                    <p className={`text-[10px] font-bold uppercase ${m.direction === 'inbound' ? 'text-emerald-700' : 'text-sky-700'}`}>
+                      {m.direction === 'inbound' ? 'Received from customer' : `Outbound · ${m.delivery_status || 'sent'}`}
+                    </p>
                     <p className="text-xs font-bold text-slate-900">{m.subject}</p>
                     <p className="text-xs text-slate-600 bg-white p-3 rounded-lg border border-slate-100 white-space-pre-wrap">{m.message}</p>
-                    <p className="text-[10px] text-slate-400">
-                      Dispatched by: <strong className="text-slate-600">{m.agent_name}</strong> via connect@indowings.com
-                    </p>
+                    {Array.isArray(m.attachments) && m.attachments.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {m.attachments.map((attachment: any) => (
+                          <button
+                            key={attachment.id}
+                            type="button"
+                            onClick={() => void downloadEmailAttachment(m.ticket_id, m.id, attachment)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            <Download className="h-3 w-3" />{attachment.filename || 'Attachment'}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {m.direction !== 'inbound' && (
+                      <p className="text-[10px] text-slate-400">
+                        Dispatched by: <strong className="text-slate-600">{m.agent_name}</strong> via connect@indowings.com
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>

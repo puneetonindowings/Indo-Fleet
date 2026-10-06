@@ -22,7 +22,8 @@ import {
   sendUserProvisionedEmail,
   sendAccountStatusEmail,
   sendAccountRemovedEmail,
-  sendPasswordChangedEmail
+  sendPasswordChangedEmail,
+  getReceivedSupportAttachment
 } from '../emailService.js';
 
 const router = Router();
@@ -1296,6 +1297,12 @@ router.post('/dispatch/confirm', async (req, res) => {
     name: dispatcher.name,
     role: dispatcher.role
   });
+  const dispatchedOrder = await fileDB.findOrderById(orderId);
+  if (dispatchedOrder?.customer_email) {
+    sendOrderStatusEmail(dispatchedOrder, dispatchedOrder.status).catch((err) =>
+      console.error('[mail] Drone booking dispatch notification failed:', err)
+    );
+  }
   res.json({ success: true, message: `${records.length} drone${records.length === 1 ? '' : 's'} dispatched successfully.`, dispatches: records });
 });
 
@@ -2593,7 +2600,12 @@ router.post('/support/tickets/:id/send-email', async (req, res) => {
       return;
     }
 
-    const emailSubject = subject || `Re: Support Ticket [${existing.id}] - IndoFleet Operations`;
+    const requestedSubject = typeof subject === 'string' && subject.trim()
+      ? subject.trim()
+      : 'IndoFleet Operations';
+    const emailSubject = requestedSubject.toLowerCase().includes(existing.id.toLowerCase())
+      ? requestedSubject
+      : `Re: [${existing.id}] ${requestedSubject}`;
     if (typeof message !== 'string' || !message.trim()) {
       res.status(400).json({ error: 'Reply message is required.' });
       return;
@@ -2632,6 +2644,80 @@ router.post('/support/tickets/:id/send-email', async (req, res) => {
     res.json({ success: true, request: updated, email_entry: emailEntry });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to send direct email' });
+  }
+});
+
+router.get('/support/tickets/:id/emails/:emailId/attachments/:attachmentId', async (req, res) => {
+  const actor = await requireSupportOperator(req, res);
+  if (!actor) return;
+  const ticket = (await fileDB.getExpertRequests()).find((request) => request.id === String(req.params.id));
+  if (!ticket) {
+    res.status(404).json({ error: 'Ticket not found.' });
+    return;
+  }
+  if (!supportTicketVisibleTo(actor, ticket)) {
+    res.status(403).json({ error: 'This ticket is not assigned to your support account.' });
+    return;
+  }
+  const emailEntry = (Array.isArray(ticket.email_thread) ? ticket.email_thread : []).find((entry: any) =>
+    entry.direction === 'inbound' && entry.id === String(req.params.emailId)
+    && Array.isArray(entry.attachments) && entry.attachments.some((attachment: any) => attachment.id === String(req.params.attachmentId))
+  );
+  if (!emailEntry) {
+    res.status(404).json({ error: 'Email attachment not found.' });
+    return;
+  }
+
+  try {
+    const attachment = await getReceivedSupportAttachment(String(req.params.emailId), String(req.params.attachmentId));
+    if (attachment.size > 20 * 1024 * 1024) {
+      res.status(413).json({ error: 'This attachment is too large to download from Support Desk.' });
+      return;
+    }
+    const downloadUrl = new URL(attachment.download_url);
+    if (downloadUrl.protocol !== 'https:') {
+      res.status(502).json({ error: 'Resend returned an invalid attachment download URL.' });
+      return;
+    }
+    const response = await fetch(downloadUrl, { signal: AbortSignal.timeout(15_000), redirect: 'error' });
+    if (!response.ok) {
+      res.status(502).json({ error: 'Resend could not provide the email attachment.' });
+      return;
+    }
+    const contentLength = Number(response.headers.get('content-length') || 0);
+    if (contentLength > 20 * 1024 * 1024) {
+      res.status(413).json({ error: 'This attachment is too large to download from Support Desk.' });
+      return;
+    }
+    const reader = response.body?.getReader();
+    if (!reader) {
+      res.status(502).json({ error: 'Resend returned an empty email attachment.' });
+      return;
+    }
+    const chunks: Buffer[] = [];
+    let size = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > 20 * 1024 * 1024) {
+        await reader.cancel();
+        res.status(413).json({ error: 'This attachment is too large to download from Support Desk.' });
+        return;
+      }
+      chunks.push(Buffer.from(value));
+    }
+    const content = Buffer.concat(chunks);
+    const filename = (attachment.filename || 'support-attachment')
+      .replace(/[\\/\r\n"]/g, '_')
+      .slice(0, 180);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="support-attachment"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.send(content);
+  } catch (error) {
+    console.error('[support] Could not download inbound email attachment:', error instanceof Error ? error.message : 'Download error.');
+    res.status(502).json({ error: 'Could not download the email attachment from Resend.' });
   }
 });
 

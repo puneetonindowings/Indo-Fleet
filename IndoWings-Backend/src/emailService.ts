@@ -46,6 +46,12 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
   }
 }
 
+export async function getReceivedSupportAttachment(emailId: string, attachmentId: string) {
+  const { data, error } = await resend.emails.receiving.attachments.get({ emailId, id: attachmentId });
+  if (error || !data) throw new Error('Could not retrieve the attachment from Resend.');
+  return data;
+}
+
 // ── 0. OTP Dispatch (Email & SMS Gateway) ───────────────────────────────────
 export async function sendOtpNotification({ email, phone, otp }: { email?: string; phone?: string; otp: string }) {
   let delivered = false;
