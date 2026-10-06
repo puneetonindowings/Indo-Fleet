@@ -1670,7 +1670,7 @@ router.patch('/delivery/orders/:id/porter-tracking', async (req, res) => {
     return;
   }
 
-  const { porter_tracking_id, porter_tracking_url, porter_contact } = req.body || {};
+  const { porter_tracking_id, porter_tracking_url, porter_contact, mapbox_route_url } = req.body || {};
   if (typeof porter_tracking_id !== 'string' || porter_tracking_id.trim().length > 120) {
     res.status(400).json({ error: 'Enter a valid Porter booking or tracking ID (up to 120 characters).' });
     return;
@@ -1688,12 +1688,26 @@ router.patch('/delivery/orders/:id/porter-tracking', async (req, res) => {
     res.status(400).json({ error: 'Porter contact must be 120 characters or fewer.' });
     return;
   }
+  if (mapbox_route_url !== undefined && mapbox_route_url !== '') {
+    try {
+      const url = new URL(mapbox_route_url);
+      if (url.protocol !== 'https:' || !/(^|\.)mapbox\.com$/i.test(url.hostname)) throw new Error('Mapbox HTTPS URL required');
+      if (url.searchParams.has('access_token') || url.searchParams.has('token') || /(?:access_token|token)=/i.test(url.hash)) {
+        res.status(400).json({ error: 'Use a shareable Mapbox route link without an access token. Keep API tokens in environment configuration.' });
+        return;
+      }
+    } catch {
+      res.status(400).json({ error: 'Mapbox route link must be a valid HTTPS URL on mapbox.com.' });
+      return;
+    }
+  }
 
   const now = new Date().toISOString();
   const trackingDetails = {
     porter_tracking_id: porter_tracking_id.trim(),
     porter_tracking_url: String(porter_tracking_url || '').trim(),
     porter_contact: String(porter_contact || '').trim(),
+    mapbox_route_url: String(mapbox_route_url || '').trim(),
     porter_updated_at: now,
     porter_updated_by: operator.id,
     porter_updated_by_name: operator.name
@@ -1701,9 +1715,9 @@ router.patch('/delivery/orders/:id/porter-tracking', async (req, res) => {
   const auditEntry = {
     id: crypto.randomUUID(),
     order_id: order.id,
-    action: 'porter_tracking_updated',
+    action: 'delivery_tracking_updated',
     tracking_id: trackingDetails.porter_tracking_id,
-    reason: trackingDetails.porter_tracking_id ? 'Porter tracking details saved' : 'Porter tracking details removed',
+    reason: 'Delivery tracking links updated',
     performed_by: operator.name,
     performed_by_id: operator.id,
     timestamp: now
@@ -1712,11 +1726,11 @@ router.patch('/delivery/orders/:id/porter-tracking', async (req, res) => {
     ...trackingDetails,
     delivery_audit_log: [...(Array.isArray(order.delivery_audit_log) ? order.delivery_audit_log : []), auditEntry],
     timeline: [...(Array.isArray(order.timeline) ? order.timeline : []), {
-      step: trackingDetails.porter_tracking_id ? 'Porter tracking details added' : 'Porter tracking details cleared',
+      step: 'Delivery tracking details updated',
       time: now,
       done: true,
       performed_by: operator.name,
-      details: trackingDetails.porter_tracking_id ? `Porter ID: ${trackingDetails.porter_tracking_id}` : 'Porter ID removed'
+      details: `Porter ID: ${trackingDetails.porter_tracking_id || '—'}${trackingDetails.mapbox_route_url ? ' · Mapbox route link saved' : ''}`
     }],
     updated_at: now
   });
@@ -2564,12 +2578,7 @@ router.post('/support/tickets/:id/send-email', async (req, res) => {
       res.status(400).json({ error: 'Reply message is required.' });
       return;
     }
-    const sent = await sendDirectSupportEmail(existing.email, emailSubject, message.trim(), actor.name || agent_name || 'IndoFleet Support Desk');
-    if (!sent) {
-      res.status(502).json({ error: 'Email provider could not deliver the reply. The ticket conversation was not updated.' });
-      return;
-    }
-
+    const delivery = await sendDirectSupportEmail(existing.email, emailSubject, message.trim(), actor.name || agent_name || 'IndoFleet Support Desk');
     const emailEntry = {
       id: `MSG-${Date.now().toString().slice(-5)}`,
       direction: 'outbound',
@@ -2578,13 +2587,25 @@ router.post('/support/tickets/:id/send-email', async (req, res) => {
       message,
       agent_id: actor.id,
       agent_name: actor.name || agent_name || 'Support Agent',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      delivery_status: delivery.success ? 'sent' : 'failed',
+      provider_message_id: delivery.success ? delivery.messageId : undefined,
+      delivery_error: delivery.success ? undefined : delivery.error
     };
 
     const email_thread = Array.isArray(existing.email_thread) ? [...existing.email_thread, emailEntry] : [emailEntry];
     const timeline = [...(Array.isArray(existing.timeline) ? existing.timeline : []), { ...emailEntry, type: 'email_reply' }];
-    const audit_log = addSupportAudit(existing, actor, 'customer_reply_sent', null, { to: existing.email, subject: emailSubject });
+    const audit_log = addSupportAudit(existing, actor, delivery.success ? 'customer_reply_sent' : 'customer_reply_failed', null, {
+      to: existing.email,
+      subject: emailSubject,
+      provider_message_id: delivery.success ? delivery.messageId : undefined
+    });
     const updated = await fileDB.updateExpertRequest(id, { email_thread, timeline, audit_log });
+
+    if (!delivery.success) {
+      res.status(502).json({ error: `Resend could not deliver the reply: ${delivery.error}`, request: updated, email_entry: emailEntry });
+      return;
+    }
 
     console.log(`[support] Direct email sent to ${existing.email} for ticket ${id}`);
 

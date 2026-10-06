@@ -54,6 +54,7 @@ interface DeliveryOrder {
   porter_tracking_id?: string;
   porter_tracking_url?: string;
   porter_contact?: string;
+  mapbox_route_url?: string;
   porter_updated_at?: string;
   estimated_delivery?: string;
   scheduled_time?: string;
@@ -274,6 +275,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
   const [porterTrackingId, setPorterTrackingId] = useState('');
   const [porterTrackingUrl, setPorterTrackingUrl] = useState('');
   const [porterContact, setPorterContact] = useState('');
+  const [mapboxRouteUrl, setMapboxRouteUrl] = useState('');
   const [savingPorter, setSavingPorter] = useState(false);
   const [actionOrder, setActionOrder] = useState<DeliveryOrder | null>(null);
   const [action, setAction] = useState<DeliveryAction>('hold');
@@ -395,6 +397,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
     setPorterTrackingId(order.porter_tracking_id || '');
     setPorterTrackingUrl(order.porter_tracking_url || '');
     setPorterContact(order.porter_contact || '');
+    setMapboxRouteUrl(order.mapbox_route_url || '');
     setError('');
   };
 
@@ -410,7 +413,8 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
         body: JSON.stringify({
           porter_tracking_id: porterTrackingId.trim(),
           porter_tracking_url: porterTrackingUrl.trim(),
-          porter_contact: porterContact.trim()
+          porter_contact: porterContact.trim(),
+          mapbox_route_url: mapboxRouteUrl.trim()
         })
       });
       const result = await response.json();
@@ -506,7 +510,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
                       <td className="px-4 py-3"><div className="flex flex-wrap gap-1.5">
                         <button onClick={() => setSelectedOrder(order)} className="rounded-lg border border-slate-200 px-2.5 py-1.5 font-bold text-slate-700">Details</button>
                         {order.porter_tracking_id && order.porter_tracking_url && <a href={order.porter_tracking_url} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-sky-50 px-2.5 py-1.5 font-bold text-sky-800">Porter <ExternalLink className="inline h-3 w-3" /></a>}
-                        {canManagePorterTracking && <button onClick={() => openPorterForm(order)} className="rounded-lg bg-sky-50 px-2.5 py-1.5 font-bold text-sky-800">{order.porter_tracking_id ? 'Edit Porter ID' : 'Add Porter ID'}</button>}
+                        {canManagePorterTracking && <button onClick={() => openPorterForm(order)} className="rounded-lg bg-sky-50 px-2.5 py-1.5 font-bold text-sky-800">{order.porter_tracking_id || order.mapbox_route_url ? 'Edit tracking links' : 'Add tracking links'}</button>}
                         {order.order_type === 'drone_purchase' && !order.dispatch_time && <button onClick={() => onNavigate?.('drone-dispatch')} className="rounded-lg bg-indigo-50 px-2.5 py-1.5 font-bold text-indigo-800">Secure Dispatch</button>}
                         {canManagePorterTracking && order.order_type !== 'drone_purchase' && ['pending', 'assigned'].includes(order.status) && <button onClick={() => startAction(order, 'dispatch')} className="rounded-lg bg-indigo-50 px-2.5 py-1.5 font-bold text-indigo-800">Dispatch · OTP</button>}
                         {order.status !== 'on-hold' && !['delivered', 'cancelled', 'failed'].includes(order.status) && <button onClick={() => startAction(order, 'hold')} className="rounded-lg bg-amber-50 px-2.5 py-1.5 font-bold text-amber-800">Hold</button>}
@@ -566,15 +570,22 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
                 ['Delivered at', formatDate(selectedOrder.delivered_at)],
                 ['Porter booking / tracking ID', selectedOrder.porter_tracking_id || 'Not entered'],
                 ['Porter contact', selectedOrder.porter_contact || '—'],
+                ['Mapbox route link', selectedOrder.mapbox_route_url ? 'Added by dispatcher/admin' : 'Not entered'],
                 ['Porter details updated', formatDate(selectedOrder.porter_updated_at)]
               ].map(([label, value]) => <div key={label} className="rounded-xl bg-slate-50 p-3"><p className="text-[10px] font-bold uppercase text-slate-500">{label}</p><p className="mt-1 text-sm font-semibold text-slate-800">{value}</p></div>)}
             </div>
+            {selectedOrder.mapbox_route_url && (
+              <a href={selectedOrder.mapbox_route_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-violet-50 px-4 py-2.5 text-xs font-bold text-violet-800 hover:bg-violet-100">
+                Open Mapbox route <ExternalLink className="h-4 w-4" />
+              </a>
+            )}
             {selectedOrder.porter_tracking_url && (
               <a href={selectedOrder.porter_tracking_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-sky-50 px-4 py-2.5 text-xs font-bold text-sky-800 hover:bg-sky-100">
                 Open Porter tracking page <ExternalLink className="h-4 w-4" />
               </a>
             )}
             <p className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">Porter ID is saved against this order for the team to track in Porter. The ID alone does not provide live coordinates inside IndoFleet; that requires Porter tracking API/webhook access or manually entering location updates.</p>
+            <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-xs text-violet-900">The Mapbox URL is assigned per delivery by an administrator or dispatcher. It opens the supplied route; ETA here is separately calculated from saved coordinates and the configured Mapbox Directions token.</p>
             <div className="space-y-3 rounded-2xl border border-slate-200 p-4">
               <div>
                 <h3 className="font-bold text-slate-900">MapTiler delivery map</h3>
@@ -595,8 +606,8 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
           <form onSubmit={savePorterTracking} className="w-full max-w-lg space-y-4 rounded-3xl bg-white p-6 shadow-2xl">
             <div className="flex items-center justify-between">
-              <div><p className="text-xs font-bold uppercase text-sky-700">Courier details</p><h2 className="text-lg font-black text-slate-900">Porter tracking ID</h2><p className="text-xs text-slate-500">{porterOrder.id}</p></div>
-              <button type="button" onClick={() => setPorterOrder(null)} aria-label="Close Porter form"><X /></button>
+              <div><p className="text-xs font-bold uppercase text-sky-700">Delivery tracking</p><h2 className="text-lg font-black text-slate-900">Tracking links and Porter ID</h2><p className="text-xs text-slate-500">{porterOrder.id}</p></div>
+              <button type="button" onClick={() => setPorterOrder(null)} aria-label="Close delivery tracking form"><X /></button>
             </div>
             <p className="text-xs text-slate-600">Porter booking hone ke baad uska trip/booking ID yahan enter karein. Ye ID order ke saath save hogi aur details me dikhegi.</p>
             <label className="block space-y-1 text-xs font-bold text-slate-700">Porter booking / tracking ID
@@ -605,14 +616,18 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
             <label className="block space-y-1 text-xs font-bold text-slate-700">Porter tracking link (optional)
               <input type="url" value={porterTrackingUrl} onChange={event => setPorterTrackingUrl(event.target.value)} className="w-full rounded-xl border border-slate-200 p-3 text-sm" placeholder="https://..." />
             </label>
+            <label className="block space-y-1 text-xs font-bold text-slate-700">Mapbox route URL (optional)
+              <input type="url" value={mapboxRouteUrl} onChange={event => setMapboxRouteUrl(event.target.value)} className="w-full rounded-xl border border-slate-200 p-3 text-sm" placeholder="https://www.mapbox.com/..." />
+              <span className="block font-normal text-slate-500">Use a share link without an API access token. ETA uses the separately configured token.</span>
+            </label>
             <label className="block space-y-1 text-xs font-bold text-slate-700">Porter driver/contact (optional)
               <input maxLength={120} value={porterContact} onChange={event => setPorterContact(event.target.value)} className="w-full rounded-xl border border-slate-200 p-3 text-sm" placeholder="Name or phone" />
             </label>
             {error && <p role="alert" className="text-sm font-semibold text-rose-700">{error}</p>}
             <div className="flex justify-end gap-2">
-              {porterOrder.porter_tracking_id && <button type="button" onClick={() => { setPorterTrackingId(''); setPorterTrackingUrl(''); setPorterContact(''); }} className="mr-auto rounded-xl px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50">Clear details</button>}
+              {(porterOrder.porter_tracking_id || porterOrder.porter_tracking_url || porterOrder.porter_contact || porterOrder.mapbox_route_url) && <button type="button" onClick={() => { setPorterTrackingId(''); setPorterTrackingUrl(''); setPorterContact(''); setMapboxRouteUrl(''); }} className="mr-auto rounded-xl px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50">Clear details</button>}
               <button type="button" onClick={() => setPorterOrder(null)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600">Cancel</button>
-              <button disabled={savingPorter || (!porterTrackingId.trim() && !porterOrder.porter_tracking_id)} className="rounded-xl bg-sky-700 px-5 py-2.5 text-xs font-bold text-white disabled:opacity-50">{savingPorter ? 'Saving…' : porterTrackingId.trim() ? 'Save Porter ID' : 'Remove Porter ID'}</button>
+              <button disabled={savingPorter || (!porterTrackingId.trim() && !porterTrackingUrl.trim() && !porterContact.trim() && !mapboxRouteUrl.trim() && !porterOrder.porter_tracking_id && !porterOrder.porter_tracking_url && !porterOrder.porter_contact && !porterOrder.mapbox_route_url)} className="rounded-xl bg-sky-700 px-5 py-2.5 text-xs font-bold text-white disabled:opacity-50">{savingPorter ? 'Saving…' : 'Save tracking details'}</button>
             </div>
           </form>
         </div>

@@ -94,6 +94,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailFeedback, setEmailFeedback] = useState('');
 
   // Play sound using Web Audio API Synthesizer
   const playAlertSound = () => {
@@ -273,6 +274,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
     e.preventDefault();
     if (!emailingTicket || !emailBody.trim()) return;
     setIsSendingEmail(true);
+    setEmailFeedback('');
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/delivery/support/tickets/${emailingTicket.id}/send-email`, {
@@ -289,10 +291,13 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
         setEmailingTicket(null);
         setEmailSubject('');
         setEmailBody('');
-        await fetchTickets();
+      } else {
+        const result = await res.json().catch(() => ({}));
+        setEmailFeedback(result.error || 'Resend could not deliver this reply. It has been recorded as failed.');
       }
+      await fetchTickets();
     } catch (err) {
-      console.error('[support] Failed to send email:', err);
+      setEmailFeedback(err instanceof Error ? err.message : 'Could not send the support reply.');
     } finally {
       setIsSendingEmail(false);
     }
@@ -761,6 +766,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                           <button
                             onClick={() => {
                               setEmailingTicket(t);
+                              setEmailFeedback('');
                               setEmailSubject(`Re: Support Ticket [${t.id}] - IndoFleet Operations`);
                               setEmailBody(
                                 `Hello ${t.name || 'Valued Customer'},\n\nRegarding your query about ${t.category || 'our drone flight operations'}...\n\nBest regards,\nIndoFleet Support Desk`
@@ -793,7 +799,12 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                             <span className="flex items-center gap-1 font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded">{t.call_logs.length} Phone Calls Logged</span>
                           )}
                           {t.email_thread && t.email_thread.length > 0 && (
-                            <span className="flex items-center gap-1 font-medium text-sky-700 bg-sky-50 px-2 py-0.5 rounded">{t.email_thread.length} Outbound Messages</span>
+                            <span className="flex items-center gap-1 font-medium text-sky-700 bg-sky-50 px-2 py-0.5 rounded">
+                              {t.email_thread.filter((email: any) => email.delivery_status !== 'failed').length} sent
+                              {t.email_thread.some((email: any) => email.delivery_status === 'failed') && (
+                                <span className="text-rose-700">{t.email_thread.filter((email: any) => email.delivery_status === 'failed').length} failed</span>
+                              )}
+                            </span>
                           )}
                         </div>
                       )}
@@ -1212,6 +1223,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
             </div>
 
             <form onSubmit={handleSendEmail} className="space-y-4 text-xs">
+              {emailFeedback && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 font-semibold text-rose-800">{emailFeedback}</p>}
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Email Subject</label>
                 <input

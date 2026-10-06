@@ -8,10 +8,12 @@ Indo-Fleet is the workspace for the IndoWings frontend and backend applications.
 - `IndoWings-Backend/` — Express and TypeScript API, Supabase schema, and migrations.
 
 The Delivery Tracking workspace supports searchable order lifecycles, RPAV
-details, Porter references, MapTiler maps, Mapbox driving-route ETA from saved
-GPS/pickup coordinates, and OTP-audited dispatch/hold/unhold/reschedule/
-delivery/cancellation actions. ETA is an estimate, not live courier telemetry;
-without route coordinates or a valid Mapbox token it remains unavailable.
+details, Porter references, a per-delivery Mapbox route link entered by an
+administrator or dispatcher, MapTiler maps, Mapbox driving-route ETA from
+saved GPS/pickup coordinates, and OTP-audited dispatch/hold/unhold/reschedule/
+delivery/cancellation actions. The saved Mapbox link is for opening the
+dispatcher-provided route; the in-app ETA is separately estimated from saved
+coordinates and is not live courier telemetry.
 Admins can open it from Admin; other authorized delivery operators can use
 `/delivery-tracking`.
 
@@ -50,7 +52,8 @@ secret, email credentials, and SMS provider keys on the backend only.
 | `JWT_SECRET` | Long, unique secret used to sign authentication tokens. |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | Optional initial administrator account settings. |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Payment-provider credentials; keep the secret private. |
-| `RESEND_API_KEY`, `FROM_EMAIL` | Resend email delivery configuration. |
+| `RESEND_API_KEY`, `FROM_EMAIL` | Resend email delivery configuration for general app mail. |
+| `SUPPORT_EMAIL`, `SUPPORT_EMAIL_NAME`, `RESEND_FROM_EMAIL`, `RESEND_FROM_NAME` | Support mailbox and verified Resend sender. Support replies use Resend only and do not fall back to SMTP. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | Optional SMTP email configuration (Microsoft 365 commonly uses `smtp.office365.com`, port `587`, with SMTP AUTH/OAuth configured by the tenant). |
 | `SERVICEHUB_SUPABASE_URL`, `SERVICEHUB_SUPABASE_ANON_KEY` | Optional separate Supabase project used by the SMS OTP integration. |
 | `FAST2SMS_API_KEY` | Optional Fast2SMS credential. |
@@ -59,6 +62,11 @@ secret, email credentials, and SMS provider keys on the backend only.
 Set the Supabase project values and private service-role key before starting
 the backend. See `IndoWings-Backend/README.md` and
 `IndoWings-Backend/supabase/` for database setup and migrations.
+
+Resend can send support replies only after the configured sender domain is
+verified in Resend. Inbound support-email routing is not enabled yet. The
+current `indowings.com` MX points to Microsoft 365; do not replace it without
+planning mail routing, or existing mail delivery may be interrupted.
 
 ### Frontend: `IndoWings_Frontend/.env.local`
 

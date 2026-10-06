@@ -4,6 +4,8 @@ import nodemailer from 'nodemailer';
 
 const RESEND_KEY = process.env.RESEND_API_KEY || '';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@dev2dev.online';
+const SUPPORT_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.SUPPORT_EMAIL || FROM_EMAIL;
+const SUPPORT_FROM_NAME = process.env.RESEND_FROM_NAME || process.env.SUPPORT_EMAIL_NAME || 'IndoFleet Support Desk';
 const SMTP_USER = process.env.SMTP_USER || '';
 const SMTP_PASS = process.env.SMTP_PASS || '';
 
@@ -957,7 +959,21 @@ Thank you for choosing IndoFleet Aerospace.
 
 // ── 10. Direct Email Reply from Support Agent ─────────────────────────────────
 export async function sendDirectSupportEmail(to: string, subject: string, message: string, agentName: string = 'IndoFleet Support Desk') {
-  if (!to || !to.includes('@')) return false;
+  if (!to || !to.includes('@')) return { success: false, error: 'Customer email address is invalid.' };
+  if (!RESEND_KEY) return { success: false, error: 'Resend is not configured for Support Desk email.' };
+  if (!SUPPORT_FROM_EMAIL || !SUPPORT_FROM_EMAIL.includes('@')) {
+    return { success: false, error: 'A valid Resend support sender address is not configured.' };
+  }
+
+  const escapeHtml = (value: string) => value.replace(/[&<>"']/g, character => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[character] || character);
+  const safeMessage = escapeHtml(message);
+  const safeAgentName = escapeHtml(agentName);
   const text = `
 Dear Customer,
 
@@ -981,11 +997,11 @@ Email: connect@indowings.com
  </div>
  <div style="padding: 24px;">
  <div style="font-size: 14px; line-height: 1.7; color: #334155; white-space: pre-wrap; margin-bottom: 24px;">
- ${message}
+ ${safeMessage}
  </div>
 
  <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; font-size: 12px; color: #64748b;">
- <strong style="color: #1e293b; display: block; font-size: 13px;">${agentName}</strong>
+ <strong style="color: #1e293b; display: block; font-size: 13px;">${safeAgentName}</strong>
  Support & Operations Command Desk<br>
  IndoFleet Aerospace Technologies Ltd.<br>
  Direct Phone: +91 7669478937 · Toll-Free: 1800 572 7363 · Email: connect@indowings.com
@@ -996,5 +1012,24 @@ Email: connect@indowings.com
 </html>
 `.trim();
 
-  return sendEmail({ to, subject, text, html });
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `${SUPPORT_FROM_NAME} <${SUPPORT_FROM_EMAIL}>`,
+      to: [to],
+      subject,
+      text,
+      html
+    });
+    if (error || !data) {
+      const reason = error?.message || 'Resend did not return a message ID.';
+      console.error(`[support-mail] Resend delivery failed: ${reason}`);
+      return { success: false, error: reason };
+    }
+    console.log(`[support-mail] Resend accepted support reply (ID: ${data.id})`);
+    return { success: true, messageId: data.id };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'Unknown Resend error.';
+    console.error(`[support-mail] Resend delivery failed: ${reason}`);
+    return { success: false, error: reason };
+  }
 }
