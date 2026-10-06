@@ -54,6 +54,7 @@ secret, email credentials, and SMS provider keys on the backend only.
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Payment-provider credentials; keep the secret private. |
 | `RESEND_API_KEY`, `FROM_EMAIL` | Resend API key and verified sender address used for all application email. |
 | `SUPPORT_EMAIL`, `SUPPORT_EMAIL_NAME`, `RESEND_FROM_EMAIL`, `RESEND_FROM_NAME` | Support address and sender identity. The configured verified Resend sender is used for account, order, status, and Support Desk notifications; there is no SMTP fallback. |
+| `RESEND_WEBHOOK_SECRET` | Signing secret for the Resend webhook; configure in Render, never in the frontend. |
 | `SERVICEHUB_SUPABASE_URL`, `SERVICEHUB_SUPABASE_ANON_KEY` | Optional separate Supabase project used by the SMS OTP integration. |
 | `FAST2SMS_API_KEY` | Optional Fast2SMS credential. |
 | `FRONTEND_URL` | Public frontend origin used in account and booking emails. |
@@ -66,6 +67,17 @@ Resend can send support replies only after the configured sender domain is
 verified in Resend. Inbound support-email routing is not enabled yet. The
 current `indowings.com` MX points to Microsoft 365; do not replace it without
 planning mail routing, or existing mail delivery may be interrupted.
+
+The Resend webhook receiver is `POST /api/webhooks/resend` (health: `GET` on
+the same path). Before enabling it, run
+`IndoWings-Backend/supabase/migrate_resend_webhook_events.sql` in Supabase,
+set `RESEND_WEBHOOK_SECRET` and `SUPPORT_EMAIL` in the backend environment, and
+subscribe the Resend webhook to `email.received`, `email.sent`,
+`email.delivered`, `email.delivery_delayed`, `email.failed`, `email.bounced`,
+`email.complained`, and `email.suppressed`. The webhook verifies signatures,
+deduplicates event IDs in Supabase, and does not log or persist raw webhook
+bodies. Inbound processing requires Resend receiving/domain routing; configure
+that only after planning how to preserve existing Microsoft 365 mail delivery.
 
 ### Frontend: `IndoWings_Frontend/.env.local`
 

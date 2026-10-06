@@ -532,6 +532,64 @@ export const deliveryStore = {
     fail('update support request', error);
     return data ? fromSupport(data) : null;
   },
+  async claimResendWebhookEvent(eventId: string, eventType: string) {
+    const now = new Date();
+    const leaseExpiresAt = new Date(now.getTime() + 2 * 60 * 1000).toISOString();
+    const { error: insertError } = await db().from('resend_webhook_events').insert({
+      event_id: eventId,
+      event_type: eventType,
+      status: 'processing',
+      lease_expires_at: leaseExpiresAt,
+      received_at: now.toISOString()
+    });
+    if (!insertError) return 'claimed' as const;
+    if (insertError.code !== '23505') {
+      fail('claim Resend webhook event', insertError);
+    }
+
+    const { data: existing, error: readError } = await db().from('resend_webhook_events')
+      .select('status,lease_expires_at')
+      .eq('event_id', eventId)
+      .maybeSingle();
+    fail('read Resend webhook event', readError);
+    if (!existing) throw new Error('Resend webhook event claim disappeared.');
+    if (existing.status === 'processed') return 'duplicate' as const;
+    if (existing.status === 'processing' && new Date(existing.lease_expires_at).getTime() > now.getTime()) {
+      return 'busy' as const;
+    }
+
+    const { data: claimed, error: claimError } = await db().from('resend_webhook_events')
+      .update({ status: 'processing', lease_expires_at: leaseExpiresAt, error_code: null })
+      .eq('event_id', eventId)
+      .eq('status', existing.status)
+      .eq('lease_expires_at', existing.lease_expires_at)
+      .select('event_id')
+      .maybeSingle();
+    fail('reclaim Resend webhook event', claimError);
+    return claimed ? 'claimed' as const : 'busy' as const;
+  },
+  async completeResendWebhookEvent(eventId: string) {
+    const { error } = await db().from('resend_webhook_events')
+      .update({ status: 'processed', processed_at: new Date().toISOString(), lease_expires_at: new Date().toISOString(), error_code: null })
+      .eq('event_id', eventId);
+    fail('complete Resend webhook event', error);
+  },
+  async failResendWebhookEvent(eventId: string, errorCode: string) {
+    const { error } = await db().from('resend_webhook_events')
+      .update({ status: 'failed', lease_expires_at: new Date().toISOString(), error_code: errorCode })
+      .eq('event_id', eventId)
+      .eq('status', 'processing');
+    fail('fail Resend webhook event', error);
+  },
+  async getResendWebhookHealth() {
+    const { data, error } = await db().from('resend_webhook_events')
+      .select('event_type,status,received_at,processed_at')
+      .order('received_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    fail('read Resend webhook health', error);
+    return data;
+  },
 
   async getFeedbacks() {
     const { data, error } = await db().from('feedbacks').select('*').order('created_at', { ascending: false });

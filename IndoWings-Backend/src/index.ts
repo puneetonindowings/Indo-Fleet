@@ -8,6 +8,7 @@ import auditRoutes from './routes/audit.js';
 import contactRoutes from './routes/contact.js';
 import statsRoutes from './routes/stats.js';
 import deliveryRoutes from './routes/delivery.js';
+import resendWebhookRoutes from './routes/resendWebhook.js';
 import { verifySupabaseConnection } from './supabase.js';
 import { seedDefaultAccounts } from './seed.js';
 
@@ -21,6 +22,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+app.use('/api/webhooks/resend', express.raw({ type: 'application/json', limit: '1mb' }), resendWebhookRoutes);
 app.use(express.json());
 
 // API Routes
