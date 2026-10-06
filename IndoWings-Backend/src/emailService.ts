@@ -1,37 +1,33 @@
 import './env.js';
 import { Resend } from 'resend';
-import nodemailer from 'nodemailer';
 
 const RESEND_KEY = process.env.RESEND_API_KEY || '';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@dev2dev.online';
 const SUPPORT_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.SUPPORT_EMAIL || FROM_EMAIL;
 const SUPPORT_FROM_NAME = process.env.RESEND_FROM_NAME || process.env.SUPPORT_EMAIL_NAME || 'IndoFleet Support Desk';
-const SMTP_USER = process.env.SMTP_USER || '';
-const SMTP_PASS = process.env.SMTP_PASS || '';
+const MAIL_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.SUPPORT_EMAIL || FROM_EMAIL;
+const MAIL_FROM_NAME = process.env.RESEND_FROM_NAME || process.env.SUPPORT_EMAIL_NAME || 'IndoWings Flight Operations';
 
 const resend = new Resend(RESEND_KEY);
 
-const smtpTransporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: false,
-  auth: {
-    user: SMTP_USER,
-    pass: SMTP_PASS
-  }
-});
-
-// Generic email sender with auto-fallback
+// All application email is sent through Resend; SMTP is deliberately not a fallback.
 export async function sendEmail({ to, subject, text, html }: { to: string; subject: string; text: string; html?: string }): Promise<boolean> {
   if (!to || !to.includes('@')) {
-    console.log(`[mail] Skipped invalid destination: Invalid destination: ${to}`);
+    console.error('[mail] Not sent: destination email address is invalid.');
+    return false;
+  }
+  if (!RESEND_KEY) {
+    console.error('[mail] Not sent: RESEND_API_KEY is not configured.');
+    return false;
+  }
+  if (!MAIL_FROM_EMAIL || !MAIL_FROM_EMAIL.includes('@')) {
+    console.error('[mail] Not sent: configure a verified Resend sender address.');
     return false;
   }
 
-  // 1. Try Resend
   try {
     const { data, error } = await resend.emails.send({
-      from: `IndoWings Flight Operations <${FROM_EMAIL}>`,
+      from: `${MAIL_FROM_NAME} <${MAIL_FROM_EMAIL}>`,
       to: [to],
       subject,
       text,
@@ -39,29 +35,13 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
     });
 
     if (data && !error) {
-      console.log(`[mail] Sent via Resend: To: ${to} | Subject: "${subject}" (ID: ${data.id})`);
+      console.log(`[mail] Resend accepted message (ID: ${data.id})`);
       return true;
     }
-    if (error) {
-      console.warn(`[mail] Resend notice: ${error.message}. Trying SMTP fallback...`);
-    }
-  } catch (err: any) {
-    console.warn(`[mail] Resend error: ${err.message}. Trying SMTP fallback...`);
-  }
-
-  // 2. Fallback to Gmail SMTP
-  try {
-    const info = await smtpTransporter.sendMail({
-      from: `"IndoWings Aerial Logistics" <${SMTP_USER}>`,
-      to,
-      subject,
-      text,
-      html: html || undefined
-    });
-    console.log(`[mail] Sent via SMTP: To: ${to} | Subject: "${subject}" (MessageID: ${info.messageId})`);
-    return true;
-  } catch (smtpErr: any) {
-    console.error(`[mail] Failed to send: Could not send email via Resend or SMTP:`, smtpErr.message);
+    console.error(`[mail] Resend rejected message: ${error?.message || 'No message ID returned.'}`);
+    return false;
+  } catch (err) {
+    console.error('[mail] Resend request failed:', err instanceof Error ? err.message : 'Unknown provider error.');
     return false;
   }
 }
@@ -272,6 +252,32 @@ Sector 62, Noida, Uttar Pradesh
   return sendEmail({ to, subject, text, html });
 }
 
+export async function sendAccountStatusEmail(to: string, name: string, status: 'active' | 'restricted') {
+  const subject = status === 'restricted'
+    ? 'IndoWings account access restricted'
+    : 'IndoWings account access restored';
+  const text = status === 'restricted'
+    ? `Hello ${name},\n\nAn administrator has restricted sign-in access to your IndoWings account. If you believe this is a mistake, contact your administrator or connect@indowings.com.\n\nIndoWings Operations`
+    : `Hello ${name},\n\nAn administrator has restored sign-in access to your IndoWings account. You can sign in using your registered email and the usual verification process.\n\nIndoWings Operations`;
+  return sendEmail({ to, subject, text });
+}
+
+export async function sendAccountRemovedEmail(to: string, name: string) {
+  return sendEmail({
+    to,
+    subject: 'IndoWings account removed',
+    text: `Hello ${name},\n\nYour IndoWings account has been removed by an administrator. If you believe this is a mistake, contact connect@indowings.com.\n\nIndoWings Operations`
+  });
+}
+
+export async function sendPasswordChangedEmail(to: string, name: string) {
+  return sendEmail({
+    to,
+    subject: 'IndoWings account password updated',
+    text: `Hello ${name},\n\nThe password for your IndoWings account was updated. If you did not make this change, contact your administrator or connect@indowings.com immediately.\n\nIndoWings Operations`
+  });
+}
+
 // ── 2. Login Security Alert Email ───────────────────────────────────────────
 export async function sendLoginAlertEmail(to: string, name: string, role: string, ip?: string) {
   const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
@@ -396,14 +402,19 @@ IndoWings Customer Operations
   }
 
   const statusLabels: Record<string, string> = {
+    pending: 'BOOKING RECEIVED',
+    assigned: 'ASSIGNED',
     'on-hold': 'ON HOLD',
+    cancelled: 'ORDER CANCELLED',
+    completed: 'COMPLETED',
+    rescheduled: 'RESCHEDULED',
     'in-flight': 'DISPATCHED & IN-FLIGHT',
+    'taking-off': 'TAKING OFF',
+    approaching: 'APPROACHING DROP ZONE',
+    'out-for-delivery': 'OUT FOR DELIVERY',
+    'in-transit': 'IN TRANSIT',
     delivered: 'DELIVERED SUCCESSFULLY',
     failed: 'DELIVERY FAILED / RETURNED',
-    rescheduled: 'RESCHEDULED',
-    approaching: 'APPROACHING DROP ZONE',
-    'taking-off': 'UAV TAKING OFF',
-    cancelled: 'ORDER CANCELLED'
   };
 
   const currentLabel = statusLabels[newStatus] || newStatus.toUpperCase();
@@ -426,8 +437,8 @@ Pickup: ${order.pickup_address}
 Drop: ${order.drop_address}
 Payment Status: ${(order.payment_status || 'PAID').toUpperCase()}
 
-Track live drone coordinates and telemetry:
-http://localhost:3000/track?id=${order.id}
+View your order and tracking updates:
+${process.env.FRONTEND_URL || 'https://indowings.com'}/profile?tab=orders
 
 For flight support or corridor queries, contact IndoWings Air Traffic Desk.
 
@@ -552,22 +563,58 @@ Helpline: 1800-IND-WINGS
 }
 
 // ── 6. Expert Consultation Status Update Email ───────────────────────────────
-export async function sendExpertRequestStatusEmail(request: any, newStatus: string, adminNotes?: string) {
+export async function sendExpertRequestStatusEmail(request: any, newStatus: string) {
   const to = request.email;
   if (!to || !to.includes('@')) return;
 
   const statusDescriptions: Record<string, { label: string; bg: string; textCol: string; message: string }> = {
+    open: {
+      label: 'OPEN',
+      bg: '#dbeafe',
+      textCol: '#1e40af',
+      message: 'Your request has been received and is waiting for review.'
+    },
     pending: {
       label: 'PENDING CALLBACK',
       bg: '#fef3c7',
       textCol: '#92400e',
       message: 'Your callback request is in the operations queue and will be picked up shortly.'
     },
+    in_progress: {
+      label: 'IN PROGRESS / REVIEWING',
+      bg: '#e0e7ff',
+      textCol: '#3730a3',
+      message: 'A support specialist is reviewing your request.'
+    },
     'in-progress': {
       label: 'IN PROGRESS / REVIEWING',
       bg: '#e0e7ff',
       textCol: '#3730a3',
-      message: 'A dedicated Flight Operations engineer has picked up your inquiry and is reviewing terrace satellite imagery and mission corridors.'
+      message: 'A support specialist is reviewing your request.'
+    },
+    waiting_for_customer: {
+      label: 'WAITING FOR YOUR RESPONSE',
+      bg: '#fef3c7',
+      textCol: '#92400e',
+      message: 'Our support team needs more information from you to continue reviewing this request.'
+    },
+    waiting_for_internal_team: {
+      label: 'UNDER REVIEW',
+      bg: '#e0e7ff',
+      textCol: '#3730a3',
+      message: 'Your request is being reviewed by the relevant operations team.'
+    },
+    reopened: {
+      label: 'REOPENED',
+      bg: '#dbeafe',
+      textCol: '#1e40af',
+      message: 'Your request has been reopened for further review.'
+    },
+    unresolved: {
+      label: 'UNRESOLVED',
+      bg: '#fee2e2',
+      textCol: '#991b1b',
+      message: 'Your request remains unresolved. Please contact our support team if you need further assistance.'
     },
     contacted: {
       label: 'CONTACT INITIATED',
@@ -579,7 +626,13 @@ export async function sendExpertRequestStatusEmail(request: any, newStatus: stri
       label: 'RESOLVED & COMPLETED',
       bg: '#dcfce7',
       textCol: '#166534',
-      message: 'Your consultation session has been successfully completed. Your query has been resolved by our engineering team.'
+      message: 'Your request has been resolved by our support team.'
+    },
+    closed: {
+      label: 'CLOSED',
+      bg: '#dcfce7',
+      textCol: '#166534',
+      message: 'Your support request has been closed.'
     }
   };
 
@@ -603,14 +656,13 @@ Topic: ${request.category}
 Updated Status: ${statusInfo.label}
 Details: ${statusInfo.message}
 Timestamp: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
-${adminNotes ? `Operations Note: "${adminNotes}"` : ''}
 
 Original Request:
 - Preferred Time: ${request.preferred_time}
 - Notes: "${request.message || 'N/A'}"
 
 If you have further questions or want to place your drone delivery order now, please visit:
-http://localhost:3000/order
+${process.env.FRONTEND_URL || 'https://indowings.com'}/order
 
 Best regards,
 IndoWings Flight Operations Desk
@@ -650,16 +702,6 @@ Sector 62, Noida, Uttar Pradesh
  Our flight dispatch command has updated the status of your consultation inquiry regarding <strong>${request.category}</strong>.
  </p>
 
- ${
-   adminNotes
-     ? `
- <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px; margin: 18px 0;">
- <span style="font-size: 11px; font-weight: 700; color: #166534; text-transform: uppercase; display: block; margin-bottom: 4px;">Flight Operations Note</span>
- <p style="margin: 0; font-size: 13px; color: #14532d;">${adminNotes}</p>
- </div>`
-     : ''
- }
-
  <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px;">
  <tr style="border-bottom: 1px solid #f1f5f9;">
  <td style="padding: 10px 0; color: #64748b; font-weight: 600;">Reference Ticket</td>
@@ -680,10 +722,10 @@ Sector 62, Noida, Uttar Pradesh
  </table>
 
  <div style="text-align: center; margin: 25px 0;">
- <a href="http://localhost:3000/order" style="display: inline-block; background: #3b0080; color: white; padding: 12px 24px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 13px; margin-right: 8px;">
+ <a href="${process.env.FRONTEND_URL || 'https://indowings.com'}/order" style="display: inline-block; background: #3b0080; color: white; padding: 12px 24px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 13px; margin-right: 8px;">
  Dispatch Drone Delivery
  </a>
- <a href="http://localhost:3000/support" style="display: inline-block; background: #f1f5f9; color: #334155; padding: 12px 24px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 13px;">
+ <a href="${process.env.FRONTEND_URL || 'https://indowings.com'}/support" style="display: inline-block; background: #f1f5f9; color: #334155; padding: 12px 24px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 13px;">
  Knowledge Center
  </a>
  </div>

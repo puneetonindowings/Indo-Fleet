@@ -16,7 +16,7 @@ verifies the database schema before it starts listening.
 - **Fleet Management**: Live telemetry, battery health, payload capacities, status monitoring.
 - **Flight Corridors & Order Dispatch**: Automated drone routing, ETA calculation, and dynamic flight phase updates.
 - **Customer Storefront**: Admin-provisioned customer accounts can browse QC-cleared stock, place no-payment bookings, save delivery addresses, and track order status.
-- **Dual OTP Verification**: SMS OTP via Twilio / Supabase and Email OTP via Resend / Gmail SMTP.
+- **Dual OTP Verification**: SMS OTP via Supabase and Email OTP via Resend.
 - **AI Copilot & Tracking Bot**: Integrated intelligent chatbot endpoints for order lookup, name verification, and live telemetry HUD.
 - **Admin & Analytics**: Order overview, flight statistics, feedback, and customer support desks.
 - **Admin Account Controls**: OTP-protected provisioning, active/restricted account controls, account details, and deletion safeguards.
@@ -46,7 +46,7 @@ If the service-role key has been exposed, rotate it in Supabase before productio
 - **Language**: TypeScript
 - **Database**: Supabase Postgres through the trusted Express backend
 - **Authentication**: JWT & OTP verification
-- **Notifications**: Resend API, Gmail SMTP, Supabase/Twilio SMS gateway
+- **Notifications**: Resend API for application email; Supabase SMS gateway for phone OTP
 
 ## Getting Started
 

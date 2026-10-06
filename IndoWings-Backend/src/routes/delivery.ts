@@ -19,7 +19,10 @@ import {
   sendSupportQueryAlertToTeam,
   sendQueryResolutionEmail,
   sendDirectSupportEmail,
-  sendUserProvisionedEmail
+  sendUserProvisionedEmail,
+  sendAccountStatusEmail,
+  sendAccountRemovedEmail,
+  sendPasswordChangedEmail
 } from '../emailService.js';
 
 const router = Router();
@@ -497,6 +500,11 @@ router.patch('/users/:id', async (req, res) => {
     res.status(404).json({ error: 'User not found' });
     return;
   }
+  if (target.email && target.status !== status) {
+    sendAccountStatusEmail(target.email, target.name, status).catch((err) =>
+      console.error('[mail] Account status notification failed:', err)
+    );
+  }
   const safeUser = publicUser(updated);
   res.json({ message: 'User updated successfully', user: safeUser });
 });
@@ -516,6 +524,11 @@ router.delete('/users/:id', async (req, res) => {
     return;
   }
   await fileDB.deleteUser(id);
+  if (target.email) {
+    sendAccountRemovedEmail(target.email, target.name).catch((err) =>
+      console.error('[mail] Account removal notification failed:', err)
+    );
+  }
   res.json({ message: 'User removed successfully' });
 });
 
@@ -772,6 +785,11 @@ router.post('/auth/first-time-change-password', async (req, res) => {
   if (!updated) {
     res.status(404).json({ error: 'User account not found' });
     return;
+  }
+  if (updated.email) {
+    sendPasswordChangedEmail(updated.email, updated.name).catch((err) =>
+      console.error('[mail] Password update notification failed:', err)
+    );
   }
 
   const safeUser = publicUser(updated);
@@ -1237,7 +1255,7 @@ router.post('/dispatch/request-otp', async (req, res) => {
     otp
   });
   if (!delivered) {
-    res.status(503).json({ error: `Could not deliver the dispatch OTP by ${channel}. Check the configured ${channel === 'email' ? 'Resend/SMTP' : 'Fast2SMS'} provider and try again.` });
+    res.status(503).json({ error: `Could not deliver the dispatch OTP by ${channel}. Check the configured ${channel === 'email' ? 'Resend' : 'SMS'} provider and try again.` });
     return;
   }
   res.json({ success: true, message: `Dispatch verification code sent to your registered ${channel}.`, channel });
@@ -1443,6 +1461,7 @@ router.post('/store/orders/:id/cancel', async (req, res) => {
     }
     throw error;
   }
+  sendOrderStatusEmail(updated, 'cancelled').catch((err) => console.error('Cancel email error:', err));
   res.json({ message: 'Booking cancelled.', order: updated });
 });
 
@@ -1943,7 +1962,7 @@ router.post('/delivery/actions/confirm', async (req, res) => {
       sendFeedbackInvitationEmail(updated).catch(err => console.error('Feedback invitation email error:', err));
     }
   }
-  if (['dispatch', 'delivered', 'cancel'].includes(action)) {
+  if (order.customer_email) {
     sendOrderStatusEmail(updated, newStatus).catch(err => console.error('Status email error:', err));
   }
   res.json({ success: true, order: updated, audit: auditEntry });
@@ -2488,12 +2507,13 @@ router.patch(['/support/expert-requests/:id', '/support/tickets/:id'], async (re
     }
 
     // If resolved or closed with notes, send resolution notification email to user
-    if (updated.email && (updates.status === 'resolved' || updates.status === 'closed')) {
+    const statusChanged = Boolean(updates.status && updates.status !== existing.status);
+    if (updated.email && statusChanged && (updates.status === 'resolved' || updates.status === 'closed')) {
       sendQueryResolutionEmail(updated, updates.resolution_notes || 'Your query has been reviewed and resolved by our support team.', agent_name || 'IndoFleet Support Desk').catch((err) =>
         console.error('[support] Resolution email error:', err)
       );
-    } else if (updated.email && updates.status) {
-      sendExpertRequestStatusEmail(updated, updates.status, updates.notes).catch((err) => console.error('[support] Status update email error:', err));
+    } else if (updated.email && statusChanged) {
+      sendExpertRequestStatusEmail(updated, updates.status).catch((err) => console.error('[support] Status update email error:', err));
     }
 
     res.json({ success: true, request: updated });
@@ -2893,7 +2913,7 @@ router.post('/chatbot/request-id-otp', async (req, res) => {
 
     console.log(`[bot] Verification OTP dispatched to ${cleanEmail || cleanPhone}`);
 
-    // Dispatch Email OTP (via Resend / Gmail SMTP)
+    // Dispatch Email OTP through Resend
     const targetEmail = cleanEmail || linkedEmail;
     if (targetEmail) {
       sendOtpNotification({ email: targetEmail, otp, phone: cleanPhone || linkedPhone })
