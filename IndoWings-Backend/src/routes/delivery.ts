@@ -1578,10 +1578,27 @@ router.get('/orders', async (req, res) => {
   }
 });
 
+function getDeliveryCoreStatus(order: any) {
+  const status = order.status === 'on-hold'
+    ? order.status_before_hold || order.delivery_core_status || 'pending'
+    : order.status;
+  return status === 'rescheduled' ? order.delivery_core_status || 'assigned' : order.delivery_core_status || status;
+}
+
+async function hasVerifiedDispatchRecord(order: any) {
+  const records = await fileDB.getDispatchHistory();
+  return records.some((entry: any) =>
+    entry.order_id === order.id
+    && entry.status === 'dispatched'
+    && (!Array.isArray(order.reserved_inventory_ids) || order.reserved_inventory_ids.includes(entry.drone_id))
+  );
+}
+
 router.get('/delivery/dashboard', async (req, res) => {
   const operator = await requireDeliveryOperator(req, res);
   if (!operator) return;
   const orders = await fileDB.getOrders();
+  const [fleet, dispatchHistory, users] = await Promise.all([fileDB.getFleet(), fileDB.getDispatchHistory(), fileDB.getUsers()]);
   const deliveries = orders.filter(order => order.order_type !== 'demo');
   const counts = {
     total: deliveries.length,
@@ -1598,12 +1615,35 @@ router.get('/delivery/dashboard', async (req, res) => {
   res.json({
     counts,
     orders: deliveries.sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
-      .map(order => ({
-        ...order,
-        location_is_live: false,
-        last_known_location: order.last_known_location || null,
-        last_location_updated_at: order.last_location_updated_at || null
-      }))
+      .map(order => {
+        const drone = fleet.find(item => item.id === order.drone_id)
+          || fleet.find(item => Array.isArray(order.reserved_inventory_ids) && order.reserved_inventory_ids.includes(item.id));
+        const customer = users.find(item => item.id === order.creator_id);
+        const dispatchTime = dispatchHistory
+          .filter(entry => entry.order_id === order.id && entry.status === 'dispatched')
+          .map(entry => String(entry.dispatched_at || ''))
+          .filter(Boolean)
+          .sort()
+          .pop();
+        return {
+          ...order,
+          delivery_id: order.delivery_id || `DEL-${order.id}`,
+          organization_name: order.organization_name || order.client_name || customer?.organization || '',
+          organization_id: order.organization_id || customer?.organization_id || '',
+          location_is_live: false,
+          last_known_location: order.last_known_location || null,
+          last_location_updated_at: order.last_location_updated_at || null,
+          dispatch_time: order.dispatch_time || order.dispatched_at || dispatchTime || null,
+          rpav_info: drone ? {
+            id: drone.id,
+            name: drone.model,
+            status: drone.status,
+            battery: Number.isFinite(Number(drone.battery)) ? Number(drone.battery) : null,
+            current_location: drone.current_city || null,
+            last_location_updated_at: drone.last_location_updated_at || null
+          } : null
+        };
+      })
   });
 });
 
@@ -1677,7 +1717,7 @@ router.post('/delivery/actions/request-otp', async (req, res) => {
   const operator = await requireDeliveryOperator(req, res);
   if (!operator) return;
   const { order_id, action, reason, channel, scheduled_time } = req.body || {};
-  if (typeof order_id !== 'string' || !['hold', 'unhold', 'reschedule'].includes(action)
+  if (typeof order_id !== 'string' || !['hold', 'unhold', 'reschedule', 'dispatch', 'delivered', 'cancel'].includes(action)
     || typeof reason !== 'string' || reason.trim().length < 5
     || !['email', 'phone'].includes(channel)) {
     res.status(400).json({ error: 'Order, supported action, reason (at least 5 characters), and OTP method are required.' });
@@ -1687,6 +1727,16 @@ router.post('/delivery/actions/request-otp', async (req, res) => {
   if (!order) {
     res.status(404).json({ error: 'Delivery order not found.' });
     return;
+  }
+  if (action === 'dispatch') {
+    if (!['admin', 'dispatcher'].includes(operator.role)) {
+      res.status(403).json({ error: 'Only administrators and dispatchers can dispatch deliveries.' });
+      return;
+    }
+    if (order.order_type === 'drone_purchase' || !['pending', 'assigned'].includes(order.status)) {
+      res.status(409).json({ error: 'Use Secure Drone Dispatch for customer drone bookings; this order is not eligible for manual dispatch.' });
+      return;
+    }
   }
   if (action === 'hold' && ['delivered', 'cancelled', 'failed', 'on-hold'].includes(order.status)) {
     res.status(409).json({ error: 'This order cannot be placed on hold in its current status.' });
@@ -1706,6 +1756,19 @@ router.post('/delivery/actions/request-otp', async (req, res) => {
       res.status(409).json({ error: 'This order cannot be rescheduled in its current status.' });
       return;
     }
+  }
+  if (['delivered', 'cancel'].includes(action) && ['delivered', 'cancelled', 'failed'].includes(order.status)) {
+    res.status(409).json({ error: 'This delivery is already in a terminal status.' });
+    return;
+  }
+  if (action === 'delivered' && order.status === 'on-hold') {
+    res.status(409).json({ error: 'Unhold the delivery before marking it delivered.' });
+    return;
+  }
+  const verifiedDispatch = action === 'delivered' && await hasVerifiedDispatchRecord(order);
+  if (action === 'delivered' && !verifiedDispatch && !['taking-off', 'in-flight', 'approaching', 'out-for-delivery', 'in-transit'].includes(getDeliveryCoreStatus(order))) {
+    res.status(409).json({ error: 'A delivery can be marked delivered only after dispatch.' });
+    return;
   }
   const target = channel === 'email' ? operator.email : operator.phone;
   if (!target) {
@@ -1738,8 +1801,8 @@ router.post('/delivery/actions/confirm', async (req, res) => {
   const operator = await requireDeliveryOperator(req, res);
   if (!operator) return;
   const { order_id, action, reason, channel, otp } = req.body || {};
-  if (typeof order_id !== 'string' || !['hold', 'unhold', 'reschedule'].includes(action)
-    || typeof reason !== 'string' || !reason.trim() || !['email', 'phone'].includes(channel)
+  if (typeof order_id !== 'string' || !['hold', 'unhold', 'reschedule', 'dispatch', 'delivered', 'cancel'].includes(action)
+    || typeof reason !== 'string' || reason.trim().length < 5 || !['email', 'phone'].includes(channel)
     || typeof otp !== 'string' || !otp.trim()) {
     res.status(400).json({ error: 'Complete all action and OTP verification fields.' });
     return;
@@ -1762,17 +1825,38 @@ router.post('/delivery/actions/confirm', async (req, res) => {
     res.status(404).json({ error: 'Delivery order not found.' });
     return;
   }
+  if (action === 'dispatch' && (!['admin', 'dispatcher'].includes(operator.role)
+    || order.order_type === 'drone_purchase' || !['pending', 'assigned'].includes(order.status))) {
+    res.status(409).json({ error: 'This order cannot be dispatched through the manual delivery workflow. Use Secure Drone Dispatch for customer drone bookings.' });
+    return;
+  }
   const previousStatus = order.status;
   const now = new Date().toISOString();
   const newStatus = action === 'hold' ? 'on-hold'
     : action === 'unhold' ? (order.status_before_hold || 'in-flight')
-    : 'rescheduled';
+    : action === 'reschedule' ? 'rescheduled'
+    : action === 'dispatch' ? 'in-flight'
+    : action === 'delivered' ? 'delivered'
+    : 'cancelled';
   if (action === 'unhold' && order.status !== 'on-hold') {
     res.status(409).json({ error: 'Only an order currently on hold can be unheld.' });
     return;
   }
   if (action === 'hold' && ['delivered', 'cancelled', 'failed', 'on-hold'].includes(order.status)) {
     res.status(409).json({ error: 'This order cannot be placed on hold in its current status.' });
+    return;
+  }
+  if (['delivered', 'cancel'].includes(action) && ['delivered', 'cancelled', 'failed'].includes(order.status)) {
+    res.status(409).json({ error: 'This delivery is already in a terminal status.' });
+    return;
+  }
+  if (action === 'delivered' && order.status === 'on-hold') {
+    res.status(409).json({ error: 'Unhold the delivery before marking it delivered.' });
+    return;
+  }
+  const verifiedDispatch = action === 'delivered' && await hasVerifiedDispatchRecord(order);
+  if (action === 'delivered' && !verifiedDispatch && !['taking-off', 'in-flight', 'approaching', 'out-for-delivery', 'in-transit'].includes(getDeliveryCoreStatus(order))) {
+    res.status(409).json({ error: 'A delivery can be marked delivered only after dispatch.' });
     return;
   }
   const auditEntry = {
@@ -1786,6 +1870,7 @@ router.post('/delivery/actions/confirm', async (req, res) => {
     performed_by_id: operator.id,
     otp_method: channel,
     otp_verified: true,
+    previous_scheduled_time: action === 'reschedule' ? order.scheduled_time || null : null,
     scheduled_time: action === 'reschedule' ? metadata.scheduled_time : null,
     timestamp: now
   };
@@ -1793,14 +1878,50 @@ router.post('/delivery/actions/confirm', async (req, res) => {
     status: newStatus,
     ...(action === 'hold' ? { status_before_hold: previousStatus, hold_reason: reason.trim(), held_at: now, held_by: operator.id } : {}),
     ...(action === 'unhold' ? { hold_reason: null, held_at: null, held_by: null } : {}),
-    ...(action === 'reschedule' ? { scheduled_time: metadata.scheduled_time, reschedule_reason: reason.trim() } : {}),
+    ...(action === 'reschedule' ? {
+      delivery_core_status: getDeliveryCoreStatus(order),
+      scheduled_time: metadata.scheduled_time,
+      reschedule_reason: reason.trim(),
+      ...(order.status === 'on-hold' ? { hold_reason: null, held_at: null, held_by: null } : {})
+    } : {}),
+    ...(action === 'dispatch' ? { dispatch_time: now } : {}),
+    ...(action === 'delivered' ? { delivered_at: now, delivery_final_location: order.last_known_location || null } : {}),
+    ...(action === 'cancel' ? { cancelled_at: now, cancellation_reason: reason.trim() } : {}),
     delivery_audit_log: [...(Array.isArray(order.delivery_audit_log) ? order.delivery_audit_log : []), auditEntry],
     timeline: [...(Array.isArray(order.timeline) ? order.timeline : []), {
-      step: action === 'hold' ? 'Delivery placed on hold' : action === 'unhold' ? 'Delivery resumed' : 'Delivery rescheduled',
-      time: now, done: true, location: order.last_known_location || null, details: reason.trim(), performed_by: operator.name
+      step: action === 'hold' ? 'Delivery placed on hold'
+        : action === 'unhold' ? 'Delivery resumed'
+        : action === 'reschedule' ? 'Delivery rescheduled'
+        : action === 'dispatch' ? 'Delivery dispatched'
+        : action === 'delivered' ? 'Delivery marked delivered'
+        : 'Delivery cancelled',
+      time: now, done: true, location: order.last_known_location || null,
+      details: action === 'reschedule' ? `${order.scheduled_time || 'No prior schedule'} → ${metadata.scheduled_time}. ${reason.trim()}` : reason.trim(),
+      performed_by: operator.name
     }],
     updated_at: now
   });
+  if (action === 'delivered' || action === 'cancel') {
+    if (order.reserved_inventory_ids?.length) {
+      const reservedIds = new Set(order.reserved_inventory_ids);
+      await fileDB.saveFleet((await fileDB.getFleet()).map(drone => reservedIds.has(drone.id)
+        ? action === 'delivered'
+          ? { ...drone, status: 'sold', assigned_order: order.id }
+          : drone.dispatch_status === 'dispatched'
+            ? drone
+            : { ...drone, status: 'idle', assigned_order: null, assigned_client: null }
+        : drone));
+    }
+    if (order.drone_id && !String(order.drone_id).includes(' Units (')) {
+      await fileDB.updateDrone(order.drone_id, { status: 'idle', assigned_order: null });
+    }
+    if (action === 'delivered') {
+      sendFeedbackInvitationEmail(updated).catch(err => console.error('Feedback invitation email error:', err));
+    }
+  }
+  if (['dispatch', 'delivered', 'cancel'].includes(action)) {
+    sendOrderStatusEmail(updated, newStatus).catch(err => console.error('Status email error:', err));
+  }
   res.json({ success: true, order: updated, audit: auditEntry });
 });
 
@@ -1818,90 +1939,16 @@ router.get('/orders/:id', async (req, res) => {
 router.patch('/orders/:id/status', async (req, res) => {
   const requester = await requireDeliveryOperator(req, res);
   if (!requester) return;
-  const { status } = req.body;
-  if (['on-hold', 'rescheduled', 'cancelled'].includes(status)) {
-    res.status(403).json({ error: 'Hold, reschedule, and cancellation require the verified delivery action workflow.' });
-    return;
-  }
-  const order = await fileDB.findOrderById(req.params.id);
-  if (!order) {
-    res.status(404).json({ error: 'Order not found' });
-    return;
-  }
-
-  const validStatuses = ['pending', 'assigned', 'taking-off', 'in-flight', 'approaching', 'delivered', 'failed', 'on-hold', 'rescheduled', 'cancelled'];
-  if (!validStatuses.includes(status)) {
-    res.status(400).json({ error: 'Invalid status' });
-    return;
-  }
-
-  const timeline = [...(order.timeline || [])];
-  const stepMap: Record<string, number> = {
-    assigned: 1,
-    'taking-off': 2,
-    'in-flight': 3,
-    approaching: 4,
-    delivered: 5
-  };
-
-  const targetIdx = stepMap[status];
-  const now = new Date().toISOString();
-
-  if (targetIdx !== undefined) {
-    for (let i = 0; i <= targetIdx; i++) {
-      if (timeline[i]) {
-        timeline[i].done = true;
-        if (!timeline[i].time) timeline[i].time = now;
-      }
-    }
-  }
-
-  const updated = await fileDB.updateOrder(order.id, {
-    status,
-    timeline,
-    updated_at: now
-  });
-
-  if (order.reserved_inventory_ids?.length) {
-    const reservedIds = new Set(order.reserved_inventory_ids);
-    await fileDB.saveFleet(
-      (await fileDB.getFleet()).map((drone) =>
-        reservedIds.has(drone.id)
-          ? status === 'delivered'
-            ? { ...drone, status: 'sold', assigned_order: order.id }
-            : status === 'cancelled'
-              ? drone.dispatch_status === 'dispatched'
-                ? drone
-                : { ...drone, status: 'idle', assigned_order: null, assigned_client: null }
-              : drone
-          : drone
-      )
-    );
-  }
-
-  if ((status === 'delivered' || status === 'cancelled') && order.drone_id) {
-    await fileDB.updateDrone(order.drone_id, {
-      status: 'idle',
-      assigned_order: null
-    });
-  }
-
-  console.log(`[Database] Order ${order.id} status updated to: ${status}`);
-
-  // Send Order Status Update Email (Hold, In-Flight, Delivered, Failed, Rescheduled, Cancelled)
-  sendOrderStatusEmail(updated, status).catch((err) => console.error('Status email error:', err));
-
-  // Send Feedback invitation email automatically when flight is delivered
-  if (status === 'delivered') {
-    sendFeedbackInvitationEmail(updated).catch((err) => console.error('Feedback invitation email error:', err));
-  }
-
-  res.json({ message: 'Status updated successfully', order: updated });
+  res.status(403).json({ error: 'Direct status updates are disabled. Use OTP-audited Delivery Tracking actions or the verified drone dispatch workflow.' });
 });
 
 // Orders: Cancel order
 router.post('/orders/:id/cancel', async (req, res) => {
   const user = await getAuthenticatedUser(req);
+  if (!user) {
+    res.status(401).json({ error: 'An active account is required to cancel this order.' });
+    return;
+  }
 
   const order = await fileDB.findOrderById(req.params.id);
   if (!order) {
@@ -1939,35 +1986,7 @@ router.post('/orders/:id/cancel', async (req, res) => {
     return;
   }
 
-  const now = new Date().toISOString();
-
-  // Return UAV to idle if assigned
-  if (order.drone_id) {
-    await fileDB.updateDrone(order.drone_id, {
-      status: 'idle',
-      assigned_order: null
-    });
-  }
-  if (order.reserved_inventory_ids?.length) {
-    const reservedIds = new Set(order.reserved_inventory_ids);
-    await fileDB.saveFleet(
-      (await fileDB.getFleet()).map((drone) =>
-        reservedIds.has(drone.id) ? (drone.dispatch_status === 'dispatched' ? drone : { ...drone, status: 'idle', assigned_order: null, assigned_client: null }) : drone
-      )
-    );
-  }
-
-  const updated = await fileDB.updateOrder(order.id, {
-    status: 'cancelled',
-    cancelled_at: now,
-    cancellation_reason: req.body?.reason || 'Cancelled by customer',
-    updated_at: now
-  });
-
-  console.log(`[error] [Database] Order ${order.id} cancelled by customer ${user?.name || ''}`);
-  sendOrderStatusEmail(updated, 'cancelled').catch((err) => console.error('Cancel email error:', err));
-
-  res.json({ message: 'Order cancelled successfully', order: updated });
+  res.status(403).json({ error: 'Operations cancellations require reason and OTP verification through Delivery Tracking.' });
 });
 
 // Fleet: Get fleet status

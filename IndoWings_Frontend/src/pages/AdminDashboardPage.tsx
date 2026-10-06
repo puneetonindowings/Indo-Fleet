@@ -687,7 +687,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               <AnalyticsDashboard currentUser={currentUser} onQuickAction={(tab) => setActiveTab(tab as typeof activeTab)} />
             )}
             {activeTab === 'secure-dispatch' && <DroneDispatchModule currentUser={currentUser} embedded />}
-            {activeTab === 'delivery' && <DeliveryTrackingModule currentUser={currentUser} />}
+            {activeTab === 'delivery' && <DeliveryTrackingModule currentUser={currentUser} onNavigate={onNavigate} />}
             {activeTab === 'profile' && <ProfilePage onNavigate={onNavigate} currentUser={currentUser} onUpdateUser={onUpdateUser} embedded onBack={() => setActiveTab('overview')} />}
 
             {/* ── TAB 1: OUTBOUND DRONE SHIPMENTS (operational supplement) ──── */}

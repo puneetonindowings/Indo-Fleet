@@ -34,9 +34,10 @@ import { DemoBookingModal } from './components/DemoBookingModal';
 import { API_BASE_URL } from './config/api';
 import { AuthModal, DeliveryUser } from './components/AuthModal';
 import { SEOHead } from './components/SEOHead';
+import { DeliveryTrackingModule } from './pages/DeliveryTrackingModule';
 import { UserProfile } from './types';
 
-type Page = 'home' | 'platform' | 'command-center' | 'gcs' | 'downloads' | 'versions' | 'track' | 'dispatch' | 'drone-dispatch' | 'login' | 'profile' | 'orders' | 'support' | 'docs' | 'company' | 'feedback' | 'legal' | 'admin' | 'fleet' | 'support-desk' | 'shop';
+type Page = 'home' | 'platform' | 'command-center' | 'gcs' | 'downloads' | 'versions' | 'track' | 'dispatch' | 'drone-dispatch' | 'delivery-tracking' | 'login' | 'profile' | 'orders' | 'support' | 'docs' | 'company' | 'feedback' | 'legal' | 'admin' | 'fleet' | 'support-desk' | 'shop';
 
 const getInitialPage = (): Page => {
   if (typeof window === 'undefined') return 'home';
@@ -45,6 +46,7 @@ const getInitialPage = (): Page => {
   if (p.includes('/fleet')) return 'fleet';
   if (p.includes('/support-desk') || p.includes('/support_desk')) return 'support-desk';
   if (p.includes('/drone-dispatch')) return 'drone-dispatch';
+  if (p.includes('/delivery-tracking')) return 'delivery-tracking';
   if (p.includes('/shop') || p.includes('/store')) return 'shop';
   if (p.includes('/command-center')) return 'command-center';
   if (p.includes('/platform')) return 'platform';
@@ -86,7 +88,7 @@ export const App: React.FC = () => {
 
   // Route Protection & Role Governance for Enterprise Dashboards
   useEffect(() => {
-    const protectedPages: Page[] = ['admin', 'fleet', 'support-desk', 'dispatch', 'drone-dispatch'];
+    const protectedPages: Page[] = ['admin', 'fleet', 'support-desk', 'dispatch', 'drone-dispatch', 'delivery-tracking'];
     if (protectedPages.includes(currentPage)) {
       const token = localStorage.getItem('iw_delivery_token');
       const userStr = localStorage.getItem('iw_delivery_user');
@@ -108,6 +110,9 @@ export const App: React.FC = () => {
           if (role === 'fleet_manager') routeToDesk('fleet', '/fleet');
           else if (role === 'dispatcher') routeToDesk('dispatch', '/dispatch');
           else if (role === 'support') routeToDesk('support-desk', '/support-desk');
+          else routeToDesk('login', '/login');
+        } else if (currentPage === 'delivery-tracking' && !['admin', 'dispatcher', 'fleet_manager'].includes(role)) {
+          if (role === 'support') routeToDesk('support-desk', '/support-desk');
           else routeToDesk('login', '/login');
         } else if ((currentPage === 'dispatch' || currentPage === 'drone-dispatch') && role !== 'dispatcher' && role !== 'admin') {
           if (role === 'fleet_manager') routeToDesk('fleet', '/fleet');
@@ -163,7 +168,7 @@ export const App: React.FC = () => {
     setDeliveryUser(null);
     localStorage.removeItem('iw_delivery_token');
     localStorage.removeItem('iw_delivery_user');
-    const protectedPages: Page[] = ['admin', 'fleet', 'support-desk', 'dispatch'];
+    const protectedPages: Page[] = ['admin', 'fleet', 'support-desk', 'dispatch', 'drone-dispatch', 'delivery-tracking'];
     if (protectedPages.includes(currentPage)) {
       setCurrentPage('login');
       window.history.pushState({}, '', '/login');
@@ -236,6 +241,8 @@ export const App: React.FC = () => {
             onNavigate={handleNavigate}
             onLogout={handleDeliveryLogout}
           />
+        ) : currentPage === 'delivery-tracking' ? (
+          <DeliveryTrackingModule currentUser={deliveryUser} onNavigate={handleNavigate} />
         ) : currentPage === 'support' ? (
           <SupportPage onNavigate={handleNavigate} currentUser={deliveryUser} />
         ) : currentPage === 'docs' ? (
