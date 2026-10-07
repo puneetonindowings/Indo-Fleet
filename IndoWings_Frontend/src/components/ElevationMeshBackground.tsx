@@ -165,11 +165,11 @@ export const ElevationMeshBackground: React.FC<ElevationMeshBackgroundProps> = (
 
           if (avgZ > 1) {
             const intensity = Math.min(avgZ / MAX_LIFT, 1);
-            // Subtle luxury orange glow on lifted segment
-            ctx.strokeStyle = `rgba(239, 127, 26, ${0.08 + intensity * 0.22})`;
+            // Subtle luxury purple glow on lifted segment
+            ctx.strokeStyle = `rgba(168, 85, 247, ${0.12 + intensity * 0.38})`;
             ctx.lineWidth = 1;
           } else {
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
             ctx.lineWidth = 1;
           }
           ctx.stroke();
@@ -189,10 +189,10 @@ export const ElevationMeshBackground: React.FC<ElevationMeshBackgroundProps> = (
 
           if (avgZ > 1) {
             const intensity = Math.min(avgZ / MAX_LIFT, 1);
-            ctx.strokeStyle = `rgba(239, 127, 26, ${0.08 + intensity * 0.22})`;
+            ctx.strokeStyle = `rgba(168, 85, 247, ${0.12 + intensity * 0.38})`;
             ctx.lineWidth = 1;
           } else {
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
             ctx.lineWidth = 1;
           }
           ctx.stroke();
@@ -208,7 +208,7 @@ export const ElevationMeshBackground: React.FC<ElevationMeshBackgroundProps> = (
             const intensity = Math.min(p.z / MAX_LIFT, 1);
             ctx.beginPath();
             ctx.arc(p.x, p.y, 1.2 + intensity * 0.8, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(251, 146, 60, ${0.25 + intensity * 0.45})`;
+            ctx.fillStyle = `rgba(192, 132, 252, ${0.35 + intensity * 0.5})`;
             ctx.fill();
           } else if ((r + c) % 4 === 0) {
             // Ambient faint micro-dot
@@ -252,7 +252,7 @@ export const ElevationMeshBackground: React.FC<ElevationMeshBackgroundProps> = (
             width: '240px',
             height: '240px',
             transform: 'translate(-50%, -50%)',
-            background: 'radial-gradient(circle, rgba(239, 127, 26, 0.12) 0%, rgba(217, 110, 17, 0.04) 50%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(147, 51, 234, 0.04) 50%, transparent 70%)',
             filter: 'blur(28px)',
           }}
         />
