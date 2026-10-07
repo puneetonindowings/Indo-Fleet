@@ -13,3 +13,5 @@ dist/
 *.log
 *.tsbuildinfo
 **/data/*.json
+OTP_RESTORATION_ROADMAP.md
+*OTP_RESTORATION*
