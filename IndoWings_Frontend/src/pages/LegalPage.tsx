@@ -30,9 +30,9 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
       {/* Header */}
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-[900px] mx-auto px-4 sm:px-6 pt-28 sm:pt-36 pb-12">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-purple-600 mb-3">Legal</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-orange-600 mb-3">Legal</p>
           <h1 className="text-3xl sm:text-4xl font-black text-[#171222]">Legal &amp; Compliance</h1>
-          <div className="w-14 h-1 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 mt-4" />
+          <div className="w-14 h-1 rounded-full bg-gradient-to-r from-orange-500 to-indigo-500 mt-4" />
           <p className="text-slate-500 text-sm mt-4 leading-relaxed max-w-xl">
             IndoWings Technologies operates enterprise UAV flight corridors, hardware QC, and aerospace fleet operations under DGCA Drone Rules 2021.
             These documents govern your use of our platform, data practices, and security standards.
@@ -41,7 +41,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
             {SECTIONS.map(s => (
               <a key={s.id} href={"#" + s.id}
                 onClick={e => { e.preventDefault(); document.getElementById(s.id)?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors">
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors">
                 <s.icon className="w-3.5 h-3.5" />
                 {s.label}
               </a>
@@ -55,7 +55,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
         {/* PRIVACY POLICY */}
         <section id="privacy" className="scroll-mt-24">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center"><Lock className="w-5 h-5" /></div>
+            <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center"><Lock className="w-5 h-5" /></div>
             <div>
               <h2 className="text-2xl font-black text-[#171222]">Privacy Policy</h2>
               <p className="text-xs text-slate-400 mt-0.5">Last updated: September 2026</p>
@@ -94,11 +94,11 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
             </div>
             <div>
               <h3 className="text-base font-black text-[#171222] mb-2">4. Data Retention</h3>
-              <p>Order data is retained for 5 years for DGCA compliance. Account data is retained until deletion request. Email <a href="mailto:support@indowings.com" className="text-purple-600 hover:underline">support@indowings.com</a> for any privacy requests.</p>
+              <p>Order data is retained for 5 years for DGCA compliance. Account data is retained until deletion request. Email <a href="mailto:support@indowings.com" className="text-orange-600 hover:underline">support@indowings.com</a> for any privacy requests.</p>
             </div>
             <div>
               <h3 className="text-base font-black text-[#171222] mb-2">5. Your Rights</h3>
-              <p>Under India Digital Personal Data Protection Act (DPDPA) 2023, you have the right to access, correct, and erase your personal data. Contact <a href="mailto:support@indowings.com" className="text-purple-600 hover:underline">support@indowings.com</a>.</p>
+              <p>Under India Digital Personal Data Protection Act (DPDPA) 2023, you have the right to access, correct, and erase your personal data. Contact <a href="mailto:support@indowings.com" className="text-orange-600 hover:underline">support@indowings.com</a>.</p>
             </div>
           </div>
         </section>
@@ -241,7 +241,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
               <h3 className="text-base font-black text-[#171222] mb-2">5. Contact</h3>
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
                 <p className="font-bold text-[#171222]">IndoWings Technologies — Data Protection Officer</p>
-                <a href="mailto:support@indowings.com" className="text-purple-600 hover:underline">support@indowings.com</a>
+                <a href="mailto:support@indowings.com" className="text-orange-600 hover:underline">support@indowings.com</a>
                 <p className="text-xs text-slate-400 mt-2">We respond to all data protection requests within 30 days as required by law.</p>
               </div>
             </div>

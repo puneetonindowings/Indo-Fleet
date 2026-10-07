@@ -172,7 +172,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
             }
             if (part.startsWith('`') && part.endsWith('`')) {
               return (
-                <code key={partIdx} className="bg-purple-50 text-[#5a00b8] px-1 py-0.5 rounded font-mono text-[11px]">
+                <code key={partIdx} className="bg-orange-50 text-[#ef7f1a] px-1 py-0.5 rounded font-mono text-[11px]">
                   {part.slice(1, -1)}
                 </code>
               );
@@ -449,7 +449,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         {!isOpen && showTeaser && (
           <div className="hidden sm:flex items-center gap-2 bg-white text-slate-800 text-xs font-medium px-3.5 py-2 rounded-full border border-slate-200/90 shadow-md animate-in fade-in slide-in-from-right-2 duration-200">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span onClick={() => setIsOpen(true)} className="cursor-pointer hover:text-[#5a00b8] transition-colors">
+            <span onClick={() => setIsOpen(true)} className="cursor-pointer hover:text-[#ef7f1a] transition-colors">
               Track flight or chat with AI
             </span>
             <button
@@ -471,7 +471,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
             if (isMinimized) setIsMinimized(false);
           }}
           className={`relative group w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white shadow-[0_6px_20px_rgba(90,0,184,0.35)] hover:shadow-[0_8px_25px_rgba(90,0,184,0.45)] hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer ${
-            isOpen ? 'bg-slate-900 rotate-90' : 'bg-[#5a00b8] hover:bg-[#4a0099]'
+            isOpen ? 'bg-slate-900 rotate-90' : 'bg-[#ef7f1a] hover:bg-[#4a0099]'
           }`}
           title={isOpen ? 'Close Copilot' : 'Open IndoWings AI Copilot'}
         >
@@ -480,7 +480,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
           ) : (
             <div className="relative flex items-center justify-center">
               <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-400 border-2 border-[#5a00b8]" />
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-400 border-2 border-[#ef7f1a]" />
             </div>
           )}
         </button>
@@ -496,8 +496,8 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
           {/* ── Window Header ── */}
           <div className="bg-white px-3.5 py-2.5 flex items-center justify-between shrink-0 border-b border-slate-100">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-purple-50 text-[#5a00b8] border border-purple-100 flex items-center justify-center">
-                <Plane className="w-3.5 h-3.5 text-[#5a00b8]" />
+              <div className="w-7 h-7 rounded-lg bg-orange-50 text-[#ef7f1a] border border-orange-100 flex items-center justify-center">
+                <Plane className="w-3.5 h-3.5 text-[#ef7f1a]" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
@@ -546,9 +546,9 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                             key={i}
                             onClick={() => handleActionCardClick(act.query)}
                             disabled={loading}
-                            className="p-2 rounded-lg bg-slate-50 hover:bg-purple-50/70 border border-slate-100 hover:border-purple-200 text-left transition-all group cursor-pointer"
+                            className="p-2 rounded-lg bg-slate-50 hover:bg-orange-50/70 border border-slate-100 hover:border-orange-200 text-left transition-all group cursor-pointer"
                           >
-                            <div className="flex items-center gap-1 text-[#5a00b8] mb-0.5">
+                            <div className="flex items-center gap-1 text-[#ef7f1a] mb-0.5">
                               <Icon className="w-3 h-3" />
                               <span className="font-semibold text-[11px] truncate">{act.label}</span>
                             </div>
@@ -564,7 +564,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                 {messages.map((msg) => (
                   <div key={msg.id} className={`flex gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                     {msg.sender === 'bot' && (
-                      <div className="w-5 h-5 rounded-md bg-purple-50 text-[#5a00b8] border border-purple-100 flex items-center justify-center shrink-0 mt-0.5">
+                      <div className="w-5 h-5 rounded-md bg-orange-50 text-[#ef7f1a] border border-orange-100 flex items-center justify-center shrink-0 mt-0.5">
                         <Bot className="w-3 h-3" />
                       </div>
                     )}
@@ -574,7 +574,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                       <div
                         className={`p-2.5 rounded-xl leading-relaxed ${
                           msg.sender === 'user'
-                            ? 'bg-[#5a00b8] text-white rounded-tr-xs shadow-xs font-medium text-xs'
+                            ? 'bg-[#ef7f1a] text-white rounded-tr-xs shadow-xs font-medium text-xs'
                             : 'bg-white text-slate-800 border border-slate-200/80 rounded-tl-xs shadow-xs text-xs'
                         }`}
                       >
@@ -607,12 +607,12 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                           <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 space-y-1">
                             <div className="flex items-center justify-between text-[10px] text-slate-500">
                               <span className="truncate max-w-[100px] font-medium">{msg.cardData.pickup_address?.split(',')[0]}</span>
-                              <Plane className="w-3 h-3 text-[#5a00b8]" />
+                              <Plane className="w-3 h-3 text-[#ef7f1a]" />
                               <span className="truncate max-w-[100px] font-medium">{msg.cardData.drop_address?.split(',')[0]}</span>
                             </div>
                             <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden">
                               <div
-                                className="bg-[#5a00b8] h-full rounded-full transition-all"
+                                className="bg-[#ef7f1a] h-full rounded-full transition-all"
                                 style={{ width: msg.cardData.status === 'delivered' ? '100%' : msg.cardData.status === 'approaching' ? '85%' : '50%' }}
                               />
                             </div>
@@ -639,9 +639,9 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                           </div>
 
                           {/* Drone Specs Strip */}
-                          <div className="flex items-center justify-between p-1.5 rounded-lg bg-purple-50/60 border border-purple-100 text-[10px]">
+                          <div className="flex items-center justify-between p-1.5 rounded-lg bg-orange-50/60 border border-orange-100 text-[10px]">
                             <div className="flex items-center gap-1 truncate">
-                              <Plane className="w-3 h-3 text-[#5a00b8]" />
+                              <Plane className="w-3 h-3 text-[#ef7f1a]" />
                               <span className="font-semibold text-slate-800 truncate">{msg.cardData.drone?.model}</span>
                             </div>
                             <span className="text-[9px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">{msg.cardData.drone?.battery}% Battery</span>
@@ -653,7 +653,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                               setIsOpen(false);
                               nav('track', `/track?orderId=${msg.cardData.id}`);
                             }}
-                            className="w-full py-1.5 bg-[#5a00b8] hover:bg-[#4a0099] text-white font-semibold text-[11px] rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                            className="w-full py-1.5 bg-[#ef7f1a] hover:bg-[#4a0099] text-white font-semibold text-[11px] rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                           >
                             <Radar className="w-3 h-3" />
                             <span>Open Radar Tracking Map</span>
@@ -669,7 +669,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                             <div key={ord.id} className="bg-white rounded-xl border border-slate-200 p-2 shadow-xs space-y-1">
                               <div className="flex items-center justify-between">
                                 <span className="font-mono font-bold text-slate-800 text-[11px]">#{ord.id}</span>
-                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-50 text-[#5a00b8] border border-purple-200 font-semibold uppercase">{ord.status}</span>
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-50 text-[#ef7f1a] border border-orange-200 font-semibold uppercase">{ord.status}</span>
                               </div>
                               <p className="text-[10px] text-slate-600 truncate">
                                 {ord.package_type} • {ord.drone_model}
@@ -705,7 +705,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                                       setLoading(false);
                                     }
                                   }}
-                                  className="flex-1 py-1 bg-[#5a00b8] hover:bg-[#4a0099] text-white font-semibold text-[10px] rounded-md transition-colors cursor-pointer flex items-center justify-center gap-1 shadow-xs"
+                                  className="flex-1 py-1 bg-[#ef7f1a] hover:bg-[#4a0099] text-white font-semibold text-[10px] rounded-md transition-colors cursor-pointer flex items-center justify-center gap-1 shadow-xs"
                                 >
                                   <Plane className="w-3 h-3" />
                                   <span>Live Telemetry</span>
@@ -716,7 +716,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                                     setIsOpen(false);
                                     nav('track', `/track?orderId=${ord.id}`);
                                   }}
-                                  className="py-1 px-2.5 bg-purple-50 hover:bg-purple-100 text-[#5a00b8] font-semibold text-[10px] rounded-md transition-colors cursor-pointer border border-purple-200 flex items-center gap-1"
+                                  className="py-1 px-2.5 bg-orange-50 hover:bg-orange-100 text-[#ef7f1a] font-semibold text-[10px] rounded-md transition-colors cursor-pointer border border-orange-200 flex items-center gap-1"
                                   title="Open Radar Tracking Map"
                                 >
                                   <Radar className="w-3 h-3" />
@@ -752,7 +752,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                               setIsOpen(false);
                               nav('track', '/track');
                             }}
-                            className="w-full py-1.5 bg-[#5a00b8] hover:bg-[#4a0099] text-white font-semibold text-[11px] rounded-lg cursor-pointer transition-colors"
+                            className="w-full py-1.5 bg-[#ef7f1a] hover:bg-[#4a0099] text-white font-semibold text-[11px] rounded-lg cursor-pointer transition-colors"
                           >
                             View Live Corridor Radar
                           </button>
@@ -785,7 +785,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                               setIsOpen(false);
                               nav('company', '/company');
                             }}
-                            className="w-full py-1 bg-[#5a00b8] hover:bg-[#4a0099] text-white font-semibold text-[11px] rounded-md cursor-pointer mt-1 transition-colors"
+                            className="w-full py-1 bg-[#ef7f1a] hover:bg-[#4a0099] text-white font-semibold text-[11px] rounded-md cursor-pointer mt-1 transition-colors"
                           >
                             View Company Profile
                           </button>
@@ -796,7 +796,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                     </div>
 
                     {msg.sender === 'user' && (
-                      <div className="w-5 h-5 rounded-md bg-[#5a00b8] text-white flex items-center justify-center shrink-0 mt-0.5">
+                      <div className="w-5 h-5 rounded-md bg-[#ef7f1a] text-white flex items-center justify-center shrink-0 mt-0.5">
                         <User className="w-3 h-3" />
                       </div>
                     )}
@@ -805,7 +805,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
 
                 {loading && (
                   <div className="flex items-center gap-1.5 text-slate-500 text-[11px] italic p-1.5 bg-white rounded-lg border border-slate-200 w-fit shadow-xs">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#5a00b8] animate-ping" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#ef7f1a] animate-ping" />
                     <span>Copilot processing...</span>
                   </div>
                 )}
@@ -820,7 +820,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                     key={idx}
                     onClick={() => handleActionCardClick(act.query)}
                     disabled={loading}
-                    className="px-2.5 py-0.5 rounded-full bg-slate-100 hover:bg-purple-50 text-slate-600 hover:text-[#5a00b8] text-[10px] font-medium whitespace-nowrap transition-colors border border-slate-200/60 cursor-pointer disabled:opacity-50"
+                    className="px-2.5 py-0.5 rounded-full bg-slate-100 hover:bg-orange-50 text-slate-600 hover:text-[#ef7f1a] text-[10px] font-medium whitespace-nowrap transition-colors border border-slate-200/60 cursor-pointer disabled:opacity-50"
                   >
                     {act.label}
                   </button>
@@ -829,7 +829,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
 
               {/* ── Input Bar ── */}
               <form onSubmit={handleSend} className="p-2 bg-white border-t border-slate-100 flex items-center gap-1.5 shrink-0">
-                <div className="flex-1 relative flex items-center bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 focus-within:bg-white focus-within:border-purple-400 focus-within:ring-1 focus-within:ring-purple-200 transition-all">
+                <div className="flex-1 relative flex items-center bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 focus-within:bg-white focus-within:border-orange-400 focus-within:ring-1 focus-within:ring-orange-200 transition-all">
                   <input
                     ref={inputRef}
                     type="text"
@@ -850,7 +850,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                 <button
                   type="submit"
                   disabled={!input.trim() || loading}
-                  className="w-7 h-7 rounded-lg bg-[#5a00b8] hover:bg-[#4a0099] text-white flex items-center justify-center transition-all disabled:opacity-30 cursor-pointer shrink-0 shadow-xs"
+                  className="w-7 h-7 rounded-lg bg-[#ef7f1a] hover:bg-[#4a0099] text-white flex items-center justify-center transition-all disabled:opacity-30 cursor-pointer shrink-0 shadow-xs"
                 >
                   <Send className="w-3 h-3" />
                 </button>

@@ -39,10 +39,10 @@ interface KpiCardProps {
   comparisonLabel?: string;
 }
 
-export const KpiCard: React.FC<KpiCardProps> = ({ label, value, icon: Icon, tone = 'text-[#3b0080] bg-purple-50', subtitle, deltaPct, trend, sparkline, comparisonLabel = 'vs prev period' }) => {
+export const KpiCard: React.FC<KpiCardProps> = ({ label, value, icon: Icon, tone = 'text-[#ef7f1a] bg-orange-50', subtitle, deltaPct, trend, sparkline, comparisonLabel = 'vs prev period' }) => {
   const trendColor = trend === 'up' ? 'text-emerald-600' : trend === 'down' ? 'text-rose-600' : 'text-slate-400';
   const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
-  const sparkColor = trend === 'down' ? '#e11d48' : '#7c3aed';
+  const sparkColor = trend === 'down' ? '#e11d48' : '#ef7f1a';
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs hover:shadow-sm transition-shadow">
       <div className="flex items-start justify-between gap-2">

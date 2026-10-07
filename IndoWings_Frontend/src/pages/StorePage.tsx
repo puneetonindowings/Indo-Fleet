@@ -424,7 +424,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
           <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 pb-3 border-b border-slate-200">
             <button
               onClick={handleBackToStore}
-              className="inline-flex items-center gap-1.5 font-bold text-[#3b0080] hover:underline cursor-pointer"
+              className="inline-flex items-center gap-1.5 font-bold text-[#ef7f1a] hover:underline cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" /> Back to Store
             </button>
@@ -476,7 +476,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                   href="https://www.indowings.com/products/cyberonemax.php"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs font-bold uppercase tracking-wider text-[#3b0080] hover:underline"
+                  className="text-xs font-bold uppercase tracking-wider text-[#ef7f1a] hover:underline"
                 >
                   IndoWings
                 </a>
@@ -501,23 +501,23 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                 <h3 className="text-xs font-bold text-slate-900">Key Highlights</h3>
                 <ul className="space-y-1.5 text-xs text-slate-700">
                   <li className="flex items-start gap-2">
-                    <span className="text-[#3b0080] font-bold">•</span>
+                    <span className="text-[#ef7f1a] font-bold">•</span>
                     <span><strong>Endurance:</strong> 65 minutes AMSL flight time.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-[#3b0080] font-bold">•</span>
+                    <span className="text-[#ef7f1a] font-bold">•</span>
                     <span><strong>Altitude:</strong> Launch up to 18000 ft. AMSL, 23000 ft. operational ceiling.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-[#3b0080] font-bold">•</span>
+                    <span className="text-[#ef7f1a] font-bold">•</span>
                     <span><strong>Range:</strong> 10 Km Line of Sight telemetry &amp; video transmission.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-[#3b0080] font-bold">•</span>
+                    <span className="text-[#ef7f1a] font-bold">•</span>
                     <span><strong>Navigation:</strong> PPK/RTK Enabled precision GPS.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-[#3b0080] font-bold">•</span>
+                    <span className="text-[#ef7f1a] font-bold">•</span>
                     <span><strong>Max Speed:</strong> 72 Km/h (20m/s).</span>
                   </li>
                 </ul>
@@ -538,7 +538,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                     className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                       isSelected
                         ? 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
-                        : 'bg-white text-[#3b0080] border border-purple-300 hover:bg-purple-50'
+                        : 'bg-white text-[#ef7f1a] border border-orange-300 hover:bg-orange-50'
                     }`}
                   >
                     {isSelected ? (
@@ -556,7 +556,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
 
                   <button
                     onClick={() => handleBookNowDirect(detailDrone)}
-                    className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-[#3b0080] hover:bg-[#2a005c] text-white flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs active:scale-98"
+                    className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-[#ef7f1a] hover:bg-[#d96e11] text-white flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs active:scale-98"
                   >
                     <Truck className="w-4 h-4" />
                     <span>Book Now</span>
@@ -681,10 +681,10 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     <div id="drone-store" className="min-h-screen bg-[#f8fafc] pt-24 sm:pt-32 pb-20">
       <section className="max-w-7xl mx-auto px-4 sm:px-6">
         
-        {/* Clean, Elegant Header (No oversized promotional purple banner) */}
+        {/* Clean, Elegant Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-purple-700 mb-1.5">
-            <ShieldCheck className="w-4 h-4 text-[#3b0080]" />
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#ef7f1a] mb-1.5">
+            <ShieldCheck className="w-4 h-4 text-[#ef7f1a]" />
             <span>IndoWings Fleet Inventory</span>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -697,8 +697,8 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
               </p>
             </div>
             <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 bg-white px-3.5 py-2 rounded-xl border border-slate-200/80 shadow-2xs">
-              <ShoppingCart className="w-4 h-4 text-[#3b0080]" />
-              <span><strong className="text-[#3b0080]">{totalUnits}</strong> in cart</span>
+              <ShoppingCart className="w-4 h-4 text-[#ef7f1a]" />
+              <span><strong className="text-[#ef7f1a]">{totalUnits}</strong> in cart</span>
             </div>
           </div>
         </div>
@@ -715,7 +715,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                     value={search}
                     onChange={event => setSearch(event.target.value)}
                     placeholder="Search by Drone ID (e.g. 0001, 0150, 0800)..."
-                    className="w-full rounded-xl border-none pl-10 pr-3 py-2 text-xs outline-none bg-slate-50 focus:bg-white focus:ring-2 focus:ring-purple-100 transition-all font-medium"
+                    className="w-full rounded-xl border-none pl-10 pr-3 py-2 text-xs outline-none bg-slate-50 focus:bg-white focus:ring-2 focus:ring-orange-100 transition-all font-medium"
                   />
                 </div>
                 {search && (
@@ -732,7 +732,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
             {/* Drone Cards Grid */}
             {loading ? (
               <div className="rounded-2xl bg-white border border-slate-200/80 p-16 text-center text-slate-500 shadow-2xs">
-                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-[#3b0080]" />
+                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-[#ef7f1a]" />
                 <p className="text-sm font-semibold text-slate-800">Loading fleet inventory...</p>
               </div>
             ) : filteredDrones.length === 0 ? (
@@ -742,7 +742,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                 <p className="text-xs text-slate-500 mt-1">Try searching by another Drone ID number (e.g. 0001, 0250).</p>
                 <button
                   onClick={() => setSearch('')}
-                  className="mt-4 px-4 py-2 rounded-xl bg-[#3b0080] text-white text-xs font-bold hover:bg-[#2a005c] cursor-pointer shadow-xs transition-all"
+                  className="mt-4 px-4 py-2 rounded-xl bg-[#ef7f1a] text-white text-xs font-bold hover:bg-[#d96e11] cursor-pointer shadow-xs transition-all"
                 >
                   Reset Search
                 </button>
@@ -759,7 +759,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                         key={drone.id}
                         onClick={() => handleOpenDetail(drone)}
                         className={`bg-white rounded-2xl border transition-all duration-300 overflow-hidden shadow-xs hover:shadow-lg flex flex-col justify-between group cursor-pointer ${
-                          isSelected ? 'border-[#3b0080] ring-1 ring-[#3b0080]/30 shadow-md' : 'border-slate-200 hover:border-purple-300'
+                          isSelected ? 'border-[#ef7f1a] ring-1 ring-[#ef7f1a]/30 shadow-md' : 'border-slate-200 hover:border-orange-300'
                         }`}
                       >
                         <div>
@@ -781,7 +781,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
 
                           {/* Details Content */}
                           <div className="px-4 pb-3">
-                            <h3 className="text-sm font-extrabold text-slate-900 group-hover:text-[#3b0080] transition-colors leading-snug">
+                            <h3 className="text-sm font-extrabold text-slate-900 group-hover:text-[#ef7f1a] transition-colors leading-snug">
                               Cyberone Max ({drone.model})
                             </h3>
                             <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
@@ -807,9 +807,9 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                               e.stopPropagation();
                               handleOpenDetail(drone);
                             }}
-                            className="w-full rounded-xl py-2 px-2.5 text-xs font-bold border border-slate-200 hover:border-purple-300 bg-white hover:bg-purple-50 text-slate-700 hover:text-[#3b0080] flex items-center justify-center gap-1 transition-all cursor-pointer"
+                            className="w-full rounded-xl py-2 px-2.5 text-xs font-bold border border-slate-200 hover:border-orange-300 bg-white hover:bg-orange-50 text-slate-700 hover:text-[#ef7f1a] flex items-center justify-center gap-1 transition-all cursor-pointer"
                           >
-                            <Eye className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#3b0080]" />
+                            <Eye className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#ef7f1a]" />
                             <span>Details</span>
                           </button>
 
@@ -819,7 +819,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                             className={`w-full rounded-xl py-2 px-2.5 text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs ${
                               isSelected
                                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                                : 'bg-[#3b0080] hover:bg-[#2a005c] text-white'
+                                : 'bg-[#ef7f1a] hover:bg-[#d96e11] text-white'
                             }`}
                           >
                             {isSelected ? (
@@ -894,10 +894,10 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
           <aside id="consignment-checkout-box" className={`bg-white rounded-2xl border border-slate-200/90 shadow-xs p-5 sm:p-6 ${embedded ? 'xl:sticky xl:top-28' : 'lg:sticky lg:top-28'}`}>
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
               <div>
-                <p className="text-[10px] uppercase tracking-wider font-bold text-purple-700">Consignment Cart</p>
+                <p className="text-[10px] uppercase tracking-wider font-bold text-[#ef7f1a]">Consignment Cart</p>
                 <h2 className="text-base font-bold text-slate-900 mt-0.5">Selected Drone IDs</h2>
               </div>
-              <div className="w-9 h-9 rounded-xl bg-purple-50 text-[#3b0080] flex items-center justify-center font-bold">
+              <div className="w-9 h-9 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-bold">
                 <ShoppingBag className="w-4 h-4" />
               </div>
             </div>
@@ -914,7 +914,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                   <div key={drone.id} className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 border border-slate-100 text-xs">
                     <div className="min-w-0">
                       <p className="font-mono font-bold text-slate-900 truncate">{drone.id}</p>
-                      <p className="text-[10px] text-purple-800 font-medium">Cyberone Max ({drone.model})</p>
+                      <p className="text-[10px] text-slate-600 font-medium">Cyberone Max ({drone.model})</p>
                     </div>
                     <button
                       type="button"
@@ -928,7 +928,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                 ))}
                 <div className="flex justify-between items-center text-xs font-bold text-slate-900 pt-2 border-t border-slate-200">
                   <span>Selected Drones</span>
-                  <span className="text-sm text-[#3b0080] font-mono">{totalUnits} Units</span>
+                  <span className="text-sm text-[#ef7f1a] font-mono">{totalUnits} Units</span>
                 </div>
               </div>
             )}
@@ -939,7 +939,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                 <p className="text-[11px] text-amber-800 leading-relaxed">Please sign in with your customer account to place a drone booking.</p>
                 <button
                   onClick={navigateToLogin}
-                  className="w-full mt-1 rounded-xl bg-[#3b0080] hover:bg-[#2e0066] text-white py-2.5 text-xs font-bold cursor-pointer transition-all shadow-xs"
+                  className="w-full mt-1 rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] text-white py-2.5 text-xs font-bold cursor-pointer transition-all shadow-xs"
                 >
                   Sign In to Book
                 </button>
@@ -958,7 +958,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                       <select
                         value={selectedAddressId}
                         onChange={event => setSelectedAddressId(event.target.value)}
-                        className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs font-semibold text-slate-700 outline-none focus:border-purple-400"
+                        className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs font-semibold text-slate-700 outline-none focus:border-orange-400"
                       >
                         {addresses.map(address => (
                           <option key={address.id} value={address.id}>
@@ -1032,7 +1032,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                 <button
                   type="submit"
                   disabled={submitting || totalUnits === 0}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#3b0080] hover:bg-[#2c0060] disabled:opacity-50 text-white py-3 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-98"
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] disabled:opacity-50 text-white py-3 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-98"
                 >
                   {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Confirm Booking ({totalUnits}) <ArrowRight className="w-4 h-4" /></>}
                 </button>

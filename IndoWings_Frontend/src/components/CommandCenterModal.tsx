@@ -103,17 +103,17 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-[#171222] border border-purple-500/40 w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden text-white flex flex-col max-h-[90vh]">
+      <div className="bg-[#171222] border border-orange-500/40 w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden text-white flex flex-col max-h-[90vh]">
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-5 border-b border-purple-900/50 bg-black/40">
+        <div className="flex items-center justify-between p-5 border-b border-slate-900/50 bg-black/40">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-purple-900/60 text-purple-300 border border-purple-600/40">
+            <div className="p-2 rounded-xl bg-slate-900/60 text-orange-300 border border-orange-600/40">
               <RadioTower className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-bold">IndoWings Command Center Console</h3>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-950 text-purple-300 border border-purple-800">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-950 text-orange-300 border border-orange-800">
                   v3.4.4
                 </span>
               </div>
@@ -139,23 +139,23 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
 
         {/* Modal Navigation Tabs (When logged in) */}
         {currentUser && (
-          <div className="flex items-center justify-between px-6 py-2.5 bg-purple-950/30 border-b border-purple-900/40 text-xs font-medium">
+          <div className="flex items-center justify-between px-6 py-2.5 bg-slate-950/30 border-b border-slate-900/40 text-xs font-medium">
             <div className="flex gap-2">
               <button 
                 onClick={() => setActiveView('fleet')}
-                className={`px-3 py-1.5 rounded-lg transition-colors ${activeView === 'fleet' ? 'bg-[#3b0080] text-white' : 'text-slate-400 hover:text-white'}`}
+                className={`px-3 py-1.5 rounded-lg transition-colors ${activeView === 'fleet' ? 'bg-[#ef7f1a] text-white' : 'text-slate-400 hover:text-white'}`}
               >
                 Drone Fleet ({fleet.length})
               </button>
               <button 
                 onClick={() => setActiveView('missions')}
-                className={`px-3 py-1.5 rounded-lg transition-colors ${activeView === 'missions' ? 'bg-[#3b0080] text-white' : 'text-slate-400 hover:text-white'}`}
+                className={`px-3 py-1.5 rounded-lg transition-colors ${activeView === 'missions' ? 'bg-[#ef7f1a] text-white' : 'text-slate-400 hover:text-white'}`}
               >
                 Missions & Flight Plans ({missions.length})
               </button>
               <button 
                 onClick={() => setActiveView('audit')}
-                className={`px-3 py-1.5 rounded-lg transition-colors ${activeView === 'audit' ? 'bg-[#3b0080] text-white' : 'text-slate-400 hover:text-white'}`}
+                className={`px-3 py-1.5 rounded-lg transition-colors ${activeView === 'audit' ? 'bg-[#ef7f1a] text-white' : 'text-slate-400 hover:text-white'}`}
               >
                 Compliance Audit Trail ({auditLogs.length})
               </button>
@@ -163,7 +163,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
 
             <div className="flex items-center gap-3">
               <span className="text-slate-300">
-                Logged in as: <strong className="text-purple-300">{currentUser.full_name}</strong> ({currentUser.role})
+                Logged in as: <strong className="text-orange-300">{currentUser.full_name}</strong> ({currentUser.role})
               </span>
               <button 
                 onClick={() => { onLogout(); setActiveView('login'); }}
@@ -181,7 +181,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
           {(!currentUser || activeView === 'login') && (
             <div className="space-y-6">
               <div className="text-center max-w-lg mx-auto space-y-2">
-                <span className="p-3 rounded-2xl bg-purple-900/40 text-purple-300 inline-block border border-purple-700/30">
+                <span className="p-3 rounded-2xl bg-slate-900/40 text-orange-300 inline-block border border-orange-700/30">
                   <ShieldCheck className="w-8 h-8 text-emerald-400" />
                 </span>
                 <h4 className="text-xl font-bold">Sign In to IndoWings Command Center</h4>
@@ -196,13 +196,13 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
                 <button 
                   onClick={() => handleQuickLogin('admin@indowings.com')}
                   disabled={loading}
-                  className="p-4 rounded-xl bg-black/40 border border-purple-800/40 hover:border-purple-500 hover:bg-purple-950/40 text-left transition-all group"
+                  className="p-4 rounded-xl bg-black/40 border border-orange-800/40 hover:border-orange-500 hover:bg-slate-950/40 text-left transition-all group"
                 >
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-bold text-purple-300 font-mono">ROLE: ADMINISTRATOR</span>
-                    <span className="px-2 py-0.5 rounded text-[10px] bg-purple-900 text-purple-200">Full Access</span>
+                    <span className="text-xs font-bold text-orange-300 font-mono">ROLE: ADMINISTRATOR</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] bg-slate-900 text-orange-200">Full Access</span>
                   </div>
-                  <div className="font-bold text-white group-hover:text-purple-300">Vikramaditya Sharma</div>
+                  <div className="font-bold text-white group-hover:text-orange-300">Vikramaditya Sharma</div>
                   <div className="text-[11px] text-slate-400">admin@indowings.com</div>
                 </button>
               </div>
@@ -213,13 +213,13 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
           {currentUser && activeView === 'fleet' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h4 className="font-bold text-base text-purple-300">Active IndoWings Fleet Roster</h4>
+                <h4 className="font-bold text-base text-orange-300">Active IndoWings Fleet Roster</h4>
                 <span className="text-xs text-slate-400 font-mono">DGCA Telemetry Link: 100% OK</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {fleet.map((drone) => (
-                  <div key={drone.id} className="p-4 rounded-xl bg-black/40 border border-purple-900/40 space-y-2">
+                  <div key={drone.id} className="p-4 rounded-xl bg-black/40 border border-slate-900/40 space-y-2">
                     <div className="flex justify-between items-start">
                       <div>
                         <span className="font-bold text-white text-sm block">{drone.model_name}</span>
@@ -250,8 +250,8 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
           {currentUser && activeView === 'missions' && (
             <div className="space-y-6">
               {/* Create Mission Form */}
-              <form onSubmit={handleCreateMission} className="p-4 rounded-xl bg-black/40 border border-purple-900/50 space-y-3">
-                <div className="flex items-center gap-2 font-bold text-sm text-purple-300">
+              <form onSubmit={handleCreateMission} className="p-4 rounded-xl bg-black/40 border border-slate-900/50 space-y-3">
+                <div className="flex items-center gap-2 font-bold text-sm text-orange-300">
                   <Plus className="w-4 h-4" />
                   <span>Dispatch New UAV Flight Mission</span>
                 </div>
@@ -263,13 +263,13 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     required
-                    className="sm:col-span-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:border-purple-500"
+                    className="sm:col-span-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:border-orange-500"
                   />
 
                   <select 
                     value={newDrone}
                     onChange={(e) => setNewDrone(e.target.value)}
-                    className="px-3 py-2 rounded-lg bg-[#171222] border border-white/10 text-xs text-white focus:outline-none focus:border-purple-500"
+                    className="px-3 py-2 rounded-lg bg-[#171222] border border-white/10 text-xs text-white focus:outline-none focus:border-orange-500"
                   >
                     <option value="Cyberone Pro">Cyberone Pro</option>
                     <option value="Cyberone Max">Cyberone Max</option>
@@ -279,7 +279,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
 
                   <button 
                     type="submit"
-                    className="px-4 py-2 rounded-lg bg-[#6d28d9] hover:bg-[#7c3aed] text-white text-xs font-semibold"
+                    className="px-4 py-2 rounded-lg bg-[#6d28d9] hover:bg-[#ef7f1a] text-white text-xs font-semibold"
                   >
                     Deploy Mission
                   </button>
@@ -288,9 +288,9 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
 
               {/* Missions Table */}
               <div className="space-y-2">
-                <h4 className="font-bold text-sm text-purple-300">Registered Operations</h4>
+                <h4 className="font-bold text-sm text-orange-300">Registered Operations</h4>
                 {missions.map((m) => (
-                  <div key={m.id} className="p-3.5 rounded-xl bg-black/40 border border-purple-900/40 flex flex-col sm:flex-row justify-between sm:items-center gap-2 text-xs">
+                  <div key={m.id} className="p-3.5 rounded-xl bg-black/40 border border-slate-900/40 flex flex-col sm:flex-row justify-between sm:items-center gap-2 text-xs">
                     <div>
                       <div className="font-bold text-white">{m.title}</div>
                       <div className="text-[11px] text-slate-400 font-mono">
@@ -300,7 +300,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
                     <span className={`px-2 py-1 rounded font-bold text-[10px] w-max ${
                       m.status === 'ACTIVE' ? 'bg-cyan-950 text-cyan-300 border border-cyan-800 animate-pulse' :
                       m.status === 'COMPLETED' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' :
-                      'bg-purple-950 text-purple-300 border border-purple-800'
+                      'bg-slate-950 text-orange-300 border border-orange-800'
                     }`}>
                       {m.status}
                     </span>
@@ -320,9 +320,9 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
 
               <div className="space-y-2">
                 {auditLogs.map((log) => (
-                  <div key={log.id} className="p-3 rounded-lg bg-black/50 border border-purple-900/40 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-[11px]">
+                  <div key={log.id} className="p-3 rounded-lg bg-black/50 border border-slate-900/40 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-[11px]">
                     <div>
-                      <span className="text-purple-400 font-bold">[{log.action}]</span>{' '}
+                      <span className="text-orange-400 font-bold">[{log.action}]</span>{' '}
                       <span className="text-white">{log.resource}</span>
                       <div className="text-[10px] text-slate-400">
                         Initiator: {log.user_email} ({log.role}) • IP: {log.ip_address}

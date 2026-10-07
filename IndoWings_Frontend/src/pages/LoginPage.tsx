@@ -518,7 +518,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
       <div
         className="hidden lg:flex lg:w-[46%] flex-col justify-between p-12 xl:p-16 relative overflow-hidden"
         style={{
-          background: 'linear-gradient(135deg, #1b0736 0%, #290f4d 55%, #15062c 100%)',
+          background: 'linear-gradient(135deg, #101222 0%, #191b30 55%, #0d0e1a 100%)',
         }}
       >
         {/* Subtle grid pattern */}
@@ -533,8 +533,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
 
         {/* Ambient atmospheric glow */}
         <div
-          className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-20 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #7c3aed 0%, transparent 70%)' }}
+          className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-25 pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #ef7f1a 0%, transparent 70%)' }}
         />
 
         {/* Top brand header */}
@@ -585,7 +585,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
               className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 backdrop-blur-sm"
             >
               <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                <Icon className="w-5 h-5 text-purple-200" />
+                <Icon className="w-5 h-5 text-[#ef7f1a]" />
               </div>
               <div>
                 <p className="text-white text-xs font-bold">{title}</p>
@@ -651,12 +651,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     }}
                     className={`p-3 rounded-xl border text-left transition-all ${
                       ftChannel === 'email'
-                        ? 'border-[#3b0080] bg-purple-50/50 ring-2 ring-[#3b0080]/20'
+                        ? 'border-[#ef7f1a] bg-orange-50/50 ring-2 ring-[#ef7f1a]/20'
                         : 'border-slate-200 hover:border-slate-300 bg-white'
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <Mail className={`w-4 h-4 ${ftChannel === 'email' ? 'text-[#3b0080]' : 'text-slate-400'}`} />
+                      <Mail className={`w-4 h-4 ${ftChannel === 'email' ? 'text-[#ef7f1a]' : 'text-slate-400'}`} />
                       <span className="text-xs font-bold text-slate-900">Email</span>
                     </div>
                     <p className="text-[11px] text-slate-500 truncate mt-1">{pendingUser.email || 'N/A'}</p>
@@ -671,12 +671,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     }}
                     className={`p-3 rounded-xl border text-left transition-all ${
                       ftChannel === 'phone'
-                        ? 'border-[#3b0080] bg-purple-50/50 ring-2 ring-[#3b0080]/20'
+                        ? 'border-[#ef7f1a] bg-orange-50/50 ring-2 ring-[#ef7f1a]/20'
                         : 'border-slate-200 hover:border-slate-300 bg-white'
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <Phone className={`w-4 h-4 ${ftChannel === 'phone' ? 'text-[#3b0080]' : 'text-slate-400'}`} />
+                      <Phone className={`w-4 h-4 ${ftChannel === 'phone' ? 'text-[#ef7f1a]' : 'text-slate-400'}`} />
                       <span className="text-xs font-bold text-slate-900">SMS / Mobile</span>
                     </div>
                     <p className="text-[11px] text-slate-500 truncate mt-1">+91 {pendingUser.phone || 'N/A'}</p>
@@ -698,7 +698,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     type="button"
                     onClick={handleSendFirstTimeOtp}
                     disabled={ftLoading}
-                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#3b0080] hover:bg-[#2c0060] transition-all shadow-md shadow-purple-900/10 flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-950/10 flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {ftLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
                     <span>{ftLoading ? 'Sending OTP...' : 'Send Security OTP'}</span>
@@ -716,7 +716,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                       value={ftOtp}
                       onChange={(e) => setFtOtp(e.target.value.replace(/[^0-9]/g, ''))}
                       placeholder="Enter 6-digit OTP"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-center tracking-widest font-mono text-lg font-bold text-slate-900 focus:outline-none focus:border-[#3b0080] focus:ring-4 focus:ring-purple-50"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-center tracking-widest font-mono text-lg font-bold text-slate-900 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50"
                       required
                     />
                   </div>
@@ -730,7 +730,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                       value={ftNewPass}
                       onChange={(e) => setFtNewPass(e.target.value)}
                       placeholder="At least 6 characters"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#3b0080] focus:ring-4 focus:ring-purple-50"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50"
                       required
                     />
                   </div>
@@ -744,7 +744,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                       value={ftConfirmPass}
                       onChange={(e) => setFtConfirmPass(e.target.value)}
                       placeholder="Re-enter password"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#3b0080] focus:ring-4 focus:ring-purple-50"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50"
                       required
                     />
                   </div>
@@ -768,7 +768,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     <button
                       type="button"
                       onClick={handleSendFirstTimeOtp}
-                      className="text-[#3b0080] font-bold hover:underline"
+                      className="text-[#ef7f1a] font-bold hover:underline"
                     >
                       Resend OTP
                     </button>
@@ -794,8 +794,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
           ) : (
             <>
               {/* Header icon & title */}
-              <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-[#3b0080] mb-5 shadow-sm">
-                <KeyRound className="w-6 h-6 text-[#3b0080]" />
+              <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-[#ef7f1a] mb-5 shadow-sm">
+                <KeyRound className="w-6 h-6 text-[#ef7f1a]" />
               </div>
 
           <h2 className="text-2xl font-black text-slate-900 tracking-tight">
@@ -816,7 +816,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
               }}
               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 authMethod === 'email'
-                  ? 'bg-white text-[#3b0080] shadow-sm'
+                  ? 'bg-white text-[#ef7f1a] shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -832,7 +832,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
               }}
               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 authMethod === 'phone'
-                  ? 'bg-white text-[#3b0080] shadow-sm'
+                  ? 'bg-white text-[#ef7f1a] shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -862,7 +862,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                         }}
                         required
                         placeholder="name@indowings.com"
-                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#3b0080] focus:ring-4 focus:ring-purple-50 transition-all font-medium"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50 transition-all font-medium"
                       />
                     </div>
                     <p className="text-[11px] text-slate-400 mt-1.5">
@@ -879,7 +879,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   <button
                     type="submit"
                     disabled={loading || !email.trim()}
-                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#3b0080] hover:bg-[#2c0060] transition-all shadow-md shadow-purple-900/10 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
+                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-950/10 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
                   >
                     {loading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -936,7 +936,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                         autoFocus
                         required
                         placeholder="Enter your account password"
-                        className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#3b0080] focus:ring-4 focus:ring-purple-50 transition-all font-medium"
+                        className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50 transition-all font-medium"
                       />
                       <button
                         type="button"
@@ -957,7 +957,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   <button
                     type="submit"
                     disabled={loading || !password.trim()}
-                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#3b0080] hover:bg-[#2c0060] transition-all shadow-md shadow-purple-900/10 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
+                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-950/10 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
                   >
                     {loading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -1005,7 +1005,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   <button
                     type="submit"
                     disabled={loading || phone.replace(/[^0-9]/g, '').length < 10}
-                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#3b0080] hover:bg-[#2c0060] transition-all shadow-md shadow-purple-900/10 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
+                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-950/10 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
                   >
                     {loading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -1065,7 +1065,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                             autoFocus
                             required
                             placeholder="Enter your account password"
-                            className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#3b0080] focus:ring-4 focus:ring-purple-50 transition-all font-medium"
+                            className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50 transition-all font-medium"
                           />
                           <button
                             type="button"
@@ -1086,7 +1086,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                       <button
                         type="submit"
                         disabled={loading || !password.trim()}
-                        className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#3b0080] hover:bg-[#2c0060] transition-all shadow-md shadow-purple-900/10 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
+                        className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-950/10 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
                       >
                         {loading ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -1104,7 +1104,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                             setError('');
                             handleSendPhoneOtp();
                           }}
-                          className="text-xs font-bold text-[#3b0080] hover:underline"
+                          className="text-xs font-bold text-[#ef7f1a] hover:underline"
                         >
                           Or sign in with SMS OTP instead &rarr;
                         </button>
@@ -1116,7 +1116,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                         type="button"
                         onClick={() => handleSendPhoneOtp()}
                         disabled={loading}
-                        className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#3b0080] hover:bg-[#2c0060] transition-all shadow-md shadow-purple-900/10 flex items-center justify-center gap-2 disabled:opacity-60"
+                        className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-950/10 flex items-center justify-center gap-2 disabled:opacity-60"
                       >
                         {loading ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -1133,7 +1133,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                             setPhoneAuthMode('password');
                             setError('');
                           }}
-                          className="text-xs font-bold text-[#3b0080] hover:underline"
+                          className="text-xs font-bold text-[#ef7f1a] hover:underline"
                         >
                           &larr; Back to Password Sign In
                         </button>
@@ -1149,7 +1149,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                       setOtpStep(false);
                       setError('');
                     }}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#3b0080] mb-4 transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#ef7f1a] mb-4 transition-colors"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     <span>Back to sign in options</span>
@@ -1179,7 +1179,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                             value={digit}
                             onChange={(e) => handleDigitChange(idx, e.target.value)}
                             onKeyDown={(e) => handleDigitKeyDown(idx, e)}
-                            className="w-11 h-14 sm:w-12 sm:h-14 text-center text-xl font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-[#3b0080] focus:ring-4 focus:ring-purple-50 transition-all bg-slate-50/50"
+                            className="w-11 h-14 sm:w-12 sm:h-14 text-center text-xl font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50 transition-all bg-slate-50/50"
                           />
                         ))}
                       </div>
@@ -1194,7 +1194,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     <button
                       type="submit"
                       disabled={loading || otpDigits.join('').length !== 6}
-                      className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#3b0080] hover:bg-[#2c0060] transition-all shadow-md shadow-purple-900/10 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99]"
+                      className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-950/10 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99]"
                     >
                       {loading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -1210,7 +1210,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                         <button
                           type="button"
                           onClick={() => handleSendPhoneOtp()}
-                          className="font-bold text-[#3b0080] hover:underline"
+                          className="font-bold text-[#ef7f1a] hover:underline"
                         >
                           Resend OTP
                         </button>
@@ -1234,7 +1234,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                 onNavigate('support');
                 window.history.pushState({}, '', '/support');
               }}
-              className="text-[#3b0080] font-semibold hover:underline"
+              className="text-[#ef7f1a] font-semibold hover:underline"
             >
               Contact Support Desk
             </a>

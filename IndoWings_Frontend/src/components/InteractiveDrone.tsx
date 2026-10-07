@@ -10,11 +10,11 @@ export const InteractiveDrone: React.FC<InteractiveDroneProps> = ({ onOrderClick
     <div className="relative w-full max-w-[460px] min-h-[280px] sm:min-h-[360px] lg:min-h-[440px] flex flex-col items-center justify-center select-none py-2 sm:py-4">
       {/* ── Ambient Background Glows ── */}
       <div className="absolute inset-0 bg-[#bc13fe]/20 blur-[60px] sm:blur-[100px] rounded-full scale-90 animate-pulse pointer-events-none" />
-      <div className="absolute w-[220px] h-[220px] sm:w-[320px] sm:h-[320px] bg-purple-600/20 blur-[50px] sm:blur-[80px] rounded-full pointer-events-none" />
+      <div className="absolute w-[220px] h-[220px] sm:w-[320px] sm:h-[320px] bg-orange-600/20 blur-[50px] sm:blur-[80px] rounded-full pointer-events-none" />
 
       {/* ── Circular Orbital Grid Rings ── */}
       <div className="absolute w-[240px] h-[240px] sm:w-[320px] sm:h-[320px] lg:w-[380px] lg:h-[380px] rounded-full border border-white/[0.07] border-dashed animate-[spin_80s_linear_infinite] pointer-events-none" />
-      <div className="absolute w-[180px] h-[180px] sm:w-[240px] sm:h-[240px] lg:w-[280px] lg:h-[280px] rounded-full border border-purple-500/20 pointer-events-none" />
+      <div className="absolute w-[180px] h-[180px] sm:w-[240px] sm:h-[240px] lg:w-[280px] lg:h-[280px] rounded-full border border-orange-500/20 pointer-events-none" />
 
       {/* ── Main Floating Character Container (Clean & Focused) ── */}
       <div className="relative z-10 flex flex-col items-center">

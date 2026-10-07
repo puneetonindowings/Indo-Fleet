@@ -99,7 +99,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
             {/* Left Copy */}
             <div className="space-y-6">
               <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 border border-white/20 text-[#d8b4fe]">
-                <RadioTower className="w-5 h-5 text-purple-300" />
+                <RadioTower className="w-5 h-5 text-orange-300" />
               </span>
               <p className="text-xs font-bold tracking-widest text-[#d8b4fe] uppercase">
                 INDOWINGS COMMAND CENTER
@@ -107,7 +107,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
               <h1 className="text-3xl sm:text-4xl lg:text-[50px] font-extrabold text-white tracking-tight leading-[1.08]">
                 Enterprise control for UAV organizations.
               </h1>
-              <p className="text-base sm:text-[17px] text-purple-100/85 leading-relaxed max-w-2xl">
+              <p className="text-base sm:text-[17px] text-orange-100/85 leading-relaxed max-w-2xl">
                 Command Center gives teams a central place to manage organizations, users, roles, trusted devices, fleet visibility, mission oversight, audit logs, and GCS synchronization.
               </p>
 
@@ -116,7 +116,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
                 <a 
                   href="/platform"
                   onClick={handleGoPlatform}
-                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-[#3b0080] hover:bg-[#4c0099] text-white text-sm font-semibold shadow-md transition-all active:scale-95 border border-purple-400/30"
+                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-[#ef7f1a] hover:bg-[#4c0099] text-white text-sm font-semibold shadow-md transition-all active:scale-95 border border-orange-400/30"
                 >
                   <Workflow className="w-4 h-4" />
                   <span>How IndoWings works</span>
@@ -132,7 +132,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
                   onClick={onOpenCommandCenter}
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-white hover:bg-slate-100 text-[#171222] text-sm font-semibold shadow-md transition-all active:scale-95"
                 >
-                  <MonitorUp className="w-4 h-4 text-[#3b0080]" />
+                  <MonitorUp className="w-4 h-4 text-[#ef7f1a]" />
                   <span>Explore GCS</span>
                 </button>
               </div>
@@ -156,7 +156,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
             {/* Left Copy */}
             <div>
-              <p className="text-xs font-bold tracking-widest text-[#3b0080] uppercase mb-3">
+              <p className="text-xs font-bold tracking-widest text-[#ef7f1a] uppercase mb-3">
                 ACCOUNT GOVERNANCE
               </p>
               <h2 className="text-2xl sm:text-3xl lg:text-[38px] font-extrabold text-[#111827] tracking-tight leading-tight mb-4">
@@ -168,15 +168,15 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
             </div>
 
             {/* Right Console Grid */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-white/90 border border-[#3b0080]/15 shadow-[0_12px_36px_rgba(31,18,45,0.05)] grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="p-6 sm:p-7 rounded-2xl bg-white/90 border border-[#ef7f1a]/15 shadow-[0_12px_36px_rgba(31,18,45,0.05)] grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {accountGovernancePills.map((item, idx) => {
                 const ItemIcon = item.icon;
                 return (
                   <div 
                     key={idx}
-                    className="flex items-center gap-3 p-3.5 sm:p-4 rounded-xl border border-[#3b0080]/12 bg-[#faf7fd] text-[#111827] font-semibold text-sm hover:border-[#3b0080]/30 hover:bg-white hover:shadow-sm transition-all"
+                    className="flex items-center gap-3 p-3.5 sm:p-4 rounded-xl border border-[#ef7f1a]/12 bg-[#faf7fd] text-[#111827] font-semibold text-sm hover:border-[#ef7f1a]/30 hover:bg-white hover:shadow-sm transition-all"
                   >
-                    <span className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[#3b0080] shadow-2xs shrink-0">
+                    <span className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[#ef7f1a] shadow-2xs shrink-0">
                       <ItemIcon className="w-4 h-4" />
                     </span>
                     <span className="tracking-tight">{item.title}</span>
@@ -189,12 +189,12 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
       </section>
 
       {/* 3. Command Visibility Section */}
-      <section className="w-full py-16 sm:py-20 lg:py-24 bg-white border-t border-[#3b0080]/10">
+      <section className="w-full py-16 sm:py-20 lg:py-24 bg-white border-t border-[#ef7f1a]/10">
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
             {/* Left Copy */}
             <div>
-              <p className="text-xs font-bold tracking-widest text-[#3b0080] uppercase mb-3">
+              <p className="text-xs font-bold tracking-widest text-[#ef7f1a] uppercase mb-3">
                 COMMAND VISIBILITY
               </p>
               <h2 className="text-2xl sm:text-3xl lg:text-[38px] font-extrabold text-[#111827] tracking-tight leading-tight mb-4">
@@ -221,10 +221,10 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
       </section>
 
       {/* 4. Command Center Views (Visual Story Grid) */}
-      <section className="w-full py-16 sm:py-20 lg:py-24 bg-[#fbf9fd] border-t border-[#3b0080]/10">
+      <section className="w-full py-16 sm:py-20 lg:py-24 bg-[#fbf9fd] border-t border-[#ef7f1a]/10">
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="max-w-3xl mb-12">
-            <p className="text-xs font-bold tracking-widest text-[#3b0080] uppercase mb-3">
+            <p className="text-xs font-bold tracking-widest text-[#ef7f1a] uppercase mb-3">
               COMMAND CENTER VIEWS
             </p>
             <h2 className="text-2xl sm:text-3xl lg:text-[38px] font-extrabold text-[#111827] tracking-tight leading-tight">
@@ -273,7 +273,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
       </section>
 
       {/* 5. Product Detail Grid (6 Cards) */}
-      <section className="w-full py-16 sm:py-20 lg:py-24 bg-white border-t border-[#3b0080]/10">
+      <section className="w-full py-16 sm:py-20 lg:py-24 bg-white border-t border-[#ef7f1a]/10">
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {productDetailCards.map((card, idx) => {
@@ -281,9 +281,9 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
               return (
                 <div 
                   key={idx}
-                  className="p-7 rounded-2xl border border-[#3b0080]/15 bg-gradient-to-b from-white to-[#fcfaff] shadow-[0_4px_24px_rgba(31,18,45,0.04)] hover:shadow-[0_16px_36px_rgba(59,0,128,0.08)] hover:border-[#3b0080]/30 transition-all duration-300 flex flex-col justify-start"
+                  className="p-7 rounded-2xl border border-[#ef7f1a]/15 bg-gradient-to-b from-white to-[#fcfaff] shadow-[0_4px_24px_rgba(31,18,45,0.04)] hover:shadow-[0_16px_36px_rgba(59,0,128,0.08)] hover:border-[#ef7f1a]/30 transition-all duration-300 flex flex-col justify-start"
                 >
-                  <div className="w-11 h-11 rounded-xl bg-[#f2ecf8] text-[#3b0080] flex items-center justify-center mb-5">
+                  <div className="w-11 h-11 rounded-xl bg-[#f2ecf8] text-[#ef7f1a] flex items-center justify-center mb-5">
                     <IconComp className="w-5 h-5" />
                   </div>
                   <div className="flex items-center gap-2 mb-2.5">
@@ -292,7 +292,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
                     </h3>
                     {card.hasHelp && (
                       <span 
-                        className="w-4 h-4 rounded-full bg-[#eee4ff] text-[#3b0080] text-[10px] font-bold inline-flex items-center justify-center cursor-help"
+                        className="w-4 h-4 rounded-full bg-[#eee4ff] text-[#ef7f1a] text-[10px] font-bold inline-flex items-center justify-center cursor-help"
                         title={card.tooltip}
                       >
                         ?
@@ -326,7 +326,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
               <h2 className="text-3xl sm:text-4xl lg:text-[44px] font-extrabold text-white tracking-tight leading-[1.12] mb-5">
                 Command Center keeps GCS workstations aligned with enterprise policy.
               </h2>
-              <p className="text-base sm:text-lg text-purple-100/80 leading-relaxed max-w-xl">
+              <p className="text-base sm:text-lg text-orange-100/80 leading-relaxed max-w-xl">
                 GCS synchronizes mission, access, device, and operational state with Command Center so field workstations can remain aligned with organization-level control.
               </p>
             </div>
@@ -336,7 +336,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
               {connectedOperationsPills.map((pill, idx) => (
                 <div 
                   key={idx}
-                  className="flex items-center justify-start min-h-[52px] px-5 py-3.5 rounded-xl border border-white/10 bg-white/[0.08] hover:bg-white/[0.14] hover:border-purple-300/30 text-white font-bold text-sm sm:text-[15px] transition-all cursor-default"
+                  className="flex items-center justify-start min-h-[52px] px-5 py-3.5 rounded-xl border border-white/10 bg-white/[0.08] hover:bg-white/[0.14] hover:border-orange-300/30 text-white font-bold text-sm sm:text-[15px] transition-all cursor-default"
                 >
                   <span className="tracking-tight">{pill}</span>
                 </div>
