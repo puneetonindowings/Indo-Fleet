@@ -1456,7 +1456,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div className="p-3 bg-white border border-slate-200 rounded-xl">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Assigned UAV</span>
-                  <span className="text-sm font-bold text-[#171222]">{selectedOrderDetail.drone_model || 'Cyberone Max'}</span>
+                  <span className="text-sm font-bold text-[#171222]">{selectedOrderDetail.drone_model || '700RPAV'}</span>
                   <span className="text-[11px] text-slate-400 block font-mono mt-0.5">{selectedOrderDetail.drone_id || 'ID: UAV-SYS-01'}</span>
                 </div>
 

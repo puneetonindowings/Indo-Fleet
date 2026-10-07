@@ -51,7 +51,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({ currentUser,
 
   // New Drone Registration Modal
   const [showAddDrone, setShowAddDrone] = useState(false);
-  const [newModel, setNewModel] = useState('Cyberone Max');
+  const [newModel, setNewModel] = useState('700RPAV');
   const [newStation, setNewStation] = useState('Noida Sector 62 Plant');
   const [addingDrone, setAddingDrone] = useState(false);
 
@@ -406,7 +406,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({ currentUser,
                   onChange={(e) => setNewModel(e.target.value)}
                   className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-[#ef7f1a]"
                 >
-                  <option value="Cyberone Max">Cyberone Max (Heavy Cargo / Precision Payload)</option>
+                  <option value="700RPAV">700RPAV (Type-Certified Tactical / Precision Payload)</option>
                   <option value="IndoHawk Alpha">IndoHawk Alpha (High-Altitude Tactical)</option>
                   <option value="StealthPro VTOL">StealthPro VTOL (Long Endurance Survey)</option>
                   <option value="AgriWing X">AgriWing X (Industrial Agriculture & Spraying)</option>
