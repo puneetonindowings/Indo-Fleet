@@ -21,15 +21,18 @@ import {
   Check,
   Lock,
   ChevronRight,
+  ChevronLeft,
   Building2,
   Phone,
   Mail,
   Eye,
   Ban,
   RotateCcw,
-  Image as ImageIcon
+  Image as ImageIcon,
+  CheckCircle,
+  HelpCircle
 } from 'lucide-react';
-import { DeliveryUser } from '../components/AuthModal';
+import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
 import PhoneInput from '../components/PhoneInput';
 import { parsePhone } from '../data/countries';
@@ -56,28 +59,46 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [orders, setOrders] = useState<any[]>([]);
   const [expertRequests, setExpertRequests] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
-  const [editingDrone, setEditingDrone] = useState<any | null>(null);
+  
+  // Single Drone Form State
+  const [showAddSingleDrone, setShowAddSingleDrone] = useState(false);
+  const [newDroneModel, setNewDroneModel] = useState('700RPAV');
   const [newDroneId, setNewDroneId] = useState('');
+  const [newDroneSerial, setNewDroneSerial] = useState('');
   const [newDroneImage, setNewDroneImage] = useState('');
+  const [newDroneCategory, setNewDroneCategory] = useState('');
+  const [newDroneIsVerified, setNewDroneIsVerified] = useState(false);
+  const [newDroneCity, setNewDroneCity] = useState('Noida Sector 62 Plant');
+  const [newDroneBattery, setNewDroneBattery] = useState(100);
+  const [newDronePayload, setNewDronePayload] = useState(5);
+
+  // Edit Drone Form State
+  const [editingDrone, setEditingDrone] = useState<any | null>(null);
+  const [editingDroneModel, setEditingDroneModel] = useState('');
+  const [editingDroneSerial, setEditingDroneSerial] = useState('');
   const [editingDroneImage, setEditingDroneImage] = useState('');
+  const [editingDroneCategory, setEditingDroneCategory] = useState('');
+  const [editingDroneIsVerified, setEditingDroneIsVerified] = useState(false);
+
+  // Bulk Drone Import State (50, 100, 250, 500, 1000)
+  const [showBulkDroneModal, setShowBulkDroneModal] = useState(false);
+  const [bulkCount, setBulkCount] = useState(1000);
+  const [bulkModel, setBulkModel] = useState('700RPAV');
+  const [bulkCategory, setBulkCategory] = useState('General UAV');
+  const [bulkPrefix, setBulkPrefix] = useState('INW-700RPAV');
+  const [bulkCity, setBulkCity] = useState('Noida Sector 62 Plant');
+  const [bulkIsVerified, setBulkIsVerified] = useState(false);
   const [bulkRows, setBulkRows] = useState<DroneImportRow[]>([]);
   const [bulkManualRows, setBulkManualRows] = useState('');
   const [bulkImportError, setBulkImportError] = useState('');
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
+
+  // Admin Security OTP for Fleet & Provisioning
   const [inventoryOtpSent, setInventoryOtpSent] = useState(false);
   const [inventoryOtp, setInventoryOtp] = useState('');
   const [inventoryOtpChannel, setInventoryOtpChannel] = useState<'email' | 'phone'>('email');
 
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Search & Filters
-  const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [droneFilter, setDroneFilter] = useState('all');
-  const [supportFilter, setSupportFilter] = useState('all');
-
-  // Simple Team Member Provisioning State (NO Base Camp)
+  // Simple Team Member Provisioning State
   const [provName, setProvName] = useState('');
   const [provEmail, setProvEmail] = useState('');
   const [provPhone, setProvPhone] = useState('');
@@ -92,21 +113,18 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [adminOtpError, setAdminOtpError] = useState('');
   const [provisioningSuccess, setProvisioningSuccess] = useState<any | null>(null);
 
-  // Fleet Add State
-  const [showAddSingleDrone, setShowAddSingleDrone] = useState(false);
-  const [showBulkDroneModal, setShowBulkDroneModal] = useState(false);
-  const [newDroneModel, setNewDroneModel] = useState('Cyberone Pro');
-  const [newDroneSerial, setNewDroneSerial] = useState('');
-  const [newDroneCity, setNewDroneCity] = useState('Noida Sector 62 Plant');
-  const [newDroneBattery, setNewDroneBattery] = useState(100);
-  const [newDronePayload, setNewDronePayload] = useState(5);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Bulk Drone Import State (50, 100, 250, 500, 1000)
-  const [bulkCount, setBulkCount] = useState(100);
-  const [bulkModel, setBulkModel] = useState('Cyberone Pro');
-  const [bulkPrefix, setBulkPrefix] = useState('IW-UAV-BATCH');
-  const [bulkCity, setBulkCity] = useState('Noida Sector 62 Plant');
-  const [bulkSubmitting, setBulkSubmitting] = useState(false);
+  // Search & Filters & Pagination
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [droneFilter, setDroneFilter] = useState('all');
+  const [droneSearchQuery, setDroneSearchQuery] = useState('');
+  const [droneCurrentPage, setDroneCurrentPage] = useState(1);
+  const [dronePageSize, setDronePageSize] = useState(50);
+  const [supportFilter, setSupportFilter] = useState('all');
 
   // Drone Shipment Dispatch State (Shipping manufactured drones to clients)
   const [showDispatchModal, setShowDispatchModal] = useState(false);
@@ -372,9 +390,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         body: JSON.stringify({
           ...inventoryOtpFields(),
           id: newDroneId.trim(),
-          model: newDroneModel,
-          serial_number: newDroneSerial || undefined,
+          model: newDroneModel.trim(),
+          serial_number: newDroneSerial.trim() || newDroneId.trim(),
+          category: newDroneCategory.trim() || 'General UAV',
           image_url: newDroneImage,
+          is_verified: newDroneIsVerified,
+          verification_status: newDroneIsVerified ? 'verified' : 'unverified',
           current_city: newDroneCity,
           battery: newDroneBattery,
           payload_kg: newDronePayload
@@ -386,6 +407,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         setNewDroneSerial('');
         setNewDroneId('');
         setNewDroneImage('');
+        setNewDroneCategory('');
+        setNewDroneIsVerified(false);
         setInventoryOtp('');
         setInventoryOtpSent(false);
         showToast(`Drone ${data.drone?.id} added to fleet!`);
@@ -396,7 +419,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     }
   };
 
-  // Bulk Add Drones (50, 100, 250, 500, 1000)
+  // Bulk Add Drones (50, 100, 250, 500, 1000+)
   const handleBulkAddDrones = async (e: React.FormEvent) => {
     e.preventDefault();
     if (bulkImportError) return;
@@ -410,10 +433,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     }
     setBulkSubmitting(true);
     try {
-      let drones: DroneImportRow[] | undefined = bulkRows.length ? bulkRows : undefined;
-      if (!drones && bulkManualRows.trim()) {
+      let dronesData: DroneImportRow[] | undefined = bulkRows.length ? bulkRows : undefined;
+      if (!dronesData && bulkManualRows.trim()) {
         const manualFile = new File([bulkManualRows], 'manual-drones.csv', { type: 'text/csv' });
-        drones = await parseDroneImportFile(manualFile);
+        dronesData = await parseDroneImportFile(manualFile);
       }
       const res = await fetch(`${API_BASE_URL}/api/delivery/drones/bulk`, {
         method: 'POST',
@@ -423,11 +446,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         },
         body: JSON.stringify({
           ...inventoryOtpFields(),
-          drones,
+          drones: dronesData,
           count: bulkCount,
           model: bulkModel,
+          category: bulkCategory || 'General UAV',
           prefix: bulkPrefix,
-          current_city: bulkCity
+          current_city: bulkCity,
+          is_verified: bulkIsVerified
         })
       });
       const data = await res.json();
@@ -462,9 +487,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         },
         body: JSON.stringify({
           ...inventoryOtpFields(),
-          model: editingDrone.model,
-          serial_number: editingDrone.serial_number,
+          model: editingDroneModel.trim(),
+          serial_number: editingDroneSerial.trim() || editingDrone.id,
+          category: editingDroneCategory.trim() || 'General UAV',
           image_url: editingDroneImage,
+          is_verified: editingDroneIsVerified,
+          verification_status: editingDroneIsVerified ? 'verified' : 'unverified',
           current_city: editingDrone.current_city,
           payload_kg: editingDrone.payload_kg
         })
@@ -477,11 +505,23 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
       setEditingDrone(null);
       setInventoryOtp('');
       setInventoryOtpSent(false);
-      showToast(`Drone ${data.drone.id} updated.`);
+      showToast(`Drone ${data.drone?.id || editingDrone.id} updated in database.`);
       await fetchData();
     } catch {
       setAdminOtpError('Connection error saving drone changes.');
     }
+  };
+
+  const openEditDroneModal = (d: any) => {
+    setEditingDrone({ ...d });
+    setEditingDroneModel(d.model || '');
+    setEditingDroneSerial(d.serial_number || d.id || '');
+    setEditingDroneImage(d.image_url || '');
+    setEditingDroneCategory(d.category || '');
+    setEditingDroneIsVerified(d.is_verified === true || d.verification_status === 'verified');
+    setInventoryOtpSent(false);
+    setInventoryOtp('');
+    setAdminOtpError('');
   };
 
   // Toggle Drone QC Status
@@ -560,11 +600,28 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   });
 
   const filteredDrones = drones.filter((d) => {
-    if (droneFilter === 'all') return true;
-    if (droneFilter === 'qc_passed') return d.qc_status === 'passed';
-    if (droneFilter === 'qc_pending') return d.qc_status !== 'passed';
-    return d.status === droneFilter;
+    const isVerified = d.is_verified === true || d.verification_status === 'verified';
+    if (droneFilter === 'verified' && !isVerified) return false;
+    if (droneFilter === 'unverified' && isVerified) return false;
+    if (droneFilter === 'qc_passed' && d.qc_status !== 'passed') return false;
+    if (droneFilter === 'qc_pending' && d.qc_status === 'passed') return false;
+    if (droneFilter === 'idle' && d.status !== 'idle') return false;
+    if (droneFilter === 'en-route' && d.status !== 'en-route' && d.status !== 'in-flight') return false;
+
+    if (droneSearchQuery.trim()) {
+      const q = droneSearchQuery.toLowerCase().trim();
+      const matchId = String(d.id || '').toLowerCase().includes(q);
+      const matchModel = String(d.model || '').toLowerCase().includes(q);
+      const matchSerial = String(d.serial_number || '').toLowerCase().includes(q);
+      const matchCat = String(d.category || '').toLowerCase().includes(q);
+      const matchCity = String(d.current_city || '').toLowerCase().includes(q);
+      if (!matchId && !matchModel && !matchSerial && !matchCat && !matchCity) return false;
+    }
+    return true;
   });
+
+  const totalDronePages = Math.max(1, Math.ceil(filteredDrones.length / dronePageSize));
+  const paginatedDrones = filteredDrones.slice((droneCurrentPage - 1) * dronePageSize, droneCurrentPage * dronePageSize);
 
   const filteredSupport = expertRequests.filter((s) => {
     if (supportFilter === 'all') return true;
@@ -574,6 +631,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const activeShipmentsCount = orders.filter((o) => o.status !== 'delivered').length;
   const completedHandoversCount = orders.filter((o) => o.status === 'delivered').length;
   const qcCertifiedCount = drones.filter((d) => d.qc_status === 'passed').length;
+  const verifiedDronesCount = drones.filter((d) => d.is_verified === true || d.verification_status === 'verified').length;
+  const unverifiedDronesCount = drones.length - verifiedDronesCount;
   const activeAccountsCount = users.filter((user) => user.status === 'active').length;
 
   return (
@@ -1109,33 +1168,109 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               </div>
             )}
 
-            {/* ── TAB 4: FLEET & INVENTORY (500 TO 1000+ BULK PROVISIONING) ─ */}
+            {/* ── TAB 4: FLEET & INVENTORY (SCALE UP TO 1000+ DRONES WITH REAL ID VERIFICATION) ─ */}
             {activeTab === 'fleet' && (
-              <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 bg-white rounded-2xl border border-slate-200">
-                  <div className="flex items-center gap-2">
-                    <select value={droneFilter} onChange={(e) => setDroneFilter(e.target.value)} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white">
-                      <option value="all">All Fleet UAVs</option>
-                      <option value="qc_passed">QC Certified Only</option>
-                      <option value="qc_pending">Inspection Required</option>
-                      <option value="idle">Ready in Factory</option>
-                      <option value="en-route">In Transit / Dispatched</option>
+              <div className="space-y-5">
+                {/* Top Fleet KPI Metrics Bar */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Fleet UAVs</p>
+                      <h4 className="text-2xl font-black text-slate-900 mt-1">{drones.length} <span className="text-xs font-semibold text-slate-400">/ 1,000 Capacity</span></h4>
+                      <p className="text-[10px] text-purple-700 font-semibold mt-0.5">Active Central Inventory</p>
+                    </div>
+                    <div className="w-11 h-11 rounded-2xl bg-purple-50 text-[#3b0080] flex items-center justify-center font-black">
+                      <Truck className="w-6 h-6" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-emerald-200 rounded-2xl p-4 shadow-xs flex items-center justify-between bg-emerald-50/20">
+                    <div>
+                      <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Verified IDs</p>
+                      <h4 className="text-2xl font-black text-emerald-700 mt-1">{verifiedDronesCount}</h4>
+                      <p className="text-[10px] text-emerald-600 font-medium mt-0.5">Physical hardware verified</p>
+                    </div>
+                    <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-amber-200 rounded-2xl p-4 shadow-xs flex items-center justify-between bg-amber-50/20">
+                    <div>
+                      <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Unverified IDs</p>
+                      <h4 className="text-2xl font-black text-amber-700 mt-1">{unverifiedDronesCount}</h4>
+                      <p className="text-[10px] text-amber-600 font-medium mt-0.5">Pending physical hardware ID update</p>
+                    </div>
+                    <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-black">
+                      <AlertCircle className="w-6 h-6" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filters, Search & Action Buttons */}
+                <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3.5 bg-white rounded-2xl border border-slate-200 shadow-xs">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
+                    <div className="relative flex-1 max-w-md">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={droneSearchQuery}
+                        onChange={(e) => {
+                          setDroneSearchQuery(e.target.value);
+                          setDroneCurrentPage(1);
+                        }}
+                        placeholder="Search by Drone ID, Model, Serial, Category..."
+                        className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#3b0080]"
+                      />
+                    </div>
+
+                    <select
+                      value={droneFilter}
+                      onChange={(e) => {
+                        setDroneFilter(e.target.value);
+                        setDroneCurrentPage(1);
+                      }}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white"
+                    >
+                      <option value="all">All Fleet UAVs ({drones.length})</option>
+                      <option value="verified">Verified IDs ({verifiedDronesCount})</option>
+                      <option value="unverified">Unverified IDs ({unverifiedDronesCount})</option>
                     </select>
-                    <span className="text-xs text-slate-400 font-semibold">{filteredDrones.length} UAV units listed</span>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setShowAddSingleDrone(true)}
-                      className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                      onClick={() => {
+                        setShowAddSingleDrone(true);
+                        setNewDroneModel('700RPAV');
+                        setNewDroneId('');
+                        setNewDroneSerial('');
+                        setNewDroneImage('');
+                        setNewDroneCategory('');
+                        setNewDroneIsVerified(false);
+                        setInventoryOtpSent(false);
+                        setInventoryOtp('');
+                        setAdminOtpError('');
+                      }}
+                      className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>+1 Single Drone</span>
                     </button>
 
                     <button
-                      onClick={() => setShowBulkDroneModal(true)}
-                      className="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                      onClick={() => {
+                        setShowBulkDroneModal(true);
+                        setBulkCount(1000);
+                        setBulkModel('700RPAV');
+                        setBulkCategory('General UAV');
+                        setBulkPrefix('INW-700RPAV');
+                        setBulkIsVerified(false);
+                        setInventoryOtpSent(false);
+                        setInventoryOtp('');
+                        setAdminOtpError('');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-[#3b0080] hover:bg-[#2e0066] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap"
                     >
                       <Layers className="w-3.5 h-3.5" />
                       <span>Bulk Batch Add (50 to 1000+)</span>
@@ -1143,6 +1278,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   </div>
                 </div>
 
+                {/* Fleet Table */}
                 <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs">
@@ -1150,77 +1286,119 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         <tr className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
                           <th className="py-3 px-4">Photo</th>
                           <th className="py-3 px-4">Drone ID &amp; Serial</th>
-                          <th className="py-3 px-4">Model</th>
-                          <th className="py-3 px-4">Battery</th>
-                          <th className="py-3 px-4">QC Airworthiness</th>
-                          <th className="py-3 px-4">Plant Base</th>
-                          <th className="py-3 px-4">Status</th>
+                          <th className="py-3 px-4">Model Name</th>
+                          <th className="py-3 px-4">Category</th>
+                          <th className="py-3 px-4">ID Verification</th>
                           <th className="py-3 px-4 text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {filteredDrones.map((d) => (
-                          <tr key={d.id} className="hover:bg-slate-50/60 transition-colors">
-                            <td className="py-3 px-4">
-                              {d.image_url ? (
-                                <img src={d.image_url} alt={d.model} className="h-10 w-14 rounded-lg object-cover" />
-                              ) : (
-                                <div className="h-10 w-14 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center">
-                                  <ImageIcon className="h-4 w-4" />
-                                </div>
-                              )}
-                            </td>
-                            <td className="py-3 px-4">
-                              <p className="font-mono font-bold text-slate-900">{d.id}</p>
-                              <p className="text-[10px] text-slate-400 font-mono">{d.serial_number}</p>
-                            </td>
-                            <td className="py-3 px-4 font-bold text-[#3b0080]">{d.model}</td>
-                            <td className="py-3 px-4">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-bold text-slate-800">{d.battery}%</span>
-                                <div className="w-12 bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                                  <div className={`h-1.5 rounded-full ${d.battery > 50 ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${d.battery}%` }} />
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-3 px-4">
-                              <span
-                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                                  d.qc_status === 'passed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
-                                }`}
-                              >
-                                {d.qc_status === 'passed' ? '✓ Passed' : 'Inspection Required'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-slate-600">{d.current_city || 'Noida Plant'}</td>
-                            <td className="py-3 px-4">
-                              <span className="capitalize font-semibold text-slate-700">{d.status}</span>
-                            </td>
-                            <td className="py-3 px-4 text-right">
-                              <button
-                                onClick={() => {
-                                  setEditingDrone({ ...d });
-                                  setEditingDroneImage(d.image_url || '');
-                                  setInventoryOtpSent(false);
-                                  setInventoryOtp('');
-                                  setAdminOtpError('');
-                                }}
-                                className="mr-1 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase border border-slate-200 hover:bg-purple-50 hover:text-[#3b0080] transition-colors cursor-pointer"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleToggleDroneQC(d.id, d.qc_status)}
-                                className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase border border-slate-200 hover:bg-purple-50 hover:text-[#3b0080] transition-colors cursor-pointer"
-                              >
-                                Toggle QC Status
-                              </button>
+                        {paginatedDrones.map((d) => {
+                          const isVerified = d.is_verified === true || d.verification_status === 'verified';
+                          return (
+                            <tr key={d.id} className="hover:bg-slate-50/60 transition-colors">
+                              <td className="py-3 px-4">
+                                {d.image_url ? (
+                                  <img src={d.image_url} alt={d.model} className="h-10 w-14 rounded-lg object-cover border border-slate-200" />
+                                ) : (
+                                  <div className="h-10 w-14 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center border border-slate-200">
+                                    <ImageIcon className="h-4 w-4" />
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-3 px-4">
+                                <p className="font-mono font-bold text-slate-900">{d.id}</p>
+                                <p className="text-[10px] text-slate-400 font-mono">{d.serial_number || d.id}</p>
+                              </td>
+                              <td className="py-3 px-4 font-bold text-[#3b0080]">{d.model}</td>
+                              <td className="py-3 px-4">
+                                <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[11px]">
+                                  {d.category || 'General UAV'}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4">
+                                {isVerified ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                    Verified ID
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-amber-50 text-amber-700 border border-amber-200">
+                                    <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                                    Unverified ID
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                <button
+                                  onClick={() => openEditDroneModal(d)}
+                                  className="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 hover:bg-purple-50 hover:text-[#3b0080] hover:border-purple-200 transition-colors cursor-pointer"
+                                >
+                                  Edit Details
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {filteredDrones.length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="py-12 text-center text-slate-400">
+                              <Truck className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                              <p className="text-sm font-semibold">No drones match your search or filter.</p>
+                              <p className="text-xs text-slate-400 mt-0.5">Click "+1 Single Drone" or "Bulk Batch Add (50 to 1000+)" to populate inventory.</p>
                             </td>
                           </tr>
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   </div>
+
+                  {/* Pagination Controls */}
+                  {filteredDrones.length > 0 && (
+                    <div className="p-3.5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                      <div className="text-slate-500 font-semibold">
+                        Showing <span className="font-bold text-slate-900">{(droneCurrentPage - 1) * dronePageSize + 1}</span> to{' '}
+                        <span className="font-bold text-slate-900">{Math.min(droneCurrentPage * dronePageSize, filteredDrones.length)}</span> of{' '}
+                        <span className="font-bold text-slate-900">{filteredDrones.length}</span> UAV units
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={dronePageSize}
+                          onChange={(e) => {
+                            setDronePageSize(Number(e.target.value));
+                            setDroneCurrentPage(1);
+                          }}
+                          className="px-2 py-1 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 bg-white"
+                        >
+                          <option value={25}>25 per page</option>
+                          <option value={50}>50 per page</option>
+                          <option value={100}>100 per page</option>
+                          <option value={250}>250 per page</option>
+                        </select>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setDroneCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={droneCurrentPage <= 1}
+                            className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          <span className="px-2.5 font-bold text-slate-700">
+                            Page {droneCurrentPage} of {totalDronePages}
+                          </span>
+                          <button
+                            onClick={() => setDroneCurrentPage((p) => Math.min(totalDronePages, p + 1))}
+                            disabled={droneCurrentPage >= totalDronePages}
+                            className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1367,56 +1545,74 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         </div>
       )}
 
+      {/* ── MODAL: EDIT DRONE DETAILS & REAL HARDWARE ID ────────────────── */}
       {editingDrone && (
         <div className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <form onSubmit={handleEditDrone} className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Edit Drone</h3>
-                <p className="text-xs text-slate-500">{editingDrone.id}</p>
+                <h3 className="text-lg font-bold text-slate-900">Edit Drone Details &amp; Hardware ID</h3>
+                <p className="text-xs text-slate-500 font-mono">System Record: {editingDrone.id}</p>
               </div>
               <button type="button" onClick={() => setEditingDrone(null)} className="text-slate-400 hover:text-slate-700">
                 <X className="h-5 w-5" />
               </button>
             </div>
+
             <label className="block text-xs font-bold text-slate-700">
-              Drone Name / Model
+              Drone Name / Model Name *
               <input
                 required
-                value={editingDrone.model || ''}
-                onChange={(e) => setEditingDrone({ ...editingDrone, model: e.target.value })}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                value={editingDroneModel}
+                onChange={(e) => setEditingDroneModel(e.target.value)}
+                placeholder="e.g. Cyberone Pro"
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:border-[#3b0080]"
               />
             </label>
+
             <label className="block text-xs font-bold text-slate-700">
-              Serial Number *
+              Hardware Serial / Real Drone ID *
               <input
                 required
-                value={editingDrone.serial_number || ''}
-                onChange={(e) => setEditingDrone({ ...editingDrone, serial_number: e.target.value })}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-mono"
+                value={editingDroneSerial}
+                onChange={(e) => setEditingDroneSerial(e.target.value)}
+                placeholder="e.g. INW-UAV-REAL-0921"
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-mono focus:outline-none focus:border-[#3b0080]"
               />
+              <span className="text-[11px] text-slate-400 block mt-0.5">
+                Update to the actual physical hardware serial number once the drone is in hand.
+              </span>
             </label>
+
             <label className="block text-xs font-bold text-slate-700">
-              Plant / Location
+              Category <span className="text-slate-400 font-normal">(Optional)</span>
               <input
-                value={editingDrone.current_city || ''}
-                onChange={(e) => setEditingDrone({ ...editingDrone, current_city: e.target.value })}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                value={editingDroneCategory}
+                onChange={(e) => setEditingDroneCategory(e.target.value)}
+                placeholder="e.g. General UAV, Surveillance, Cargo"
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:border-[#3b0080]"
               />
             </label>
+
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={editingDroneIsVerified}
+                  onChange={(e) => setEditingDroneIsVerified(e.target.checked)}
+                  className="w-4 h-4 rounded text-[#3b0080] focus:ring-[#3b0080] border-slate-300"
+                />
+                <span className="text-xs font-bold text-slate-800">
+                  Mark as Verified ID
+                </span>
+              </label>
+              <p className="text-[11px] text-slate-500 pl-6">
+                Check this box when you have confirmed the physical drone hardware ID.
+              </p>
+            </div>
+
             <label className="block text-xs font-bold text-slate-700">
-              Payload (kg)
-              <input
-                type="number"
-                min="0"
-                value={editingDrone.payload_kg || 0}
-                onChange={(e) => setEditingDrone({ ...editingDrone, payload_kg: Number(e.target.value) })}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="block text-xs font-bold text-slate-700">
-              Drone Photo
+              Drone Photo <span className="text-slate-400 font-normal">(Upload or URL)</span>
               <input
                 type="file"
                 accept="image/*"
@@ -1427,9 +1623,21 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 className="mt-1 w-full text-xs"
               />
             </label>
-            {editingDroneImage && <img src={editingDroneImage} alt="Drone preview" className="h-28 w-40 rounded-xl object-cover" />}
+            {editingDroneImage && (
+              <div className="flex items-center gap-3">
+                <img src={editingDroneImage} alt="Drone preview" className="h-20 w-28 rounded-xl object-cover border border-slate-200" />
+                <button
+                  type="button"
+                  onClick={() => setEditingDroneImage('')}
+                  className="text-xs text-rose-600 font-semibold hover:underline"
+                >
+                  Remove Photo
+                </button>
+              </div>
+            )}
+
             <div className="rounded-2xl border border-purple-100 bg-purple-50 p-3 space-y-2">
-              <p className="text-xs font-bold text-purple-900">Verify edit with administrator OTP</p>
+              <p className="text-xs font-bold text-purple-900">Authorize database update with administrator OTP</p>
               <div className="flex gap-2">
                 <select
                   value={inventoryOtpChannel}
@@ -1451,17 +1659,18 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   maxLength={6}
                   inputMode="numeric"
                   placeholder="6-digit OTP"
-                  className="min-w-0 flex-1 rounded-lg border border-purple-200 px-3 py-2 text-xs"
+                  className="min-w-0 flex-1 rounded-lg border border-purple-200 px-3 py-2 text-xs font-mono font-bold"
                 />
               </div>
               {adminOtpError && <p className="text-xs text-rose-600">{adminOtpError}</p>}
             </div>
-            <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setEditingDrone(null)} className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold">
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setEditingDrone(null)} className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold cursor-pointer">
                 Cancel
               </button>
-              <button type="submit" disabled={!inventoryOtpSent || !inventoryOtp.trim()} className="rounded-xl bg-[#3b0080] px-5 py-2 text-xs font-bold text-white disabled:opacity-50">
-                Save Changes
+              <button type="submit" disabled={!inventoryOtpSent || !inventoryOtp.trim()} className="rounded-xl bg-[#3b0080] px-5 py-2 text-xs font-bold text-white disabled:opacity-50 cursor-pointer">
+                Save Changes to DB
               </button>
             </div>
           </form>
@@ -1473,22 +1682,85 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900">Add Single Drone to Fleet</h3>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Add Single Drone to Inventory</h3>
+                <p className="text-xs text-slate-500">Provide Model Name, Drone ID, and optional photo</p>
+              </div>
               <button onClick={() => setShowAddSingleDrone(false)} className="text-slate-400 hover:text-slate-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
+
             <form onSubmit={handleAddSingleDrone} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Drone Name / Model *</label>
-                <input required value={newDroneModel} onChange={(e) => setNewDroneModel(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm" />
+                <label className="block text-xs font-bold text-slate-700 mb-1">Drone Name / Model Name *</label>
+                <input
+                  required
+                  value={newDroneModel}
+                  onChange={(e) => setNewDroneModel(e.target.value)}
+                  placeholder="e.g. Cyberone Pro"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#3b0080]"
+                />
               </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Drone ID *</label>
-                <input required value={newDroneId} onChange={(e) => setNewDroneId(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-mono" />
+                <input
+                  required
+                  value={newDroneId}
+                  onChange={(e) => setNewDroneId(e.target.value)}
+                  placeholder="e.g. INW-UAV-0001"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-mono focus:outline-none focus:border-[#3b0080]"
+                />
               </div>
+
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Drone Photo</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Category <span className="text-slate-400 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={newDroneCategory}
+                  onChange={(e) => setNewDroneCategory(e.target.value)}
+                  placeholder="e.g. General UAV / Surveillance / Heavy Cargo"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#3b0080]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Custom Hardware Serial <span className="text-slate-400 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={newDroneSerial}
+                  onChange={(e) => setNewDroneSerial(e.target.value)}
+                  placeholder="Auto-matched with Drone ID if left blank"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-mono"
+                />
+              </div>
+
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newDroneIsVerified}
+                    onChange={(e) => setNewDroneIsVerified(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#3b0080] focus:ring-[#3b0080] border-slate-300"
+                  />
+                  <span className="text-xs font-bold text-slate-800">
+                    Mark as Verified ID
+                  </span>
+                </label>
+                <p className="text-[11px] text-slate-500 pl-6">
+                  Leave unchecked if this is an initial unverified ID that will be updated later.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Drone Photo <span className="text-slate-400 font-normal">(Optional)</span>
+                </label>
                 <input
                   type="file"
                   accept="image/*"
@@ -1498,46 +1770,16 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   }}
                   className="w-full text-xs"
                 />
-                {newDroneImage && <img src={newDroneImage} alt="Drone preview" className="mt-2 h-24 w-32 rounded-xl object-cover" />}
+                {newDroneImage && (
+                  <div className="mt-2 flex items-center gap-3">
+                    <img src={newDroneImage} alt="Drone preview" className="h-20 w-28 rounded-xl object-cover border border-slate-200" />
+                    <button type="button" onClick={() => setNewDroneImage('')} className="text-xs text-rose-600 font-semibold hover:underline">
+                      Remove
+                    </button>
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Custom Serial (Optional)</label>
-                <input
-                  type="text"
-                  value={newDroneSerial}
-                  onChange={(e) => setNewDroneSerial(e.target.value)}
-                  placeholder="Auto-generated if left blank"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-mono"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Plant Location</label>
-                <input type="text" value={newDroneCity} onChange={(e) => setNewDroneCity(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Battery %</label>
-                  <input
-                    type="number"
-                    min={10}
-                    max={100}
-                    value={newDroneBattery}
-                    onChange={(e) => setNewDroneBattery(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Payload (kg)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={50}
-                    value={newDronePayload}
-                    onChange={(e) => setNewDronePayload(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
-                  />
-                </div>
-              </div>
+
               <div className="rounded-2xl border border-purple-100 bg-purple-50 p-3 space-y-2">
                 <p className="text-xs font-bold text-purple-900">Confirm with administrator OTP</p>
                 <div className="flex gap-2">
@@ -1561,13 +1803,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     maxLength={6}
                     inputMode="numeric"
                     placeholder="6-digit OTP"
-                    className="min-w-0 flex-1 rounded-lg border border-purple-200 px-3 py-2 text-xs"
+                    className="min-w-0 flex-1 rounded-lg border border-purple-200 px-3 py-2 text-xs font-mono font-bold"
                   />
                 </div>
                 {adminOtpError && <p className="text-xs text-rose-600">{adminOtpError}</p>}
               </div>
+
               <div className="pt-2 flex justify-end gap-2">
-                <button type="button" onClick={() => setShowAddSingleDrone(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold">
+                <button type="button" onClick={() => setShowAddSingleDrone(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold cursor-pointer">
                   Cancel
                 </button>
                 <button
@@ -1575,7 +1818,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   disabled={!inventoryOtpSent || !inventoryOtp.trim() || adminOtpLoading}
                   className="px-5 py-2 rounded-xl bg-[#3b0080] text-white text-xs font-bold cursor-pointer disabled:opacity-50"
                 >
-                  Add Drone
+                  Add Drone to Fleet
                 </button>
               </div>
             </form>
@@ -1589,53 +1832,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
           <div className="bg-white rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Bulk Drone Inventory</h3>
-                <p className="text-xs text-slate-500">Import rows from a file, paste rows, or generate a numbered batch</p>
+                <h3 className="text-lg font-bold text-slate-900">Bulk Drone Fleet Provisioning</h3>
+                <p className="text-xs text-slate-500">Scale inventory up to 1,000+ drones with initial placeholder IDs</p>
               </div>
               <button onClick={() => setShowBulkDroneModal(false)} className="text-slate-400 hover:text-slate-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
+
             <form onSubmit={handleBulkAddDrones} className="space-y-4">
-              <div className="rounded-2xl border border-slate-200 p-4 space-y-3">
-                <label className="block text-xs font-bold text-slate-700">Import CSV, Excel (.xlsx), text-based PDF, or Word (.docx)</label>
-                <input
-                  type="file"
-                  accept=".csv,.tsv,.txt,.xlsx,.pdf,.docx"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    setBulkImportError('');
-                    setBulkRows([]);
-                    if (!file) return;
-                    try {
-                      const rows = await parseDroneImportFile(file);
-                      setBulkRows(rows);
-                      setBulkCount(rows.length);
-                      showToast(`${rows.length} drone rows ready for review.`);
-                    } catch (err) {
-                      setBulkImportError(err instanceof Error ? err.message : 'Could not parse this file.');
-                    }
-                  }}
-                  className="w-full text-xs"
-                />
-                <p className="text-[11px] text-slate-500">
-                  Required header: Drone Name or Model. Optional: Drone ID, Serial Number, Image URL, City. PDF must be text-based and comma-delimited; scanned/image-only PDFs are not supported.
-                </p>
-                {bulkRows.length > 0 && <p className="text-xs font-bold text-emerald-700">{bulkRows.length} imported drones ready to add.</p>}
-                <label className="block text-xs font-bold text-slate-700">Or enter rows manually (header + one drone per line)</label>
-                <textarea
-                  value={bulkManualRows}
-                  onChange={(e) => {
-                    setBulkManualRows(e.target.value);
-                    setBulkImportError('');
-                    if (e.target.value) setBulkRows([]);
-                  }}
-                  rows={4}
-                  placeholder={'Drone Name,Drone ID,Serial Number,City\nCyberone Pro,IW-UAV-101,IW-SN-101,Noida'}
-                  className="w-full rounded-xl border border-slate-200 p-3 font-mono text-xs"
-                />
-                {bulkImportError && <p className="text-xs text-rose-600">{bulkImportError}</p>}
-              </div>
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">Batch Quantity Presets</label>
                 <div className="grid grid-cols-5 gap-2 mb-3">
@@ -1644,8 +1849,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                       key={qty}
                       type="button"
                       onClick={() => setBulkCount(qty)}
-                      className={`py-2 rounded-xl text-xs font-bold border transition-all ${
-                        bulkCount === qty ? 'bg-[#3b0080] text-white border-[#3b0080]' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                      className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        bulkCount === qty ? 'bg-[#3b0080] text-white border-[#3b0080] shadow-sm' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                       }`}
                     >
                       +{qty}
@@ -1660,39 +1865,64 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     max={5000}
                     value={bulkCount}
                     onChange={(e) => setBulkCount(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-900"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-900 focus:outline-none focus:border-[#3b0080]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">UAV Model Name</label>
+                  <select value={bulkModel} onChange={(e) => setBulkModel(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold">
+                    <option value="700RPAV">700RPAV (Primary Fleet UAV)</option>
+                    <option value="Cyberone Pro">Cyberone Pro (Standard Long-Range)</option>
+                    <option value="Cyberone Max">Cyberone Max (Heavy Cargo &amp; Defense)</option>
+                    <option value="IndoHawk Alpha">IndoHawk Alpha (High-Speed Patrol)</option>
+                    <option value="StealthPro VTOL">StealthPro VTOL (Long Endurance Hybrid)</option>
+                    <option value="AgriWing X">AgriWing X (Agricultural Payload)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Category (Optional)</label>
+                  <input
+                    type="text"
+                    value={bulkCategory}
+                    onChange={(e) => setBulkCategory(e.target.value)}
+                    placeholder="e.g. General UAV"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-medium"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Manufactured UAV Model</label>
-                <select value={bulkModel} onChange={(e) => setBulkModel(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold">
-                  <option value="Cyberone Pro">Cyberone Pro (Standard Long-Range)</option>
-                  <option value="Cyberone Max">Cyberone Max (Heavy Cargo &amp; Defense)</option>
-                  <option value="IndoHawk Alpha">IndoHawk Alpha (High-Speed Patrol)</option>
-                  <option value="StealthPro VTOL">StealthPro VTOL (Long Endurance Hybrid)</option>
-                  <option value="AgriWing X">AgriWing X (Agricultural Payload)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Serial Number Prefix</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Drone ID Prefix</label>
                 <input
                   type="text"
                   value={bulkPrefix}
                   onChange={(e) => setBulkPrefix(e.target.value)}
-                  placeholder="e.g. IW-UAV-BATCH"
+                  placeholder="e.g. INW-UAV"
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-mono font-bold"
                 />
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Generates sequential IDs: {bulkPrefix}-0001, {bulkPrefix}-0002, etc.
+                </p>
               </div>
 
-              <div className="bg-purple-50 p-3 rounded-2xl border border-purple-100 text-xs text-purple-900">
-                <p className="font-bold">Automated Batch Action:</p>
-                <p className="text-[11px] text-purple-700 mt-0.5">
-                  {bulkRows.length || bulkManualRows.trim()
-                    ? `Adds ${bulkRows.length || 'manually entered'} drone records from the import above.`
-                    : `Generates ${bulkCount} unique manufactured UAV units with pre-dispatch QC clearance and adds them to plant inventory.`}
+              <div className="p-3.5 bg-purple-50/70 rounded-2xl border border-purple-100 space-y-2">
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={bulkIsVerified}
+                    onChange={(e) => setBulkIsVerified(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#3b0080] focus:ring-[#3b0080] border-slate-300"
+                  />
+                  <span className="text-xs font-bold text-purple-950">
+                    Mark entire batch as Verified IDs
+                  </span>
+                </label>
+                <p className="text-[11px] text-purple-700 pl-6">
+                  Recommended: Leave unchecked for initial placeholder batches. Drones will be marked as "Unverified ID", allowing you to edit and verify each unit individually as physical deliveries arrive.
                 </p>
               </div>
 
@@ -1710,7 +1940,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     <option value="email">Email</option>
                     <option value="phone">Phone</option>
                   </select>
-                  <button type="button" onClick={requestInventoryOtp} disabled={adminOtpLoading} className="rounded-lg bg-purple-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">
+                  <button type="button" onClick={requestInventoryOtp} disabled={adminOtpLoading} className="rounded-lg bg-purple-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-50 cursor-pointer">
                     {adminOtpLoading ? 'Sending…' : 'Send OTP'}
                   </button>
                   <input
@@ -1719,14 +1949,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     maxLength={6}
                     inputMode="numeric"
                     placeholder="6-digit OTP"
-                    className="min-w-0 flex-1 rounded-lg border border-purple-200 px-3 py-2 text-xs"
+                    className="min-w-0 flex-1 rounded-lg border border-purple-200 px-3 py-2 text-xs font-mono font-bold"
                   />
                 </div>
                 {adminOtpError && <p className="text-xs text-rose-600">{adminOtpError}</p>}
               </div>
 
               <div className="pt-2 flex justify-end gap-2">
-                <button type="button" onClick={() => setShowBulkDroneModal(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold">
+                <button type="button" onClick={() => setShowBulkDroneModal(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold cursor-pointer">
                   Cancel
                 </button>
                 <button
@@ -1735,7 +1965,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   className="px-5 py-2 rounded-xl bg-[#3b0080] hover:bg-[#280058] text-white text-xs font-bold cursor-pointer flex items-center gap-1.5"
                 >
                   {bulkSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  <span>Add {bulkRows.length || (bulkManualRows.trim() ? 'manual' : bulkCount)} Drones</span>
+                  <span>Add Batch of {bulkCount} Drones to DB</span>
                 </button>
               </div>
             </form>

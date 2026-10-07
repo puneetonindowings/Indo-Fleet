@@ -36,7 +36,7 @@ import {
   Star,
   MessageSquare
 } from 'lucide-react';
-import { DeliveryUser } from '../components/AuthModal';
+import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
 
 interface DispatchPageProps {
@@ -838,7 +838,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                   <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
                     <CheckCircle className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200">Razorpay Online</span>
+                  <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200">Digital Settlement</span>
                 </div>
                 <p className="text-3xl font-bold text-emerald-700 font-mono">₹{analytics?.online_revenue || 0}</p>
                 <p className="text-xs text-slate-500 mt-1">Instant Digital UPI / Cards Received</p>

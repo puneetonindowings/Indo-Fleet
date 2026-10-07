@@ -9,7 +9,7 @@ import {
   MapPin, AlertTriangle, Plus, UserPlus, ListChecks, PhoneCall, BarChart3, TrendingUp, Timer, XCircle
 } from 'lucide-react';
 import { API_BASE_URL } from '../../config/api';
-import { DeliveryUser } from '../AuthModal';
+import { DeliveryUser } from '../../types';
 import { AnalyticsPayload, formatCompactCurrency, formatCurrency, formatNumber, statusColor, statusLabel } from './analytics';
 import { KpiCard } from './KpiCard';
 import { TimeRangeSelector, DateRange, presetRange } from './TimeRangeSelector';

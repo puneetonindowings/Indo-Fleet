@@ -68,7 +68,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
               <ul className="list-disc pl-5 mt-2 space-y-1">
                 <li><strong>Account data:</strong> Name, email address, phone number (for OTP verification)</li>
                 <li><strong>Delivery data:</strong> Pickup address, drop-off address, package type and weight</li>
-                <li><strong>Payment data:</strong> Payment method preference. Card details are processed by Razorpay and never stored on our servers.</li>
+                <li><strong>Billing data:</strong> Account billing preference and corporate invoicing records.</li>
                 <li><strong>Location data:</strong> Delivery coordinates used exclusively for UAV flight path calculation</li>
                 <li><strong>Usage data:</strong> App interactions, support requests, and feedback submissions</li>
               </ul>
@@ -78,7 +78,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
               <ul className="list-disc pl-5 space-y-1">
                 <li>To dispatch and track autonomous drone deliveries to your address</li>
                 <li>To send SMS/email delivery status updates and OTP verification</li>
-                <li>To process payments through Razorpay payment gateway</li>
+                <li>To manage corporate order invoicing and dispatch tracking</li>
                 <li>To improve UAV flight corridor optimisation and delivery accuracy</li>
                 <li>To comply with DGCA Drone Rules 2021 flight log requirements</li>
               </ul>
@@ -87,8 +87,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
               <h3 className="text-base font-black text-[#171222] mb-2">3. Data Sharing</h3>
               <p>We do <strong>not</strong> sell your personal data. We share data only with:</p>
               <ul className="list-disc pl-5 mt-2 space-y-1">
-                <li><strong>Razorpay:</strong> Payment processing</li>
-                <li><strong>Twilio:</strong> SMS notifications and OTP delivery</li>
+                <li><strong>Firebase & Resend:</strong> SMS/Email notifications and OTP delivery</li>
                 <li><strong>Supabase:</strong> Secure cloud database storage</li>
                 <li><strong>DGCA:</strong> Flight logs as mandated by Indian aviation law</li>
               </ul>
@@ -169,7 +168,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
                 <li>User authentication uses JWT tokens</li>
                 <li>OTP-based phone verification for all account logins</li>
                 <li>Passwords are never stored — authentication is OTP-only</li>
-                <li>Payment data is handled exclusively by PCI-DSS compliant Razorpay</li>
+                <li>Enterprise orders follow pre-authorized corporate dispatch protocols</li>
               </ul>
             </div>
             <div>

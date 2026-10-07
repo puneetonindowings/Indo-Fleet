@@ -35,7 +35,7 @@ import {
   Plane,
   LayoutDashboard
 } from 'lucide-react';
-import { DeliveryUser, SavedAddress } from '../components/AuthModal';
+import { DeliveryUser, SavedAddress } from '../types';
 import { API_BASE_URL } from '../config/api';
 import PhoneInput from '../components/PhoneInput';
 
@@ -642,31 +642,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
               <Radio className="w-4 h-4 text-purple-600 animate-pulse" /> Live Telemetry Radar
             </button>}
           </div>
-
-          {/* Admin Fast-Switch Banner */}
-          {!embedded && profile?.role === 'admin' && (
-            <div className="mt-5 p-3.5 bg-white/10 backdrop-blur-xs border border-white/20 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-in fade-in">
-              <div className="flex items-center gap-2.5">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-300"></span>
-                </span>
-                <span className="text-white/90">
-                  <strong className="text-white">HQ Operations Commander:</strong> Connected to live UAV fleet telemetry and dispatch management.
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  onNavigate('dispatch');
-                  window.history.pushState({}, '', '/dispatch');
-                }}
-                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-white text-[#3b0080] font-bold text-xs hover:bg-purple-50 transition-all shadow-sm shrink-0 cursor-pointer"
-              >
-                <LayoutDashboard className="w-3.5 h-3.5 text-[#3b0080]" /> Open Dispatch Board
-              </button>
-            </div>
-          )}
 
           {/* Navigation Section Tabs */}
           <div className={`flex items-center gap-2 overflow-x-auto no-scrollbar ${embedded ? 'mt-4 border-b border-slate-200 pt-1' : 'mt-8 border-b border-white/20 pt-2'}`}>
@@ -1533,7 +1508,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                   <div>
                     <span className="font-bold text-slate-800 block">Total Delivery Fare</span>
                     <span className="text-slate-500 text-[11px]">
-                      Payment Mode: <strong className="capitalize">{selectedOrderDetail.payment_method === 'cod' ? 'Cash on Delivery (COD)' : 'Razorpay Online'}</strong>
+                      Payment Mode: <strong className="capitalize">{selectedOrderDetail.payment_method === 'cod' ? 'Cash on Delivery (COD)' : 'Direct Settlement / Invoice'}</strong>
                     </span>
                   </div>
                   <div className="text-right">

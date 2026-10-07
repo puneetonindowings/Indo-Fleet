@@ -24,6 +24,23 @@ export const CLIENT_LOGOS = [
 
 export const DRONE_PRODUCTS = [
   {
+    id: "700rpav",
+    name: "700RPAV",
+    category: "Long-Range Tactical & Defense UAV",
+    tagline: "High-Altitude Autonomous Reconnaissance & Heavy Payload Transport",
+    range: "35 KM",
+    endurance: "90 Mins",
+    speed: "85 KM/H",
+    payload: "5.0 KG",
+    image: "/images/cyberonemax.png",
+    features: [
+      "DGCA Type Certified with NPNT Compliance",
+      "Triple-redundant avionics & fail-safe return-to-home",
+      "Dual Optical Zoom & High-Resolution Thermal Sensor",
+      "Encrypted secure military-grade RF command link"
+    ]
+  },
+  {
     id: "cyberone-pro",
     name: "Cyberone Pro",
     category: "Surveillance, Mapping & Delivery",

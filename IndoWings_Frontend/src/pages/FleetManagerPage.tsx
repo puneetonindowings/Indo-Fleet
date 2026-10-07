@@ -21,7 +21,7 @@ import {
   Eye,
   CheckSquare
 } from 'lucide-react';
-import { DeliveryUser } from '../components/AuthModal';
+import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
 
 interface FleetManagerPageProps {

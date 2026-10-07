@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Star, MessageSquare, CheckCircle2, ShieldCheck, Send, Search, Filter, ArrowLeft, Plane, Clock, ThumbsUp, Award, Sparkles, ExternalLink, ChevronDown } from 'lucide-react';
-import { DeliveryUser } from '../components/AuthModal';
+import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
 
 interface FeedbackItem {

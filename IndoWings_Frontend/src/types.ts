@@ -9,17 +9,27 @@ export interface UserProfile {
 
 export interface DroneItem {
   id: string;
-  model_name: string;
-  category: string;
+  model_name?: string;
+  model?: string;
+  category?: string;
   serial_number: string;
-  status: 'ready' | 'in-flight' | 'maintenance' | 'standby';
-  battery_pct: number;
-  flight_hours: number;
-  max_range_km: number;
-  endurance_mins: number;
-  max_speed_kmh: number;
-  payload_capacity_kg: number;
+  status: 'ready' | 'in-flight' | 'maintenance' | 'standby' | 'idle' | string;
+  battery_pct?: number;
+  battery?: number;
+  flight_hours?: number;
+  max_range_km?: number;
+  endurance_mins?: number;
+  max_speed_kmh?: number;
+  payload_capacity_kg?: number;
+  payload_kg?: number;
   image_url: string;
+  is_verified?: boolean;
+  verification_status?: 'verified' | 'unverified';
+  qc_status?: 'passed' | 'inspection_required' | 'pending' | string;
+  qc_notes?: string;
+  qc_certified_by?: string;
+  current_city?: string;
+  created_at?: string;
 }
 
 export interface MissionItem {
@@ -46,12 +56,32 @@ export interface AuditLogItem {
   timestamp: string;
 }
 
+export interface SavedAddress {
+  id: string;
+  label: 'Home' | 'Work' | 'Office' | 'Warehouse' | 'Other';
+  recipient_name?: string;
+  recipient_phone?: string;
+  full_address: string;
+  landmark?: string;
+  city?: string;
+  pincode?: string;
+  lat?: number;
+  lng?: number;
+  is_default?: boolean;
+}
+
 export interface DeliveryUser {
   id: string;
   name: string;
   email: string;
   phone?: string;
-  role: 'customer' | 'admin';
+  role: 'admin' | 'fleet_manager' | 'dispatcher' | 'customer' | 'support';
+  station?: string;
+  organization?: string;
+  status?: string;
+  is_email_verified?: boolean;
+  is_phone_verified?: boolean;
+  saved_addresses?: SavedAddress[];
 }
 
 export interface OrderTimeline {

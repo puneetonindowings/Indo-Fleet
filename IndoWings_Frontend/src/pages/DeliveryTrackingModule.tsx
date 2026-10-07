@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { CalendarClock, CheckCircle2, Clock3, ExternalLink, MapPin, Package, RefreshCw, Search, ShieldCheck, Truck, X } from 'lucide-react';
 import type { ErrorEvent as MapLibreErrorEvent, Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { DeliveryUser } from '../components/AuthModal';
+import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
 
 const MAPTILER_KEY = (import.meta as any).env?.VITE_MAPTILER_KEY as string | undefined;
