@@ -48,7 +48,7 @@ const STATUS_COLORS: Record<string, string> = {
   delivered: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
   'in-flight': 'bg-sky-100 text-sky-800 border border-sky-200',
   'on-hold': 'bg-amber-100 text-amber-800 border border-amber-200',
-  assigned: 'bg-purple-100 text-purple-800 border border-purple-200',
+  assigned: 'bg-orange-100 text-orange-800 border border-orange-200',
   rescheduled: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
   pending: 'bg-slate-100 text-slate-700 border border-slate-200',
   'taking-off': 'bg-sky-100 text-sky-800 border border-sky-200',
@@ -63,7 +63,7 @@ const DRONE_STATUS_COLORS: Record<string, string> = {
   charging: 'bg-amber-50 text-amber-700 border-amber-200',
   'on-hold': 'bg-orange-50 text-orange-700 border-orange-200',
   maintenance: 'bg-slate-100 text-slate-700 border-slate-200',
-  returning: 'bg-purple-50 text-purple-700 border-purple-200'
+  returning: 'bg-orange-50 text-orange-700 border-orange-200'
 };
 
 export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentUser }) => {
@@ -276,7 +276,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                 onNavigate('login');
                 window.history.pushState({}, '', '/login');
               }}
-              className="px-5 py-2.5 bg-[#3b0080] text-white font-bold rounded-xl hover:bg-[#2d006b] transition-colors text-sm shadow-md cursor-pointer"
+              className="px-5 py-2.5 bg-[#ef7f1a] text-white font-bold rounded-xl hover:bg-[#2d006b] transition-colors text-sm shadow-md cursor-pointer"
             >
               Sign In as Admin
             </button>
@@ -332,11 +332,11 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
             <div>
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-11 h-11 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center shadow-inner">
-                  <LayoutDashboard className="w-5 h-5 text-purple-200" />
+                  <LayoutDashboard className="w-5 h-5 text-orange-200" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold tracking-[0.25em] uppercase text-purple-300">Operations Flight Deck</span>
+                    <span className="text-[10px] font-bold tracking-[0.25em] uppercase text-orange-300">Operations Flight Deck</span>
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
                       <span className="relative flex h-1.5 w-1.5">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -349,7 +349,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                 </div>
               </div>
               <p className="text-white/60 text-xs sm:text-sm pl-1">
-                Commander: <strong className="text-white">{currentUser.name}</strong> · Total Registered UAVs: <strong className="text-purple-200 font-mono">{fleet.length}</strong>
+                Commander: <strong className="text-white">{currentUser.name}</strong> · Total Registered UAVs: <strong className="text-orange-200 font-mono">{fleet.length}</strong>
               </p>
             </div>
 
@@ -359,13 +359,13 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                 disabled={refreshing}
                 className="flex items-center gap-2 px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white text-xs font-bold hover:bg-white/20 transition-all cursor-pointer shadow-xs active:scale-95"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-purple-300' : ''}`} />
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-orange-300' : ''}`} />
                 <span>{refreshing ? 'Synchronizing...' : 'Refresh Telemetry'}</span>
               </button>
 
               <button
                 onClick={() => setShowRegisterDroneModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-purple-500/30 hover:bg-purple-500/40 border border-purple-400/40 text-purple-100 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
+                className="flex items-center gap-2 px-4 py-2.5 bg-orange-500/30 hover:bg-orange-500/40 border border-orange-400/40 text-orange-100 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Register UAV</span>
@@ -376,9 +376,9 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                   onNavigate('track');
                   window.history.pushState({}, '', '/track');
                 }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white text-[#3b0080] hover:bg-purple-50 font-bold rounded-xl text-xs transition-all cursor-pointer shadow-md active:scale-95"
+                className="flex items-center gap-2 px-4 py-2.5 bg-white text-[#ef7f1a] hover:bg-orange-50 font-bold rounded-xl text-xs transition-all cursor-pointer shadow-md active:scale-95"
               >
-                <Radio className="w-3.5 h-3.5 text-[#3b0080] animate-pulse" />
+                <Radio className="w-3.5 h-3.5 text-[#ef7f1a] animate-pulse" />
                 <span>Live Corridor Radar</span>
               </button>
             </div>
@@ -389,7 +389,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
             <div className="bg-white/10 border border-white/15 rounded-2xl p-4 backdrop-blur-xs">
               <div className="flex items-center justify-between text-white/70 mb-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider">Total Bookings</span>
-                <Package className="w-4 h-4 text-purple-200" />
+                <Package className="w-4 h-4 text-orange-200" />
               </div>
               <p className="text-2xl font-bold text-white font-mono">{orders.length}</p>
               <p className="text-[11px] text-white/60 mt-0.5">Real Database Logs</p>
@@ -439,13 +439,13 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
               <p className="text-[11px] text-rose-200/80 mt-0.5">Aborted Missions</p>
             </div>
 
-            <div className="bg-purple-500/30 border border-purple-400/30 rounded-2xl p-4 backdrop-blur-xs">
-              <div className="flex items-center justify-between text-purple-200 mb-1">
+            <div className="bg-orange-500/30 border border-orange-400/30 rounded-2xl p-4 backdrop-blur-xs">
+              <div className="flex items-center justify-between text-orange-200 mb-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider">Gross Revenue</span>
-                <DollarSign className="w-4 h-4 text-purple-300" />
+                <DollarSign className="w-4 h-4 text-orange-300" />
               </div>
               <p className="text-2xl font-bold text-white font-mono">₹{totalRevenue}</p>
-              <p className="text-[11px] text-purple-200/80 mt-0.5">Active & Settled</p>
+              <p className="text-[11px] text-orange-200/80 mt-0.5">Active & Settled</p>
             </div>
           </div>
         </div>
@@ -466,7 +466,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
               key={id}
               onClick={() => setTab(id as any)}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
-                tab === id ? 'bg-[#3b0080] text-white shadow-md shadow-purple-900/10' : 'bg-white border border-slate-200 text-slate-600 hover:border-purple-300 hover:text-[#3b0080]'
+                tab === id ? 'bg-[#ef7f1a] text-white shadow-md shadow-slate-900/10' : 'bg-white border border-slate-200 text-slate-600 hover:border-orange-300 hover:text-[#ef7f1a]'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -487,7 +487,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                     key={f}
                     onClick={() => setFilter(f)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      filter === f ? 'bg-[#3b0080] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      filter === f ? 'bg-[#ef7f1a] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
                     {f === 'all' ? 'All Orders' : f.charAt(0).toUpperCase() + f.slice(1)}
@@ -502,7 +502,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search ID, customer, mobile, drone..."
-                  className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-xs font-medium text-[#171222] focus:outline-none focus:border-[#3b0080] bg-white"
+                  className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-xs font-medium text-[#171222] focus:outline-none focus:border-[#ef7f1a] bg-white"
                 />
               </div>
             </div>
@@ -510,7 +510,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
             {/* Orders Listing */}
             {filteredOrders.length === 0 && !loading && (
               <div className="text-center py-16 text-slate-400 bg-white border border-slate-200 rounded-2xl shadow-sm">
-                <Package className="w-12 h-12 mx-auto mb-3 opacity-30 text-[#3b0080]" />
+                <Package className="w-12 h-12 mx-auto mb-3 opacity-30 text-[#ef7f1a]" />
                 <p className="font-bold text-base text-slate-700">No Orders in Queue</p>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1 leading-relaxed">
                   {searchQuery ? 'No bookings match your search query.' : 'New orders placed by verified customers will stream into this operations queue live.'}
@@ -525,7 +525,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                 const isDelivered = order.status === 'delivered';
 
                 return (
-                  <div key={order.id} className="bg-white border border-slate-200 hover:border-purple-300 rounded-2xl p-5 shadow-xs transition-all">
+                  <div key={order.id} className="bg-white border border-slate-200 hover:border-orange-300 rounded-2xl p-5 shadow-xs transition-all">
                     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                       {/* Left: Metadata & Route */}
                       <div className="flex-1 min-w-0 space-y-2.5">
@@ -533,12 +533,12 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                           <span className="font-mono font-bold text-sm text-[#171222] bg-slate-100 px-2.5 py-1 rounded-lg">{order.id}</span>
                           <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${STATUS_COLORS[order.status] || 'bg-slate-100 text-slate-700'}`}>{order.status}</span>
                           {order.drone_model && (
-                            <span className="text-xs font-semibold text-slate-600 bg-purple-50 text-[#3b0080] border border-purple-200 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
+                            <span className="text-xs font-semibold text-slate-600 bg-orange-50 text-[#ef7f1a] border border-orange-200 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
                               {order.drone_model} ({order.drone_id || 'Assigned'})
                             </span>
                           )}
                           {order.order_type === 'drone_purchase' ? (
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800">Customer booking · No payment</span>
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-orange-100 text-orange-800">Customer booking · No payment</span>
                           ) : (
                             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${order.payment_method === 'cod' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
                               {order.payment_method === 'cod' ? 'Cash on Delivery' : 'Paid Online'} · ₹{order.fare || order.fare_inr || 249}
@@ -555,7 +555,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                             </span>
                           </p>
                           <p className="flex items-start gap-1.5 font-medium">
-                            <span className="w-2 h-2 rounded-full bg-purple-600 mt-1 shrink-0"></span>
+                            <span className="w-2 h-2 rounded-full bg-orange-600 mt-1 shrink-0"></span>
                             <span>
                               <strong>Drop Target:</strong> {order.drop_address}
                             </span>
@@ -568,7 +568,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                             <strong className="text-slate-700">{order.customer_name || 'Customer'}</strong>
                           </span>
                           {order.customer_phone && (
-                            <span className="flex items-center gap-1 text-[#3b0080]">
+                            <span className="flex items-center gap-1 text-[#ef7f1a]">
                               <Phone className="w-3 h-3" /> {order.customer_phone}
                             </span>
                           )}
@@ -602,9 +602,9 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                             onNavigate('track');
                             window.history.pushState({}, '', `/track?id=${order.id}`);
                           }}
-                          className="px-3.5 py-2 text-xs font-bold bg-purple-50 text-[#3b0080] border border-purple-200 rounded-xl hover:bg-purple-100 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                          className="px-3.5 py-2 text-xs font-bold bg-orange-50 text-[#ef7f1a] border border-orange-200 rounded-xl hover:bg-orange-100 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                         >
-                          <Radio className="w-3.5 h-3.5 text-[#3b0080] animate-pulse" /> Track Live Radar
+                          <Radio className="w-3.5 h-3.5 text-[#ef7f1a] animate-pulse" /> Track Live Radar
                         </button>
 
                         {!isDelivered && !isCancelled && order.status !== 'on-hold' && (
@@ -658,7 +658,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
                 <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Total Fleet Strength</span>
-                <p className="text-3xl font-bold text-[#3b0080] font-mono">{fleet.length}</p>
+                <p className="text-3xl font-bold text-[#ef7f1a] font-mono">{fleet.length}</p>
                 <p className="text-xs text-slate-500 mt-1">IndoWings Active UAV Airframes</p>
               </div>
 
@@ -701,7 +701,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                     key={f.key}
                     onClick={() => setFleetFilter(f.key)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      fleetFilter === f.key ? 'bg-[#3b0080] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      fleetFilter === f.key ? 'bg-[#ef7f1a] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
                     {f.label}
@@ -717,13 +717,13 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                     value={fleetSearch}
                     onChange={(e) => setFleetSearch(e.target.value)}
                     placeholder="Search Drone ID, model, city..."
-                    className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-xs font-medium text-[#171222] focus:outline-none focus:border-[#3b0080] bg-white"
+                    className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-xs font-medium text-[#171222] focus:outline-none focus:border-[#ef7f1a] bg-white"
                   />
                 </div>
 
                 <button
                   onClick={() => setShowRegisterDroneModal(true)}
-                  className="px-3.5 py-2 bg-[#3b0080] hover:bg-[#280057] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer shadow-xs"
+                  className="px-3.5 py-2 bg-[#ef7f1a] hover:bg-[#280057] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer shadow-xs"
                 >
                   <Plus className="w-3.5 h-3.5" /> Register UAV
                 </button>
@@ -740,7 +740,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                   <div
                     key={drone.id}
                     className={`bg-white border rounded-2xl p-5 shadow-xs transition-all hover:shadow-md ${
-                      hasOrder ? 'border-purple-300 ring-1 ring-purple-100' : 'border-slate-200 hover:border-slate-300'
+                      hasOrder ? 'border-orange-300 ring-1 ring-orange-100' : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
                     {/* Top row */}
@@ -789,16 +789,16 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
 
                     {/* Current Hub or Active Order */}
                     {hasOrder && drone.current_order ? (
-                      <div className="p-3 bg-purple-50 border border-purple-100 rounded-xl text-xs text-purple-900 mb-3 space-y-1">
+                      <div className="p-3 bg-orange-50 border border-orange-100 rounded-xl text-xs text-slate-900 mb-3 space-y-1">
                         <div className="flex items-center justify-between">
                           <strong className="font-mono font-bold">{drone.assigned_order}</strong>
-                          <span className="text-[10px] uppercase font-bold bg-[#3b0080] text-white px-2 py-0.5 rounded-full">Carrying Cargo</span>
+                          <span className="text-[10px] uppercase font-bold bg-[#ef7f1a] text-white px-2 py-0.5 rounded-full">Carrying Cargo</span>
                         </div>
                         <p className="text-slate-600 text-[11px] truncate">Target: {drone.current_order.destination}</p>
                       </div>
                     ) : (
                       <div className="text-xs text-slate-500 mb-3 flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-[#3b0080] shrink-0" />
+                        <MapPin className="w-3.5 h-3.5 text-[#ef7f1a] shrink-0" />
                         <span className="font-medium text-slate-700 truncate">{drone.current_city || 'Noida Sector 62'}</span>
                       </div>
                     )}
@@ -806,7 +806,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                     {/* Actions */}
                     <button
                       onClick={() => setSelectedDrone(drone)}
-                      className="w-full py-2.5 bg-slate-50 hover:bg-purple-50 text-slate-700 hover:text-[#3b0080] border border-slate-200 hover:border-purple-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full py-2.5 bg-slate-50 hover:bg-orange-50 text-slate-700 hover:text-[#ef7f1a] border border-slate-200 hover:border-orange-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Sliders className="w-3.5 h-3.5" /> Inspect & Control Telemetry
                     </button>
@@ -824,7 +824,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#3b0080] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center">
                     <DollarSign className="w-5 h-5" />
                   </div>
                   <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">Live Revenue</span>
@@ -838,7 +838,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                   <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
                     <CheckCircle className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200">Digital Settlement</span>
+                  <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">Digital Settlement</span>
                 </div>
                 <p className="text-3xl font-bold text-emerald-700 font-mono">₹{analytics?.online_revenue || 0}</p>
                 <p className="text-xs text-slate-500 mt-1">Instant Digital UPI / Cards Received</p>
@@ -872,7 +872,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
 
               <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
                 <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Avg. Delivery Duration</span>
-                <p className="text-2xl font-bold text-[#3b0080] font-mono">22 min</p>
+                <p className="text-2xl font-bold text-[#ef7f1a] font-mono">22 min</p>
                 <p className="text-xs text-slate-500 mt-1">Autonomous Point-to-Point</p>
               </div>
 
@@ -890,9 +890,9 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
 
               <div className="space-y-3">
                 {(analytics?.recent_activity || []).map((item: any, idx: number) => (
-                  <div key={idx} className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-purple-50/50 border border-slate-100 rounded-xl text-xs transition-colors">
+                  <div key={idx} className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-orange-50/50 border border-slate-100 rounded-xl text-xs transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#3b0080] font-bold font-mono">{idx + 1}</div>
+                      <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#ef7f1a] font-bold font-mono">{idx + 1}</div>
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-[#171222] font-mono">{item.order_id}</span>
@@ -952,7 +952,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                     key={f}
                     onClick={() => setEnquiryFilter(f)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer capitalize ${
-                      enquiryFilter === f ? 'bg-[#3b0080] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      enquiryFilter === f ? 'bg-[#ef7f1a] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
                     {f === 'all' ? 'All Inquiries' : f.replace('-', ' ')}
@@ -967,7 +967,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                   value={enquirySearch}
                   onChange={(e) => setEnquirySearch(e.target.value)}
                   placeholder="Search name, phone, ref ID..."
-                  className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#3b0080] focus:bg-white transition-all"
+                  className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#ef7f1a] focus:bg-white transition-all"
                 />
                 {enquirySearch && (
                   <button onClick={() => setEnquirySearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -980,7 +980,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
             {/* Inquiries List */}
             {expertRequests.length === 0 ? (
               <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#3b0080] flex items-center justify-center mx-auto mb-3">
+                <div className="w-12 h-12 rounded-2xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center mx-auto mb-3">
                   <Headphones className="w-6 h-6" />
                 </div>
                 <h3 className="text-base font-bold text-[#171222]">No Consultation Requests Yet</h3>
@@ -1008,12 +1008,12 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                     )}`;
 
                     return (
-                      <div key={req.id} className="bg-white border border-slate-200 hover:border-purple-200 rounded-2xl p-5 shadow-xs transition-all">
+                      <div key={req.id} className="bg-white border border-slate-200 hover:border-orange-200 rounded-2xl p-5 shadow-xs transition-all">
                         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                           {/* Info Column */}
                           <div className="space-y-2 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs font-mono font-bold text-[#3b0080] bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">{req.id}</span>
+                              <span className="text-xs font-mono font-bold text-[#ef7f1a] bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100">{req.id}</span>
                               <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">{req.category}</span>
                               <span
                                 className={`text-[11px] font-bold px-2 py-0.5 rounded-full capitalize ${
@@ -1039,13 +1039,13 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                                 <span>{req.name || 'Anonymous User'}</span>
                               </div>
                               {req.phone && (
-                                <a href={`tel:${req.phone}`} className="flex items-center gap-1 hover:text-[#3b0080] font-mono text-xs font-semibold">
-                                  <Phone className="w-3 h-3 text-[#3b0080]" />
+                                <a href={`tel:${req.phone}`} className="flex items-center gap-1 hover:text-[#ef7f1a] font-mono text-xs font-semibold">
+                                  <Phone className="w-3 h-3 text-[#ef7f1a]" />
                                   <span>{req.phone}</span>
                                 </a>
                               )}
                               {req.email && (
-                                <a href={`mailto:${req.email}`} className="flex items-center gap-1 hover:text-[#3b0080] text-xs">
+                                <a href={`mailto:${req.email}`} className="flex items-center gap-1 hover:text-[#ef7f1a] text-xs">
                                   <Mail className="w-3 h-3 text-slate-400" />
                                   <span>{req.email}</span>
                                 </a>
@@ -1090,7 +1090,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                                   value={req.status || 'pending'}
                                   disabled={updatingEnquiryId === req.id}
                                   onChange={(e) => handleUpdateEnquiryStatus(req.id, e.target.value)}
-                                  className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 focus:outline-none focus:border-[#3b0080]"
+                                  className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 focus:outline-none focus:border-[#ef7f1a]"
                                 >
                                   <option value="pending">Pending</option>
                                   <option value="in-progress">In Progress</option>
@@ -1098,8 +1098,8 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                                   <option value="resolved">Resolved</option>
                                 </select>
                               </div>
-                              <span className="text-[10px] text-purple-600 font-medium flex items-center gap-1 mt-1">
-                                <Mail className="w-3 h-3 text-purple-500" />
+                              <span className="text-[10px] text-orange-600 font-medium flex items-center gap-1 mt-1">
+                                <Mail className="w-3 h-3 text-orange-500" />
                                 <span>{updatingEnquiryId === req.id ? 'Sending update email...' : 'Auto-emails client'}</span>
                               </span>
                             </div>
@@ -1135,10 +1135,10 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                 <p className="text-2xl font-bold text-emerald-900 font-mono mt-1">{feedbacks.filter((f) => Number(f.rating) === 5).length}</p>
                 <span className="text-[11px] text-emerald-700">Flawless touchdowns</span>
               </div>
-              <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 shadow-xs">
-                <span className="text-[10px] font-bold text-[#3b0080] uppercase tracking-wider block">Verified Missions</span>
-                <p className="text-2xl font-bold text-[#3b0080] font-mono mt-1">{feedbacks.filter((f) => f.verified_order || f.order_id).length}</p>
-                <span className="text-[11px] text-purple-700">Order-linked reviews</span>
+              <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 shadow-xs">
+                <span className="text-[10px] font-bold text-[#ef7f1a] uppercase tracking-wider block">Verified Missions</span>
+                <p className="text-2xl font-bold text-[#ef7f1a] font-mono mt-1">{feedbacks.filter((f) => f.verified_order || f.order_id).length}</p>
+                <span className="text-[11px] text-orange-700">Order-linked reviews</span>
               </div>
             </div>
 
@@ -1148,7 +1148,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                 <button
                   onClick={() => setFeedbackRatingFilter('all')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    feedbackRatingFilter === 'all' ? 'bg-[#3b0080] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    feedbackRatingFilter === 'all' ? 'bg-[#ef7f1a] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
                   All ({feedbacks.length})
@@ -1156,7 +1156,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                 <button
                   onClick={() => setFeedbackRatingFilter(5)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                    feedbackRatingFilter === 5 ? 'bg-[#3b0080] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    feedbackRatingFilter === 5 ? 'bg-[#ef7f1a] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
                   <span>5 Stars</span>
@@ -1165,7 +1165,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                 <button
                   onClick={() => setFeedbackRatingFilter(4)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                    feedbackRatingFilter === 4 ? 'bg-[#3b0080] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    feedbackRatingFilter === 4 ? 'bg-[#ef7f1a] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
                   <span>4 Stars</span>
@@ -1180,7 +1180,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                   value={feedbackSearch}
                   onChange={(e) => setFeedbackSearch(e.target.value)}
                   placeholder="Search user, drone model, order ID..."
-                  className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#3b0080] focus:bg-white transition-all font-medium"
+                  className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#ef7f1a] focus:bg-white transition-all font-medium"
                 />
                 {feedbackSearch && (
                   <button onClick={() => setFeedbackSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -1193,7 +1193,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
             {/* Feedbacks Listing */}
             {feedbacks.length === 0 ? (
               <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#3b0080] flex items-center justify-center mx-auto mb-3">
+                <div className="w-12 h-12 rounded-2xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center mx-auto mb-3">
                   <Star className="w-6 h-6" />
                 </div>
                 <h3 className="text-base font-bold text-[#171222]">No Customer Feedbacks Yet</h3>
@@ -1226,18 +1226,18 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                     });
 
                     return (
-                      <div key={fb.id} className="bg-white border border-slate-200 hover:border-purple-200 rounded-2xl p-5 shadow-xs transition-all">
+                      <div key={fb.id} className="bg-white border border-slate-200 hover:border-orange-200 rounded-2xl p-5 shadow-xs transition-all">
                         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                           <div className="space-y-2 flex-1">
                             {/* Top Badges */}
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs font-mono font-bold text-[#3b0080] bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">{fb.id}</span>
+                              <span className="text-xs font-mono font-bold text-[#ef7f1a] bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100">{fb.id}</span>
                               {fb.order_id && <span className="text-xs font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">Order #{fb.order_id}</span>}
                               <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md text-amber-800 text-xs font-bold">
                                 <span>{fb.rating}</span>
                                 <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                               </div>
-                              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-[#3b0080] border border-purple-100 flex items-center gap-1">
+                              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-orange-50 text-[#ef7f1a] border border-orange-100 flex items-center gap-1">
                                 <Truck className="w-3 h-3" />
                                 <span>{fb.drone_name}</span>
                               </span>
@@ -1252,7 +1252,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                             <div className="flex items-center gap-4 text-xs text-slate-500 pt-1">
                               <span className="font-bold text-[#171222]">{fb.user_name}</span>
                               {fb.user_email && <span className="text-slate-400">{fb.user_email}</span>}
-                              <span className="text-purple-700 bg-purple-50 px-2 py-0.5 rounded text-[11px] font-semibold">{fb.category}</span>
+                              <span className="text-orange-700 bg-orange-50 px-2 py-0.5 rounded text-[11px] font-semibold">{fb.category}</span>
                             </div>
                           </div>
 
@@ -1288,8 +1288,8 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
 
       {/* ── REAL-TIME EMAIL DISPATCH TOAST ────────────────────────────────── */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#171222] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-purple-500/30 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-200 max-w-md">
-          <div className="w-8 h-8 rounded-xl bg-purple-600/30 text-purple-300 flex items-center justify-center shrink-0">
+        <div className="fixed bottom-6 right-6 z-50 bg-[#171222] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-orange-500/30 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-200 max-w-md">
+          <div className="w-8 h-8 rounded-xl bg-orange-600/30 text-orange-300 flex items-center justify-center shrink-0">
             <Mail className="w-4 h-4" />
           </div>
           <div className="text-xs flex-1">
@@ -1308,7 +1308,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
           <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150 p-6">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#3b0080] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center">
                   <Truck className="w-5 h-5" />
                 </div>
                 <div>
@@ -1356,8 +1356,8 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
 
             {/* Assigned Cargo */}
             {selectedDrone.assigned_order && selectedDrone.current_order && (
-              <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-xl text-xs mb-4">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#3b0080] block mb-1">Active Mission Cargo</span>
+              <div className="p-3.5 bg-orange-50/70 border border-orange-200 rounded-xl text-xs mb-4">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#ef7f1a] block mb-1">Active Mission Cargo</span>
                 <p className="font-mono font-bold text-slate-900">{selectedDrone.assigned_order}</p>
                 <p className="text-slate-600 text-[11px] mt-0.5">Drop: {selectedDrone.current_order.destination}</p>
               </div>
@@ -1422,7 +1422,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                 <select
                   value={newDroneModel}
                   onChange={(e) => setNewDroneModel(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-[#171222] focus:outline-none focus:border-[#3b0080] bg-white"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-[#171222] focus:outline-none focus:border-[#ef7f1a] bg-white"
                 >
                   <option value="Cyberone Max">Cyberone Max (Heavy Cargo • 5 kg payload)</option>
                   <option value="Cyberone Pro">Cyberone Pro (High Speed • 3 kg payload)</option>
@@ -1436,7 +1436,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                 <select
                   value={newDroneCity}
                   onChange={(e) => setNewDroneCity(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-[#171222] focus:outline-none focus:border-[#3b0080] bg-white"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-[#171222] focus:outline-none focus:border-[#ef7f1a] bg-white"
                 >
                   <option value="Noida Sector 62">Noida Sector 62 (Port Alpha)</option>
                   <option value="Connaught Place, Delhi">Connaught Place (Central Port)</option>
@@ -1453,7 +1453,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                   step="0.1"
                   value={newDronePayload}
                   onChange={(e) => setNewDronePayload(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-[#171222] focus:outline-none focus:border-[#3b0080] bg-white"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-[#171222] focus:outline-none focus:border-[#ef7f1a] bg-white"
                 />
               </div>
 
@@ -1468,7 +1468,7 @@ export const DispatchPage: React.FC<DispatchPageProps> = ({ onNavigate, currentU
                 <button
                   type="submit"
                   disabled={registeringDrone}
-                  className="flex-1 py-2.5 bg-[#3b0080] hover:bg-[#280057] text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                  className="flex-1 py-2.5 bg-[#ef7f1a] hover:bg-[#280057] text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
                 >
                   {registeringDrone ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                   <span>{registeringDrone ? 'Registering...' : 'Register UAV'}</span>

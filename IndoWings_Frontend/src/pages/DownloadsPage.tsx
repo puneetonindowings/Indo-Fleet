@@ -49,7 +49,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
           <div className="bg-white border border-[#e2e8f0] rounded-xl overflow-hidden shadow-sm">
             {/* Card header — Stable pill left, Latest Version right (matches SkyGrid) */}
             <div className="flex items-center justify-between px-7 py-4 border-b border-[#e2e8f0]">
-              <div className="inline-flex items-center gap-1.5 bg-purple-50 text-[#3b0080] text-xs font-bold px-3 py-1 rounded-full border border-purple-200">
+              <div className="inline-flex items-center gap-1.5 bg-orange-50 text-[#ef7f1a] text-xs font-bold px-3 py-1 rounded-full border border-orange-200">
                 <CheckCircle className="w-3.5 h-3.5" />
                 Stable
               </div>
@@ -65,8 +65,8 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
             {/* Metadata grid */}
             <div className="grid grid-cols-2 gap-5 my-7 py-7 border-y border-[#e2e8f0]">
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
-                  <Monitor className="w-4 h-4 text-[#3b0080]" />
+                <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
+                  <Monitor className="w-4 h-4 text-[#ef7f1a]" />
                 </div>
                 <div>
                   <div className="text-xs text-slate-400 font-medium uppercase tracking-wide">Platform</div>
@@ -74,8 +74,8 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
-                  <Calendar className="w-4 h-4 text-[#3b0080]" />
+                <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
+                  <Calendar className="w-4 h-4 text-[#ef7f1a]" />
                 </div>
                 <div>
                   <div className="text-xs text-slate-400 font-medium uppercase tracking-wide">Release Date</div>
@@ -83,8 +83,8 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
-                  <HardDrive className="w-4 h-4 text-[#3b0080]" />
+                <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
+                  <HardDrive className="w-4 h-4 text-[#ef7f1a]" />
                 </div>
                 <div>
                   <div className="text-xs text-slate-400 font-medium uppercase tracking-wide">File Size</div>
@@ -92,8 +92,8 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
-                  <Package className="w-4 h-4 text-[#3b0080]" />
+                <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
+                  <Package className="w-4 h-4 text-[#ef7f1a]" />
                 </div>
                 <div>
                   <div className="text-xs text-slate-400 font-medium uppercase tracking-wide">Package</div>
@@ -106,14 +106,14 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleDownload}
-                className="flex-1 inline-flex items-center justify-center gap-2 bg-[#3b0080] hover:bg-[#2d006b] text-white font-semibold rounded-xl px-6 py-3.5 text-[15px] transition-colors min-h-[52px]"
+                className="flex-1 inline-flex items-center justify-center gap-2 bg-[#ef7f1a] hover:bg-[#2d006b] text-white font-semibold rounded-xl px-6 py-3.5 text-[15px] transition-colors min-h-[52px]"
               >
                 {downloadStarted ? <Check className="w-5 h-5" /> : <DownloadCloud className="w-5 h-5" />}
                 {downloadStarted ? 'Download Started!' : 'Download .msi Installer'}
               </button>
               <button
                 onClick={() => { onNavigate('docs'); window.history.pushState({}, '', '/docs'); }}
-                className="flex-1 inline-flex items-center justify-center gap-2 border border-[#e2e8f0] hover:border-[#3b0080] hover:text-[#3b0080] text-slate-600 font-semibold rounded-xl px-6 py-3.5 text-[15px] transition-colors min-h-[52px] bg-white cursor-pointer"
+                className="flex-1 inline-flex items-center justify-center gap-2 border border-[#e2e8f0] hover:border-[#ef7f1a] hover:text-[#ef7f1a] text-slate-600 font-semibold rounded-xl px-6 py-3.5 text-[15px] transition-colors min-h-[52px] bg-white cursor-pointer"
               >
                 View Documentation
               </button>
@@ -141,7 +141,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
             {/* System requirements */}
             <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 shadow-sm">
               <h3 className="text-sm font-bold text-[#171222] mb-4 flex items-center gap-2">
-                <Monitor className="w-4 h-4 text-[#3b0080]" />
+                <Monitor className="w-4 h-4 text-[#ef7f1a]" />
                 System Requirements
               </h3>
               <ul className="space-y-2.5">
@@ -163,10 +163,10 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
 
             {/* Account required */}
             <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 shadow-sm">
-              <div className="flex items-start gap-3 bg-purple-50 border border-purple-100 rounded-lg p-4">
-                <User className="w-5 h-5 text-[#3b0080] shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 bg-orange-50 border border-orange-100 rounded-lg p-4">
+                <User className="w-5 h-5 text-[#ef7f1a] shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-semibold text-[#3b0080] mb-1">Account Required</p>
+                  <p className="text-sm font-semibold text-[#ef7f1a] mb-1">Account Required</p>
                   <p className="text-xs text-slate-500 leading-relaxed">An active IndoWings operator account is required to activate and use GCS. Contact your fleet administrator for access credentials.</p>
                 </div>
               </div>
@@ -175,7 +175,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
             {/* Download process */}
             <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 shadow-sm">
               <h3 className="text-sm font-bold text-[#171222] mb-4 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-[#3b0080]" />
+                <Shield className="w-4 h-4 text-[#ef7f1a]" />
                 Download Process
               </h3>
               <ol className="space-y-3">
@@ -187,7 +187,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
                   'Complete initial drone pairing setup',
                 ].map((step, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm text-slate-600">
-                    <span className="w-5 h-5 rounded-full bg-purple-100 text-[#3b0080] text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                    <span className="w-5 h-5 rounded-full bg-orange-100 text-[#ef7f1a] text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
                     {step}
                   </li>
                 ))}
@@ -216,7 +216,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
         <div className="mt-10 pt-6 border-t border-[#e2e8f0]">
           <button
             onClick={() => { onNavigate('home'); window.history.pushState({}, '', '/'); }}
-            className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-[#3b0080] transition-colors"
+            className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-[#ef7f1a] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to IndoWings Platform

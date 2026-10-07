@@ -611,20 +611,20 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                 window.history.pushState({}, '', '/dispatch');
               }
             }}
-            className={`inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider transition-colors ${embedded ? 'mb-3 text-slate-500 hover:text-[#3b0080]' : 'mb-6 text-white/70 hover:text-white'}`}
+            className={`inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider transition-colors ${embedded ? 'mb-3 text-slate-500 hover:text-[#ef7f1a]' : 'mb-6 text-white/70 hover:text-white'}`}
           >
             <ArrowLeft className="w-3.5 h-3.5" /> {embedded ? 'Back to Dashboard' : 'Back to Drone Dispatch'}
           </button>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold ${embedded ? 'bg-purple-50 text-[#3b0080]' : 'bg-white/10 border border-white/20 text-white shadow-inner'}`}>
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold ${embedded ? 'bg-orange-50 text-[#ef7f1a]' : 'bg-white/10 border border-white/20 text-white shadow-inner'}`}>
                 {name?.[0]?.toUpperCase() || 'U'}
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight ${embedded ? 'text-slate-900' : ''}`}>{embedded ? 'My Profile' : name || 'Customer Account'}</h1>
-                  <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full ${embedded ? 'bg-purple-50 text-[#3b0080]' : 'bg-purple-500/20 text-purple-200 border border-purple-400/30'}`}>
+                  <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full ${embedded ? 'bg-orange-50 text-[#ef7f1a]' : 'bg-orange-500/20 text-orange-200 border border-orange-400/30'}`}>
                     {profile?.role === 'admin' ? 'HQ Admin' : profile?.role === 'customer' ? 'Customer Account' : 'Verified Personnel'}
                   </span>
                 </div>
@@ -637,9 +637,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                 onNavigate('track');
                 window.history.pushState({}, '', '/track');
               }}
-              className="inline-flex items-center justify-center gap-2 bg-white text-[#3b0080] hover:bg-purple-50 font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-md active:scale-95"
+              className="inline-flex items-center justify-center gap-2 bg-white text-[#ef7f1a] hover:bg-orange-50 font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-md active:scale-95"
             >
-              <Radio className="w-4 h-4 text-purple-600 animate-pulse" /> Live Telemetry Radar
+              <Radio className="w-4 h-4 text-orange-600 animate-pulse" /> Live Telemetry Radar
             </button>}
           </div>
 
@@ -653,7 +653,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
               }}
               className={`inline-flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                 embedded
-                  ? activeTab === 'details' ? 'border-[#3b0080] text-[#3b0080]' : 'border-transparent text-slate-500 hover:text-slate-900'
+                  ? activeTab === 'details' ? 'border-[#ef7f1a] text-[#ef7f1a]' : 'border-transparent text-slate-500 hover:text-slate-900'
                   : activeTab === 'details' ? 'border-white text-white bg-white/10 rounded-t-xl' : 'border-transparent text-white/70 hover:text-white hover:border-white/40'
               }`}
             >
@@ -668,7 +668,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
               }}
               className={`inline-flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                 embedded
-                  ? activeTab === 'addresses' ? 'border-[#3b0080] text-[#3b0080]' : 'border-transparent text-slate-500 hover:text-slate-900'
+                  ? activeTab === 'addresses' ? 'border-[#ef7f1a] text-[#ef7f1a]' : 'border-transparent text-slate-500 hover:text-slate-900'
                   : activeTab === 'addresses' ? 'border-white text-white bg-white/10 rounded-t-xl' : 'border-transparent text-white/70 hover:text-white hover:border-white/40'
               }`}
             >
@@ -684,7 +684,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
               }}
               className={`inline-flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                 embedded
-                  ? activeTab === 'orders' ? 'border-[#3b0080] text-[#3b0080]' : 'border-transparent text-slate-500 hover:text-slate-900'
+                  ? activeTab === 'orders' ? 'border-[#ef7f1a] text-[#ef7f1a]' : 'border-transparent text-slate-500 hover:text-slate-900'
                   : activeTab === 'orders' ? 'border-white text-white bg-white/10 rounded-t-xl' : 'border-transparent text-white/70 hover:text-white hover:border-white/40'
               }`}
             >
@@ -717,7 +717,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
               <div>
                 <h2 className="text-lg font-bold text-[#171222] flex items-center gap-2">
-                  <User className="w-5 h-5 text-[#3b0080]" />
+                  <User className="w-5 h-5 text-[#ef7f1a]" />
                   Personal Profile & Contact Details
                 </h2>
                 <p className="text-xs text-slate-400 mt-0.5">Manage your credentials and verified contact info used for live flight telemetry updates.</p>
@@ -736,7 +736,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                       onChange={(e) => setName(e.target.value)}
                       required
                       placeholder="e.g. Puneet Kushwaha"
-                      className="w-full pl-11 pr-4 py-3.5 border border-slate-200 rounded-xl text-sm font-medium text-[#171222] focus:outline-none focus:border-[#3b0080] focus:ring-2 focus:ring-purple-100 transition-all"
+                      className="w-full pl-11 pr-4 py-3.5 border border-slate-200 rounded-xl text-sm font-medium text-[#171222] focus:outline-none focus:border-[#ef7f1a] focus:ring-2 focus:ring-orange-100 transition-all"
                     />
                   </div>
                 </div>
@@ -767,7 +767,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       placeholder="you@company.com"
-                      className="w-full pl-11 pr-4 py-3.5 border border-slate-200 rounded-xl text-sm font-medium text-[#171222] focus:outline-none focus:border-[#3b0080] focus:ring-2 focus:ring-purple-100 transition-all"
+                      className="w-full pl-11 pr-4 py-3.5 border border-slate-200 rounded-xl text-sm font-medium text-[#171222] focus:outline-none focus:border-[#ef7f1a] focus:ring-2 focus:ring-orange-100 transition-all"
                     />
                   </div>
                   <p className="text-[11px] text-slate-400 mt-1.5">Order receipts, tracking links, and delivery telemetry are dispatched to this inbox.</p>
@@ -802,7 +802,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center gap-2 bg-[#3b0080] hover:bg-[#2a005c] text-white font-bold px-6 py-3.5 rounded-xl text-sm shadow-md shadow-purple-900/10 transition-all disabled:opacity-60"
+                  className="inline-flex items-center gap-2 bg-[#ef7f1a] hover:bg-[#2a005c] text-white font-bold px-6 py-3.5 rounded-xl text-sm shadow-md shadow-slate-900/10 transition-all disabled:opacity-60"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                   <span>{saving ? 'Saving Profile...' : 'Save Profile Details'}</span>
@@ -818,7 +818,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
               <div>
                 <h2 className="text-lg font-bold text-[#171222] flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-[#3b0080]" />
+                  <MapPin className="w-5 h-5 text-[#ef7f1a]" />
                   Saved Delivery Addresses
                 </h2>
                 <p className="text-xs text-slate-400 mt-0.5">Addresses saved here will automatically show as 1-click quick selections when placing drone orders.</p>
@@ -826,22 +826,22 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
 
               <button
                 onClick={() => handleOpenAddressModal()}
-                className="inline-flex items-center gap-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[#3b0080] font-bold text-xs px-4 py-2.5 rounded-xl transition-colors shadow-xs"
+                className="inline-flex items-center gap-2 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-[#ef7f1a] font-bold text-xs px-4 py-2.5 rounded-xl transition-colors shadow-xs"
               >
-                <Plus className="w-4 h-4 text-[#3b0080]" /> Add New Address
+                <Plus className="w-4 h-4 text-[#ef7f1a]" /> Add New Address
               </button>
             </div>
 
             {addresses.length === 0 ? (
               <div className="text-center py-12 px-4 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50">
-                <div className="w-12 h-12 rounded-xl bg-purple-100 text-[#3b0080] flex items-center justify-center mx-auto mb-3">
+                <div className="w-12 h-12 rounded-xl bg-orange-100 text-[#ef7f1a] flex items-center justify-center mx-auto mb-3">
                   <MapPin className="w-6 h-6" />
                 </div>
                 <h3 className="text-sm font-bold text-[#171222] mb-1">No Saved Addresses Yet</h3>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto mb-4 leading-relaxed">Save your primary delivery hubs, residential apartments, or corporate offices for instant checkout.</p>
                 <button
                   onClick={() => handleOpenAddressModal()}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#3b0080] bg-white border border-purple-200 px-4 py-2 rounded-lg hover:bg-purple-50 transition-colors shadow-xs"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#ef7f1a] bg-white border border-orange-200 px-4 py-2 rounded-lg hover:bg-orange-50 transition-colors shadow-xs"
                 >
                   <Plus className="w-3.5 h-3.5" /> Add First Address
                 </button>
@@ -852,22 +852,22 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                   <div
                     key={addr.id}
                     className={`p-5 rounded-2xl border transition-all ${
-                      addr.is_default ? 'border-[#3b0080] bg-purple-50/30 ring-1 ring-purple-100' : 'border-slate-200 bg-white hover:border-slate-300'
+                      addr.is_default ? 'border-[#ef7f1a] bg-orange-50/30 ring-1 ring-orange-100' : 'border-slate-200 bg-white hover:border-slate-300'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-purple-100/70 text-[#3b0080] flex items-center justify-center text-xs font-bold">
+                        <div className="w-8 h-8 rounded-lg bg-orange-100/70 text-[#ef7f1a] flex items-center justify-center text-xs font-bold">
                           {addr.label === 'Home' ? <Home className="w-4 h-4" /> : <Building2 className="w-4 h-4" />}
                         </div>
                         <div>
                           <span className="text-sm font-bold text-[#171222]">{addr.label}</span>
-                          {addr.is_default && <span className="ml-2 text-[10px] font-bold bg-[#3b0080] text-white px-2 py-0.5 rounded-full uppercase tracking-wider">Default</span>}
+                          {addr.is_default && <span className="ml-2 text-[10px] font-bold bg-[#ef7f1a] text-white px-2 py-0.5 rounded-full uppercase tracking-wider">Default</span>}
                         </div>
                       </div>
 
                       <div className="flex items-center gap-1">
-                        <button onClick={() => handleOpenAddressModal(addr)} className="p-1.5 rounded-lg text-slate-400 hover:text-[#3b0080] hover:bg-purple-50 transition-colors">
+                        <button onClick={() => handleOpenAddressModal(addr)} className="p-1.5 rounded-lg text-slate-400 hover:text-[#ef7f1a] hover:bg-orange-50 transition-colors">
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button onClick={() => handleDeleteAddress(addr.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
@@ -884,7 +884,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                         {addr.recipient_phone && <span> • {addr.recipient_phone}</span>}
                       </div>
                       {!addr.is_default && (
-                        <button onClick={() => handleMakeDefault(addr.id)} className="text-[11px] font-bold text-[#3b0080] hover:underline">
+                        <button onClick={() => handleMakeDefault(addr.id)} className="text-[11px] font-bold text-[#ef7f1a] hover:underline">
                           Set Default
                         </button>
                       )}
@@ -904,7 +904,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
                 <div>
                   <h2 className="text-lg font-bold text-[#171222] flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-[#3b0080]" />
+                    <Clock className="w-5 h-5 text-[#ef7f1a]" />
                     My Drone Orders & History
                   </h2>
                   <p className="text-xs text-slate-400 mt-0.5">Track order progress, dispatch updates, deliveries, and cancellations.</p>
@@ -915,10 +915,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                     type="button"
                     onClick={() => fetchOrders()}
                     disabled={loadingOrders}
-                    className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-[#3b0080] hover:border-purple-200 hover:bg-purple-50 transition-all text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                    className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-[#ef7f1a] hover:border-orange-200 hover:bg-orange-50 transition-all text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                     title="Refresh Orders"
                   >
-                    <RefreshCw className={`w-3.5 h-3.5 ${loadingOrders ? 'animate-spin text-[#3b0080]' : ''}`} />
+                    <RefreshCw className={`w-3.5 h-3.5 ${loadingOrders ? 'animate-spin text-[#ef7f1a]' : ''}`} />
                     <span className="hidden sm:inline">Refresh</span>
                   </button>
                   <button
@@ -927,7 +927,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                       onNavigate('track');
                       window.history.pushState({}, '', '/track');
                     }}
-                    className="inline-flex items-center gap-2 bg-[#3b0080] hover:bg-[#2a005c] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm shadow-purple-900/10 cursor-pointer"
+                    className="inline-flex items-center gap-2 bg-[#ef7f1a] hover:bg-[#2a005c] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm shadow-slate-900/10 cursor-pointer"
                   >
                     <Radio className="w-3.5 h-3.5" /> Corridor Radar
                   </button>
@@ -939,7 +939,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                 <div
                   onClick={() => setOrderFilter('all')}
                   className={`p-4 rounded-xl border transition-all cursor-pointer ${
-                    orderFilter === 'all' ? 'border-[#3b0080] bg-purple-50/50 ring-1 ring-purple-200' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'
+                    orderFilter === 'all' ? 'border-[#ef7f1a] bg-orange-50/50 ring-1 ring-orange-200' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'
                   }`}
                 >
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Total Bookings</span>
@@ -999,7 +999,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                       type="button"
                       onClick={() => setOrderFilter(tab.key as any)}
                       className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
-                        orderFilter === tab.key ? 'bg-[#3b0080] text-white shadow-xs' : 'text-slate-600 bg-slate-100 hover:bg-slate-200'
+                        orderFilter === tab.key ? 'bg-[#ef7f1a] text-white shadow-xs' : 'text-slate-600 bg-slate-100 hover:bg-slate-200'
                       }`}
                     >
                       {tab.label}
@@ -1014,7 +1014,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                     value={orderSearch}
                     onChange={(e) => setOrderSearch(e.target.value)}
                     placeholder="Search Order ID, Drop point..."
-                    className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-xs font-medium text-[#171222] focus:outline-none focus:border-[#3b0080] bg-white"
+                    className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-xs font-medium text-[#171222] focus:outline-none focus:border-[#ef7f1a] bg-white"
                   />
                 </div>
               </div>
@@ -1023,12 +1023,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
             {/* Order Cards List */}
             {loadingOrders && orders.length === 0 ? (
               <div className="bg-white border border-[#e2e8f0] rounded-2xl p-12 text-center shadow-sm">
-                <Loader2 className="w-8 h-8 text-[#3b0080] animate-spin mx-auto mb-3" />
+                <Loader2 className="w-8 h-8 text-[#ef7f1a] animate-spin mx-auto mb-3" />
                 <p className="text-sm font-semibold text-slate-600">Retrieving your flight mission logs...</p>
               </div>
             ) : filteredOrders.length === 0 ? (
               <div className="bg-white border border-[#e2e8f0] rounded-2xl p-12 text-center shadow-sm">
-                <div className="w-14 h-14 rounded-2xl bg-purple-50 text-[#3b0080] flex items-center justify-center mx-auto mb-4">
+                <div className="w-14 h-14 rounded-2xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center mx-auto mb-4">
                   <Plane className="w-7 h-7" />
                 </div>
                 <h3 className="text-base font-bold text-[#171222] mb-1">{orderSearch ? 'No matching logs found' : 'No Corridor Sorties Found'}</h3>
@@ -1041,7 +1041,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                     onNavigate('track');
                     window.history.pushState({}, '', '/track');
                   }}
-                  className="inline-flex items-center gap-2 bg-[#3b0080] hover:bg-[#2a005c] text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md cursor-pointer"
+                  className="inline-flex items-center gap-2 bg-[#ef7f1a] hover:bg-[#2a005c] text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md cursor-pointer"
                 >
                   <Radio className="w-4 h-4" /> Live Corridor Telemetry
                 </button>
@@ -1053,12 +1053,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                   const isCancellable = order.order_type === 'drone_purchase' ? order.status === 'pending' : order.status !== 'delivered' && order.status !== 'cancelled';
 
                   return (
-                    <div key={order.id} className="bg-white border border-[#e2e8f0] hover:border-purple-200 transition-all rounded-2xl p-5 sm:p-6 shadow-sm">
+                    <div key={order.id} className="bg-white border border-[#e2e8f0] hover:border-orange-200 transition-all rounded-2xl p-5 sm:p-6 shadow-sm">
                       {/* Card Top Row */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#3b0080] flex items-center justify-center shrink-0">
-                            <Plane className="w-5 h-5 text-[#3b0080]" />
+                          <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center shrink-0">
+                            <Plane className="w-5 h-5 text-[#ef7f1a]" />
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
@@ -1066,7 +1066,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                               <button
                                 type="button"
                                 onClick={() => handleCopyOrderId(order.id)}
-                                className="p-1 text-slate-400 hover:text-[#3b0080] transition-colors cursor-pointer"
+                                className="p-1 text-slate-400 hover:text-[#ef7f1a] transition-colors cursor-pointer"
                                 title="Copy Order ID"
                               >
                                 {copiedOrderId === order.id ? <CheckCheck className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
@@ -1105,7 +1105,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                         {/* Drop Destination */}
                         <div className="space-y-1">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full bg-purple-600"></div> Drop Destination
+                            <div className="w-2 h-2 rounded-full bg-orange-600"></div> Drop Destination
                           </span>
                           <p className="font-medium text-[#171222] leading-snug">{order.drop_address || 'Drop coordinate specified'}</p>
                           {order.customer_name && (
@@ -1135,7 +1135,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                               <span className="bg-slate-100 text-slate-700 font-semibold px-2.5 py-1 rounded-lg">
                                 {order.units_count} unit{order.units_count === 1 ? '' : 's'} · {order.package_type}
                               </span>
-                              <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-md bg-purple-100 text-purple-800">No payment collected</span>
+                              <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-md bg-orange-100 text-orange-800">No payment collected</span>
                             </>
                           ) : (
                             <>
@@ -1161,7 +1161,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                           <button
                             type="button"
                             onClick={() => setSelectedOrderDetail(order)}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-[#3b0080] hover:bg-purple-50 border border-slate-200 transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-[#ef7f1a] hover:bg-orange-50 border border-slate-200 transition-colors cursor-pointer"
                           >
                             <Eye className="w-3.5 h-3.5" /> Details
                           </button>
@@ -1173,7 +1173,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                                 onNavigate('track');
                                 window.history.pushState({}, '', `/track?id=${order.id}`);
                               }}
-                              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#3b0080] hover:bg-[#2a005c] transition-all shadow-xs cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#ef7f1a] hover:bg-[#2a005c] transition-all shadow-xs cursor-pointer"
                             >
                               <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" /> Live Flight
                             </button>
@@ -1228,7 +1228,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                       type="button"
                       onClick={() => setAddressLabel(lbl)}
                       className={`py-2 text-xs font-bold rounded-xl border transition-all ${
-                        addressLabel === lbl ? 'border-[#3b0080] bg-purple-50 text-[#3b0080]' : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                        addressLabel === lbl ? 'border-[#ef7f1a] bg-orange-50 text-[#ef7f1a]' : 'border-slate-200 text-slate-600 hover:border-slate-300'
                       }`}
                     >
                       {lbl}
@@ -1241,7 +1241,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Full Street Address / Building</label>
-                  <button type="button" onClick={handleDetectAddressGps} disabled={isLocating} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#3b0080] hover:underline">
+                  <button type="button" onClick={handleDetectAddressGps} disabled={isLocating} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#ef7f1a] hover:underline">
                     {isLocating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Crosshair className="w-3 h-3" />}
                     <span>{isLocating ? 'Detecting GPS...' : 'Auto-fill with GPS'}</span>
                   </button>
@@ -1252,7 +1252,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                   required
                   rows={3}
                   placeholder="e.g. Tower B, 4th Floor, Sector 62, Electronic City, Noida"
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm text-[#171222] focus:outline-none focus:border-[#3b0080] focus:ring-2 focus:ring-purple-100"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm text-[#171222] focus:outline-none focus:border-[#ef7f1a] focus:ring-2 focus:ring-orange-100"
                 />
               </div>
 
@@ -1264,7 +1264,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                     onChange={(e) => setCity(e.target.value)}
                     required
                     placeholder="Noida"
-                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-[#171222] focus:outline-none focus:border-[#3b0080]"
+                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-[#171222] focus:outline-none focus:border-[#ef7f1a]"
                   />
                 </div>
                 <div>
@@ -1274,7 +1274,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                     onChange={(e) => setPincode(e.target.value)}
                     required
                     placeholder="201301"
-                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-[#171222] focus:outline-none focus:border-[#3b0080]"
+                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-[#171222] focus:outline-none focus:border-[#ef7f1a]"
                   />
                 </div>
               </div>
@@ -1287,7 +1287,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                     value={addressRecipient}
                     onChange={(e) => setAddressRecipient(e.target.value)}
                     placeholder="Recipient Name"
-                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-[#171222] focus:outline-none focus:border-[#3b0080]"
+                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-[#171222] focus:outline-none focus:border-[#ef7f1a]"
                   />
                   <PhoneInput value={addressPhone} onChange={(v) => setAddressPhone(v)} placeholder="Recipient Phone" size="sm" inputClassName="text-xs" />
                 </div>
@@ -1295,7 +1295,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
 
               {/* Default checkbox */}
               <label className="flex items-center gap-2 cursor-pointer pt-1">
-                <input type="checkbox" checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} className="rounded border-slate-300 text-[#3b0080] focus:ring-purple-200 w-4 h-4" />
+                <input type="checkbox" checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} className="rounded border-slate-300 text-[#ef7f1a] focus:ring-orange-200 w-4 h-4" />
                 <span className="text-xs font-semibold text-slate-600">Set as my default delivery address</span>
               </label>
 
@@ -1307,7 +1307,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                 >
                   Cancel
                 </button>
-                <button type="submit" className="flex-1 py-3 bg-[#3b0080] hover:bg-[#2a005c] text-white font-bold text-sm rounded-xl transition-all shadow-md">
+                <button type="submit" className="flex-1 py-3 bg-[#ef7f1a] hover:bg-[#2a005c] text-white font-bold text-sm rounded-xl transition-all shadow-md">
                   {editingAddressId ? 'Update Address' : 'Save Address'}
                 </button>
               </div>
@@ -1321,7 +1321,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150 p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#3b0080] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center">
                 <KeyRound className="w-5 h-5" />
               </div>
               <button onClick={() => setOtpModalTarget(null)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
@@ -1348,21 +1348,21 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                   onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
                   required
                   placeholder="······"
-                  className="w-full text-center text-2xl font-bold tracking-[0.3em] py-3.5 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-[#3b0080] focus:ring-4 focus:ring-purple-100 text-[#171222] bg-slate-50/50"
+                  className="w-full text-center text-2xl font-bold tracking-[0.3em] py-3.5 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-100 text-[#171222] bg-slate-50/50"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={otpLoading || otpCode.length !== 6}
-                className="w-full py-3.5 bg-[#3b0080] hover:bg-[#2a005c] text-white font-bold text-sm rounded-xl transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-3.5 bg-[#ef7f1a] hover:bg-[#2a005c] text-white font-bold text-sm rounded-xl transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {otpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                 <span>{otpLoading ? 'Verifying...' : 'Verify & Update Status'}</span>
               </button>
 
               <div className="text-center pt-2">
-                <button type="button" onClick={() => handleTriggerVerify(otpModalTarget, otpModalValue)} className="text-xs font-bold text-[#3b0080] hover:underline cursor-pointer">
+                <button type="button" onClick={() => handleTriggerVerify(otpModalTarget, otpModalValue)} className="text-xs font-bold text-[#ef7f1a] hover:underline cursor-pointer">
                   Resend Verification Code
                 </button>
               </div>
@@ -1378,7 +1378,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#3b0080] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center">
                   <Plane className="w-5 h-5" />
                 </div>
                 <div>
@@ -1473,7 +1473,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                     </div>
                   </div>
                   <div className="flex items-start gap-2.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-purple-600 mt-1 shrink-0"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-orange-600 mt-1 shrink-0"></div>
                     <div>
                       <span className="font-bold text-slate-700">Drop Point:</span>
                       <p className="text-slate-600 mt-0.5">{selectedOrderDetail.drop_address}</p>
@@ -1504,7 +1504,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
               {/* Payment Summary */}
               <div className="space-y-2 border-t border-slate-100 pt-4">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Billing & Payment</span>
-                <div className="flex items-center justify-between p-3 bg-purple-50/50 border border-purple-100 rounded-xl text-xs">
+                <div className="flex items-center justify-between p-3 bg-orange-50/50 border border-orange-100 rounded-xl text-xs">
                   <div>
                     <span className="font-bold text-slate-800 block">Total Delivery Fare</span>
                     <span className="text-slate-500 text-[11px]">
@@ -1512,7 +1512,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-base font-bold text-[#3b0080]">₹{selectedOrderDetail.fare || 249}</span>
+                    <span className="text-base font-bold text-[#ef7f1a]">₹{selectedOrderDetail.fare || 249}</span>
                     <span className="block text-[10px] font-bold uppercase text-emerald-600">{selectedOrderDetail.payment_method === 'cod' ? 'Payment at landing' : 'Payment Confirmed'}</span>
                   </div>
                 </div>
@@ -1545,7 +1545,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                       onNavigate('track');
                       window.history.pushState({}, '', `/track?id=${selectedOrderDetail.id}`);
                     }}
-                    className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-[#3b0080] hover:bg-[#2a005c] transition-all shadow-sm cursor-pointer"
+                    className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-[#ef7f1a] hover:bg-[#2a005c] transition-all shadow-sm cursor-pointer"
                   >
                     <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" /> Track Live Flight
                   </button>
@@ -1590,7 +1590,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                 <select
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-medium text-[#171222] focus:outline-none focus:border-[#3b0080] bg-white"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-medium text-[#171222] focus:outline-none focus:border-[#ef7f1a] bg-white"
                 >
                   <option value="Placed by mistake">Placed by mistake</option>
                   <option value="Delivery address is wrong">Delivery address is wrong</option>

@@ -37,7 +37,7 @@ const PLATFORM_FEATURES = [
     icon: ShoppingCart,
     title: 'Fleet Store & Booking',
     desc: 'Browse available IndoWings Cyberone Max (700RPAV) tactical quadcopter units and place consignment orders directly.',
-    color: 'bg-purple-50 text-purple-700 border-purple-200',
+    color: 'bg-orange-50 text-orange-700 border-orange-200',
     link: '/store',
     page: 'store'
   },
@@ -115,7 +115,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
       <section
         className="relative overflow-hidden flex items-center"
         style={{
-          background: 'linear-gradient(135deg, #06010f 0%, #0d0520 45%, #10062a 100%)'
+          background: 'linear-gradient(135deg, #101222 0%, #191b30 50%, #20243d 100%)'
         }}
       >
         {/* 3D Interactive Elevation Mesh */}
@@ -123,12 +123,12 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
 
         {/* Ambient atmospheric glows */}
         <div
-          className="absolute top-1/4 left-1/3 w-[650px] h-[650px] rounded-full opacity-20 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #7c3aed 0%, transparent 70%)' }}
+          className="absolute top-1/4 left-1/3 w-[650px] h-[650px] rounded-full opacity-15 pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #ef7f1a 0%, transparent 70%)' }}
         />
         <div
           className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full opacity-10 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #4f46e5 0%, transparent 70%)' }}
+          style={{ background: 'radial-gradient(circle, #f97316 0%, transparent 70%)' }}
         />
 
         <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 w-full pt-28 pb-16 sm:pt-36 sm:pb-24 pointer-events-none [&_button]:pointer-events-auto [&_a]:pointer-events-auto">
@@ -141,7 +141,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
                 <span
                   className="block mt-1 text-transparent bg-clip-text"
                   style={{
-                    backgroundImage: 'linear-gradient(90deg, #c084fc, #818cf8)'
+                    backgroundImage: 'linear-gradient(90deg, #fdba74, #ef7f1a)'
                   }}
                 >
                   Live Transit Management
@@ -149,7 +149,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
               </h1>
 
               {/* Subtitle */}
-              <p className="text-sm sm:text-base text-white/70 max-w-xl leading-relaxed">
+              <p className="text-sm sm:text-base text-white/75 max-w-xl leading-relaxed">
                 Discover IndoWings Cyberone Max tactical quadcopters, reserve verified aircraft units for your enterprise operations, and track real-time factory-to-site corridor telemetry.
               </p>
 
@@ -157,21 +157,18 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button
                   onClick={() => go('store', '/store')}
-                  className="flex items-center gap-2.5 px-7 py-3.5 rounded-xl font-bold text-sm text-white shadow-xl shadow-purple-900/40 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
-                  style={{
-                    background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)'
-                  }}
+                  className="flex items-center gap-2.5 px-7 py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] shadow-xl shadow-orange-900/30 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
                 >
-                  <ShoppingCart className="w-4 h-4 text-purple-200" />
+                  <ShoppingCart className="w-4 h-4 text-white" />
                   <span>Explore Fleet Store</span>
-                  <ArrowRight className="w-4 h-4 text-purple-200 ml-0.5" />
+                  <ArrowRight className="w-4 h-4 text-white ml-0.5" />
                 </button>
 
                 <button
                   onClick={() => go('track', '/track')}
                   className="flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm text-white border border-white/20 bg-white/5 hover:bg-white/10 backdrop-blur-sm transition-all active:scale-95 cursor-pointer"
                 >
-                  <Navigation className="w-4 h-4 text-purple-300" />
+                  <Navigation className="w-4 h-4 text-orange-400" />
                   <span>Track Drone Transit</span>
                 </button>
               </div>
@@ -206,18 +203,18 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
                 <div
                   key={idx}
                   onClick={() => go(feat.page, feat.link)}
-                  className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between hover:border-purple-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-200 group cursor-pointer"
+                  className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between hover:border-orange-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-200 group cursor-pointer"
                 >
                   <div>
-                    <div className="w-11 h-11 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-700 group-hover:text-purple-700 group-hover:border-purple-200 transition-colors mb-4">
+                    <div className="w-11 h-11 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-700 group-hover:text-[#ef7f1a] group-hover:bg-orange-50 group-hover:border-orange-200 transition-colors mb-4">
                       <Icon className="w-5 h-5" />
                     </div>
 
-                    <h3 className="text-base font-black text-slate-900 leading-snug">{feat.title}</h3>
+                    <h3 className="text-base font-black text-slate-900 leading-snug group-hover:text-[#ef7f1a] transition-colors">{feat.title}</h3>
                     <p className="text-xs text-slate-500 mt-2.5 leading-relaxed">{feat.desc}</p>
                   </div>
 
-                  <div className="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-700 group-hover:text-[#3b0080]">
+                  <div className="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-700 group-hover:text-[#ef7f1a]">
                     <span>Learn More</span>
                     <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
                   </div>
@@ -236,7 +233,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
           
           {/* Minimal Section Header */}
           <div className="max-w-2xl mb-12">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#3b0080]">Delivery Workflow</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-[#ef7f1a]">Delivery Workflow</p>
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1.5">
               Factory to Site Transit Protocol
             </h2>
@@ -249,18 +246,18 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
             {TRANSIT_STAGES.map((step, i) => (
               <div key={step.step} className="relative flex flex-col">
-                <div className="group h-full bg-white rounded-2xl p-6 border border-slate-200/90 shadow-sm hover:border-purple-300 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+                <div className="group h-full bg-white rounded-2xl p-6 border border-slate-200/90 shadow-sm hover:border-orange-300 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-5">
-                      <span className="text-2xl font-black tracking-tighter text-slate-300 group-hover:text-[#3b0080] transition-colors">
+                      <span className="text-2xl font-black tracking-tighter text-slate-300 group-hover:text-[#ef7f1a] transition-colors">
                         {step.step}
                       </span>
-                      <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-purple-50 group-hover:text-[#3b0080] group-hover:border-purple-200 transition-colors">
+                      <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-orange-50 group-hover:text-[#ef7f1a] group-hover:border-orange-200 transition-colors">
                         <step.icon className="w-5 h-5" />
                       </div>
                     </div>
 
-                    <h3 className="text-base font-bold text-slate-900 group-hover:text-[#3b0080] transition-colors mb-2">
+                    <h3 className="text-base font-bold text-slate-900 group-hover:text-[#ef7f1a] transition-colors mb-2">
                       {step.title}
                     </h3>
                     
@@ -271,7 +268,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
 
                   <div className="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between text-[11px] font-medium text-slate-400 group-hover:text-slate-600 transition-colors">
                     <span>{step.tag}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#3b0080] group-hover:translate-x-0.5 transition-all" />
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#ef7f1a] group-hover:translate-x-0.5 transition-all" />
                   </div>
                 </div>
 
@@ -332,22 +329,22 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
                   <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm text-center">
                     <p className="text-[11px] font-bold text-slate-400">Flight Endurance</p>
                     <p className="text-lg font-black text-slate-900 mt-1">65 Mins</p>
-                    <p className="text-[10px] text-purple-700 font-medium mt-0.5">AMSL Cruising</p>
+                    <p className="text-[10px] text-[#ef7f1a] font-medium mt-0.5">AMSL Cruising</p>
                   </div>
                   <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm text-center">
                     <p className="text-[11px] font-bold text-slate-400">Launch Ceiling</p>
                     <p className="text-lg font-black text-slate-900 mt-1">18,000 ft</p>
-                    <p className="text-[10px] text-purple-700 font-medium mt-0.5">High Altitude</p>
+                    <p className="text-[10px] text-[#ef7f1a] font-medium mt-0.5">High Altitude</p>
                   </div>
                   <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm text-center">
                     <p className="text-[11px] font-bold text-slate-400">Telemetry Range</p>
                     <p className="text-lg font-black text-slate-900 mt-1">10 KM</p>
-                    <p className="text-[10px] text-purple-700 font-medium mt-0.5">Line of Sight</p>
+                    <p className="text-[10px] text-[#ef7f1a] font-medium mt-0.5">Line of Sight</p>
                   </div>
                   <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm text-center">
                     <p className="text-[11px] font-bold text-slate-400">Max MTOW</p>
                     <p className="text-lg font-black text-slate-900 mt-1">5.0 Kg</p>
-                    <p className="text-[10px] text-purple-700 font-medium mt-0.5">2.2 Kg Payload</p>
+                    <p className="text-[10px] text-[#ef7f1a] font-medium mt-0.5">2.2 Kg Payload</p>
                   </div>
                 </div>
 
@@ -375,7 +372,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
                 <div className="pt-2 flex flex-wrap gap-3">
                   <button
                     onClick={() => go('store', '/store')}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-xs text-white bg-[#3b0080] hover:bg-[#2c0060] transition-all shadow-sm active:scale-95 cursor-pointer"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-xs text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-sm active:scale-95 cursor-pointer"
                   >
                     <ShoppingCart className="w-3.5 h-3.5" />
                     <span>Browse Fleet Store</span>
@@ -385,7 +382,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
                     onClick={() => setShowDiagnostics(!showDiagnostics)}
                     className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-all active:scale-95 cursor-pointer"
                   >
-                    <Cpu className="w-3.5 h-3.5 text-purple-600" />
+                    <Cpu className="w-3.5 h-3.5 text-[#ef7f1a]" />
                     <span>{showDiagnostics ? 'Hide Diagnostics' : 'View QC Diagnostics'}</span>
                   </button>
                 </div>
@@ -396,7 +393,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
                 <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-5">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <p className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-2">
-                      <Compass className="w-4 h-4 text-[#3b0080]" />
+                      <Compass className="w-4 h-4 text-[#ef7f1a]" />
                       Corridor Transit Status
                     </p>
                   </div>
@@ -411,10 +408,10 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
                     </div>
 
                     <div className="relative">
-                      <div className="w-4 h-4 rounded-full bg-[#3b0080] border-2 border-white shadow-sm absolute -left-6 top-0.5 animate-pulse" />
+                      <div className="w-4 h-4 rounded-full bg-[#ef7f1a] border-2 border-white shadow-sm absolute -left-6 top-0.5 animate-pulse" />
                       <p className="text-xs font-bold text-slate-900">Transit Air Corridor</p>
                       <p className="text-xs text-slate-500">Corridor Alpha-4 (Active)</p>
-                      <span className="text-[10px] text-purple-600 font-semibold">&bull; 5.8 GHz Telemetry Linked</span>
+                      <span className="text-[10px] text-[#ef7f1a] font-semibold">&bull; 5.8 GHz Telemetry Linked</span>
                     </div>
 
                     <div className="relative">
@@ -428,9 +425,9 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
 
                 {/* Diagnostics Toggle Card */}
                 {showDiagnostics && (
-                  <div className="bg-purple-50/70 rounded-2xl p-5 border border-purple-200/80 animate-in fade-in duration-150 space-y-2.5 text-xs">
-                    <p className="font-bold text-purple-900 flex items-center gap-2">
-                      <Cpu className="w-4 h-4 text-[#3b0080]" />
+                  <div className="bg-orange-50/70 rounded-2xl p-5 border border-orange-200/80 animate-in fade-in duration-150 space-y-2.5 text-xs">
+                    <p className="font-bold text-[#191b30] flex items-center gap-2">
+                      <Cpu className="w-4 h-4 text-[#ef7f1a]" />
                       Pre-Delivery QC Bench Standards
                     </p>
                     <div className="space-y-1.5 pt-1 text-slate-600 font-medium">
@@ -444,7 +441,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
                       </div>
                       <div className="flex justify-between">
                         <span>Ingress Protection:</span>
-                        <span className="font-bold text-purple-700">IP53 Weatherproof</span>
+                        <span className="font-bold text-[#ef7f1a]">IP53 Weatherproof</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Flight Computer:</span>

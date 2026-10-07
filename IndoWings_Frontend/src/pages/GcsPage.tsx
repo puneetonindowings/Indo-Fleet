@@ -118,7 +118,7 @@ export const GcsPage: React.FC<GcsPageProps> = ({
             {/* Left Copy */}
             <div className="space-y-6">
               <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 border border-white/20 text-[#d8b4fe]">
-                <MonitorUp className="w-5 h-5 text-purple-300" />
+                <MonitorUp className="w-5 h-5 text-orange-300" />
               </span>
               <p className="text-xs font-bold tracking-widest text-[#d8b4fe] uppercase">
                 INDOWINGS GROUND CONTROL STATION
@@ -126,7 +126,7 @@ export const GcsPage: React.FC<GcsPageProps> = ({
               <h1 className="text-3xl sm:text-4xl lg:text-[50px] font-extrabold text-white tracking-tight leading-[1.08]">
                 Field software for professional UAV operations.
               </h1>
-              <p className="text-base sm:text-[17px] text-purple-100/85 leading-relaxed max-w-2xl">
+              <p className="text-base sm:text-[17px] text-orange-100/85 leading-relaxed max-w-2xl">
                 IndoWings GCS gives approved operations teams a controlled desktop workspace for aircraft connection, mission planning, telemetry monitoring, vehicle configuration, readiness checks, and Command Center sync.
               </p>
 
@@ -134,7 +134,7 @@ export const GcsPage: React.FC<GcsPageProps> = ({
               <div className="flex flex-wrap items-center gap-3.5 pt-2">
                 <button 
                   onClick={onOpenCommandCenter}
-                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-[#3b0080] hover:bg-[#4c0099] text-white text-sm font-semibold shadow-md transition-all active:scale-95 border border-purple-400/30"
+                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-[#ef7f1a] hover:bg-[#4c0099] text-white text-sm font-semibold shadow-md transition-all active:scale-95 border border-orange-400/30"
                 >
                   <DownloadCloud className="w-4 h-4" />
                   <span>Get GCS</span>
@@ -151,13 +151,13 @@ export const GcsPage: React.FC<GcsPageProps> = ({
                   onClick={onOpenDemoBooking}
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-white hover:bg-slate-100 text-[#171222] text-sm font-semibold shadow-md transition-all active:scale-95"
                 >
-                  <BookOpen className="w-4 h-4 text-[#3b0080]" />
+                  <BookOpen className="w-4 h-4 text-[#ef7f1a]" />
                   <span>Open guide</span>
                 </button>
               </div>
 
               {/* Helper Note */}
-              <p className="text-xs text-purple-200/60 pt-1 leading-relaxed max-w-lg">
+              <p className="text-xs text-orange-200/60 pt-1 leading-relaxed max-w-lg">
                 Use the download center to review the current version, account requirements, release notes, checksum, and archive before installing.
               </p>
             </div>
@@ -180,7 +180,7 @@ export const GcsPage: React.FC<GcsPageProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
             {/* Left Copy */}
             <div>
-              <p className="text-xs font-bold tracking-widest text-[#3b0080] uppercase mb-3">
+              <p className="text-xs font-bold tracking-widest text-[#ef7f1a] uppercase mb-3">
                 BEFORE YOU SIGN IN
               </p>
               <h2 className="text-2xl sm:text-3xl lg:text-[38px] font-extrabold text-[#111827] tracking-tight leading-tight mb-4">
@@ -194,31 +194,31 @@ export const GcsPage: React.FC<GcsPageProps> = ({
               </p>
               <button 
                 onClick={onOpenDemoBooking}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-white border border-[#3b0080]/20 hover:border-[#3b0080]/50 text-[#171222] font-semibold text-sm shadow-xs transition-all active:scale-95"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-white border border-[#ef7f1a]/20 hover:border-[#ef7f1a]/50 text-[#171222] font-semibold text-sm shadow-xs transition-all active:scale-95"
               >
-                <UserPlus className="w-4 h-4 text-[#3b0080]" />
+                <UserPlus className="w-4 h-4 text-[#ef7f1a]" />
                 <span>Get account help</span>
               </button>
             </div>
 
             {/* Right Console Grid */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-white/90 border border-[#3b0080]/15 shadow-[0_12px_36px_rgba(31,18,45,0.05)] grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="p-6 sm:p-7 rounded-2xl bg-white/90 border border-[#ef7f1a]/15 shadow-[0_12px_36px_rgba(31,18,45,0.05)] grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {beforeSignInPills.map((item, idx) => {
                 const ItemIcon = item.icon;
                 return (
                   <div 
                     key={idx}
-                    className="flex items-center justify-between p-3.5 sm:p-4 rounded-xl border border-[#3b0080]/12 bg-[#faf7fd] text-[#111827] font-semibold text-sm hover:border-[#3b0080]/30 hover:bg-white hover:shadow-sm transition-all"
+                    className="flex items-center justify-between p-3.5 sm:p-4 rounded-xl border border-[#ef7f1a]/12 bg-[#faf7fd] text-[#111827] font-semibold text-sm hover:border-[#ef7f1a]/30 hover:bg-white hover:shadow-sm transition-all"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[#3b0080] shadow-2xs shrink-0">
+                      <span className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[#ef7f1a] shadow-2xs shrink-0">
                         <ItemIcon className="w-4 h-4" />
                       </span>
                       <span className="tracking-tight truncate">{item.title}</span>
                     </div>
                     {item.hasHelp && (
                       <span 
-                        className="w-4 h-4 rounded-full bg-[#eee4ff] text-[#3b0080] text-[10px] font-bold inline-flex items-center justify-center cursor-help shrink-0 ml-1.5"
+                        className="w-4 h-4 rounded-full bg-[#eee4ff] text-[#ef7f1a] text-[10px] font-bold inline-flex items-center justify-center cursor-help shrink-0 ml-1.5"
                         title={item.tooltip}
                       >
                         ?
@@ -233,10 +233,10 @@ export const GcsPage: React.FC<GcsPageProps> = ({
       </section>
 
       {/* 3. GCS Workspace (Screenshot Grid) */}
-      <section className="w-full py-16 sm:py-20 lg:py-24 bg-white border-t border-[#3b0080]/10">
+      <section className="w-full py-16 sm:py-20 lg:py-24 bg-white border-t border-[#ef7f1a]/10">
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="max-w-3xl mb-12">
-            <p className="text-xs font-bold tracking-widest text-[#3b0080] uppercase mb-3">
+            <p className="text-xs font-bold tracking-widest text-[#ef7f1a] uppercase mb-3">
               GCS WORKSPACE
             </p>
             <h2 className="text-2xl sm:text-3xl lg:text-[38px] font-extrabold text-[#111827] tracking-tight leading-tight">
@@ -246,7 +246,7 @@ export const GcsPage: React.FC<GcsPageProps> = ({
 
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)] lg:grid-rows-2 gap-[18px] items-stretch">
             {/* Left Large Screenshot: Waypoint route planner */}
-            <figure className="relative lg:row-span-2 aspect-[16/10] lg:aspect-auto h-full min-h-0 rounded-xl overflow-hidden shadow-[0_20px_54px_rgba(31,18,45,0.16)] border border-[#3b0080]/15 bg-[#12051e] group">
+            <figure className="relative lg:row-span-2 aspect-[16/10] lg:aspect-auto h-full min-h-0 rounded-xl overflow-hidden shadow-[0_20px_54px_rgba(31,18,45,0.16)] border border-[#ef7f1a]/15 bg-[#12051e] group">
               <img 
                 src="/images/indowings-route-planner.webp" 
                 alt="IndoWings GCS route planner with waypoint controls and mission execution panel"
@@ -258,7 +258,7 @@ export const GcsPage: React.FC<GcsPageProps> = ({
             </figure>
 
             {/* Right Top Screenshot: Approved operator workspace */}
-            <figure className="relative aspect-[16/10] h-full min-h-0 rounded-xl overflow-hidden shadow-[0_20px_54px_rgba(31,18,45,0.16)] border border-[#3b0080]/15 bg-[#12051e] group">
+            <figure className="relative aspect-[16/10] h-full min-h-0 rounded-xl overflow-hidden shadow-[0_20px_54px_rgba(31,18,45,0.16)] border border-[#ef7f1a]/15 bg-[#12051e] group">
               <img 
                 src="/images/operator-start-mission.webp" 
                 alt="IndoWings operator start mission screen with flight metrics and mission launch action"
@@ -270,7 +270,7 @@ export const GcsPage: React.FC<GcsPageProps> = ({
             </figure>
 
             {/* Right Bottom Screenshot: Mission operation center */}
-            <figure className="relative aspect-[16/10] h-full min-h-0 rounded-xl overflow-hidden shadow-[0_20px_54px_rgba(31,18,45,0.16)] border border-[#3b0080]/15 bg-white group">
+            <figure className="relative aspect-[16/10] h-full min-h-0 rounded-xl overflow-hidden shadow-[0_20px_54px_rgba(31,18,45,0.16)] border border-[#ef7f1a]/15 bg-white group">
               <img 
                 src="/images/indowings-mission-operation-center.webp" 
                 alt="IndoWings mission operation center with aircraft readiness and quick actions"
@@ -285,7 +285,7 @@ export const GcsPage: React.FC<GcsPageProps> = ({
       </section>
 
       {/* 4. Product Detail Grid (8 Cards in 3 Columns / 2 Columns) */}
-      <section className="w-full py-16 sm:py-20 lg:py-24 bg-[#fbf9fd] border-t border-[#3b0080]/10">
+      <section className="w-full py-16 sm:py-20 lg:py-24 bg-[#fbf9fd] border-t border-[#ef7f1a]/10">
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {productDetailCards.map((card, idx) => {
@@ -293,9 +293,9 @@ export const GcsPage: React.FC<GcsPageProps> = ({
               return (
                 <div 
                   key={idx}
-                  className="p-7 rounded-2xl border border-[#3b0080]/15 bg-gradient-to-b from-white to-[#fcfaff] shadow-[0_4px_24px_rgba(31,18,45,0.04)] hover:shadow-[0_16px_36px_rgba(59,0,128,0.08)] hover:border-[#3b0080]/30 transition-all duration-300 flex flex-col justify-start"
+                  className="p-7 rounded-2xl border border-[#ef7f1a]/15 bg-gradient-to-b from-white to-[#fcfaff] shadow-[0_4px_24px_rgba(31,18,45,0.04)] hover:shadow-[0_16px_36px_rgba(59,0,128,0.08)] hover:border-[#ef7f1a]/30 transition-all duration-300 flex flex-col justify-start"
                 >
-                  <div className="w-11 h-11 rounded-xl bg-[#f2ecf8] text-[#3b0080] flex items-center justify-center mb-5">
+                  <div className="w-11 h-11 rounded-xl bg-[#f2ecf8] text-[#ef7f1a] flex items-center justify-center mb-5">
                     <IconComp className="w-5 h-5" />
                   </div>
                   <h3 className="text-xl font-bold text-[#111827] mb-2.5 tracking-tight">
@@ -328,12 +328,12 @@ export const GcsPage: React.FC<GcsPageProps> = ({
               <h2 className="text-3xl sm:text-4xl lg:text-[44px] font-extrabold text-white tracking-tight leading-[1.12] mb-5">
                 GCS downloads are versioned, documented, and checksum-ready.
               </h2>
-              <p className="text-base sm:text-lg text-purple-100/80 leading-relaxed max-w-xl mb-7">
+              <p className="text-base sm:text-lg text-orange-100/80 leading-relaxed max-w-xl mb-7">
                 The public website keeps latest release metadata, archived versions, release notes, known limitations, and documentation close to the product story.
               </p>
               <button 
                 onClick={onOpenCommandCenter}
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-[#3b0080] hover:bg-[#4c0099] text-white text-sm font-semibold shadow-md transition-all active:scale-95 border border-purple-400/30"
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-[#ef7f1a] hover:bg-[#4c0099] text-white text-sm font-semibold shadow-md transition-all active:scale-95 border border-orange-400/30"
               >
                 <Download className="w-4 h-4" />
                 <span>Get GCS</span>
@@ -345,7 +345,7 @@ export const GcsPage: React.FC<GcsPageProps> = ({
               {releaseChannelPills.map((pill, idx) => (
                 <div 
                   key={idx}
-                  className="flex items-center justify-start min-h-[52px] px-5 py-3.5 rounded-xl border border-white/10 bg-white/[0.08] hover:bg-white/[0.14] hover:border-purple-300/30 text-white font-bold text-sm sm:text-[15px] transition-all cursor-default"
+                  className="flex items-center justify-start min-h-[52px] px-5 py-3.5 rounded-xl border border-white/10 bg-white/[0.08] hover:bg-white/[0.14] hover:border-orange-300/30 text-white font-bold text-sm sm:text-[15px] transition-all cursor-default"
                 >
                   <span className="tracking-tight">{pill}</span>
                 </div>
