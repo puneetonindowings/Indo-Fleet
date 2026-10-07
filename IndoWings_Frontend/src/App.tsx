@@ -25,6 +25,7 @@ import { DemoBookingModal } from './components/DemoBookingModal';
 import { API_BASE_URL } from './config/api';
 import { SEOHead } from './components/SEOHead';
 import { DeliveryTrackingModule } from './pages/DeliveryTrackingModule';
+import { Chatbot } from './components/Chatbot';
 import { UserProfile, DeliveryUser } from './types';
 
 type Page = 'home' | 'platform' | 'command-center' | 'gcs' | 'downloads' | 'versions' | 'track' | 'dispatch' | 'drone-dispatch' | 'delivery-tracking' | 'login' | 'profile' | 'orders' | 'support' | 'docs' | 'company' | 'feedback' | 'legal' | 'admin' | 'fleet' | 'support-desk' | 'shop' | 'store';
@@ -256,6 +257,7 @@ export const App: React.FC = () => {
 
       <CommandCenterModal isOpen={isCommandCenterOpen} onClose={() => setIsCommandCenterOpen(false)} currentUser={currentUser} onLoginSuccess={handleLoginSuccess} onLogout={handleLogout} />
       <DemoBookingModal isOpen={isDemoModalOpen} onClose={() => setIsDemoModalOpen(false)} preselectedDrone={selectedDroneForDemo} />
+      <Chatbot onNavigate={handleNavigate} />
     </div>
   );
 };
