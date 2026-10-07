@@ -6,6 +6,10 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
 
+if (typeof (maplibregl as any).setWorkerUrl === 'function') {
+  (maplibregl as any).setWorkerUrl('/maplibre-gl-worker.mjs');
+}
+
 const MAPTILER_KEY = (import.meta as any).env?.VITE_MAPTILER_KEY as string | undefined;
 const MAPBOX_TOKEN = (import.meta as any).env?.VITE_MAPBOX_ACCESS_TOKEN as string | undefined;
 
