@@ -36,7 +36,7 @@ const PLATFORM_FEATURES = [
   {
     icon: ShoppingCart,
     title: 'Fleet Store & Booking',
-    desc: 'Browse available IndoWings Cyberone Max (700RPAV) tactical quadcopter units and place consignment orders directly.',
+    desc: 'Browse available IndoWings 700RPAV tactical quadcopter units and place consignment orders directly.',
     color: 'bg-orange-50 text-orange-700 border-orange-200',
     link: '/store',
     page: 'store'
@@ -72,7 +72,7 @@ const TRANSIT_STAGES = [
     step: '01',
     icon: ShoppingCart,
     title: 'Selection & Booking',
-    desc: 'Reserve verified Cyberone Max (700RPAV) aircraft from hangar inventory and set corridor coordinates.',
+    desc: 'Reserve verified 700RPAV aircraft from hangar inventory and set corridor coordinates.',
     tag: 'Noida Manufacturing Hangar'
   },
   {
@@ -150,7 +150,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
 
               {/* Subtitle */}
               <p className="text-sm sm:text-base text-white/75 max-w-xl leading-relaxed">
-                Discover IndoWings Cyberone Max tactical quadcopters, reserve verified aircraft units for your enterprise operations, and track real-time factory-to-site corridor telemetry.
+                Discover IndoWings 700RPAV tactical quadcopters, reserve verified aircraft units for your enterprise operations, and track real-time factory-to-site corridor telemetry.
               </p>
 
               {/* CTAs */}
@@ -294,7 +294,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          FEATURED AIRCRAFT: CYBERONE MAX (700RPAV)
+          FEATURED AIRCRAFT: 700RPAV
          ══════════════════════════════════════════════════════════════════════ */}
       <section className="py-20 bg-white border-t border-slate-200">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
@@ -302,7 +302,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
           {/* Section Header */}
           <div className="text-center max-w-2xl mx-auto mb-12">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
-              IndoWings Cyberone Max (700RPAV)
+              IndoWings 700RPAV
             </h2>
             <p className="text-slate-500 text-sm sm:text-base mt-2.5 leading-relaxed">
               Tactical surveillance, high-precision mapping and extreme high-altitude delivery quadcopter UAV.
@@ -317,7 +317,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
               <div className="lg:col-span-7 space-y-6">
                 <div>
                   <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                    Cyberone Max (700RPAV)
+                    700RPAV
                   </h3>
                   <p className="text-sm text-slate-500 mt-2 leading-relaxed">
                     Engineered for high-altitude BVLOS operations over mountains, near-silent acoustic surveillance, and rapid multi-payload logistics.

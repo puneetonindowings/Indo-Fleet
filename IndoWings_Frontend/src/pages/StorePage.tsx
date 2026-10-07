@@ -496,7 +496,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                   IndoWings
                 </a>
                 <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">
-                  Cyberone Max ({detailDrone.model})
+                  {detailDrone.model || '700RPAV'}
                 </h1>
                 <p className="text-xs text-slate-500 font-mono mt-0.5">
                   ID: <strong className="text-slate-800">{detailDrone.id}</strong>
@@ -797,7 +797,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                           {/* Details Content */}
                           <div className="px-4 pb-3">
                             <h3 className="text-sm font-extrabold text-slate-900 group-hover:text-[#ef7f1a] transition-colors leading-snug">
-                              Cyberone Max ({drone.model})
+                              {drone.model || '700RPAV'}
                             </h3>
                             <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
                               Surveillance, Mapping &amp; Delivery UAV
@@ -929,7 +929,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                   <div key={drone.id} className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 border border-slate-100 text-xs">
                     <div className="min-w-0">
                       <p className="font-mono font-bold text-slate-900 truncate">{drone.id}</p>
-                      <p className="text-[10px] text-slate-600 font-medium">Cyberone Max ({drone.model})</p>
+                      <p className="text-[10px] text-slate-600 font-medium">{drone.model || '700RPAV'}</p>
                     </div>
                     <button
                       type="button"

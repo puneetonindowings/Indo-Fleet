@@ -44,7 +44,7 @@ const QUICK_ACTIONS = [
     icon: Plane,
     label: 'Drone Fleet',
     query: 'IndoWings Drone Fleet & Specs',
-    desc: '700RPAV & Cyberone specs'
+    desc: '700RPAV Specifications'
   }
 ];
 
@@ -718,16 +718,12 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                       {msg.cardType === 'drones_info' && (
                         <div className="bg-white rounded-xl border border-slate-200 p-2.5 space-y-1.5 shadow-xs">
                           <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                            <p className="font-bold text-slate-800 text-[11px]">Cyberone Pro (Medical Transit)</p>
-                            <p className="text-[10px] text-slate-500">5 kg payload • 45 km range • 65 km/h • 2°C–8°C cold box</p>
+                            <p className="font-bold text-slate-800 text-[11px]">700RPAV Type-Certified Tactical UAV</p>
+                            <p className="text-[10px] text-slate-500">5 kg payload • 65 mins endurance • 10 km range • PPK/RTK precision</p>
                           </div>
                           <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                            <p className="font-bold text-slate-800 text-[11px]">Cyberone Max (Heavy Cargo)</p>
-                            <p className="text-[10px] text-slate-500">15 kg payload • 60 km range • 70 km/h • Heavy cargo hexacopter</p>
-                          </div>
-                          <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                            <p className="font-bold text-slate-800 text-[11px]">Cyberone Lite (Metro Express)</p>
-                            <p className="text-[10px] text-slate-500">3 kg payload • 35 km range • 85 km/h • Rapid corridor transit</p>
+                            <p className="font-bold text-slate-800 text-[11px]">700RPAV Cargo & Logistics Edition</p>
+                            <p className="text-[10px] text-slate-500">15 kg payload • 60 km range • 70 km/h • Heavy cargo quadcopter</p>
                           </div>
                           <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-100">
                             <p className="font-bold text-slate-800 text-[11px]">S-500 Logistics VTOL</p>

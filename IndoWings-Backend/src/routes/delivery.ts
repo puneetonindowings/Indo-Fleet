@@ -942,7 +942,7 @@ router.post('/drones/bulk', async (req, res) => {
     }
     newDronesList = drones.map((d: any, idx: number) => {
       const idNum = existingFleet.length + idx + 1;
-      const droneModel = typeof d?.model === 'string' && d.model.trim() ? d.model.trim() : typeof model === 'string' && model.trim() ? model.trim() : 'Cyberone Pro';
+      const droneModel = typeof d?.model === 'string' && d.model.trim() ? d.model.trim() : typeof model === 'string' && model.trim() ? model.trim() : '700RPAV';
       const requestedId = typeof d?.id === 'string' ? d.id.trim() : '';
       const requestedSerial = typeof d?.serial_number === 'string' ? d.serial_number.trim() : '';
       const verified = d.is_verified === true || d.verification_status === 'verified';
@@ -2227,7 +2227,7 @@ router.post('/fleet', async (req, res) => {
 
   const newDrone = {
     id: newId,
-    model: model || 'Cyberone Max',
+    model: model || '700RPAV',
     status: 'idle',
     battery: 100,
     speed_kmh: 0,
