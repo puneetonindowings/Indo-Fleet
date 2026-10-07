@@ -1015,7 +1015,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                             required
                             value={provName}
                             onChange={(e) => setProvName(e.target.value)}
-                            placeholder="e.g. Ramesh Chandra"
+                            placeholder="e.g. Puneet Kushwaha"
                             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#ef7f1a]"
                           />
                         </div>
@@ -1028,7 +1028,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                               required
                               value={provEmail}
                               onChange={(e) => setProvEmail(e.target.value)}
-                              placeholder="e.g. ramesh@indowings.com"
+                              placeholder="e.g. puneet.kushwaha@indowings.com"
                               className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#ef7f1a]"
                             />
                           </div>

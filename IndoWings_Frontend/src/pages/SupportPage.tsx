@@ -328,7 +328,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="e.g. Ramesh Chandra"
+                            placeholder="e.g. Puneet Kushwaha"
                             required
                             className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:border-[#ef7f1a] focus:ring-2 focus:ring-orange-100 transition-all"
                           />
