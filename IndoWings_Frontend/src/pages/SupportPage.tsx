@@ -205,7 +205,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
         <div className="absolute inset-0 opacity-15" style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, #fff 1px, transparent 1px)', backgroundSize: '36px 36px' }} />
 
         <div className="relative max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/15 rounded-full text-xs font-bold text-orange-200 mb-4 shadow-sm">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/15 rounded-full text-xs font-bold text-purple-200 mb-4 shadow-sm">
             <Headphones className="w-3.5 h-3.5 text-emerald-400" />
             <span>IndoWings Flight Operations & Knowledge Center</span>
           </div>
@@ -246,7 +246,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
               key={id}
               onClick={() => handleTabSwitch(id as any)}
               className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                activeTab === id ? 'bg-[#ef7f1a] text-white shadow-md shadow-slate-900/20' : 'text-slate-600 hover:text-[#ef7f1a] hover:bg-orange-50/60'
+                activeTab === id ? 'bg-[#5a00b8] text-white shadow-md shadow-slate-900/20' : 'text-slate-600 hover:text-[#5a00b8] hover:bg-purple-50/60'
               }`}
             >
               <Icon className="w-4 h-4 shrink-0" />
@@ -267,7 +267,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
             {/* Left: Consultation Request Form */}
             <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8">
               <div className="mb-6">
-                <span className="text-xs font-bold text-orange-700 bg-orange-100 px-3 py-1 rounded-full uppercase tracking-wider">Direct Flight Operations Desk</span>
+                <span className="text-xs font-bold text-purple-700 bg-purple-100 px-3 py-1 rounded-full uppercase tracking-wider">Direct Flight Operations Desk</span>
                 <h2 className="text-2xl font-black text-[#171222] mt-2 tracking-tight">Consult a Drone Logistics Engineer</h2>
                 <p className="text-xs sm:text-sm text-slate-500 mt-1">
                   Have specific rooftop landing questions, bulk pharmaceutical shipments, or corridor setup needs? Our engineers call you back directly.
@@ -316,7 +316,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                   {/* Step 1: Contact Details */}
                   <div className="space-y-4">
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-orange-600" />
+                      <span className="w-2 h-2 rounded-full bg-purple-600" />
                       1. Contact Information
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -330,7 +330,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                             onChange={(e) => setName(e.target.value)}
                             placeholder="e.g. Puneet Kushwaha"
                             required
-                            className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:border-[#ef7f1a] focus:ring-2 focus:ring-orange-100 transition-all"
+                            className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:border-[#5a00b8] focus:ring-2 focus:ring-orange-100 transition-all"
                           />
                         </div>
                       </div>
@@ -352,7 +352,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="name@company.com"
-                            className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:border-[#ef7f1a] focus:ring-2 focus:ring-orange-100 transition-all"
+                            className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:border-[#5a00b8] focus:ring-2 focus:ring-orange-100 transition-all"
                           />
                         </div>
                       </div>
@@ -362,7 +362,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                   {/* Step 2: Query & Urgency */}
                   <div className="space-y-4 pt-2 border-t border-slate-100">
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-orange-600" />
+                      <span className="w-2 h-2 rounded-full bg-purple-600" />
                       2. Issue &amp; Priority Details
                     </h3>
 
@@ -372,7 +372,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                         <select
                           value={category}
                           onChange={(e) => setCategory(e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:border-[#ef7f1a] focus:ring-2 focus:ring-orange-100 font-medium"
+                          className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:border-[#5a00b8] focus:ring-2 focus:ring-orange-100 font-medium"
                         >
                           <option value="Corridor Flight & Dispatch Inquiries">Corridor Flight &amp; Dispatch Inquiries</option>
                           <option value="Hardware QC & Diagnostics Inspection">Hardware QC &amp; Diagnostics Inspection</option>
@@ -396,7 +396,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                               type="button"
                               onClick={() => setPriority(p.id)}
                               className={`py-2 px-2 rounded-xl border text-center text-xs font-bold transition-all cursor-pointer ${
-                                priority === p.id ? 'bg-[#ef7f1a] text-white border-[#ef7f1a] shadow-sm' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                                priority === p.id ? 'bg-[#5a00b8] text-white border-[#5a00b8] shadow-sm' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                               }`}
                             >
                               {p.label}
@@ -414,7 +414,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         placeholder="Provide details about your query so our flight operations engineers can review background telemetry..."
-                        className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:border-[#ef7f1a] focus:ring-2 focus:ring-orange-100 resize-none font-medium"
+                        className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:border-[#5a00b8] focus:ring-2 focus:ring-orange-100 resize-none font-medium"
                       />
                     </div>
                   </div>
@@ -433,7 +433,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                           value={orderId}
                           onChange={(e) => setOrderId(e.target.value)}
                           placeholder="e.g. INW-2026-005"
-                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-[#ef7f1a]"
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-[#5a00b8]"
                         />
                       </div>
                       <div>
@@ -443,7 +443,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                           value={droneSerial}
                           onChange={(e) => setDroneSerial(e.target.value)}
                           placeholder="e.g. INDO-UAV-1001"
-                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-[#ef7f1a]"
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-[#5a00b8]"
                         />
                       </div>
                     </div>
@@ -452,7 +452,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-3.5 bg-[#ef7f1a] hover:bg-[#d96e11] text-white rounded-xl text-sm font-bold shadow-md shadow-slate-900/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                    className="w-full py-3.5 bg-[#5a00b8] hover:bg-[#4a0099] text-white rounded-xl text-sm font-bold shadow-md shadow-slate-900/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                   >
                     {isSubmitting ? (
                       <>
@@ -499,7 +499,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
               {/* Direct Toll-Free & Direct Operations Hotline */}
               <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center">
                     <Headphones className="w-5 h-5" />
                   </div>
                   <div>
@@ -515,7 +515,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                   </div>
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-xs text-slate-500">Support Desk Email:</span>
-                    <a href="mailto:connect@indowings.com" className="text-xs font-bold text-[#ef7f1a] hover:underline font-mono">
+                    <a href="mailto:connect@indowings.com" className="text-xs font-bold text-[#5a00b8] hover:underline font-mono">
                       connect@indowings.com
                     </a>
                   </div>
@@ -525,8 +525,8 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
               </div>
 
               {/* Operations Readiness Guarantee */}
-              <div className="bg-orange-50/70 border border-orange-100 rounded-3xl p-6 text-xs text-slate-600 space-y-2.5">
-                <div className="flex items-center gap-2 font-bold text-[#ef7f1a]">
+              <div className="bg-purple-50/70 border border-purple-100 rounded-3xl p-6 text-xs text-slate-600 space-y-2.5">
+                <div className="flex items-center gap-2 font-bold text-[#5a00b8]">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
                   <span>DGCA Certified Flight Engineers</span>
                 </div>
@@ -546,7 +546,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
             {/* Guide Header Banner */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs">
               <div className="max-w-2xl">
-                <span className="text-xs font-bold text-orange-700 bg-orange-100 px-3 py-1 rounded-full uppercase tracking-wider">IndoWings Standard Operating Procedure (SOP)</span>
+                <span className="text-xs font-bold text-purple-700 bg-purple-100 px-3 py-1 rounded-full uppercase tracking-wider">IndoWings Standard Operating Procedure (SOP)</span>
                 <h2 className="text-2xl sm:text-3xl font-black text-[#171222] mt-3 tracking-tight">Autonomous UAV Delivery: Customer Guide</h2>
                 <p className="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
                   Learn how IndoWings delivers cargo in under 24 minutes, packaging limits, and how to prepare your terrace for safe, contactless tether drop.
@@ -605,15 +605,15 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
               {/* Module 2: Launch Port & Ground Crew Safety */}
               <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-black">2</div>
+                  <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black">2</div>
                   <div>
                     <h3 className="text-base font-bold text-[#171222]">Launch Port Safety (5m Perimeter Rule)</h3>
                     <p className="text-xs text-slate-400">Hub Ground Pad Clearance & Crew Protocols</p>
                   </div>
                 </div>
 
-                <div className="p-3.5 bg-orange-50/60 rounded-2xl border border-orange-100 text-xs space-y-2">
-                  <p className="font-bold text-[#ef7f1a]">Rotor Blast & Takeoff Safety Zone:</p>
+                <div className="p-3.5 bg-purple-50/60 rounded-2xl border border-purple-100 text-xs space-y-2">
+                  <p className="font-bold text-[#5a00b8]">Rotor Blast & Takeoff Safety Zone:</p>
                   <p className="text-slate-600 leading-relaxed text-[11px]">
                     Ground crew must maintain an active <strong>5-meter perimeter buffer</strong> during vertical climb and landing. High-velocity rotor downwash requires eye protection and clear
                     landing pads.
@@ -654,21 +654,21 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
 
                 <div className="space-y-3 text-xs">
                   <div className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl">
-                    <span className="w-6 h-6 rounded-full bg-[#ef7f1a] text-white text-[10px] font-bold flex items-center justify-center">1</span>
+                    <span className="w-6 h-6 rounded-full bg-[#5a00b8] text-white text-[10px] font-bold flex items-center justify-center">1</span>
                     <div>
                       <strong className="text-[#171222]">NPNT Handshake & Vertical Climb</strong>
                       <p className="text-[11px] text-slate-500">Autonomous motor arming upon token validation and climb to 120m AGL.</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl">
-                    <span className="w-6 h-6 rounded-full bg-[#ef7f1a] text-white text-[10px] font-bold flex items-center justify-center">2</span>
+                    <span className="w-6 h-6 rounded-full bg-[#5a00b8] text-white text-[10px] font-bold flex items-center justify-center">2</span>
                     <div>
                       <strong className="text-[#171222]">Corridor Cruise @ 65–85 km/h</strong>
                       <p className="text-[11px] text-slate-500">Encrypted 5G telemetry link and geofenced waypoint navigation.</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl">
-                    <span className="w-6 h-6 rounded-full bg-[#ef7f1a] text-white text-[10px] font-bold flex items-center justify-center">3</span>
+                    <span className="w-6 h-6 rounded-full bg-[#5a00b8] text-white text-[10px] font-bold flex items-center justify-center">3</span>
                     <div>
                       <strong className="text-[#171222]">Terminal Descent & Hub Recovery</strong>
                       <p className="text-[11px] text-slate-500">RTK precision approach and automated motor shutdown on pad touchdown.</p>
@@ -709,7 +709,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
             </div>
 
             {/* Quick Action Button to Track Telemetry */}
-            <div className="p-6 bg-gradient-to-r from-slate-900 to-[#ef7f1a] rounded-3xl text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+            <div className="p-6 bg-gradient-to-r from-slate-900 to-[#5a00b8] rounded-3xl text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
               <div>
                 <h3 className="text-lg font-bold">Monitor Active Drone Corridors & Telemetry</h3>
                 <p className="text-xs text-white/70 mt-0.5">Real-time GPS tracking and avionics diagnostics across Delhi-NCR airspace.</p>
@@ -719,7 +719,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                   onNavigate('track');
                   window.history.pushState({}, '', '/track');
                 }}
-                className="px-6 py-3 bg-white text-[#ef7f1a] font-black rounded-xl text-xs sm:text-sm hover:bg-slate-100 transition-all shrink-0 cursor-pointer shadow-md"
+                className="px-6 py-3 bg-white text-[#5a00b8] font-black rounded-xl text-xs sm:text-sm hover:bg-slate-100 transition-all shrink-0 cursor-pointer shadow-md"
               >
                 Live Flight Radar →
               </button>
@@ -734,7 +734,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Header & Category Pills */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs">
-              <span className="text-xs font-bold text-orange-700 bg-orange-100 px-3 py-1 rounded-full uppercase tracking-wider">Instant Self-Serve Troubleshooting</span>
+              <span className="text-xs font-bold text-purple-700 bg-purple-100 px-3 py-1 rounded-full uppercase tracking-wider">Instant Self-Serve Troubleshooting</span>
               <h2 className="text-2xl sm:text-3xl font-black text-[#171222] mt-2 tracking-tight">Fix Common Issues</h2>
               <p className="text-xs sm:text-sm text-slate-500 mt-1 mb-6">Resolve weather holds, RTK satellite fix, DGCA permission tokens, and telemetry links instantly.</p>
 
@@ -752,7 +752,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                     key={c.id}
                     onClick={() => setFixCategoryFilter(c.id)}
                     className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                      fixCategoryFilter === c.id ? 'bg-[#ef7f1a] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-orange-50 hover:text-[#ef7f1a]'
+                      fixCategoryFilter === c.id ? 'bg-[#5a00b8] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-purple-50 hover:text-[#5a00b8]'
                     }`}
                   >
                     {c.label}
@@ -769,7 +769,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                   <div
                     key={fix.id}
                     className={`bg-white rounded-2xl border transition-all overflow-hidden ${
-                      isOpen ? 'border-[#ef7f1a]/60 ring-2 ring-orange-100 shadow-sm' : 'border-slate-200 hover:border-slate-300'
+                      isOpen ? 'border-[#5a00b8]/60 ring-2 ring-orange-100 shadow-sm' : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
                     <button type="button" onClick={() => setOpenFixId(isOpen ? null : fix.id)} className="w-full text-left p-5 flex items-center justify-between gap-4 cursor-pointer">
@@ -777,7 +777,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                         <h4 className="text-sm sm:text-base font-bold text-[#171222]">{fix.title}</h4>
                         <p className="text-xs text-slate-500 mt-0.5">{fix.summary}</p>
                       </div>
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all ${isOpen ? 'bg-orange-100 text-[#ef7f1a]' : 'bg-slate-100 text-slate-400'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all ${isOpen ? 'bg-purple-100 text-[#5a00b8]' : 'bg-slate-100 text-slate-400'}`}>
                         {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       </div>
                     </button>
@@ -790,7 +790,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                           {fix.actionPage && (
                             <button
                               onClick={() => onNavigate(fix.actionPage!)}
-                              className="px-4 py-2 bg-[#ef7f1a] hover:bg-[#d96e11] text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                              className="px-4 py-2 bg-[#5a00b8] hover:bg-[#4a0099] text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                             >
                               <span>{fix.actionLabel}</span>
                               <ArrowRight className="w-3.5 h-3.5" />
@@ -820,12 +820,12 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
             </div>
 
             {/* Need More Help Box */}
-            <div className="p-6 bg-white rounded-3xl border border-orange-100 text-center space-y-2">
+            <div className="p-6 bg-white rounded-3xl border border-purple-100 text-center space-y-2">
               <h4 className="text-sm font-bold text-[#171222]">Still experiencing issues?</h4>
               <p className="text-xs text-slate-500 max-w-md mx-auto">Our operations control desk can manually override coordinates, inspect flight telemetry, or dispatch backup UAV frames.</p>
               <button
                 onClick={() => handleTabSwitch('expert')}
-                className="mt-2 inline-flex items-center gap-1.5 px-5 py-2.5 bg-orange-50 hover:bg-orange-100 text-[#ef7f1a] font-bold text-xs rounded-xl transition-all border border-orange-200 cursor-pointer"
+                className="mt-2 inline-flex items-center gap-1.5 px-5 py-2.5 bg-purple-50 hover:bg-purple-100 text-[#5a00b8] font-bold text-xs rounded-xl transition-all border border-purple-200 cursor-pointer"
               >
                 <Phone className="w-3.5 h-3.5" />
                 <span>Talk to Flight Operations Desk</span>

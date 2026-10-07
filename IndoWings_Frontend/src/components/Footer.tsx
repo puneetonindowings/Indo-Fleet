@@ -69,7 +69,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
           {/* Column 1: Operations Gateway */}
           <div>
             <h3 className="text-xs sm:text-[13px] font-black uppercase tracking-[0.16em] text-white mb-4 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#ef7f1a]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
               Operations Gateway
             </h3>
             <ul className="space-y-3 text-[13.5px] sm:text-sm text-slate-300">
@@ -101,31 +101,31 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
                         ? '/dispatch'
                         : '/support-desk'
                     )}
-                    className="hover:text-white transition-colors flex items-center gap-1.5 text-orange-300 font-semibold"
+                    className="hover:text-white transition-colors flex items-center gap-1.5 text-purple-300 font-semibold"
                   >
                     <span>Operations Console</span>
-                    <span className="text-[10px] bg-orange-950/80 text-orange-200 px-1.5 py-0.5 rounded border border-orange-700/50 uppercase">
+                    <span className="text-[10px] bg-purple-950/80 text-purple-200 px-1.5 py-0.5 rounded border border-purple-700/50 uppercase">
                       {currentUser.role.replace('_', ' ')}
                     </span>
                   </a>
                 ) : (
-                  <a href="/login" onClick={navTo('login', '/login')} className="hover:text-[#ef7f1a] transition-colors">
+                  <a href="/login" onClick={navTo('login', '/login')} className="hover:text-purple-400 transition-colors">
                     Personnel Portal Sign In
                   </a>
                 )}
               </li>
               <li>
-                <a href="/support" onClick={navTo('support', '/support')} className="hover:text-[#ef7f1a] transition-colors">
+                <a href="/support" onClick={navTo('support', '/support')} className="hover:text-purple-400 transition-colors">
                   Operations Hotline &amp; Support
                 </a>
               </li>
               <li>
-                <a href="/track" onClick={navTo('track', '/track')} className="hover:text-[#ef7f1a] transition-colors">
+                <a href="/track" onClick={navTo('track', '/track')} className="hover:text-purple-400 transition-colors">
                   Live Drone Tracking
                 </a>
               </li>
               <li>
-                <a href="/docs" onClick={navTo('docs', '/docs')} className="hover:text-[#ef7f1a] transition-colors">
+                <a href="/docs" onClick={navTo('docs', '/docs')} className="hover:text-purple-400 transition-colors">
                   Avionics &amp; SOP Guidelines
                 </a>
               </li>
@@ -135,22 +135,22 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
           {/* Column 2: Flight Tracking */}
           <div>
             <h3 className="text-xs sm:text-[13px] font-black uppercase tracking-[0.16em] text-white mb-4 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#ef7f1a]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
               Flight Tracking
             </h3>
             <ul className="space-y-3 text-[13.5px] sm:text-sm text-slate-300">
               <li>
-                <a href="/track" onClick={navTo('track', '/track')} className="hover:text-[#ef7f1a] transition-colors">
+                <a href="/track" onClick={navTo('track', '/track')} className="hover:text-purple-400 transition-colors">
                   Live Drone Transit Tracking
                 </a>
               </li>
               <li>
-                <a href="/command-center" onClick={navTo('command-center', '/command-center')} className="hover:text-[#ef7f1a] transition-colors">
+                <a href="/command-center" onClick={navTo('command-center', '/command-center')} className="hover:text-purple-400 transition-colors">
                   Telemetry Command Center
                 </a>
               </li>
               <li>
-                <a href="/downloads" onClick={navTo('downloads', '/downloads')} className="hover:text-[#ef7f1a] transition-colors">
+                <a href="/downloads" onClick={navTo('downloads', '/downloads')} className="hover:text-purple-400 transition-colors">
                   Telemetry Log Exports
                 </a>
               </li>
@@ -160,22 +160,22 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
           {/* Column 3: Protocols & Specifications */}
           <div>
             <h3 className="text-xs sm:text-[13px] font-black uppercase tracking-[0.16em] text-white mb-4 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#ef7f1a]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
               SOP Protocols
             </h3>
             <ul className="space-y-3 text-[13.5px] sm:text-sm text-slate-300">
               <li>
-                <a href="/docs" onClick={navTo('docs', '/docs')} className="hover:text-[#ef7f1a] transition-colors">
+                <a href="/docs" onClick={navTo('docs', '/docs')} className="hover:text-purple-400 transition-colors">
                   Hardware QC SOP Checklist
                 </a>
               </li>
               <li>
-                <a href="/support" onClick={navTo('support', '/support')} className="hover:text-[#ef7f1a] transition-colors">
+                <a href="/support" onClick={navTo('support', '/support')} className="hover:text-purple-400 transition-colors">
                   Internal Operations Helpdesk
                 </a>
               </li>
               <li>
-                <a href="/support?tab=fix" onClick={navTo('support', '/support?tab=fix')} className="hover:text-[#ef7f1a] transition-colors">
+                <a href="/support?tab=fix" onClick={navTo('support', '/support?tab=fix')} className="hover:text-purple-400 transition-colors">
                   Hardware Diagnostics &amp; Fixes
                 </a>
               </li>
@@ -185,7 +185,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
           {/* Column 4: Compliance & Governance */}
           <div>
             <h3 className="text-xs sm:text-[13px] font-black uppercase tracking-[0.16em] text-white mb-4 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#ef7f1a]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
               Compliance
             </h3>
             <ul className="space-y-3 text-[13.5px] sm:text-sm text-slate-300">
@@ -196,12 +196,12 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
                 <span className="text-slate-300">NPNT Airspace Governance</span>
               </li>
               <li>
-                <a href="/legal#security" onClick={navTo('legal', '/legal', 'security')} className="hover:text-[#ef7f1a] transition-colors">
+                <a href="/legal#security" onClick={navTo('legal', '/legal', 'security')} className="hover:text-purple-400 transition-colors">
                   Security Disclosure
                 </a>
               </li>
               <li>
-                <a href="/legal#privacy" onClick={navTo('legal', '/legal', 'privacy')} className="hover:text-[#ef7f1a] transition-colors">
+                <a href="/legal#privacy" onClick={navTo('legal', '/legal', 'privacy')} className="hover:text-purple-400 transition-colors">
                   Internal Privacy Policy
                 </a>
               </li>
@@ -214,11 +214,11 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
           <p>Copyright &copy; 2026 IndoWings. All rights reserved.</p>
 
           <div className="flex flex-wrap items-center justify-center lg:justify-end gap-2.5 sm:gap-3 text-[12.5px] sm:text-[13px] text-slate-300">
-            <span className="text-[#ef7f1a] font-bold flex items-center gap-1.5">
+            <span className="text-purple-400 font-bold flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               24/7 Support:
             </span>
-            <a href="tel:+917669478937" className="font-mono text-white hover:text-[#ef7f1a] transition-colors font-bold">
+            <a href="tel:+917669478937" className="font-mono text-white hover:text-purple-300 transition-colors font-bold">
               +91 7669478937
             </a>
             <span className="text-white/20">|</span>
@@ -226,7 +226,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
               Toll-Free: 1800 572 7363
             </span>
             <span className="text-white/20">|</span>
-            <a href="mailto:connect@indowings.com" className="text-[#ef7f1a] hover:text-white transition-colors font-medium">
+            <a href="mailto:connect@indowings.com" className="text-purple-400 hover:text-white transition-colors font-medium">
               connect@indowings.com
             </a>
           </div>

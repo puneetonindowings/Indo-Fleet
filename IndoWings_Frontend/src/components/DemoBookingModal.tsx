@@ -59,7 +59,7 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-900/50 bg-black/40">
           <div className="flex items-center gap-2.5">
-            <span className="p-2 rounded-xl bg-slate-900/50 text-orange-300">
+            <span className="p-2 rounded-xl bg-slate-900/50 text-purple-300">
               <Plane className="w-5 h-5 text-cyan-400" />
             </span>
             <div>
@@ -88,7 +88,7 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
               </p>
               <button 
                 onClick={() => { setSubmitted(false); onClose(); }}
-                className="mt-4 px-6 py-2.5 rounded-xl bg-[#ef7f1a] hover:bg-[#6d28d9] text-white text-xs font-semibold"
+                className="mt-4 px-6 py-2.5 rounded-xl bg-[#5a00b8] hover:bg-[#6d28d9] text-white text-xs font-semibold"
               >
                 Close Window
               </button>
@@ -175,7 +175,7 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-[#6d28d9] to-[#ef7f1a] hover:from-[#ef7f1a] hover:to-[#191b30] text-white font-semibold flex items-center justify-center gap-2 shadow-lg shadow-slate-950/60"
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-[#6d28d9] to-[#5a00b8] hover:from-[#5a00b8] hover:to-[#191b30] text-white font-semibold flex items-center justify-center gap-2 shadow-lg shadow-slate-950/60"
               >
                 <Send className="w-4 h-4" />
                 <span>{loading ? 'Submitting to Database...' : 'Register Flight Demo Request'}</span>

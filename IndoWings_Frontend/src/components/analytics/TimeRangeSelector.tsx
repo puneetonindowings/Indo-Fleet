@@ -91,9 +91,9 @@ export const TimeRangeSelector: React.FC<Props> = ({ value, onChange }) => {
     <div className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:border-orange-300 hover:text-[#ef7f1a] transition-colors shadow-xs"
+        className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:border-purple-300 hover:text-[#5a00b8] transition-colors shadow-xs"
       >
-        <Calendar className="w-4 h-4 text-[#ef7f1a]" />
+        <Calendar className="w-4 h-4 text-[#5a00b8]" />
         <span>{value.label}</span>
         <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
       </button>
@@ -106,7 +106,7 @@ export const TimeRangeSelector: React.FC<Props> = ({ value, onChange }) => {
               <button
                 key={p.key}
                 onClick={() => select(p.key)}
-                className={`px-2.5 py-2 rounded-lg text-[11px] font-bold transition-colors ${value.key === p.key ? 'bg-[#ef7f1a] text-white' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:border-orange-300 hover:text-[#ef7f1a]'}`}
+                className={`px-2.5 py-2 rounded-lg text-[11px] font-bold transition-colors ${value.key === p.key ? 'bg-[#5a00b8] text-white' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:border-purple-300 hover:text-[#5a00b8]'}`}
               >
                 {p.label}
               </button>
@@ -117,14 +117,14 @@ export const TimeRangeSelector: React.FC<Props> = ({ value, onChange }) => {
           <div className="space-y-2">
             <label className="block">
               <span className="text-[10px] font-bold text-slate-500">From</span>
-              <input type="date" value={customFrom} max={customTo} onChange={(e) => setCustomFrom(e.target.value)} className="mt-0.5 w-full px-2.5 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none focus:border-orange-400" />
+              <input type="date" value={customFrom} max={customTo} onChange={(e) => setCustomFrom(e.target.value)} className="mt-0.5 w-full px-2.5 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none focus:border-purple-400" />
             </label>
             <label className="block">
               <span className="text-[10px] font-bold text-slate-500">To</span>
-              <input type="date" value={customTo} min={customFrom} onChange={(e) => setCustomTo(e.target.value)} className="mt-0.5 w-full px-2.5 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none focus:border-orange-400" />
+              <input type="date" value={customTo} min={customFrom} onChange={(e) => setCustomTo(e.target.value)} className="mt-0.5 w-full px-2.5 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none focus:border-purple-400" />
             </label>
             <div className="flex gap-2 pt-1">
-              <button onClick={applyCustom} className="flex-1 py-2 rounded-lg bg-[#ef7f1a] text-white text-xs font-bold hover:bg-orange-800 transition-colors">Apply</button>
+              <button onClick={applyCustom} className="flex-1 py-2 rounded-lg bg-[#5a00b8] text-white text-xs font-bold hover:bg-purple-800 transition-colors">Apply</button>
               <button onClick={() => setOpen(false)} className="px-3 py-2 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition-colors">Close</button>
             </div>
           </div>

@@ -196,7 +196,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({ currentUser,
           <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold uppercase text-slate-400">Total Drone Fleet Units</span>
-              <Cpu className="w-5 h-5 text-orange-600" />
+              <Cpu className="w-5 h-5 text-purple-600" />
             </div>
             <p className="text-3xl font-black text-slate-900">{drones.length}</p>
             <p className="text-xs text-slate-500 mt-1">Assembled & Registered Hardware</p>
@@ -230,7 +230,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({ currentUser,
 
           <button
             onClick={() => setShowAddDrone(true)}
-            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] text-white font-bold text-sm shadow-md transition-all active:scale-95"
+            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#5a00b8] hover:bg-[#4a0099] text-white font-bold text-sm shadow-md transition-all active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span>Register New Drone Unit</span>
@@ -356,7 +356,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({ currentUser,
                     type="checkbox"
                     checked={(qcChecks as any)[item.key]}
                     onChange={(e) => setQcChecks({ ...qcChecks, [item.key]: e.target.checked })}
-                    className="w-4 h-4 rounded text-orange-600 focus:ring-orange-500"
+                    className="w-4 h-4 rounded text-purple-600 focus:ring-orange-500"
                   />
                   <span>{item.label}</span>
                 </label>
@@ -404,7 +404,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({ currentUser,
                 <select
                   value={newModel}
                   onChange={(e) => setNewModel(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-[#ef7f1a]"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-[#5a00b8]"
                 >
                   <option value="700RPAV">700RPAV (Type-Certified Tactical / Precision Payload)</option>
                   <option value="IndoHawk Alpha">IndoHawk Alpha (High-Altitude Tactical)</option>
@@ -419,7 +419,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({ currentUser,
                   type="text"
                   value={newStation}
                   onChange={(e) => setNewStation(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#ef7f1a]"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#5a00b8]"
                 />
               </div>
 
@@ -430,7 +430,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({ currentUser,
                 <button
                   type="submit"
                   disabled={addingDrone}
-                  className="px-6 py-2 rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 disabled:opacity-60"
+                  className="px-6 py-2 rounded-xl bg-[#5a00b8] hover:bg-[#4a0099] text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 disabled:opacity-60"
                 >
                   {addingDrone ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   <span>{addingDrone ? 'Registering...' : 'Add to Registry'}</span>

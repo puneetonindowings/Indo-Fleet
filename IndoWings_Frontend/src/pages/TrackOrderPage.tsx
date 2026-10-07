@@ -11,8 +11,8 @@ interface TrackOrderPageProps {
 const STATUS_COLORS: Record<string, string> = {
   delivered: 'bg-green-100 text-green-700 border-green-200',
   'in-flight': 'bg-blue-100 text-blue-700 border-blue-200',
-  'on-hold': 'bg-orange-100 text-orange-700 border-orange-200',
-  assigned: 'bg-orange-100 text-orange-700 border-orange-200',
+  'on-hold': 'bg-purple-100 text-purple-700 border-purple-200',
+  assigned: 'bg-purple-100 text-purple-700 border-purple-200',
   rescheduled: 'bg-yellow-100 text-yellow-700 border-yellow-200',
   pending: 'bg-slate-100 text-slate-600 border-slate-200',
   'taking-off': 'bg-blue-100 text-blue-700 border-blue-200',
@@ -139,7 +139,7 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
                 className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-white/50 text-sm font-medium focus:outline-none focus:border-white/50 focus:bg-white/15"
               />
             </div>
-            <button type="submit" className="px-6 py-4 bg-white text-[#ef7f1a] font-bold rounded-xl hover:bg-white/90 transition-colors whitespace-nowrap cursor-pointer">
+            <button type="submit" className="px-6 py-4 bg-white text-[#5a00b8] font-bold rounded-xl hover:bg-white/90 transition-colors whitespace-nowrap cursor-pointer">
               Track
             </button>
           </form>
@@ -149,7 +149,7 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
       <div className="max-w-4xl mx-auto px-6 py-12">
         {loading && (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 text-[#ef7f1a] animate-spin" />
+            <Loader2 className="w-8 h-8 text-[#5a00b8] animate-spin" />
           </div>
         )}
 
@@ -165,7 +165,7 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
 
         {!order && !loading && !error && (
           <div className="bg-white border border-[#e2e8f0] rounded-3xl p-8 sm:p-12 text-center shadow-xs max-w-2xl mx-auto my-4">
-            <div className="w-16 h-16 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center mx-auto mb-5 text-[#ef7f1a]">
+            <div className="w-16 h-16 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center mx-auto mb-5 text-[#5a00b8]">
               <Search className="w-7 h-7" />
             </div>
             <h3 className="text-xl font-bold text-[#171222] mb-2">Track Any Flight or Consignment</h3>
@@ -189,7 +189,7 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
                   {order.status === 'delivered' && (
                     <button
                       onClick={() => onOpenFeedback?.(order)}
-                      className="px-4 py-2 rounded-full text-xs font-bold bg-[#ef7f1a] hover:bg-[#280058] text-white shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                      className="px-4 py-2 rounded-full text-xs font-bold bg-[#5a00b8] hover:bg-[#280058] text-white shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
                     >
                       <span>{order.order_type === 'drone_purchase' ? 'Rate your purchase' : 'Rate Flight / Feedback'}</span>
                     </button>
@@ -207,10 +207,10 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
                   {(order.timeline || []).map((step: any, i: number) => (
                     <div key={i} className="flex gap-4">
                       <div className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 shrink-0 ${step.done ? 'bg-[#ef7f1a] border-[#ef7f1a]' : 'bg-white border-slate-200'}`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 shrink-0 ${step.done ? 'bg-[#5a00b8] border-[#5a00b8]' : 'bg-white border-slate-200'}`}>
                           {step.done ? <Check className="w-4 h-4 text-white" /> : <div className="w-2 h-2 rounded-full bg-slate-300" />}
                         </div>
-                        {i < order.timeline.length - 1 && <div className={`w-0.5 flex-1 my-1 ${step.done ? 'bg-[#ef7f1a]' : 'bg-slate-100'}`} style={{ minHeight: '28px' }} />}
+                        {i < order.timeline.length - 1 && <div className={`w-0.5 flex-1 my-1 ${step.done ? 'bg-[#5a00b8]' : 'bg-slate-100'}`} style={{ minHeight: '28px' }} />}
                       </div>
                       <div className="pb-6">
                         <p className={`text-sm font-semibold ${step.done ? 'text-[#171222]' : 'text-slate-400'}`}>{step.step}</p>
@@ -228,8 +228,8 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
                   <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 shadow-sm">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">Assigned Drone</h3>
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
-                        <Truck className="w-5 h-5 text-[#ef7f1a]" />
+                      <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+                        <Truck className="w-5 h-5 text-[#5a00b8]" />
                       </div>
                       <div>
                         <p className="font-bold text-[#171222]">{order.drone_id}</p>
@@ -281,7 +281,7 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
                   <div className="space-y-2.5 text-sm">
                     {order.recipient_name ? (
                       <div>
-                        <p className="text-[10px] font-bold text-[#ef7f1a] uppercase tracking-wider">Recipient</p>
+                        <p className="text-[10px] font-bold text-[#5a00b8] uppercase tracking-wider">Recipient</p>
                         <p className="font-semibold text-[#171222]">{order.recipient_name}</p>
                         <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
                           <Phone className="w-3 h-3 text-slate-400" />
@@ -310,10 +310,10 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
                 </div>
 
                 {order.estimated_delivery && (
-                  <div className="bg-orange-50 border border-orange-100 rounded-2xl p-5">
+                  <div className="bg-purple-50 border border-purple-100 rounded-2xl p-5">
                     <div className="flex items-center gap-2 mb-1">
-                      <Clock className="w-4 h-4 text-[#ef7f1a]" />
-                      <p className="text-xs font-bold text-[#ef7f1a] uppercase tracking-wide">Estimated Delivery</p>
+                      <Clock className="w-4 h-4 text-[#5a00b8]" />
+                      <p className="text-xs font-bold text-[#5a00b8] uppercase tracking-wide">Estimated Delivery</p>
                     </div>
                     <p className="text-sm font-bold text-[#171222]">{formatTime(order.estimated_delivery)}</p>
                   </div>

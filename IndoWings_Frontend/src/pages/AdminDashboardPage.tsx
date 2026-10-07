@@ -666,7 +666,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 pt-24 sm:pt-28 pb-16 font-sans">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#ef7f1a] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="fixed bottom-6 right-6 z-50 bg-[#5a00b8] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
           <CheckCircle2 className="w-5 h-5 text-emerald-400" />
           <span className="text-xs font-bold">{toastMessage}</span>
         </div>
@@ -687,8 +687,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               {/* Drawer Header */}
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-9 h-9 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-black shrink-0">
-                    <Shield className="w-4 h-4 text-[#ef7f1a]" />
+                  <div className="w-9 h-9 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black shrink-0">
+                    <Shield className="w-4 h-4 text-[#5a00b8]" />
                   </div>
                   <div className="min-w-0">
                     <h3 className="text-sm font-black text-slate-900 tracking-tight truncate">Super Admin Desk</h3>
@@ -717,11 +717,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                     className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all text-left cursor-pointer group ${
-                      activeTab === id ? 'bg-[#ef7f1a] text-white shadow-md shadow-slate-900/10 font-black' : 'text-slate-600 hover:text-slate-900 hover:bg-orange-50/70'
+                      activeTab === id ? 'bg-[#5a00b8] text-white shadow-md shadow-slate-900/10 font-black' : 'text-slate-600 hover:text-slate-900 hover:bg-purple-50/70'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${activeTab === id ? 'text-white' : 'text-slate-400 group-hover:text-[#ef7f1a]'}`} />
+                      <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${activeTab === id ? 'text-white' : 'text-slate-400 group-hover:text-[#5a00b8]'}`} />
                       <span className="truncate">{label}</span>
                     </div>
                     {badge !== null && (
@@ -739,10 +739,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     setMobileSidebarOpen(false);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="w-full py-2.5 px-3 rounded-xl bg-slate-50 hover:bg-orange-50 border border-slate-200 text-slate-700 text-xs font-bold flex items-center justify-between transition-colors cursor-pointer"
+                  className="w-full py-2.5 px-3 rounded-xl bg-slate-50 hover:bg-purple-50 border border-slate-200 text-slate-700 text-xs font-bold flex items-center justify-between transition-colors cursor-pointer"
                 >
                   <span className="flex items-center gap-2">
-                    <User className="w-3.5 h-3.5 text-orange-700" />
+                    <User className="w-3.5 h-3.5 text-purple-700" />
                     My Profile
                   </span>
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -760,12 +760,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 }}
                 className="flex items-center gap-2.5 min-w-0 text-left"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#ef7f1a] to-orange-600 text-white font-black text-xs flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#5a00b8] to-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0">
                   {currentUser?.name?.[0]?.toUpperCase() || 'P'}
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-slate-900 truncate">{currentUser?.name || 'Puneet Kushwaha'}</p>
-                  <p className="text-[10px] text-orange-700 font-semibold truncate">Super Admin</p>
+                  <p className="text-[10px] text-purple-700 font-semibold truncate">Super Admin</p>
                 </div>
               </button>
 
@@ -787,8 +787,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
             <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-xs space-y-5">
               {/* Sidebar Header */}
               <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-                <div className="w-10 h-10 rounded-2xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-black shadow-xs shrink-0">
-                  <Shield className="w-5 h-5 text-[#ef7f1a]" />
+                <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black shadow-xs shrink-0">
+                  <Shield className="w-5 h-5 text-[#5a00b8]" />
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-sm font-black text-slate-900 tracking-tight truncate">Super Admin Desk</h3>
@@ -806,11 +806,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                       setActiveTab(id as typeof activeTab);
                     }}
                     className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all text-left cursor-pointer group ${
-                      activeTab === id ? 'bg-[#ef7f1a] text-white shadow-md shadow-slate-900/10 font-black' : 'text-slate-600 hover:text-slate-900 hover:bg-orange-50/70'
+                      activeTab === id ? 'bg-[#5a00b8] text-white shadow-md shadow-slate-900/10 font-black' : 'text-slate-600 hover:text-slate-900 hover:bg-purple-50/70'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${activeTab === id ? 'text-white' : 'text-slate-400 group-hover:text-[#ef7f1a]'}`} />
+                      <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${activeTab === id ? 'text-white' : 'text-slate-400 group-hover:text-[#5a00b8]'}`} />
                       <span className="truncate">{label}</span>
                     </div>
                     {badge !== null && (
@@ -826,10 +826,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   onClick={() => {
                     setActiveTab('profile');
                   }}
-                  className="w-full py-2.5 px-3 rounded-xl bg-white hover:bg-orange-50 border border-slate-200 text-slate-700 text-xs font-bold flex items-center justify-between transition-colors cursor-pointer"
+                  className="w-full py-2.5 px-3 rounded-xl bg-white hover:bg-purple-50 border border-slate-200 text-slate-700 text-xs font-bold flex items-center justify-between transition-colors cursor-pointer"
                 >
                   <span className="flex items-center gap-2">
-                    <User className="w-3.5 h-3.5 text-orange-700" />
+                    <User className="w-3.5 h-3.5 text-purple-700" />
                     My Profile
                   </span>
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -845,12 +845,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   title="Open admin profile"
                   className="flex items-center gap-2.5 min-w-0 text-left"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#ef7f1a] to-orange-600 text-white font-black text-xs flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#5a00b8] to-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0">
                     {currentUser?.name?.[0]?.toUpperCase() || 'P'}
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-slate-900 truncate">{currentUser?.name || 'Puneet Kushwaha'}</p>
-                    <p className="text-[10px] text-orange-700 font-semibold truncate">Super Admin</p>
+                    <p className="text-[10px] text-purple-700 font-semibold truncate">Super Admin</p>
                   </div>
                 </button>
 
@@ -867,14 +867,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
             {/* Mobile Drawer Trigger Header Bar */}
             <div className="md:hidden flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-black shrink-0">
-                  <Shield className="w-4 h-4 text-[#ef7f1a]" />
+                <div className="w-9 h-9 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black shrink-0">
+                  <Shield className="w-4 h-4 text-[#5a00b8]" />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-black text-slate-900 truncate">Super Admin</span>
                     <span className="text-slate-300">/</span>
-                    <span className="text-xs font-bold text-[#ef7f1a] truncate">
+                    <span className="text-xs font-bold text-[#5a00b8] truncate">
                       {adminNavItems.find(i => i.id === activeTab)?.label || (activeTab === 'profile' ? 'My Profile' : activeTab)}
                     </span>
                   </div>
@@ -884,7 +884,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
 
               <button
                 onClick={() => setMobileSidebarOpen(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer shrink-0"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#5a00b8] hover:bg-[#4a0099] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer shrink-0"
               >
                 <Menu className="w-4 h-4" />
                 <span>Menu</span>
@@ -911,7 +911,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     </div>
                     <button
                       onClick={() => setShowDispatchModal(true)}
-                      className="px-3.5 py-1.5 rounded-xl bg-[#ef7f1a] hover:bg-[#2e0066] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      className="px-3.5 py-1.5 rounded-xl bg-[#5a00b8] hover:bg-[#2e0066] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Dispatch Drones to Client</span>
@@ -935,7 +935,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         {orders.slice(0, 10).map((o) => (
                           <tr key={o.id} className="hover:bg-slate-50/60 transition-colors">
                             <td className="py-3 px-4">
-                              <span className="font-mono font-bold text-[#ef7f1a]">{o.id}</span>
+                              <span className="font-mono font-bold text-[#5a00b8]">{o.id}</span>
                               {o.challan_number && <p className="text-[10px] text-slate-400 font-mono mt-0.5">{o.challan_number}</p>}
                             </td>
                             <td className="py-3 px-4 font-bold text-slate-800">{o.client_name || o.customer_name || 'Enterprise Client'}</td>
@@ -975,7 +975,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                   onNavigate('track');
                                   window.history.pushState({}, '', `/track?id=${o.id}`);
                                 }}
-                                className="text-[#ef7f1a] hover:underline font-bold text-[11px]"
+                                className="text-[#5a00b8] hover:underline font-bold text-[11px]"
                               >
                                 Track Shipment &rarr;
                               </button>
@@ -1007,7 +1007,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search personnel by name, email, or mobile..."
-                      className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#ef7f1a]"
+                      className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#5a00b8]"
                     />
                   </div>
 
@@ -1026,7 +1026,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         resetProvisioningForm();
                         setActiveTab('provision');
                       }}
-                      className="px-3.5 py-2 rounded-xl bg-[#ef7f1a] hover:bg-[#2e0066] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                      className="px-3.5 py-2 rounded-xl bg-[#5a00b8] hover:bg-[#2e0066] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                     >
                       <UserPlus className="w-3.5 h-3.5" />
                       <span>Add New Member</span>
@@ -1051,7 +1051,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                           <tr key={u.id} onClick={() => setSelectedUser(u)} className="hover:bg-slate-50/60 transition-colors cursor-pointer">
                             <td className="py-3 px-4">
                               <div className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#ef7f1a] font-black flex items-center justify-center shrink-0">{u.name?.[0]?.toUpperCase() || 'U'}</div>
+                                <div className="w-8 h-8 rounded-xl bg-purple-50 text-[#5a00b8] font-black flex items-center justify-center shrink-0">{u.name?.[0]?.toUpperCase() || 'U'}</div>
                                 <div>
                                   <p className="font-bold text-slate-900">{u.name}</p>
                                   <p className="text-[10px] text-slate-400 font-mono">{u.id}</p>
@@ -1062,7 +1062,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                               <span
                                 className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
                                   u.role === 'admin'
-                                    ? 'bg-orange-100 text-[#ef7f1a]'
+                                    ? 'bg-purple-100 text-[#5a00b8]'
                                     : u.role === 'fleet_manager'
                                       ? 'bg-amber-100 text-amber-800'
                                       : u.role === 'dispatcher'
@@ -1092,7 +1092,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                   e.stopPropagation();
                                   setSelectedUser(u);
                                 }}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-[#ef7f1a] hover:bg-orange-50 transition-colors cursor-pointer"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-[#5a00b8] hover:bg-purple-50 transition-colors cursor-pointer"
                                 title="View account details"
                               >
                                 <Eye className="w-4 h-4" />
@@ -1158,7 +1158,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                       <button onClick={resetProvisioningForm} className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer">
                         Add Another Member
                       </button>
-                      <button onClick={() => setActiveTab('personnel')} className="px-5 py-2.5 rounded-xl bg-[#ef7f1a] hover:bg-[#2e0066] text-white font-bold text-xs cursor-pointer shadow-sm">
+                      <button onClick={() => setActiveTab('personnel')} className="px-5 py-2.5 rounded-xl bg-[#5a00b8] hover:bg-[#2e0066] text-white font-bold text-xs cursor-pointer shadow-sm">
                         View Directory
                       </button>
                     </div>
@@ -1168,7 +1168,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     <form onSubmit={handleProvisionUser} className="space-y-5">
                       <div className="space-y-4">
                         <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full bg-orange-100 text-[#ef7f1a] flex items-center justify-center text-xs">1</span>
+                          <span className="w-5 h-5 rounded-full bg-purple-100 text-[#5a00b8] flex items-center justify-center text-xs">1</span>
                           Member Details
                         </h3>
 
@@ -1180,7 +1180,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                             value={provName}
                             onChange={(e) => setProvName(e.target.value)}
                             placeholder="e.g. Puneet Kushwaha"
-                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#ef7f1a]"
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#5a00b8]"
                           />
                         </div>
 
@@ -1193,7 +1193,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                               value={provEmail}
                               onChange={(e) => setProvEmail(e.target.value)}
                               placeholder="e.g. puneet.kushwaha@indowings.com"
-                              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#ef7f1a]"
+                              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#5a00b8]"
                             />
                           </div>
                           <div>
@@ -1207,7 +1207,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                           <select
                             value={provRole}
                             onChange={(e) => setProvRole(e.target.value as any)}
-                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold bg-white focus:outline-none focus:border-[#ef7f1a]"
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold bg-white focus:outline-none focus:border-[#5a00b8]"
                           >
                             <option value="admin">Admin</option>
                             <option value="fleet_manager">Fleet Manager</option>
@@ -1225,7 +1225,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                               value={provTempPass}
                               onChange={(e) => setProvTempPass(e.target.value)}
                               placeholder="Enter initial password (min 6 chars)"
-                              className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono focus:outline-none focus:border-[#ef7f1a] bg-slate-50/50"
+                              className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono focus:outline-none focus:border-[#5a00b8] bg-slate-50/50"
                             />
                             <button
                               type="button"
@@ -1254,7 +1254,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         <button
                           type="submit"
                           disabled={adminOtpLoading || !provName.trim() || !provEmail.trim() || !provTempPass.trim()}
-                          className="px-6 py-3 rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] text-white text-xs font-bold shadow-md shadow-orange-500/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                          className="px-6 py-3 rounded-xl bg-[#5a00b8] hover:bg-[#4a0099] text-white text-xs font-bold shadow-md shadow-orange-500/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
                         >
                           {adminOtpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                           <span>Create Member Account</span>
@@ -1275,9 +1275,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     <div>
                       <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Fleet UAVs</p>
                       <h4 className="text-2xl font-black text-slate-900 mt-1">{drones.length} <span className="text-xs font-semibold text-slate-400">/ 1,000 Cap</span></h4>
-                      <p className="text-[10px] text-orange-700 font-semibold mt-0.5">Central Inventory</p>
+                      <p className="text-[10px] text-purple-700 font-semibold mt-0.5">Central Inventory</p>
                     </div>
-                    <div className="w-11 h-11 rounded-2xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-black">
+                    <div className="w-11 h-11 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black">
                       <Truck className="w-6 h-6" />
                     </div>
                   </div>
@@ -1358,7 +1358,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                           setDroneCurrentPage(1);
                         }}
                         placeholder="Search by Drone ID, Model, Serial, Order ID..."
-                        className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#ef7f1a]"
+                        className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#5a00b8]"
                       />
                     </div>
 
@@ -1410,7 +1410,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         setInventoryOtp('');
                         setAdminOtpError('');
                       }}
-                      className="px-4 py-2 rounded-xl bg-[#ef7f1a] hover:bg-[#2e0066] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap"
+                      className="px-4 py-2 rounded-xl bg-[#5a00b8] hover:bg-[#2e0066] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap"
                     >
                       <Layers className="w-3.5 h-3.5" />
                       <span>Bulk Batch Add (50 to 1000+)</span>
@@ -1454,7 +1454,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                 <p className="font-mono font-bold text-slate-900">{d.id}</p>
                                 <p className="text-[10px] text-slate-400 font-mono">{d.serial_number || d.id}</p>
                               </td>
-                              <td className="py-3 px-4 font-bold text-[#ef7f1a]">{d.model}</td>
+                              <td className="py-3 px-4 font-bold text-[#5a00b8]">{d.model}</td>
                               <td className="py-3 px-4">
                                 <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[11px]">
                                   {d.category || 'General UAV'}
@@ -1510,7 +1510,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                   )}
                                   <button
                                     onClick={() => openEditDroneModal(d)}
-                                    className="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 hover:bg-orange-50 hover:text-[#ef7f1a] hover:border-orange-200 transition-colors cursor-pointer"
+                                    className="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 hover:bg-purple-50 hover:text-[#5a00b8] hover:border-purple-200 transition-colors cursor-pointer"
                                   >
                                     Edit Details
                                   </button>
@@ -1610,7 +1610,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         {orders.map((o) => (
                           <tr key={o.id} className="hover:bg-slate-50/60 transition-colors">
                             <td className="py-3 px-4">
-                              <p className="font-mono font-bold text-[#ef7f1a]">{o.id}</p>
+                              <p className="font-mono font-bold text-[#5a00b8]">{o.id}</p>
                               <p className="text-[10px] text-slate-400 font-mono">{o.challan_number || 'CHL-2026-9021'}</p>
                             </td>
                             <td className="py-3 px-4 font-bold text-slate-900">
@@ -1631,7 +1631,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                   onNavigate('track');
                                   window.history.pushState({}, '', `/track?id=${o.id}`);
                                 }}
-                                className="px-2.5 py-1 rounded-lg text-slate-600 hover:text-[#ef7f1a] hover:bg-orange-50 font-bold text-[11px] cursor-pointer"
+                                className="px-2.5 py-1 rounded-lg text-slate-600 hover:text-[#5a00b8] hover:bg-purple-50 font-bold text-[11px] cursor-pointer"
                               >
                                 Track &rarr;
                               </button>
@@ -1745,7 +1745,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 value={editingDroneModel}
                 onChange={(e) => setEditingDroneModel(e.target.value)}
                 placeholder="e.g. Cyberone Pro"
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:border-[#ef7f1a]"
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:border-[#5a00b8]"
               />
             </label>
 
@@ -1756,7 +1756,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 value={editingDroneSerial}
                 onChange={(e) => setEditingDroneSerial(e.target.value)}
                 placeholder="e.g. INW-UAV-REAL-0921"
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-mono focus:outline-none focus:border-[#ef7f1a]"
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-mono focus:outline-none focus:border-[#5a00b8]"
               />
               <span className="text-[11px] text-slate-400 block mt-0.5">
                 Update to the actual physical hardware serial number once the drone is in hand.
@@ -1769,7 +1769,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 value={editingDroneCategory}
                 onChange={(e) => setEditingDroneCategory(e.target.value)}
                 placeholder="e.g. General UAV, Surveillance, Cargo"
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:border-[#ef7f1a]"
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:border-[#5a00b8]"
               />
             </label>
 
@@ -1779,7 +1779,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   type="checkbox"
                   checked={editingDroneIsVerified}
                   onChange={(e) => setEditingDroneIsVerified(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#ef7f1a] focus:ring-[#ef7f1a] border-slate-300"
+                  className="w-4 h-4 rounded text-[#5a00b8] focus:ring-[#5a00b8] border-slate-300"
                 />
                 <span className="text-xs font-bold text-slate-800">
                   Mark as Verified ID
@@ -1820,7 +1820,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               <button type="button" onClick={() => setEditingDrone(null)} className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold cursor-pointer">
                 Cancel
               </button>
-              <button type="submit" className="rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] px-5 py-2 text-xs font-bold text-white cursor-pointer shadow-md shadow-orange-500/20">
+              <button type="submit" className="rounded-xl bg-[#5a00b8] hover:bg-[#4a0099] px-5 py-2 text-xs font-bold text-white cursor-pointer shadow-md shadow-orange-500/20">
                 Save Changes to DB
               </button>
             </div>
@@ -1850,7 +1850,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   value={newDroneModel}
                   onChange={(e) => setNewDroneModel(e.target.value)}
                   placeholder="e.g. Cyberone Pro"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#ef7f1a]"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#5a00b8]"
                 />
               </div>
 
@@ -1861,7 +1861,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   value={newDroneId}
                   onChange={(e) => setNewDroneId(e.target.value)}
                   placeholder="e.g. INW-UAV-0001"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-mono focus:outline-none focus:border-[#ef7f1a]"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-mono focus:outline-none focus:border-[#5a00b8]"
                 />
               </div>
 
@@ -1874,7 +1874,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   value={newDroneCategory}
                   onChange={(e) => setNewDroneCategory(e.target.value)}
                   placeholder="e.g. General UAV / Surveillance / Heavy Cargo"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#ef7f1a]"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#5a00b8]"
                 />
               </div>
 
@@ -1897,7 +1897,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     type="checkbox"
                     checked={newDroneIsVerified}
                     onChange={(e) => setNewDroneIsVerified(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#ef7f1a] focus:ring-[#ef7f1a] border-slate-300"
+                    className="w-4 h-4 rounded text-[#5a00b8] focus:ring-[#5a00b8] border-slate-300"
                   />
                   <span className="text-xs font-bold text-slate-800">
                     Mark as Verified ID
@@ -1939,7 +1939,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] text-white text-xs font-bold cursor-pointer shadow-md shadow-orange-500/20"
+                  className="px-5 py-2 rounded-xl bg-[#5a00b8] hover:bg-[#4a0099] text-white text-xs font-bold cursor-pointer shadow-md shadow-orange-500/20"
                 >
                   Add Drone to Fleet
                 </button>
@@ -1973,7 +1973,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                       type="button"
                       onClick={() => setBulkCount(qty)}
                       className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                        bulkCount === qty ? 'bg-[#ef7f1a] text-white border-[#ef7f1a] shadow-sm' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                        bulkCount === qty ? 'bg-[#5a00b8] text-white border-[#5a00b8] shadow-sm' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                       }`}
                     >
                       +{qty}
@@ -1988,7 +1988,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     max={5000}
                     value={bulkCount}
                     onChange={(e) => setBulkCount(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-900 focus:outline-none focus:border-[#ef7f1a]"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-900 focus:outline-none focus:border-[#5a00b8]"
                   />
                 </div>
               </div>
@@ -2032,19 +2032,19 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </p>
               </div>
 
-              <div className="p-3.5 bg-orange-50/70 rounded-2xl border border-orange-100 space-y-2">
+              <div className="p-3.5 bg-purple-50/70 rounded-2xl border border-purple-100 space-y-2">
                 <label className="flex items-center gap-2.5 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={bulkIsVerified}
                     onChange={(e) => setBulkIsVerified(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#ef7f1a] focus:ring-[#ef7f1a] border-slate-300"
+                    className="w-4 h-4 rounded text-[#5a00b8] focus:ring-[#5a00b8] border-slate-300"
                   />
                   <span className="text-xs font-bold text-slate-950">
                     Mark entire batch as Verified IDs
                   </span>
                 </label>
-                <p className="text-[11px] text-orange-700 pl-6">
+                <p className="text-[11px] text-purple-700 pl-6">
                   Recommended: Leave unchecked for initial placeholder batches. Drones will be marked as "Unverified ID", allowing you to edit and verify each unit individually as physical deliveries arrive.
                 </p>
               </div>
@@ -2058,7 +2058,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 <button
                   type="submit"
                   disabled={bulkSubmitting || Boolean(bulkImportError)}
-                  className="px-5 py-2 rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] text-white text-xs font-bold cursor-pointer flex items-center gap-1.5 shadow-md shadow-orange-500/20"
+                  className="px-5 py-2 rounded-xl bg-[#5a00b8] hover:bg-[#4a0099] text-white text-xs font-bold cursor-pointer flex items-center gap-1.5 shadow-md shadow-orange-500/20"
                 >
                   {bulkSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   <span>Add Batch of {bulkCount} Drones to DB</span>
@@ -2164,7 +2164,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 <button type="button" onClick={() => setShowDispatchModal(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold">
                   Cancel
                 </button>
-                <button type="submit" className="px-5 py-2 rounded-xl bg-[#ef7f1a] hover:bg-[#280058] text-white text-xs font-bold cursor-pointer">
+                <button type="submit" className="px-5 py-2 rounded-xl bg-[#5a00b8] hover:bg-[#280058] text-white text-xs font-bold cursor-pointer">
                   Confirm &amp; Dispatch Drones
                 </button>
               </div>
@@ -2337,7 +2337,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                               key={dId}
                               className={`px-2.5 py-1 rounded-lg font-mono text-xs font-bold border ${
                                 dId === drone.id
-                                  ? 'bg-[#ef7f1a] text-white border-[#ef7f1a] shadow-xs ring-2 ring-orange-400/30'
+                                  ? 'bg-[#5a00b8] text-white border-[#5a00b8] shadow-xs ring-2 ring-orange-400/30'
                                   : 'bg-white text-slate-700 border-purple-200 hover:bg-purple-50 cursor-pointer'
                               }`}
                               onClick={() => {
