@@ -5,6 +5,10 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { MapPinOff } from 'lucide-react';
 import { MapDelivery, statusColor, statusLabel } from './analytics';
 
+if (typeof (maplibregl as any).setWorkerUrl === 'function') {
+  (maplibregl as any).setWorkerUrl('/maplibre-gl-worker.mjs');
+}
+
 const MAPTILER_KEY = (import.meta as any).env?.VITE_MAPTILER_KEY as string | undefined;
 
 interface Props {
