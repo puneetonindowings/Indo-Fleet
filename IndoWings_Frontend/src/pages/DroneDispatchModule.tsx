@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Activity, CalendarDays, Check, CheckCircle2, Clock3, Loader2, Mail, Package,
-  Phone, RefreshCw, Search, ShieldCheck, Truck, UserRound, X
+  Phone, RefreshCw, Search, ShieldCheck, Truck, UserRound, X, Menu
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 import { DeliveryUser } from '../types';
@@ -73,6 +73,7 @@ const dateValue = (value?: string) => value ? new Date(value).toLocaleString() :
 
 export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({ currentUser, embedded = false, onNavigate, onLogout }) => {
   const [data, setData] = useState(EMPTY_DASHBOARD);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -230,26 +231,150 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({ currentUser
 
   return (
     <div className={embedded ? 'space-y-7' : 'min-h-screen bg-[#f7f4fb] pt-28 sm:pt-36 pb-16'}>
-      <div className={embedded ? '' : 'max-w-[1600px] mx-auto px-4 sm:px-6 flex flex-col md:flex-row gap-6 items-start'}>
-        {!embedded && <aside className="w-full md:w-60 lg:w-64 shrink-0 md:sticky md:top-24 md:self-start md:max-h-[calc(100vh-6.5rem)] md:overflow-hidden">
-          <div className="rounded-3xl bg-white border border-slate-200 shadow-sm p-4 space-y-4">
-            <div className="flex items-center gap-3 px-2 pb-4 border-b border-slate-100">
-              <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-800 flex items-center justify-center"><Truck className="w-5 h-5" /></div>
-              <div><p className="text-sm font-black text-slate-900">Dispatch Desk</p><p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">IndoWings Operations</p></div>
+      {/* ── MOBILE SLIDE-OVER DRAWER ── */}
+      {!embedded && mobileSidebarOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+          <div className="relative w-[85vw] max-w-[320px] bg-white h-full shadow-2xl flex flex-col justify-between p-5 z-10 animate-in slide-in-from-left duration-200 overflow-y-auto">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-800 flex items-center justify-center">
+                    <Truck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-slate-900">Dispatch Desk</p>
+                    <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">IndoWings Operations</p>
+                  </div>
+                </div>
+                <button onClick={() => setMobileSidebarOpen(false)} className="p-1 text-slate-400 hover:text-slate-700">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <nav aria-label="Dispatcher mobile navigation" className="space-y-1.5">
+                <button
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="w-full flex items-center gap-3 rounded-xl px-3.5 py-3 text-left text-xs font-black text-white bg-[#ef7f1a]"
+                >
+                  <Activity className="w-4 h-4" /> Drone Dispatch
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileSidebarOpen(false);
+                    onNavigate?.('profile');
+                    window.history.pushState({}, '', '/profile');
+                  }}
+                  className="w-full flex items-center gap-3 rounded-xl px-3.5 py-3 text-left text-xs font-bold text-slate-600 hover:bg-orange-50 hover:text-orange-800"
+                >
+                  <UserRound className="w-4 h-4" /> My Profile
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileSidebarOpen(false);
+                    onNavigate?.('home');
+                    window.history.pushState({}, '', '/');
+                  }}
+                  className="w-full flex items-center gap-3 rounded-xl px-3.5 py-3 text-left text-xs font-bold text-slate-600 hover:bg-orange-50 hover:text-orange-800"
+                >
+                  <Package className="w-4 h-4" /> Public Home
+                </button>
+              </nav>
             </div>
-            <nav aria-label="Dispatcher navigation" className="space-y-1.5">
-              <button className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-xs font-black text-white bg-[#ef7f1a]"><Activity className="w-4 h-4" /> Drone Dispatch</button>
-              <button onClick={() => { onNavigate?.('profile'); window.history.pushState({}, '', '/profile'); }} className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-xs font-bold text-slate-600 hover:bg-orange-50 hover:text-orange-800"><UserRound className="w-4 h-4" /> My Profile</button>
-              <button onClick={() => { onNavigate?.('home'); window.history.pushState({}, '', '/'); }} className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-xs font-bold text-slate-600 hover:bg-orange-50 hover:text-orange-800"><Package className="w-4 h-4" /> Public Home</button>
-            </nav>
-            <div className="border-t border-slate-100 pt-4 flex items-center gap-3 px-2">
-              <div className="w-9 h-9 rounded-full bg-orange-100 text-orange-800 flex items-center justify-center text-xs font-black">{currentUser.name?.[0]?.toUpperCase() || 'D'}</div>
-              <div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-slate-800">{currentUser.name}</p><p className="text-[10px] text-orange-700 font-semibold">Dispatcher</p></div>
-              <button onClick={onLogout} title="Sign out" className="text-xs font-bold text-slate-500 hover:text-rose-600">Sign out</button>
+
+            <div className="border-t border-slate-100 pt-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-orange-100 text-orange-800 flex items-center justify-center text-xs font-black">
+                {currentUser.name?.[0]?.toUpperCase() || 'D'}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-bold text-slate-800">{currentUser.name}</p>
+                <p className="text-[10px] text-orange-700 font-semibold">Dispatcher</p>
+              </div>
+              <button onClick={onLogout} title="Sign out" className="text-xs font-bold text-slate-500 hover:text-rose-600">
+                Sign out
+              </button>
             </div>
           </div>
-        </aside>}
-      <main className={embedded ? 'space-y-7' : 'flex-1 min-w-0 space-y-7'}>
+        </div>
+      )}
+
+      <div className={embedded ? '' : 'max-w-[1600px] mx-auto px-4 sm:px-6 flex flex-col md:flex-row gap-6 items-start'}>
+        {!embedded && (
+          <aside className="hidden md:block w-60 lg:w-64 shrink-0 md:sticky md:top-24 md:self-start md:max-h-[calc(100vh-6.5rem)] md:overflow-hidden">
+            <div className="rounded-3xl bg-white border border-slate-200 shadow-sm p-4 space-y-4">
+              <div className="flex items-center gap-3 px-2 pb-4 border-b border-slate-100">
+                <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-800 flex items-center justify-center">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-slate-900">Dispatch Desk</p>
+                  <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">IndoWings Operations</p>
+                </div>
+              </div>
+              <nav aria-label="Dispatcher navigation" className="space-y-1.5">
+                <button className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-xs font-black text-white bg-[#ef7f1a]">
+                  <Activity className="w-4 h-4" /> Drone Dispatch
+                </button>
+                <button
+                  onClick={() => {
+                    onNavigate?.('profile');
+                    window.history.pushState({}, '', '/profile');
+                  }}
+                  className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-xs font-bold text-slate-600 hover:bg-orange-50 hover:text-orange-800"
+                >
+                  <UserRound className="w-4 h-4" /> My Profile
+                </button>
+                <button
+                  onClick={() => {
+                    onNavigate?.('home');
+                    window.history.pushState({}, '', '/');
+                  }}
+                  className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-xs font-bold text-slate-600 hover:bg-orange-50 hover:text-orange-800"
+                >
+                  <Package className="w-4 h-4" /> Public Home
+                </button>
+              </nav>
+              <div className="border-t border-slate-100 pt-4 flex items-center gap-3 px-2">
+                <div className="w-9 h-9 rounded-full bg-orange-100 text-orange-800 flex items-center justify-center text-xs font-black">
+                  {currentUser.name?.[0]?.toUpperCase() || 'D'}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-bold text-slate-800">{currentUser.name}</p>
+                  <p className="text-[10px] text-orange-700 font-semibold">Dispatcher</p>
+                </div>
+                <button onClick={onLogout} title="Sign out" className="text-xs font-bold text-slate-500 hover:text-rose-600">
+                  Sign out
+                </button>
+              </div>
+            </div>
+          </aside>
+        )}
+        <main className={embedded ? 'space-y-7' : 'flex-1 min-w-0 space-y-7 w-full'}>
+          {/* Mobile Drawer Trigger Header Bar */}
+          {!embedded && (
+            <div className="md:hidden flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs mb-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-black shrink-0">
+                  <Truck className="w-4 h-4 text-[#ef7f1a]" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-xs font-black text-slate-900 truncate">Dispatch Desk</h3>
+                  <p className="text-[10px] text-slate-400 font-medium">Tap menu to open drawer</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setMobileSidebarOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer shrink-0"
+              >
+                <Menu className="w-4 h-4" />
+                <span>Menu</span>
+              </button>
+            </div>
+          )}
         <section className="rounded-[2rem] bg-gradient-to-br from-[#1e0940] via-[#351064] to-[#54229a] text-white p-7 sm:p-10 relative overflow-hidden">
           <div className="absolute -right-16 -top-24 w-80 h-80 rounded-full border-[42px] border-white/5" />
           <div className="relative flex flex-col md:flex-row md:items-end justify-between gap-5">

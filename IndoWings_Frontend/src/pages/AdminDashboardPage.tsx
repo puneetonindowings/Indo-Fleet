@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Headphones,
   X,
+  Menu,
   User,
   UserPlus,
   Loader2,
@@ -58,6 +59,7 @@ interface AdminDashboardProps {
 
 export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser, onUpdateUser, onNavigate, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'personnel' | 'provision' | 'fleet' | 'dispatch' | 'secure-dispatch' | 'delivery' | 'support' | 'profile'>('overview');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Data States
   const [users, setUsers] = useState<any[]>([]);
@@ -649,6 +651,17 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const idleDronesCount = drones.filter((d) => (d.status === 'idle' || !d.status) && !d.assigned_order && !d.delivery_data?.assigned_order).length;
   const activeAccountsCount = users.filter((user) => user.status === 'active').length;
 
+  const adminNavItems = [
+    { id: 'overview', label: 'Dashboard', icon: Layers, badge: null },
+    { id: 'personnel', label: 'Users', icon: Users, badge: users.length },
+    { id: 'provision', label: 'Add User', icon: UserPlus, badge: null },
+    { id: 'fleet', label: 'Inventory', icon: Truck, badge: drones.length },
+    { id: 'secure-dispatch', label: 'Secure Dispatch', icon: Truck, badge: orders.length },
+    { id: 'delivery', label: 'Delivery Tracking', icon: Package, badge: orders.filter(order => !['delivered', 'cancelled'].includes(order.status)).length },
+    { id: 'dispatch', label: 'Dispatch History', icon: Package, badge: orders.length },
+    { id: 'support', label: 'Support', icon: Headphones, badge: expertRequests.length }
+  ];
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 pt-24 sm:pt-28 pb-16 font-sans">
       {/* Toast Notification */}
@@ -659,13 +672,118 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         </div>
       )}
 
+      {/* ── MOBILE SLIDE-OVER DRAWER (OFF-CANVAS) ─────────────────────────── */}
+      {mobileSidebarOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop Blur Overlay */}
+          <div
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+
+          {/* Drawer Content */}
+          <div className="relative w-[85vw] max-w-[320px] bg-white h-full shadow-2xl flex flex-col justify-between p-5 z-10 animate-in slide-in-from-left duration-200 overflow-y-auto">
+            <div className="space-y-5">
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-black shrink-0">
+                    <Shield className="w-4 h-4 text-[#ef7f1a]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-black text-slate-900 tracking-tight truncate">Super Admin Desk</h3>
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider truncate">IndoWings Operations</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Close Menu"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Navigation Links */}
+              <nav className="space-y-1.5 text-xs font-bold">
+                {adminNavItems.map(({ id, label, icon: Icon, badge }) => (
+                  <button
+                    key={id}
+                    onClick={() => {
+                      if (id === 'provision') resetProvisioningForm();
+                      setActiveTab(id as typeof activeTab);
+                      setMobileSidebarOpen(false);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all text-left cursor-pointer group ${
+                      activeTab === id ? 'bg-[#ef7f1a] text-white shadow-md shadow-slate-900/10 font-black' : 'text-slate-600 hover:text-slate-900 hover:bg-orange-50/70'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${activeTab === id ? 'text-white' : 'text-slate-400 group-hover:text-[#ef7f1a]'}`} />
+                      <span className="truncate">{label}</span>
+                    </div>
+                    {badge !== null && (
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-black shrink-0 ${activeTab === id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>{badge}</span>
+                    )}
+                  </button>
+                ))}
+              </nav>
+
+              {/* Profile Shortcut */}
+              <div className="pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => {
+                    setActiveTab('profile');
+                    setMobileSidebarOpen(false);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl bg-slate-50 hover:bg-orange-50 border border-slate-200 text-slate-700 text-xs font-bold flex items-center justify-between transition-colors cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <User className="w-3.5 h-3.5 text-orange-700" />
+                    My Profile
+                  </span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Current User Card at bottom */}
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-between mt-6">
+              <button
+                onClick={() => {
+                  setActiveTab('profile');
+                  setMobileSidebarOpen(false);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="flex items-center gap-2.5 min-w-0 text-left"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#ef7f1a] to-orange-600 text-white font-black text-xs flex items-center justify-center shrink-0">
+                  {currentUser?.name?.[0]?.toUpperCase() || 'P'}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-slate-900 truncate">{currentUser?.name || 'Puneet Kushwaha'}</p>
+                  <p className="text-[10px] text-orange-700 font-semibold truncate">Super Admin</p>
+                </div>
+              </button>
+
+              <button onClick={onLogout} title="Logout" className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer">
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── MAIN WORKSPACE CONTAINER WITH STICKY SIDEBAR ────────────────── */}
       <div className="max-w-[1560px] mx-auto px-4 sm:px-6">
         <div className="flex flex-col md:flex-row gap-6 items-start">
           {/* ═════════════════════════════════════════════════════════════════
- LEFT SIDEBAR: STUCK (STICKY), MAIN CONTENT SCROLLS BESIDE IT
- ═════════════════════════════════════════════════════════════════ */}
-          <aside className="w-full md:w-60 lg:w-64 xl:w-72 shrink-0 md:sticky md:top-24 md:self-start md:max-h-[calc(100vh-6.5rem)] md:overflow-y-auto space-y-4">
+             LEFT SIDEBAR: STUCK (STICKY) ON DESKTOP (HIDDEN ON MOBILE)
+             ═════════════════════════════════════════════════════════════════ */}
+          <aside className="hidden md:block w-60 lg:w-64 xl:w-72 shrink-0 md:sticky md:top-24 md:self-start md:max-h-[calc(100vh-6.5rem)] md:overflow-y-auto space-y-4">
             <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-xs space-y-5">
               {/* Sidebar Header */}
               <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
@@ -680,16 +798,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
 
               {/* Navigation Menu Links */}
               <nav className="space-y-1.5 text-xs font-bold">
-                {[
-                  { id: 'overview', label: 'Dashboard', icon: Layers, badge: null },
-                  { id: 'personnel', label: 'Users', icon: Users, badge: users.length },
-                  { id: 'provision', label: 'Add User', icon: UserPlus, badge: null },
-                  { id: 'fleet', label: 'Inventory', icon: Truck, badge: drones.length },
-                  { id: 'secure-dispatch', label: 'Secure Dispatch', icon: Truck, badge: orders.length },
-                  { id: 'delivery', label: 'Delivery Tracking', icon: Package, badge: orders.filter(order => !['delivered', 'cancelled'].includes(order.status)).length },
-                  { id: 'dispatch', label: 'Dispatch History', icon: Package, badge: orders.length },
-                  { id: 'support', label: 'Support', icon: Headphones, badge: expertRequests.length }
-                ].map(({ id, label, icon: Icon, badge }) => (
+                {adminNavItems.map(({ id, label, icon: Icon, badge }) => (
                   <button
                     key={id}
                     onClick={() => {
@@ -752,9 +861,36 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
             </div>
           </aside>
           {/* ═════════════════════════════════════════════════════════════════
- RIGHT CONTENT WORKSPACE
- ═════════════════════════════════════════════════════════════════ */}
+             RIGHT CONTENT WORKSPACE
+             ═════════════════════════════════════════════════════════════════ */}
           <main className="flex-1 min-w-0 w-full space-y-6">
+            {/* Mobile Drawer Trigger Header Bar */}
+            <div className="md:hidden flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-black shrink-0">
+                  <Shield className="w-4 h-4 text-[#ef7f1a]" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black text-slate-900 truncate">Super Admin</span>
+                    <span className="text-slate-300">/</span>
+                    <span className="text-xs font-bold text-[#ef7f1a] truncate">
+                      {adminNavItems.find(i => i.id === activeTab)?.label || (activeTab === 'profile' ? 'My Profile' : activeTab)}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-medium">Tap menu to switch tabs</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setMobileSidebarOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer shrink-0"
+              >
+                <Menu className="w-4 h-4" />
+                <span>Menu</span>
+              </button>
+            </div>
+
             {/* ANALYTICS DASHBOARD — data-driven business overview */}
             {activeTab === 'overview' && (
               <AnalyticsDashboard currentUser={currentUser} onQuickAction={(tab) => setActiveTab(tab as typeof activeTab)} />
