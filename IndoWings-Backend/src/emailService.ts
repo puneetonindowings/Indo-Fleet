@@ -35,9 +35,30 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
     });
 
     if (data && !error) {
-      console.log(`[mail] Resend accepted message (ID: ${data.id})`);
+      console.log(`[mail] Resend accepted message for ${to} (ID: ${data.id})`);
       return true;
     }
+
+    // If Resend rejected because domain is not verified, fallback to testing email address
+    if (error?.message && error.message.includes('only send testing emails to your own email address')) {
+      const match = error.message.match(/\(([^)]+@[\w.-]+)\)/);
+      const ownerEmail = match ? match[1] : 'puneetkushwaha9452@gmail.com';
+      console.warn(`[mail] Destination ${to} requires verified domain on Resend. Forwarding testing email to account owner: ${ownerEmail}`);
+      
+      const fallbackRes = await resend.emails.send({
+        from: `${MAIL_FROM_NAME} <${MAIL_FROM_EMAIL}>`,
+        to: [ownerEmail],
+        subject: `[For: ${to}] ${subject}`,
+        text: `NOTE: Resend is in testing mode (domain unverified). Original intended recipient: ${to}\n\n${text}`,
+        html: html ? `<p style="padding: 8px; background: #fff3cd; color: #856404; border-radius: 6px; font-size: 12px; margin-bottom: 12px;"><strong>Testing Mode Notice:</strong> Domain not yet verified in Resend. Originally intended for: <strong>${to}</strong></p>${html}` : undefined
+      });
+
+      if (fallbackRes.data && !fallbackRes.error) {
+        console.log(`[mail] Fallback OTP successfully delivered to owner mailbox ${ownerEmail} (ID: ${fallbackRes.data.id})`);
+        return true;
+      }
+    }
+
     console.error(`[mail] Resend rejected message: ${error?.message || 'No message ID returned.'}`);
     return false;
   } catch (err) {
@@ -54,6 +75,7 @@ export async function getReceivedSupportAttachment(emailId: string, attachmentId
 
 // ── 0. OTP Dispatch (Email & SMS Gateway) ───────────────────────────────────
 export async function sendOtpNotification({ email, phone, otp }: { email?: string; phone?: string; otp: string }) {
+  console.log(`\n========================================\n[SECURITY OTP GENERATED]\nTarget: ${email || phone}\nCode: ${otp}\n========================================\n`);
   let delivered = false;
   // 1. Send direct plain-text Email OTP
   if (email && email.includes('@')) {
