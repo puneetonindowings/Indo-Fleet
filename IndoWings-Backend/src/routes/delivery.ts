@@ -3168,4 +3168,106 @@ router.post('/chatbot/verify-id-otp', async (req, res) => {
   }
 });
 
+// Chatbot: Direct Order ID Lookup by Name + Phone/Email + Booking Date
+router.post('/chatbot/lookup-order', async (req, res) => {
+  try {
+    const { name, phone, email, date } = req.body;
+    const cleanName = (name || '').trim().toLowerCase();
+    const cleanPhone = (phone || '').replace(/[^0-9]/g, '').slice(-10);
+    const cleanEmail = (email || '').toLowerCase().trim();
+
+    if (!cleanName && !cleanPhone && !cleanEmail) {
+      res.status(400).json({
+        success: false,
+        message: 'Please provide your registered Name and Phone number or Email.'
+      });
+      return;
+    }
+
+    const allOrders = await fileDB.getOrders();
+    const matches = allOrders.filter((o: any) => {
+      const oCust = (o.customer_name || '').toLowerCase();
+      const oRecip = (o.recipient_name || '').toLowerCase();
+      const oPhone = (o.customer_phone || '').replace(/[^0-9]/g, '').slice(-10);
+      const oEmail = (o.customer_email || '').toLowerCase().trim();
+
+      // Name match
+      let nameMatched = false;
+      if (cleanName) {
+        nameMatched =
+          oCust.includes(cleanName) ||
+          cleanName.includes(oCust) ||
+          oRecip.includes(cleanName) ||
+          cleanName.includes(oRecip) ||
+          oCust.split(' ').some((p: string) => p.length >= 3 && cleanName.includes(p));
+      }
+
+      // Phone / Email match
+      let contactMatched = false;
+      if (cleanPhone && oPhone.endsWith(cleanPhone)) contactMatched = true;
+      if (cleanEmail && oEmail === cleanEmail) contactMatched = true;
+
+      // If both name and phone/email are provided, both must match
+      if (cleanName && (cleanPhone || cleanEmail)) {
+        if (!nameMatched || !contactMatched) return false;
+      } else if (cleanName) {
+        if (!nameMatched) return false;
+      } else if (cleanPhone || cleanEmail) {
+        if (!contactMatched) return false;
+      }
+
+      // Optional date filter if provided
+      if (date && String(date).trim() && o.created_at) {
+        const dStr = String(date).trim().toLowerCase();
+        const oDate = new Date(o.created_at).toISOString().slice(0, 10);
+        if (dStr === 'today') {
+          const today = new Date().toISOString().slice(0, 10);
+          if (oDate !== today) return false;
+        } else if (dStr === 'yesterday') {
+          const yest = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+          if (oDate !== yest) return false;
+        } else if (dStr.length >= 4) {
+          // Check if date substring matches
+          if (!o.created_at.toLowerCase().includes(dStr) && !oDate.includes(dStr)) {
+            // Also check formatted date e.g. "07 Oct"
+            const formatted = new Date(o.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }).toLowerCase();
+            if (!formatted.includes(dStr)) {
+              // lenient date match
+            }
+          }
+        }
+      }
+
+      return true;
+    });
+
+    if (matches.length === 0) {
+      res.json({
+        success: false,
+        message: 'No orders found matching the provided Name, Phone, or Date. Please check your details or contact support.'
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      found: true,
+      count: matches.length,
+      orders: matches.map((o: any) => ({
+        id: o.id,
+        created_at: o.created_at,
+        customer_name: o.customer_name || o.client_name,
+        recipient_name: o.recipient_name,
+        drone_model: o.drone_model || o.package_type || 'UAV Hardware Consignment',
+        status: o.status,
+        pickup_address: o.pickup_address,
+        drop_address: o.drop_address || o.destination_address,
+        units_count: o.units_count || (o.reserved_inventory_ids || []).length || 1
+      }))
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Order lookup failed: ' + err.message });
+  }
+});
+
 export default router;
