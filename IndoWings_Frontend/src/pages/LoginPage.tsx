@@ -68,6 +68,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     email: string;
     station?: string;
   } | null>(null);
+  const [emailAuthMode, setEmailAuthMode] = useState<'otp' | 'password'>('otp');
 
   // Phone verification state
   const [phone, setPhone] = useState('');
@@ -77,7 +78,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     phone: string;
     station?: string;
   } | null>(null);
-  const [phoneAuthMode, setPhoneAuthMode] = useState<'password' | 'otp'>('password');
+  const [phoneAuthMode, setPhoneAuthMode] = useState<'otp' | 'password'>('otp');
 
   // Phone + OTP state
   const [otpStep, setOtpStep] = useState(false);
@@ -391,7 +392,44 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     }
   };
 
-  // 5. PHONE SMS OTP REQUEST
+  // 5. EMAIL OTP REQUEST
+  const handleSendEmailOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      setError('Please enter your registered corporate email.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Access Denied: Email not registered. Please contact Administrator.');
+        return;
+      }
+
+      setOtpDestination(data.destination || cleanEmail);
+      setOtpStep(true);
+      setResendTimer(60);
+      setCanResend(false);
+      setOtpDigits(['', '', '', '', '', '']);
+      setTimeout(() => otpInputsRef.current[0]?.focus(), 150);
+    } catch {
+      setError('Cannot connect to authentication server. Please verify backend service.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 6. PHONE SMS OTP REQUEST
   const handleSendPhoneOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
@@ -429,8 +467,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     }
   };
 
-  // 6. PHONE SMS OTP VERIFICATION
-  const handleVerifyPhoneOtp = async (e?: React.FormEvent) => {
+  // 7. UNIVERSAL OTP VERIFICATION (EMAIL OR PHONE)
+  const handleVerifyOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const fullOtp = otpDigits.join('');
     if (fullOtp.length !== 6) {
@@ -441,13 +479,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     setLoading(true);
     setError('');
 
+    const cleanEmail = email.trim().toLowerCase();
     const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
+    const isEmail = authMethod === 'email';
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/delivery/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify(isEmail ? {
+          email: cleanEmail,
+          otp: fullOtp,
+        } : {
           phone: cleanPhone,
           otp: fullOtp,
         }),
@@ -465,7 +508,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
         setPendingUser(user);
         setPendingToken(token);
         setShowFirstTimeModal(true);
-        setFtChannel('phone');
+        setFtChannel(isEmail ? 'email' : 'phone');
         return;
       }
 
@@ -698,7 +741,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     type="button"
                     onClick={handleSendFirstTimeOtp}
                     disabled={ftLoading}
-                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#191b30] hover:bg-[#252945] transition-all shadow-md shadow-slate-900/10 flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {ftLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
                     <span>{ftLoading ? 'Sending OTP...' : 'Send Security OTP'}</span>
@@ -716,7 +759,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                       value={ftOtp}
                       onChange={(e) => setFtOtp(e.target.value.replace(/[^0-9]/g, ''))}
                       placeholder="Enter 6-digit OTP"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-center tracking-widest font-mono text-lg font-bold text-slate-900 focus:outline-none focus:border-[#191b30] focus:ring-4 focus:ring-slate-100"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-center tracking-widest font-mono text-lg font-bold text-slate-900 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50"
                       required
                     />
                   </div>
@@ -730,7 +773,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                       value={ftNewPass}
                       onChange={(e) => setFtNewPass(e.target.value)}
                       placeholder="At least 6 characters"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#191b30] focus:ring-4 focus:ring-slate-100"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50"
                       required
                     />
                   </div>
@@ -744,7 +787,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                       value={ftConfirmPass}
                       onChange={(e) => setFtConfirmPass(e.target.value)}
                       placeholder="Re-enter password"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#191b30] focus:ring-4 focus:ring-slate-100"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50"
                       required
                     />
                   </div>
@@ -862,7 +905,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                         }}
                         required
                         placeholder="name@indowings.com"
-                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#191b30] focus:ring-4 focus:ring-slate-100 transition-all font-medium"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50 transition-all font-medium"
                       />
                     </div>
                     <p className="text-[11px] text-slate-400 mt-1.5">
@@ -879,19 +922,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   <button
                     type="submit"
                     disabled={loading || !email.trim()}
-                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#191b30] hover:bg-[#252945] transition-all shadow-md shadow-slate-900/10 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
+                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
                   >
                     {loading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <ArrowRight className="w-4 h-4" />
                     )}
-                    <span>{loading ? 'Verifying Account...' : 'Continue to Password'}</span>
+                    <span>{loading ? 'Verifying Account...' : 'Continue to Sign In'}</span>
                   </button>
                 </form>
-              ) : (
-                // Step 2: Account Verified -> Enter Password
-                <form onSubmit={handleEmailPasswordLogin} className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-200">
+              ) : !otpStep ? (
+                // Step 2: Account Verified -> Email OTP or Password Choice
+                <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-200">
                   {/* Verified Personnel Card */}
                   <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200 flex items-center justify-between">
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -911,6 +954,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                       type="button"
                       onClick={() => {
                         setVerifiedEmailUser(null);
+                        setOtpStep(false);
                         setPassword('');
                         setError('');
                       }}
@@ -920,53 +964,189 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     </button>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                      Account Password
-                    </label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={password}
-                        onChange={(e) => {
-                          setPassword(e.target.value);
-                          setError('');
-                        }}
-                        autoFocus
-                        required
-                        placeholder="Enter your account password"
-                        className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#191b30] focus:ring-4 focus:ring-slate-100 transition-all font-medium"
-                      />
+                  {emailAuthMode === 'otp' ? (
+                    <div className="space-y-4">
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600">
+                        Click below to receive an official 6-digit security code sent directly to your corporate inbox <span className="font-bold text-slate-900">{verifiedEmailUser.email}</span>.
+                      </div>
+
+                      {error && (
+                        <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600 font-medium leading-relaxed">
+                          {error}
+                        </div>
+                      )}
+
                       <button
                         type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                        onClick={() => handleSendEmailOtp()}
+                        disabled={loading}
+                        className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99]"
                       >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {loading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Mail className="w-4 h-4" />
+                        )}
+                        <span>Send 6-Digit Email OTP</span>
                       </button>
-                    </div>
-                  </div>
 
-                  {error && (
-                    <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600 font-medium leading-relaxed">
-                      {error}
+                      <div className="text-center pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEmailAuthMode('password');
+                            setError('');
+                          }}
+                          className="text-xs font-bold text-slate-700 hover:text-[#ef7f1a] hover:underline"
+                        >
+                          Or sign in with Password instead &rarr;
+                        </button>
+                      </div>
                     </div>
+                  ) : (
+                    <form onSubmit={handleEmailPasswordLogin} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                          Account Password
+                        </label>
+                        <div className="relative">
+                          <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            value={password}
+                            onChange={(e) => {
+                              setPassword(e.target.value);
+                              setError('');
+                            }}
+                            autoFocus
+                            required
+                            placeholder="Enter your account password"
+                            className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50 transition-all font-medium"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {error && (
+                        <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600 font-medium leading-relaxed">
+                          {error}
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={loading || !password.trim()}
+                        className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
+                      >
+                        {loading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <ArrowRight className="w-4 h-4" />
+                        )}
+                        <span>{loading ? 'Authenticating...' : 'Sign In with Password'}</span>
+                      </button>
+
+                      <div className="text-center pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEmailAuthMode('otp');
+                            setError('');
+                            handleSendEmailOtp();
+                          }}
+                          className="text-xs font-bold text-[#ef7f1a] hover:underline"
+                        >
+                          &larr; Or sign in with Email OTP instead
+                        </button>
+                      </div>
+                    </form>
                   )}
-
+                </div>
+              ) : (
+                // Step 3 (Email OTP Verification)
+                <div className="animate-in fade-in slide-in-from-right-2 duration-200">
                   <button
-                    type="submit"
-                    disabled={loading || !password.trim()}
-                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#191b30] hover:bg-[#252945] transition-all shadow-md shadow-slate-900/10 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
+                    onClick={() => {
+                      setOtpStep(false);
+                      setError('');
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 mb-4 transition-colors"
                   >
-                    {loading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <ArrowRight className="w-4 h-4" />
-                    )}
-                    <span>{loading ? 'Authenticating...' : 'Sign In to Terminal'}</span>
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Back to sign in options</span>
                   </button>
-                </form>
+
+                  <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                    Enter Verification Code
+                  </h3>
+                  <p className="text-slate-500 text-xs mt-1 mb-5">
+                    We sent a 6-digit security code to{' '}
+                    <span className="font-bold text-slate-900">{otpDestination}</span>
+                  </p>
+
+                  <form onSubmit={handleVerifyOtp} className="space-y-5">
+                    <div>
+                      <div
+                        className="flex gap-2 sm:gap-3 justify-center"
+                        onPaste={handlePasteOtp}
+                      >
+                        {otpDigits.map((digit, idx) => (
+                          <input
+                            key={idx}
+                            ref={(el) => (otpInputsRef.current[idx] = el)}
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={1}
+                            value={digit}
+                            onChange={(e) => handleDigitChange(idx, e.target.value)}
+                            onKeyDown={(e) => handleDigitKeyDown(idx, e)}
+                            className="w-11 h-14 sm:w-12 sm:h-14 text-center text-xl font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50 transition-all bg-slate-50/50"
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {error && (
+                      <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600 font-medium text-center">
+                        {error}
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={loading || otpDigits.join('').length !== 6}
+                      className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99]"
+                    >
+                      {loading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4" />
+                      )}
+                      <span>{loading ? 'Verifying...' : 'Verify & Continue'}</span>
+                    </button>
+
+                    <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                      <span>Didn't receive code?</span>
+                      {canResend ? (
+                        <button
+                          type="button"
+                          onClick={() => handleSendEmailOtp()}
+                          className="font-bold text-[#ef7f1a] hover:underline"
+                        >
+                          Resend OTP
+                        </button>
+                      ) : (
+                        <span className="text-slate-400">Resend in {resendTimer}s</span>
+                      )}
+                    </div>
+                  </form>
+                </div>
               )}
             </div>
           )}
@@ -1005,7 +1185,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   <button
                     type="submit"
                     disabled={loading || phone.replace(/[^0-9]/g, '').length < 10}
-                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#191b30] hover:bg-[#252945] transition-all shadow-md shadow-slate-900/10 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
+                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
                   >
                     {loading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -1047,7 +1227,46 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     </button>
                   </div>
 
-                  {phoneAuthMode === 'password' ? (
+                  {phoneAuthMode === 'otp' ? (
+                    <div className="space-y-4">
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600">
+                        Click below to receive an official 6-digit SMS OTP on your registered phone number <span className="font-bold text-slate-900">+91 {phone.slice(-10)}</span>.
+                      </div>
+
+                      {error && (
+                        <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600 font-medium leading-relaxed">
+                          {error}
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => handleSendPhoneOtp()}
+                        disabled={loading}
+                        className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99]"
+                      >
+                        {loading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Phone className="w-4 h-4" />
+                        )}
+                        <span>Send 6-Digit SMS OTP</span>
+                      </button>
+
+                      <div className="text-center pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPhoneAuthMode('password');
+                            setError('');
+                          }}
+                          className="text-xs font-bold text-slate-700 hover:text-[#ef7f1a] hover:underline"
+                        >
+                          Or sign in with Password instead &rarr;
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
                     <form onSubmit={handlePhonePasswordLogin} className="space-y-4">
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
@@ -1065,7 +1284,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                             autoFocus
                             required
                             placeholder="Enter your account password"
-                            className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#191b30] focus:ring-4 focus:ring-slate-100 transition-all font-medium"
+                            className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50 transition-all font-medium"
                           />
                           <button
                             type="button"
@@ -1086,7 +1305,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                       <button
                         type="submit"
                         disabled={loading || !password.trim()}
-                        className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#191b30] hover:bg-[#252945] transition-all shadow-md shadow-slate-900/10 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
+                        className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
                       >
                         {loading ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -1104,52 +1323,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                             setError('');
                             handleSendPhoneOtp();
                           }}
-                          className="text-xs font-bold text-[#191b30] hover:underline"
+                          className="text-xs font-bold text-[#ef7f1a] hover:underline"
                         >
-                          Or sign in with SMS OTP instead &rarr;
+                          &larr; Or sign in with SMS OTP instead
                         </button>
                       </div>
                     </form>
-                  ) : (
-                    <div className="space-y-4">
-                      <button
-                        type="button"
-                        onClick={() => handleSendPhoneOtp()}
-                        disabled={loading}
-                        className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#191b30] hover:bg-[#252945] transition-all shadow-md shadow-slate-900/10 flex items-center justify-center gap-2 disabled:opacity-60"
-                      >
-                        {loading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Phone className="w-4 h-4" />
-                        )}
-                        <span>Send 6-Digit SMS OTP</span>
-                      </button>
-
-                      <div className="text-center pt-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setPhoneAuthMode('password');
-                            setError('');
-                          }}
-                          className="text-xs font-bold text-[#191b30] hover:underline"
-                        >
-                          &larr; Back to Password Sign In
-                        </button>
-                      </div>
-                    </div>
                   )}
                 </div>
               ) : (
-                // Step 3 (OTP Verification)
+                // Step 3 (Phone OTP Verification)
                 <div className="animate-in fade-in slide-in-from-right-2 duration-200">
                   <button
                     onClick={() => {
                       setOtpStep(false);
                       setError('');
                     }}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#191b30] mb-4 transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 mb-4 transition-colors"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     <span>Back to sign in options</span>
@@ -1163,7 +1353,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     <span className="font-bold text-slate-900">{otpDestination}</span>
                   </p>
 
-                  <form onSubmit={handleVerifyPhoneOtp} className="space-y-5">
+                  <form onSubmit={handleVerifyOtp} className="space-y-5">
                     <div>
                       <div
                         className="flex gap-2 sm:gap-3 justify-center"
@@ -1179,7 +1369,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                             value={digit}
                             onChange={(e) => handleDigitChange(idx, e.target.value)}
                             onKeyDown={(e) => handleDigitKeyDown(idx, e)}
-                            className="w-11 h-14 sm:w-12 sm:h-14 text-center text-xl font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-[#191b30] focus:ring-4 focus:ring-slate-100 transition-all bg-slate-50/50"
+                            className="w-11 h-14 sm:w-12 sm:h-14 text-center text-xl font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50 transition-all bg-slate-50/50"
                           />
                         ))}
                       </div>
@@ -1194,7 +1384,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     <button
                       type="submit"
                       disabled={loading || otpDigits.join('').length !== 6}
-                      className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#191b30] hover:bg-[#252945] transition-all shadow-md shadow-slate-900/10 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99]"
+                      className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99]"
                     >
                       {loading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -1210,7 +1400,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                         <button
                           type="button"
                           onClick={() => handleSendPhoneOtp()}
-                          className="font-bold text-[#191b30] hover:underline"
+                          className="font-bold text-[#ef7f1a] hover:underline"
                         >
                           Resend OTP
                         </button>
