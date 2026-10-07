@@ -194,7 +194,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
               <div className="grid grid-cols-1 gap-3.5 max-w-2xl mx-auto">
                 {/* Admin */}
                 <button 
-                  onClick={() => handleQuickLogin('admin@indowings.com')}
+                  onClick={() => handleQuickLogin('puneet.kushwaha@indowings.com')}
                   disabled={loading}
                   className="p-4 rounded-xl bg-black/40 border border-orange-800/40 hover:border-orange-500 hover:bg-slate-950/40 text-left transition-all group"
                 >
@@ -202,8 +202,8 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
                     <span className="text-xs font-bold text-orange-300 font-mono">ROLE: ADMINISTRATOR</span>
                     <span className="px-2 py-0.5 rounded text-[10px] bg-slate-900 text-orange-200">Full Access</span>
                   </div>
-                  <div className="font-bold text-white group-hover:text-orange-300">Vikramaditya Sharma</div>
-                  <div className="text-[11px] text-slate-400">admin@indowings.com</div>
+                  <div className="font-bold text-white group-hover:text-orange-300">Puneet Kushwaha</div>
+                  <div className="text-[11px] text-slate-400">puneet.kushwaha@indowings.com</div>
                 </button>
               </div>
             </div>
