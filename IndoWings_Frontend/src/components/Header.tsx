@@ -162,9 +162,9 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
             <span>Support Desk</span>
           </a>
 
-          {/* 4. Direct Link: IndoWings Aerospace */}
+          {/* 4. Direct Link: IndoWings */}
           <a href="/company" onClick={nav('company', '/company')} className="px-3.5 py-2 rounded-full hover:bg-slate-100/80 hover:text-slate-900 transition-all text-slate-700 font-bold">
-            IndoWings Aerospace
+            IndoWings
           </a>
         </nav>
 
@@ -385,10 +385,10 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
             <span>Support Desk</span>
           </a>
 
-          {/* IndoWings Aerospace Platform */}
+          {/* IndoWings Link */}
           <div className="px-3 pt-1.5 pb-0.5">
             <a href="/company" onClick={nav('company', '/company')} className="flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[#5a00b8]">
-              <span>IndoWings Aerospace Platform</span>
+              <span>IndoWings</span>
             </a>
           </div>
 
