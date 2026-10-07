@@ -27,8 +27,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
       />
 
       {/* Atmospheric aerospace glows */}
-      <div className="absolute top-0 left-1/4 w-[450px] h-[250px] bg-[#ef7f1a]/[0.08] blur-[100px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-10 right-1/4 w-[500px] h-[250px] bg-orange-600/[0.06] blur-[110px] rounded-full pointer-events-none" />
+      <div className="absolute top-0 left-1/4 w-[450px] h-[250px] bg-white/[0.04] blur-[100px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-10 right-1/4 w-[500px] h-[250px] bg-white/[0.03] blur-[110px] rounded-full pointer-events-none" />
 
       {/* Watermark */}
       <div className="absolute bottom-2 sm:bottom-0 left-0 right-0 overflow-hidden pointer-events-none select-none flex justify-center items-end z-0">

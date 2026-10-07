@@ -32,18 +32,18 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
   return (
     <div className="min-h-screen bg-white">
       {/* ── SECTION 1: HERO HEADER ─────────────────────────────────────────── */}
-      <section className="bg-[#1b0038] text-white pt-28 sm:pt-36 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <section className="bg-[#191b30] text-white pt-28 sm:pt-36 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         {/* Subtle background radial glow */}
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-orange-600/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-white/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-white/[0.03] rounded-full blur-3xl pointer-events-none" />
 
         <div className="max-w-7xl mx-auto relative z-10">
           {/* Building Icon Badge */}
-          <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md flex items-center justify-center text-orange-200 mb-6 shadow-inner">
+          <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md flex items-center justify-center text-white mb-6 shadow-inner">
             <Building2 className="w-6 h-6" />
           </div>
 
-          <div className="text-xs font-bold uppercase tracking-[0.2em] text-orange-300/90 mb-3">
+          <div className="text-xs font-bold uppercase tracking-[0.2em] text-slate-300 mb-3">
             Company
           </div>
 
@@ -51,7 +51,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
             Company information
           </h1>
 
-          <p className="text-base sm:text-lg text-orange-100/80 max-w-3xl leading-relaxed">
+          <p className="text-base sm:text-lg text-slate-200/90 max-w-3xl leading-relaxed">
             IndoWings (indowings.com) is the official public portal for Indo Wings Private Limited, India's leading aerospace manufacturer of DGCA type-certified UAVs, autonomous cargo transit systems, fleet ground control stations, and anti-drone security technologies.
           </p>
         </div>
@@ -76,27 +76,27 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
 
               <ul className="space-y-4 text-slate-700 text-sm sm:text-base leading-relaxed">
                 <li className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-[#ef7f1a] mt-2.5 shrink-0" />
+                  <div className="w-2 h-2 rounded-full bg-[#191b30] mt-2.5 shrink-0" />
                   <span>IndoWings designs and manufactures DGCA type-certified UAV platforms and Ground Control Station software for enterprise and logistics operations.</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-[#ef7f1a] mt-2.5 shrink-0" />
+                  <div className="w-2 h-2 rounded-full bg-[#191b30] mt-2.5 shrink-0" />
                   <span>Command Center governs organizations, users, roles, trusted ground devices, automated flight releases, and audit records.</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-[#ef7f1a] mt-2.5 shrink-0" />
+                  <div className="w-2 h-2 rounded-full bg-[#191b30] mt-2.5 shrink-0" />
                   <span>IndoWings GCS supports approved operations personnel with aircraft connection, mission planning, encrypted telemetry, payload readiness, and synchronization.</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-[#ef7f1a] mt-2.5 shrink-0" />
+                  <div className="w-2 h-2 rounded-full bg-[#191b30] mt-2.5 shrink-0" />
                   <span>IndoWings is owned by Indo Wings Private Limited and maintained as the indowings.com public platform.</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-[#ef7f1a] mt-2.5 shrink-0" />
+                  <div className="w-2 h-2 rounded-full bg-[#191b30] mt-2.5 shrink-0" />
                   <span>The company leadership is headed by Founder Paras Jain. Public corporate filings and profile links are provided for identity reference.</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-[#ef7f1a] mt-2.5 shrink-0" />
+                  <div className="w-2 h-2 rounded-full bg-[#191b30] mt-2.5 shrink-0" />
                   <span>Named government clients, defense deployments, partners, and case studies are published only when approved for public use under bilateral agreements.</span>
                 </li>
               </ul>
@@ -106,7 +106,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
             <div className="lg:col-span-5">
               <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-7">
                 <div className="flex items-center gap-2.5 text-lg font-bold text-[#0f172a] pb-4 mb-4 border-b border-slate-100">
-                  <FileText className="w-5 h-5 text-[#ef7f1a]" />
+                  <FileText className="w-5 h-5 text-slate-700" />
                   <span>Official details</span>
                 </div>
 
@@ -130,7 +130,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                       href="https://indowings.com" 
                       target="_blank" 
                       rel="noreferrer"
-                      className="text-sm font-bold text-[#ef7f1a] hover:underline flex items-center gap-1"
+                      className="text-sm font-bold text-[#191b30] hover:underline flex items-center gap-1"
                     >
                       <span>indowings.com</span>
                       <ExternalLink className="w-3.5 h-3.5" />
@@ -146,7 +146,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                       href="https://indowings.com/company/about.php" 
                       target="_blank" 
                       rel="noreferrer"
-                      className="text-sm font-bold text-[#ef7f1a] hover:underline"
+                      className="text-sm font-bold text-[#191b30] hover:underline"
                     >
                       Indo Wings Private Limited
                     </a>
@@ -161,7 +161,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                       href="https://indowings.com/company/about.php" 
                       target="_blank" 
                       rel="noreferrer"
-                      className="text-sm font-bold text-[#ef7f1a] hover:underline"
+                      className="text-sm font-bold text-[#191b30] hover:underline"
                     >
                       Paras Jain
                     </a>
@@ -217,7 +217,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
       {/* ── SECTION 3: OWNERSHIP AND DEVELOPMENT ───────────────────────────── */}
       <section className="bg-white py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="text-xs font-bold uppercase tracking-wider text-[#ef7f1a] mb-3">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
             Ownership and Development
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0f172a] mb-4">
@@ -234,10 +234,10 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
             <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-7 flex flex-col justify-between hover:shadow-md transition-shadow">
               <div>
                 <div className="flex items-center gap-2 mb-5">
-                  <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200/60 flex items-center justify-center text-teal-600">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700">
                     <Globe className="w-4 h-4" />
                   </div>
-                  <span className="text-[11px] font-bold bg-orange-100 text-[#ef7f1a] px-2.5 py-1 rounded-md">
+                  <span className="text-[11px] font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md">
                     Public site
                   </span>
                 </div>
@@ -254,7 +254,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                 <a 
                   href="/" 
                   onClick={handleNav('home', '/')}
-                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#ef7f1a] hover:text-[#260052] transition-colors"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#191b30] hover:text-slate-800 transition-colors"
                 >
                   <span>Visit IndoWings home</span>
                   <ArrowRight className="w-4 h-4" />
@@ -266,10 +266,10 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
             <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-7 flex flex-col justify-between hover:shadow-md transition-shadow">
               <div>
                 <div className="flex items-center gap-2 mb-5">
-                  <div className="w-8 h-8 rounded-lg bg-orange-50 border border-orange-200/60 flex items-center justify-center text-[#ef7f1a]">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700">
                     <Building2 className="w-4 h-4" />
                   </div>
-                  <span className="text-[11px] font-bold bg-orange-100 text-[#ef7f1a] px-2.5 py-1 rounded-md">
+                  <span className="text-[11px] font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md">
                     Owner
                   </span>
                 </div>
@@ -287,7 +287,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                   href="https://indowings.com" 
                   target="_blank" 
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#ef7f1a] hover:text-[#260052] transition-colors"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#191b30] hover:text-slate-800 transition-colors"
                 >
                   <span>Open owner website</span>
                   <ExternalLink className="w-4 h-4" />
@@ -299,10 +299,10 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
             <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-7 flex flex-col justify-between hover:shadow-md transition-shadow">
               <div>
                 <div className="flex items-center gap-2 mb-5">
-                  <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200/60 flex items-center justify-center text-teal-600">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700">
                     <Award className="w-4 h-4" />
                   </div>
-                  <span className="text-[11px] font-bold bg-orange-100 text-[#ef7f1a] px-2.5 py-1 rounded-md">
+                  <span className="text-[11px] font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md">
                     Founder
                   </span>
                 </div>
@@ -320,7 +320,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                   href="https://indowings.com/company/about.php" 
                   target="_blank" 
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#ef7f1a] hover:text-[#260052] transition-colors"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#191b30] hover:text-slate-800 transition-colors"
                 >
                   <span>View leadership profile</span>
                   <ExternalLink className="w-4 h-4" />
@@ -335,7 +335,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
       {/* ── SECTION 4: REFERENCES & TRUST ──────────────────────────────────── */}
       <section className="bg-[#f8fafc] border-t border-slate-200/80 py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="text-xs font-bold uppercase tracking-wider text-[#ef7f1a] mb-3">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
             References
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0f172a] mb-12">
@@ -349,10 +349,10 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
             <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-7 flex flex-col justify-between hover:shadow-md transition-shadow">
               <div>
                 <div className="flex items-center gap-2 mb-5">
-                  <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200/60 flex items-center justify-center text-teal-600">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700">
                     <Users className="w-4 h-4" />
                   </div>
-                  <span className="text-[11px] font-bold bg-orange-100 text-[#ef7f1a] px-2.5 py-1 rounded-md">
+                  <span className="text-[11px] font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md">
                     Customers
                   </span>
                 </div>
@@ -369,7 +369,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                 <a 
                   href="/support?tab=expert" 
                   onClick={handleNav('support', '/support?tab=expert')}
-                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#ef7f1a] hover:text-[#260052] transition-colors"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#191b30] hover:text-slate-800 transition-colors"
                 >
                   <span>Request reference information</span>
                   <ArrowRight className="w-4 h-4" />
@@ -381,10 +381,10 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
             <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-7 flex flex-col justify-between hover:shadow-md transition-shadow">
               <div>
                 <div className="flex items-center gap-2 mb-5">
-                  <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200/60 flex items-center justify-center text-teal-600">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700">
                     <Network className="w-4 h-4" />
                   </div>
-                  <span className="text-[11px] font-bold bg-orange-100 text-[#ef7f1a] px-2.5 py-1 rounded-md">
+                  <span className="text-[11px] font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md">
                     Partners
                   </span>
                 </div>
@@ -401,7 +401,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                 <a 
                   href="/support?tab=expert" 
                   onClick={handleNav('support', '/support?tab=expert')}
-                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#ef7f1a] hover:text-[#260052] transition-colors"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#191b30] hover:text-slate-800 transition-colors"
                 >
                   <span>Contact IndoWings</span>
                   <ArrowRight className="w-4 h-4" />
@@ -413,10 +413,10 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
             <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-7 flex flex-col justify-between hover:shadow-md transition-shadow">
               <div>
                 <div className="flex items-center gap-2 mb-5">
-                  <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200/60 flex items-center justify-center text-teal-600">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700">
                     <ShieldCheck className="w-4 h-4" />
                   </div>
-                  <span className="text-[11px] font-bold bg-orange-100 text-[#ef7f1a] px-2.5 py-1 rounded-md">
+                  <span className="text-[11px] font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md">
                     Trust
                   </span>
                 </div>
@@ -433,7 +433,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                 <a 
                   href="/docs" 
                   onClick={handleNav('docs', '/docs')}
-                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#ef7f1a] hover:text-[#260052] transition-colors"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#191b30] hover:text-slate-800 transition-colors"
                 >
                   <span>View documentation & safety</span>
                   <ArrowRight className="w-4 h-4" />
