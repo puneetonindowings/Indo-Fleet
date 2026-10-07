@@ -364,8 +364,8 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mb-6">
         <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-black shadow-xs">
-              <Headphones className="w-5 h-5 text-[#ef7f1a]" />
+            <div className="w-11 h-11 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black shadow-xs">
+              <Headphones className="w-5 h-5 text-[#5a00b8]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -380,7 +380,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
               onClick={() => setAudioAlerts(!audioAlerts)}
               title={audioAlerts ? 'Turn off the sound played when a new ticket arrives' : 'Turn on the sound played when a new ticket arrives'}
               className={`p-2 rounded-xl border text-xs font-bold transition-colors flex items-center gap-1.5 ${
-                audioAlerts ? 'bg-orange-50 border-orange-200 text-[#ef7f1a]' : 'bg-slate-50 border-slate-200 text-slate-400'
+                audioAlerts ? 'bg-purple-50 border-purple-200 text-[#5a00b8]' : 'bg-slate-50 border-slate-200 text-slate-400'
               }`}
             >
               {audioAlerts ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
@@ -393,7 +393,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
               disabled={refreshing}
               className="p-2 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors flex items-center gap-1.5"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-[#ef7f1a]' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-[#5a00b8]' : ''}`} />
               <span className="hidden sm:inline">Refresh</span>
             </button>
 
@@ -452,8 +452,8 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
           </div>
 
           <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-orange-600">In Progress</p>
-            <p className="text-2xl font-black text-orange-600 mt-1">{inProgressCount}</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-purple-600">In Progress</p>
+            <p className="text-2xl font-black text-purple-600 mt-1">{inProgressCount}</p>
             <span className="text-[10px] text-slate-400">Under investigation</span>
           </div>
 
@@ -483,18 +483,18 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
             <button
               onClick={() => setActiveTab('tickets')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'tickets' ? 'bg-white text-[#ef7f1a] shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                activeTab === 'tickets' ? 'bg-white text-[#5a00b8] shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <FileText className="w-3.5 h-3.5" />
               <span>Tickets &amp; Inquiries</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-orange-100 text-[#ef7f1a] text-[10px]">{totalCount}</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-purple-100 text-[#5a00b8] text-[10px]">{totalCount}</span>
             </button>
 
             <button
               onClick={() => setActiveTab('calls')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'calls' ? 'bg-white text-[#ef7f1a] shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                activeTab === 'calls' ? 'bg-white text-[#5a00b8] shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <PhoneCall className="w-3.5 h-3.5" />
@@ -505,7 +505,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
             <button
               onClick={() => setActiveTab('emails')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'emails' ? 'bg-white text-[#ef7f1a] shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                activeTab === 'emails' ? 'bg-white text-[#5a00b8] shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Mail className="w-3.5 h-3.5" />
@@ -522,7 +522,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name, order, phone, address..."
-              className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#ef7f1a] focus:ring-2 focus:ring-orange-50"
+              className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#5a00b8] focus:ring-2 focus:ring-orange-50"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -550,7 +550,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                   key={f.id}
                   onClick={() => setStatusFilter(f.id as any)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    statusFilter === f.id ? 'bg-[#ef7f1a] text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                    statusFilter === f.id ? 'bg-[#5a00b8] text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
                   {f.label}
@@ -560,7 +560,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
 
             {loading ? (
               <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
-                <RefreshCw className="w-6 h-6 animate-spin text-[#ef7f1a] mx-auto mb-2" />
+                <RefreshCw className="w-6 h-6 animate-spin text-[#5a00b8] mx-auto mb-2" />
                 <p className="text-xs text-slate-500 font-bold">Synchronizing Support Desk records...</p>
               </div>
             ) : filteredTickets.length === 0 ? (
@@ -588,7 +588,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                         <div className="space-y-3 flex-1 min-w-0">
                           {/* Ticket Header & Badges */}
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-mono text-xs font-black text-[#ef7f1a] bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-200">{t.id}</span>
+                            <span className="font-mono text-xs font-black text-[#5a00b8] bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200">{t.id}</span>
 
                             {/* Priority Badge */}
                             <span
@@ -609,7 +609,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                                 isResolved
                                   ? 'bg-emerald-100 text-emerald-800'
                                   : t.status === 'in_progress' || t.status === 'in-progress'
-                                    ? 'bg-orange-100 text-[#ef7f1a]'
+                                    ? 'bg-purple-100 text-[#5a00b8]'
                                     : 'bg-amber-100 text-amber-800'
                               }`}
                             >
@@ -688,14 +688,14 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
 
                             <div>
                               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Phone &amp; Direct Dial</span>
-                              <a href={`tel:${t.phone}`} className="font-mono text-[#ef7f1a] font-bold hover:underline">
+                              <a href={`tel:${t.phone}`} className="font-mono text-[#5a00b8] font-bold hover:underline">
                                 {t.phone || 'N/A'}
                               </a>
                             </div>
 
                             <div>
                               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Customer Email</span>
-                              <a href={`mailto:${t.email}`} className="text-slate-700 hover:text-[#ef7f1a] truncate block">
+                              <a href={`mailto:${t.email}`} className="text-slate-700 hover:text-[#5a00b8] truncate block">
                                 {t.email || 'N/A'}
                               </a>
                             </div>
@@ -730,7 +730,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
 
                           {/* Category & Message */}
                           <div className="space-y-1">
-                            <span className="text-[11px] font-bold text-[#ef7f1a] bg-orange-50 px-2 py-0.5 rounded">Topic: {t.category}</span>
+                            <span className="text-[11px] font-bold text-[#5a00b8] bg-purple-50 px-2 py-0.5 rounded">Topic: {t.category}</span>
                             <p className="text-xs text-slate-700 leading-relaxed font-normal bg-white p-3 rounded-xl border border-slate-100">{t.message || 'No description provided.'}</p>
                           </div>
 
@@ -779,7 +779,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                               setCallingTicket(t);
                               setCallRemarks('');
                             }}
-                            className="px-3.5 py-2 rounded-xl text-xs font-bold text-[#ef7f1a] bg-orange-50 hover:bg-orange-100 transition-colors flex items-center gap-1.5"
+                            className="px-3.5 py-2 rounded-xl text-xs font-bold text-[#5a00b8] bg-purple-50 hover:bg-purple-100 transition-colors flex items-center gap-1.5"
                           >
                             <Phone className="w-3.5 h-3.5" />
                             <span>Log / Start Call</span>
@@ -819,7 +819,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                       {((t.call_logs && t.call_logs.length > 0) || (t.email_thread && t.email_thread.length > 0)) && (
                         <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
                           {t.call_logs && t.call_logs.length > 0 && (
-                            <span className="flex items-center gap-1 font-medium text-orange-700 bg-orange-50 px-2 py-0.5 rounded">{t.call_logs.length} Phone Calls Logged</span>
+                            <span className="flex items-center gap-1 font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded">{t.call_logs.length} Phone Calls Logged</span>
                           )}
                           {t.email_thread && t.email_thread.length > 0 && (
                             <span className="flex items-center gap-1 font-medium text-sky-700 bg-sky-50 px-2 py-0.5 rounded">
@@ -846,7 +846,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                 <h2 className="text-base font-bold text-slate-900">Phone Calls &amp; Callback Audit Log</h2>
                 <p className="text-xs text-slate-500">Total {allCalls.length} voice consultations completed with customers across India.</p>
               </div>
-              <button type="button" onClick={() => setAddCallOpen(true)} className="rounded-xl bg-[#ef7f1a] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#d96e11]">
+              <button type="button" onClick={() => setAddCallOpen(true)} className="rounded-xl bg-[#5a00b8] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#4a0099]">
                 + Add Call Log
               </button>
             </div>
@@ -870,10 +870,10 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                   <tbody className="divide-y divide-slate-100 font-medium">
                     {allCalls.map((c: any, idx: number) => (
                       <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="py-3 px-4 font-mono font-bold text-[#ef7f1a]">{c.ticket_id}</td>
+                        <td className="py-3 px-4 font-mono font-bold text-[#5a00b8]">{c.ticket_id}</td>
                         <td className="py-3 px-4 font-bold text-slate-800">{c.customer_name}</td>
                         <td className="py-3 px-4 font-mono">
-                          <a href={`tel:${c.phone}`} className="text-orange-700 hover:underline">
+                          <a href={`tel:${c.phone}`} className="text-purple-700 hover:underline">
                             {c.phone}
                           </a>
                         </td>
@@ -914,7 +914,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                   <div key={idx} className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-[#ef7f1a]">{m.ticket_id}</span>
+                        <span className="font-mono font-bold text-[#5a00b8]">{m.ticket_id}</span>
                         <span className="text-slate-400">{m.direction === 'inbound' ? '←' : '→'}</span>
                         <strong className="text-slate-800">{m.customer_name}</strong>
                         <span className="text-slate-400">({m.direction === 'inbound' ? m.from : m.to})</span>
@@ -1062,7 +1062,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
               <button type="button" onClick={() => setAddCallOpen(false)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600">
                 Cancel
               </button>
-              <button disabled={isLoggingCall} className="rounded-xl bg-[#ef7f1a] px-5 py-2.5 text-xs font-bold text-white disabled:opacity-50">
+              <button disabled={isLoggingCall} className="rounded-xl bg-[#5a00b8] px-5 py-2.5 text-xs font-bold text-white disabled:opacity-50">
                 {isLoggingCall ? 'Saving...' : 'Save Call Log'}
               </button>
             </div>
@@ -1151,12 +1151,12 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-bold">
                   <PhoneCall className="w-4 h-4" />
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-slate-900">Phone Consultation: {callingTicket.name}</h3>
-                  <a href={`tel:${callingTicket.phone}`} className="text-xs font-mono font-bold text-[#ef7f1a] hover:underline">
+                  <a href={`tel:${callingTicket.phone}`} className="text-xs font-mono font-bold text-[#5a00b8] hover:underline">
                     {callingTicket.phone}
                   </a>
                 </div>
@@ -1178,9 +1178,9 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                   <option value="outgoing">Outgoing</option>
                 </select>
               </div>
-              <div className="p-3 bg-orange-50 rounded-xl flex items-center justify-between">
+              <div className="p-3 bg-purple-50 rounded-xl flex items-center justify-between">
                 <span>Click to initiate direct call:</span>
-                <a href={`tel:${callingTicket.phone}`} className="px-3.5 py-1.5 bg-[#ef7f1a] text-white rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-xs">
+                <a href={`tel:${callingTicket.phone}`} className="px-3.5 py-1.5 bg-[#5a00b8] text-white rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-xs">
                   <Phone className="w-3.5 h-3.5" />
                   <span>Call {callingTicket.phone}</span>
                 </a>
@@ -1191,7 +1191,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                 <select
                   value={callOutcome}
                   onChange={(e) => setCallOutcome(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs bg-white font-medium focus:outline-none focus:border-[#ef7f1a]"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs bg-white font-medium focus:outline-none focus:border-[#5a00b8]"
                 >
                   <option value="Customer Answered - Issue Resolved">Customer Answered - Issue Resolved</option>
                   <option value="Customer Requested Later Callback">Customer Requested Later Callback</option>
@@ -1208,7 +1208,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                   value={callDuration}
                   onChange={(e) => setCallDuration(e.target.value)}
                   placeholder="e.g. 120"
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#ef7f1a]"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#5a00b8]"
                 />
               </div>
 
@@ -1219,7 +1219,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                   value={callRemarks}
                   onChange={(e) => setCallRemarks(e.target.value)}
                   placeholder="Customer confirmed terrace coordinates; clarified wind hold limits..."
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#ef7f1a] resize-none"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#5a00b8] resize-none"
                 />
               </div>
 
@@ -1230,7 +1230,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                 <button
                   type="submit"
                   disabled={isLoggingCall}
-                  className="px-5 py-2.5 rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] text-white font-bold transition-all flex items-center gap-1.5 shadow-sm"
+                  className="px-5 py-2.5 rounded-xl bg-[#5a00b8] hover:bg-[#4a0099] text-white font-bold transition-all flex items-center gap-1.5 shadow-sm"
                 >
                   {isLoggingCall ? 'Saving...' : 'Save Call Log'}
                 </button>
@@ -1248,7 +1248,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-bold">
                   <Mail className="w-4 h-4" />
                 </div>
                 <div>
@@ -1270,7 +1270,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                   required
                   value={emailSubject}
                   onChange={(e) => setEmailSubject(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#ef7f1a] font-medium"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#5a00b8] font-medium"
                 />
               </div>
 
@@ -1281,7 +1281,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                   required
                   value={emailBody}
                   onChange={(e) => setEmailBody(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#ef7f1a] resize-none font-medium leading-relaxed"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#5a00b8] resize-none font-medium leading-relaxed"
                 />
               </div>
 
@@ -1292,7 +1292,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                 <button
                   type="submit"
                   disabled={isSendingEmail || !emailBody.trim()}
-                  className="px-5 py-2.5 rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] text-white font-bold transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-[#5a00b8] hover:bg-[#4a0099] text-white font-bold transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
                 >
                   {isSendingEmail ? (
                     <>
@@ -1320,7 +1320,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
           <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
-                <span className="font-mono text-base font-black text-[#ef7f1a] bg-orange-50 px-3 py-1 rounded-xl border border-orange-200">{selectedTicket.id}</span>
+                <span className="font-mono text-base font-black text-[#5a00b8] bg-purple-50 px-3 py-1 rounded-xl border border-purple-200">{selectedTicket.id}</span>
                 <div>
                   <h3 className="text-base font-bold text-slate-900">{selectedTicket.category}</h3>
                   <p className="text-xs text-slate-400">Created: {new Date(selectedTicket.created_at).toLocaleString('en-IN')}</p>
@@ -1337,7 +1337,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Customer Identity</span>
                 <p className="font-bold text-slate-900 text-sm">{selectedTicket.name}</p>
                 <p className="text-slate-600">
-                  <a href={`tel:${selectedTicket.phone}`} className="font-mono text-[#ef7f1a] font-bold hover:underline">
+                  <a href={`tel:${selectedTicket.phone}`} className="font-mono text-[#5a00b8] font-bold hover:underline">
                     {selectedTicket.phone}
                   </a>
                 </p>
@@ -1348,9 +1348,9 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                 </p>
               </div>
 
-              <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100 space-y-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#ef7f1a] block">Associated Order Reference</span>
-                <p className="font-mono font-bold text-sm text-[#ef7f1a]">{selectedTicket.order_id || 'Not Linked to Order'}</p>
+              <div className="p-4 bg-purple-50/50 rounded-2xl border border-purple-100 space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#5a00b8] block">Associated Order Reference</span>
+                <p className="font-mono font-bold text-sm text-[#5a00b8]">{selectedTicket.order_id || 'Not Linked to Order'}</p>
                 {selectedTicket.delivery_address && (
                   <p className="text-slate-700">
                     Drop: <strong>{selectedTicket.delivery_address}</strong>

@@ -741,7 +741,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     type="button"
                     onClick={handleSendFirstTimeOtp}
                     disabled={ftLoading}
-                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {ftLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
                     <span>{ftLoading ? 'Sending OTP...' : 'Send Security OTP'}</span>
@@ -759,7 +759,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                       value={ftOtp}
                       onChange={(e) => setFtOtp(e.target.value.replace(/[^0-9]/g, ''))}
                       placeholder="Enter 6-digit OTP"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-center tracking-widest font-mono text-lg font-bold text-slate-900 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-center tracking-widest font-mono text-lg font-bold text-slate-900 focus:outline-none focus:border-[#5a00b8] focus:ring-4 focus:ring-orange-50"
                       required
                     />
                   </div>
@@ -773,7 +773,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                       value={ftNewPass}
                       onChange={(e) => setFtNewPass(e.target.value)}
                       placeholder="At least 6 characters"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#5a00b8] focus:ring-4 focus:ring-orange-50"
                       required
                     />
                   </div>
@@ -787,7 +787,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                       value={ftConfirmPass}
                       onChange={(e) => setFtConfirmPass(e.target.value)}
                       placeholder="Re-enter password"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#5a00b8] focus:ring-4 focus:ring-orange-50"
                       required
                     />
                   </div>
@@ -905,7 +905,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                         }}
                         required
                         placeholder="name@indowings.com"
-                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50 transition-all font-medium"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#5a00b8] focus:ring-4 focus:ring-orange-50 transition-all font-medium"
                       />
                     </div>
                     <p className="text-[11px] text-slate-400 mt-1.5">
@@ -922,7 +922,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   <button
                     type="submit"
                     disabled={loading || !email.trim()}
-                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
+                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
                   >
                     {loading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -980,7 +980,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                         autoFocus
                         required
                         placeholder="Enter your account password"
-                        className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50 transition-all font-medium"
+                        className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#5a00b8] focus:ring-4 focus:ring-orange-50 transition-all font-medium"
                       />
                       <button
                         type="button"
@@ -1001,7 +1001,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   <button
                     type="submit"
                     disabled={loading || !password.trim()}
-                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
+                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
                   >
                     {loading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -1049,7 +1049,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                             value={digit}
                             onChange={(e) => handleDigitChange(idx, e.target.value)}
                             onKeyDown={(e) => handleDigitKeyDown(idx, e)}
-                            className="w-11 h-14 sm:w-12 sm:h-14 text-center text-xl font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50 transition-all bg-slate-50/50"
+                            className="w-11 h-14 sm:w-12 sm:h-14 text-center text-xl font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-[#5a00b8] focus:ring-4 focus:ring-orange-50 transition-all bg-slate-50/50"
                           />
                         ))}
                       </div>
@@ -1064,7 +1064,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     <button
                       type="submit"
                       disabled={loading || otpDigits.join('').length !== 6}
-                      className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99]"
+                      className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99]"
                     >
                       {loading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -1080,7 +1080,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                         <button
                           type="button"
                           onClick={() => handleSendEmailOtp()}
-                          className="font-bold text-[#ef7f1a] hover:underline"
+                          className="font-bold text-[#5a00b8] hover:underline"
                         >
                           Resend OTP
                         </button>
@@ -1128,7 +1128,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   <button
                     type="submit"
                     disabled={loading || phone.replace(/[^0-9]/g, '').length < 10}
-                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
+                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
                   >
                     {loading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -1186,7 +1186,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                         autoFocus
                         required
                         placeholder="Enter your account password"
-                        className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50 transition-all font-medium"
+                        className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#5a00b8] focus:ring-4 focus:ring-orange-50 transition-all font-medium"
                       />
                       <button
                         type="button"
@@ -1207,7 +1207,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   <button
                     type="submit"
                     disabled={loading || !password.trim()}
-                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
+                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
                   >
                     {loading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -1255,7 +1255,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                             value={digit}
                             onChange={(e) => handleDigitChange(idx, e.target.value)}
                             onKeyDown={(e) => handleDigitKeyDown(idx, e)}
-                            className="w-11 h-14 sm:w-12 sm:h-14 text-center text-xl font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50 transition-all bg-slate-50/50"
+                            className="w-11 h-14 sm:w-12 sm:h-14 text-center text-xl font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-[#5a00b8] focus:ring-4 focus:ring-orange-50 transition-all bg-slate-50/50"
                           />
                         ))}
                       </div>
@@ -1270,7 +1270,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     <button
                       type="submit"
                       disabled={loading || otpDigits.join('').length !== 6}
-                      className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99]"
+                      className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99]"
                     >
                       {loading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -1286,7 +1286,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                         <button
                           type="button"
                           onClick={() => handleSendPhoneOtp()}
-                          className="font-bold text-[#ef7f1a] hover:underline"
+                          className="font-bold text-[#5a00b8] hover:underline"
                         >
                           Resend OTP
                         </button>

@@ -47,7 +47,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
     {
       id: 'doc-qc-dispatch',
       tag: 'Hardware QC & SOP',
-      tagColor: 'bg-orange-50 text-[#ef7f1a] border-orange-200',
+      tagColor: 'bg-purple-50 text-[#5a00b8] border-purple-200',
       icon: Wrench,
       featured: true,
       title: 'Pre-Flight Hardware QC & Corridor Clearance SOP',
@@ -115,7 +115,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             <BookOpen className="w-7 h-7 text-white" />
           </div>
 
-          <p className="text-xs font-bold tracking-[0.25em] uppercase text-orange-300 mb-3">
+          <p className="text-xs font-bold tracking-[0.25em] uppercase text-purple-300 mb-3">
             DOCUMENTATION &amp; SOP
           </p>
 
@@ -134,7 +134,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
         <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-950/5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#ef7f1a] bg-orange-50 px-2.5 py-1 rounded-md border border-orange-100 inline-block mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#5a00b8] bg-purple-50 px-2.5 py-1 rounded-md border border-purple-100 inline-block mb-2">
                 OPERATIONAL MANUAL
               </span>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-[#171222] tracking-tight">
@@ -145,13 +145,13 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             <div className="flex items-center gap-3 shrink-0">
               <button
                 onClick={() => { onNavigate('track'); window.history.pushState({}, '', '/track'); }}
-                className="flex items-center gap-2 bg-[#ef7f1a] hover:bg-[#280058] text-white text-xs sm:text-sm font-bold px-5 py-3 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer">
+                className="flex items-center gap-2 bg-[#5a00b8] hover:bg-[#280058] text-white text-xs sm:text-sm font-bold px-5 py-3 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer">
                 <Navigation className="w-4 h-4" />
                 <span>Live Corridor Telemetry</span>
               </button>
               <button
                 onClick={() => { onNavigate('gcs'); window.history.pushState({}, '', '/gcs'); }}
-                className="hidden sm:flex items-center gap-2 border border-slate-200 hover:border-[#ef7f1a] text-slate-700 hover:text-[#ef7f1a] text-xs sm:text-sm font-semibold px-4 py-3 rounded-xl transition-all cursor-pointer">
+                className="hidden sm:flex items-center gap-2 border border-slate-200 hover:border-[#5a00b8] text-slate-700 hover:text-[#5a00b8] text-xs sm:text-sm font-semibold px-4 py-3 rounded-xl transition-all cursor-pointer">
                 <Book className="w-4 h-4" />
                 <span>Open GCS Guide</span>
               </button>
@@ -170,17 +170,17 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 <div className="grid grid-cols-2 gap-2 my-2">
                   <div className="bg-white/5 border border-white/10 rounded-xl p-3">
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">FLIGHT TIME</span>
-                    <span className="text-xl font-bold font-mono text-orange-200">18 min</span>
+                    <span className="text-xl font-bold font-mono text-purple-200">18 min</span>
                   </div>
                   <div className="bg-white/5 border border-white/10 rounded-xl p-3">
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">DISTANCE</span>
-                    <span className="text-xl font-bold font-mono text-orange-200">14.8 km</span>
+                    <span className="text-xl font-bold font-mono text-purple-200">14.8 km</span>
                   </div>
                 </div>
               </div>
               <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-300">Transit &amp; Route Mapping</span>
-                <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded font-mono text-orange-200">Step 1</span>
+                <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded font-mono text-purple-200">Step 1</span>
               </div>
             </div>
 
@@ -222,16 +222,16 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                   <span className="text-[10px] text-slate-400 font-mono">NCR Hub</span>
                 </div>
                 <div className="grid grid-cols-3 gap-2 my-2 text-center">
-                  <div className="bg-orange-50/50 border border-orange-100 rounded-xl p-2.5">
-                    <span className="text-lg font-extrabold text-[#ef7f1a] block">99.4%</span>
+                  <div className="bg-purple-50/50 border border-purple-100 rounded-xl p-2.5">
+                    <span className="text-lg font-extrabold text-[#5a00b8] block">99.4%</span>
                     <span className="text-[9px] uppercase font-bold text-slate-500">QC Pass</span>
                   </div>
-                  <div className="bg-orange-50/50 border border-orange-100 rounded-xl p-2.5">
-                    <span className="text-lg font-extrabold text-[#ef7f1a] block">&lt;24m</span>
+                  <div className="bg-purple-50/50 border border-purple-100 rounded-xl p-2.5">
+                    <span className="text-lg font-extrabold text-[#5a00b8] block">&lt;24m</span>
                     <span className="text-[9px] uppercase font-bold text-slate-500">Avg Transit</span>
                   </div>
-                  <div className="bg-orange-50/50 border border-orange-100 rounded-xl p-2.5">
-                    <span className="text-lg font-extrabold text-[#ef7f1a] block">0</span>
+                  <div className="bg-purple-50/50 border border-purple-100 rounded-xl p-2.5">
+                    <span className="text-lg font-extrabold text-[#5a00b8] block">0</span>
                     <span className="text-[9px] uppercase font-bold text-slate-500">Incidents</span>
                   </div>
                 </div>
@@ -247,10 +247,10 @@ export const DocsPage: React.FC<DocsPageProps> = ({
 
       {/* ── STEP-BY-STEP OPERATIONAL SOP MANUAL ─────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-6 mb-16">
-        <div className="bg-gradient-to-br from-white via-orange-50/40 to-blue-50/30 border-2 border-orange-200/80 rounded-3xl p-6 sm:p-10 shadow-lg">
+        <div className="bg-gradient-to-br from-white via-orange-50/40 to-blue-50/30 border-2 border-purple-200/80 rounded-3xl p-6 sm:p-10 shadow-lg">
           <div className="max-w-3xl mb-8">
-            <div className="inline-flex items-center gap-2 bg-[#ef7f1a] text-white text-xs font-bold px-3 py-1 rounded-full mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-orange-300" />
+            <div className="inline-flex items-center gap-2 bg-[#5a00b8] text-white text-xs font-bold px-3 py-1 rounded-full mb-3">
+              <Sparkles className="w-3.5 h-3.5 text-purple-300" />
               <span>STANDARD OPERATING PROCEDURE</span>
             </div>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-[#171222] tracking-tight mb-3">
@@ -264,124 +264,124 @@ export const DocsPage: React.FC<DocsPageProps> = ({
           {/* 6 Step SOP Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {/* Step 1 */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-orange-300 transition-all flex flex-col justify-between">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-purple-300 transition-all flex flex-col justify-between">
               <div>
-                <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-bold text-sm font-mono mb-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-bold text-sm font-mono mb-3">
                   01
                 </div>
                 <h3 className="text-base font-bold text-[#171222] mb-1.5 flex items-center gap-1.5">
-                  <Wrench className="w-4 h-4 text-[#ef7f1a]" />
+                  <Wrench className="w-4 h-4 text-[#5a00b8]" />
                   <span>Hardware &amp; Avionics QC</span>
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
                   Fleet technician conducts mandatory 4-point hardware diagnostics: Dual IMU redundancy, magnetometer calibration, motor RPM response, and battery cell internal impedance test.
                 </p>
               </div>
-              <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-orange-700 font-semibold">
+              <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-purple-700 font-semibold">
                 SOP Standard: Verified via Fleet Manager Desk
               </div>
             </div>
 
             {/* Step 2 */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-orange-300 transition-all flex flex-col justify-between">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-purple-300 transition-all flex flex-col justify-between">
               <div>
-                <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-bold text-sm font-mono mb-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-bold text-sm font-mono mb-3">
                   02
                 </div>
                 <h3 className="text-base font-bold text-[#171222] mb-1.5 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-[#ef7f1a]" />
+                  <ShieldCheck className="w-4 h-4 text-[#5a00b8]" />
                   <span>DGCA NPNT Authorization</span>
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
                   DigitalSky No-Permission-No-Takeoff (NPNT) cryptographic token is validated on onboard flight hardware. Autonomous motors remain locked until the digital flight permission is active.
                 </p>
               </div>
-              <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-orange-700 font-semibold">
+              <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-purple-700 font-semibold">
                 Compliant with DGCA Drone Rules 2021
               </div>
             </div>
 
             {/* Step 3 */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-orange-300 transition-all flex flex-col justify-between">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-purple-300 transition-all flex flex-col justify-between">
               <div>
-                <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-bold text-sm font-mono mb-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-bold text-sm font-mono mb-3">
                   03
                 </div>
                 <h3 className="text-base font-bold text-[#171222] mb-1.5 flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-[#ef7f1a]" />
+                  <MapPin className="w-4 h-4 text-[#5a00b8]" />
                   <span>Corridor Waypoints Lock</span>
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
                   Flight path is mapped through approved airspace corridors between base depots. Geofencing buffers and 120m AGL ceiling constraints are loaded into the autopilot.
                 </p>
               </div>
-              <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-orange-700 font-semibold">
+              <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-purple-700 font-semibold">
                 Autonomous geofence &amp; RTL enabled
               </div>
             </div>
 
             {/* Step 4 */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-orange-300 transition-all flex flex-col justify-between">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-purple-300 transition-all flex flex-col justify-between">
               <div>
-                <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-bold text-sm font-mono mb-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-bold text-sm font-mono mb-3">
                   04
                 </div>
                 <h3 className="text-base font-bold text-[#171222] mb-1.5 flex items-center gap-1.5">
-                  <Radio className="w-4 h-4 text-[#ef7f1a]" />
+                  <Radio className="w-4 h-4 text-[#5a00b8]" />
                   <span>Escort Crew Assignment</span>
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
                   Dispatcher assigns certified flight operations personnel and a field escort vehicle with handheld telemetry override controller. Digital pre-departure manifest is recorded in the system ledger.
                 </p>
               </div>
-              <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-orange-700 font-semibold">
+              <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-purple-700 font-semibold">
                 Dual redundant link: 4G LTE + RF Telemetry
               </div>
             </div>
 
             {/* Step 5 */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-orange-300 transition-all flex flex-col justify-between">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-purple-300 transition-all flex flex-col justify-between">
               <div>
-                <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-bold text-sm font-mono mb-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-bold text-sm font-mono mb-3">
                   05
                 </div>
                 <h3 className="text-base font-bold text-[#171222] mb-1.5 flex items-center gap-1.5">
-                  <Navigation className="w-4 h-4 text-[#ef7f1a]" />
+                  <Navigation className="w-4 h-4 text-[#5a00b8]" />
                   <span>Live Radar Telemetry</span>
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
                   Once airborne, real-time telemetry streams into the Command Center radar. Operators monitor GPS position, altitude, airspeed, battery drain, and wind vector milestones every 4 seconds.
                 </p>
               </div>
-              <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-orange-700 font-semibold">
+              <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-purple-700 font-semibold">
                 Continuous ADS-B transponder broadcast
               </div>
             </div>
 
             {/* Step 6 */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-orange-300 transition-all flex flex-col justify-between">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-purple-300 transition-all flex flex-col justify-between">
               <div>
-                <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-bold text-sm font-mono mb-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-bold text-sm font-mono mb-3">
                   06
                 </div>
                 <h3 className="text-base font-bold text-[#171222] mb-1.5 flex items-center gap-1.5">
-                  <CheckSquare className="w-4 h-4 text-[#ef7f1a]" />
+                  <CheckSquare className="w-4 h-4 text-[#5a00b8]" />
                   <span>Arrival &amp; Mission Sign-Off</span>
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
                   Upon landing at the designated hub, hardware condition checklist is reviewed, flight data logs are archived into the telemetry cloud, and the mission is formally completed in the registry.
                 </p>
               </div>
-              <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-orange-700 font-semibold">
+              <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-purple-700 font-semibold">
                 Permanent flight log &amp; sensor audit record
               </div>
             </div>
           </div>
 
           {/* Direct Action Banner inside Guide */}
-          <div className="mt-8 pt-6 border-t border-orange-200/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="mt-8 pt-6 border-t border-purple-200/80 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#ef7f1a] text-white flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-[#5a00b8] text-white flex items-center justify-center shrink-0">
                 <Navigation className="w-5 h-5" />
               </div>
               <div>
@@ -391,7 +391,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             </div>
             <button
               onClick={() => { onNavigate('track'); window.history.pushState({}, '', '/track'); }}
-              className="bg-[#ef7f1a] hover:bg-[#260052] text-white text-xs sm:text-sm font-bold px-6 py-3 rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer shrink-0">
+              className="bg-[#5a00b8] hover:bg-[#260052] text-white text-xs sm:text-sm font-bold px-6 py-3 rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer shrink-0">
               <span>Open Live Radar Telemetry</span>
               <ArrowRight className="w-4 h-4" />
             </button>
@@ -417,8 +417,8 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === tab.id
-                    ? 'bg-[#ef7f1a] text-white shadow-sm'
-                    : 'bg-white border border-slate-200 text-slate-600 hover:border-orange-200 hover:text-[#ef7f1a]'
+                    ? 'bg-[#5a00b8] text-white shadow-sm'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:border-purple-200 hover:text-[#5a00b8]'
                 }`}
               >
                 {tab.label}
@@ -434,7 +434,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search documentation..."
-              className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#ef7f1a] transition-all shadow-xs"
+              className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#5a00b8] transition-all shadow-xs"
             />
           </div>
         </div>
@@ -448,7 +448,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             return (
               <div 
                 key={card.id}
-                className="bg-white border border-slate-200 hover:border-orange-300 rounded-2xl p-7 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
+                className="bg-white border border-slate-200 hover:border-purple-300 rounded-2xl p-7 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
                 <div>
                   {/* Card Tag Pill */}
                   <div className="flex items-center gap-2 mb-5">
@@ -461,7 +461,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-xl font-bold text-[#171222] mb-3 group-hover:text-[#ef7f1a] transition-colors leading-snug">
+                  <h3 className="text-xl font-bold text-[#171222] mb-3 group-hover:text-[#5a00b8] transition-colors leading-snug">
                     {card.title}
                   </h3>
 
@@ -483,7 +483,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                         window.history.pushState({}, '', '/support');
                       }
                     }}
-                    className="text-xs font-bold text-[#ef7f1a] hover:text-[#250052] flex items-center gap-1.5 transition-colors cursor-pointer group-hover:translate-x-1 duration-150"
+                    className="text-xs font-bold text-[#5a00b8] hover:text-[#250052] flex items-center gap-1.5 transition-colors cursor-pointer group-hover:translate-x-1 duration-150"
                   >
                     <span>{card.linkText}</span>
                     <ArrowRight className="w-3.5 h-3.5" />

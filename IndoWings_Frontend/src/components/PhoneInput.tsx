@@ -161,7 +161,7 @@ export default function PhoneInput({
         className={`flex-1 min-w-0 px-3.5 ${pad} rounded-r-xl border text-sm font-medium transition-all focus:outline-none ${
           dark
             ? 'border-slate-900/50 bg-black/40 text-white placeholder:text-slate-500 focus:border-orange-500'
-            : 'border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-[#ef7f1a] focus:ring-4 focus:ring-orange-50'
+            : 'border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-[#5a00b8] focus:ring-4 focus:ring-orange-50'
         } ${inputClassName}`}
       />
 
@@ -186,14 +186,14 @@ export default function PhoneInput({
                 <button
                   type="button"
                   onClick={() => selectCountry(c)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-1.5 text-left hover:bg-orange-50 transition-colors ${c.iso === country.iso ? 'bg-orange-50/60' : ''}`}
+                  className={`w-full flex items-center gap-2.5 px-3 py-1.5 text-left hover:bg-purple-50 transition-colors ${c.iso === country.iso ? 'bg-purple-50/60' : ''}`}
                   role="option"
                   aria-selected={c.iso === country.iso}
                 >
                   <Flag iso={c.iso} />
                   <span className="flex-1 truncate text-xs font-medium text-slate-700">{c.name}</span>
                   <span className="text-xs text-slate-400 font-semibold">+{c.dial}</span>
-                  {c.iso === country.iso && <Check className="w-3.5 h-3.5 text-[#ef7f1a]" />}
+                  {c.iso === country.iso && <Check className="w-3.5 h-3.5 text-[#5a00b8]" />}
                 </button>
               </li>
             ))}

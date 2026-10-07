@@ -2825,7 +2825,9 @@ router.delete('/feedbacks/:id', async (req, res) => {
 // Track order by Order ID with Customer Name Verification
 router.post('/chatbot/track-by-id', async (req, res) => {
   try {
-    const { order_id, customer_name, skip_name_check } = req.body;
+    const { order_id, customer_name, verification_name, name: altName, skip_name_check } = req.body;
+    const providedName = (customer_name || verification_name || altName || '').trim();
+
     if (!order_id) {
       res.status(400).json({ success: false, message: 'Order ID is required' });
       return;
@@ -2843,7 +2845,7 @@ router.post('/chatbot/track-by-id', async (req, res) => {
     }
 
     // Check if customer name is provided (unless already verified via OTP)
-    if (!skip_name_check && (!customer_name || !customer_name.trim())) {
+    if (!skip_name_check && !providedName) {
       res.json({
         success: true,
         verified: false,
@@ -2856,7 +2858,7 @@ router.post('/chatbot/track-by-id', async (req, res) => {
 
     if (!skip_name_check) {
       // Verify customer name (case-insensitive fuzzy/contains)
-      const inputName = (customer_name || '').trim().toLowerCase();
+      const inputName = providedName.toLowerCase();
       const actualCustomer = (order.customer_name || '').toLowerCase();
       const actualRecipient = (order.recipient_name || '').toLowerCase();
 
@@ -2871,7 +2873,7 @@ router.post('/chatbot/track-by-id', async (req, res) => {
         res.json({
           success: false,
           reason: 'NAME_MISMATCH',
-          message: `Customer name did not match our dispatch records. Please enter the name registered with the order.`
+          message: `Customer name "${providedName}" did not match our dispatch records for Order #${order.id}. Please enter the registered name.`
         });
         return;
       }

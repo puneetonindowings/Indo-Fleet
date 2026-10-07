@@ -43,7 +43,7 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   label,
   value,
   icon: Icon,
-  tone = 'text-[#ef7f1a] bg-orange-50',
+  tone = 'text-[#5a00b8] bg-purple-50',
   subtitle,
   deltaPct,
   trend,
@@ -58,7 +58,7 @@ export const KpiCard: React.FC<KpiCardProps> = ({
       ? 'bg-rose-50 text-rose-700 border-rose-200/60'
       : 'bg-slate-50 text-slate-600 border-slate-200/60';
   const TrendIcon = isUp ? TrendingUp : isDown ? TrendingDown : Minus;
-  const sparkColor = isDown ? '#e11d48' : '#ef7f1a';
+  const sparkColor = isDown ? '#e11d48' : '#5a00b8';
 
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs hover:shadow-sm transition-all flex flex-col justify-between">

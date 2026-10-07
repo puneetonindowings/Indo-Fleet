@@ -116,7 +116,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
   if (loading && !data) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3">
-        <RefreshCw className="w-7 h-7 text-[#ef7f1a] animate-spin" />
+        <RefreshCw className="w-7 h-7 text-[#5a00b8] animate-spin" />
         <p className="text-xs font-bold text-slate-500">Loading live business analytics…</p>
       </div>
     );
@@ -159,13 +159,13 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div>
           <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-[#ef7f1a]" /> Business Analytics
+            <BarChart3 className="w-5 h-5 text-[#5a00b8]" /> Business Analytics
           </h2>
           <p className="text-[11px] text-slate-500 font-semibold mt-0.5">{data.range.label} · updated from live database {loading && <RefreshCw className="inline w-3 h-3 animate-spin" />}</p>
         </div>
         <div className="flex items-center gap-2">
           <TimeRangeSelector value={range} onChange={setRange} />
-          <button onClick={load} className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#ef7f1a] text-white text-xs font-bold hover:bg-orange-800 transition-colors shadow-sm">
+          <button onClick={load} className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#5a00b8] text-white text-xs font-bold hover:bg-purple-800 transition-colors shadow-sm">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </button>
         </div>
@@ -181,7 +181,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
           trend={k.totalOrders.trend}
           sparkline={k.totalOrders.sparkline}
           comparisonLabel="vs prev"
-          tone="text-[#ef7f1a] bg-orange-50"
+          tone="text-[#5a00b8] bg-purple-50"
         />
         <KpiCard
           label="Delivered"
@@ -209,7 +209,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
           value={formatNumber(k.availableDrones.value)}
           icon={Plane}
           subtitle={`${formatNumber(k.dispatchedDrones.value)} dispatched`}
-          tone="text-orange-700 bg-orange-50"
+          tone="text-purple-700 bg-purple-50"
         />
       </div>
 
@@ -219,7 +219,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
           { label: "Today's Deliveries", value: k.todaysDeliveries.value, icon: Truck, tone: 'text-emerald-700' },
           { label: 'In Transit Units', value: k.inTransit.value, icon: Plane, tone: 'text-sky-700' },
           { label: 'Pending Dispatch', value: k.pendingDispatches.value, icon: Boxes, tone: 'text-amber-700' },
-          { label: 'Dispatched Fleet', value: k.dispatchedDrones.value, icon: Plane, tone: 'text-orange-700' },
+          { label: 'Dispatched Fleet', value: k.dispatchedDrones.value, icon: Plane, tone: 'text-purple-700' },
           { label: 'Open Tickets', value: k.activeSupportTickets.value, icon: Headphones, tone: 'text-rose-700' }
         ].map((s) => (
           <div key={s.label} className="bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-xs flex items-center gap-3">
@@ -242,15 +242,15 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
               <AreaChart data={trendData} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
                 <defs>
                   <linearGradient id="ordersFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#ef7f1a" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#ef7f1a" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#5a00b8" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#5a00b8" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} minTickGap={16} />
                 <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} allowDecimals={false} />
                 <Tooltip {...ChartTooltipStyle} />
-                <Area type="monotone" dataKey="orders" stroke="#ef7f1a" strokeWidth={2.4} fill="url(#ordersFill)" name="Orders" />
+                <Area type="monotone" dataKey="orders" stroke="#5a00b8" strokeWidth={2.4} fill="url(#ordersFill)" name="Orders" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -348,16 +348,16 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
             <div className="flex flex-wrap gap-2 mb-3">
               <div className="relative flex-1 min-w-[140px]">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search order / customer…" className="w-full pl-8 pr-2.5 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none focus:border-orange-400" />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search order / customer…" className="w-full pl-8 pr-2.5 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none focus:border-purple-400" />
               </div>
-              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-2.5 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 focus:outline-none focus:border-orange-400 bg-white">
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-2.5 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 focus:outline-none focus:border-purple-400 bg-white">
                 <option value="all">All Status</option>
                 {Array.from(new Set((data.todaysDeliveries.list || []).map((r) => r.status))).map((s) => (
                   <option key={s} value={s}>{statusLabel(s)}</option>
                 ))}
               </select>
               {droneModels.length > 0 && (
-                <select value={droneFilter} onChange={(e) => setDroneFilter(e.target.value)} className="px-2.5 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 focus:outline-none focus:border-orange-400 bg-white">
+                <select value={droneFilter} onChange={(e) => setDroneFilter(e.target.value)} className="px-2.5 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 focus:outline-none focus:border-purple-400 bg-white">
                   <option value="all">All Drones</option>
                   {droneModels.map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
@@ -417,7 +417,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
                   label: 'Avg Delivery',
                   value: data.deliveryPerformance.delivered > 0 && data.deliveryPerformance.avgDeliveryMins > 0 ? `${data.deliveryPerformance.avgDeliveryMins}m` : '0m',
                   icon: Clock3,
-                  tone: 'text-orange-600'
+                  tone: 'text-purple-600'
                 },
                 {
                   label: 'Avg Transit',
@@ -446,7 +446,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
               {[
                 { label: 'Available', value: data.inventory.available, tone: 'text-emerald-600' },
                 { label: 'Booked', value: data.inventory.booked, tone: 'text-sky-600' },
-                { label: 'Dispatched', value: data.inventory.dispatched, tone: 'text-orange-600' },
+                { label: 'Dispatched', value: data.inventory.dispatched, tone: 'text-purple-600' },
                 { label: 'Maintenance', value: data.inventory.maintenance, tone: 'text-amber-600' },
                 { label: 'Reserved', value: data.inventory.reserved, tone: 'text-indigo-600' },
                 { label: 'Unavailable', value: data.inventory.damaged, tone: 'text-rose-600' }
@@ -465,7 +465,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
                     <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} allowDecimals={false} />
                     <YAxis type="category" dataKey="model" tick={{ fontSize: 10, fill: '#64748b' }} tickLine={false} axisLine={false} width={92} />
                     <Tooltip {...ChartTooltipStyle} />
-                    <Bar dataKey="count" fill="#ef7f1a" radius={[0, 4, 4, 0]} name="Units" barSize={14} />
+                    <Bar dataKey="count" fill="#5a00b8" radius={[0, 4, 4, 0]} name="Units" barSize={14} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -479,7 +479,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
               {[
                 { label: 'New (period)', value: data.customers.new, tone: 'text-emerald-600' },
                 { label: 'Active', value: data.customers.active, tone: 'text-sky-600' },
-                { label: 'Returning', value: data.customers.returning, tone: 'text-orange-600' },
+                { label: 'Returning', value: data.customers.returning, tone: 'text-purple-600' },
                 { label: 'Pending Orders', value: data.customers.withPendingOrders, tone: 'text-amber-600' }
               ].map((m) => (
                 <div key={m.label} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
@@ -527,9 +527,9 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
               ))}
             </div>
             <div className="flex items-center gap-4">
-              <div className="text-center px-3 py-2 rounded-xl bg-orange-50 border border-orange-100">
-                <p className="text-xl font-black text-[#ef7f1a] leading-none">{data.support.avgResolutionHrs}h</p>
-                <p className="text-[9px] font-bold uppercase tracking-wide text-orange-400 mt-1">Avg Resolution</p>
+              <div className="text-center px-3 py-2 rounded-xl bg-purple-50 border border-purple-100">
+                <p className="text-xl font-black text-[#5a00b8] leading-none">{data.support.avgResolutionHrs}h</p>
+                <p className="text-[9px] font-bold uppercase tracking-wide text-purple-400 mt-1">Avg Resolution</p>
               </div>
               {data.support.byCategory.length > 0 && (
                 <div className="flex-1 h-32">
@@ -573,8 +573,8 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
         <SectionCard title="Quick Actions" subtitle="Role-aware shortcuts">
           <div className="grid grid-cols-2 gap-2.5">
             {quickActions.map((a) => (
-              <button key={a.label} onClick={() => onQuickAction?.(a.tab)} className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 hover:bg-orange-50 border border-slate-100 hover:border-orange-200 text-left transition-colors group">
-                <a.icon className="w-4 h-4 text-[#ef7f1a] shrink-0 group-hover:scale-110 transition-transform" />
+              <button key={a.label} onClick={() => onQuickAction?.(a.tab)} className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 hover:bg-purple-50 border border-slate-100 hover:border-purple-200 text-left transition-colors group">
+                <a.icon className="w-4 h-4 text-[#5a00b8] shrink-0 group-hover:scale-110 transition-transform" />
                 <span className="text-[11px] font-bold text-slate-700 leading-tight">{a.label}</span>
               </button>
             ))}
@@ -587,7 +587,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
             {filteredActivity.length === 0 && <p className="text-xs text-slate-400 font-semibold py-8 text-center">No recent activity.</p>}
             {filteredActivity.map((a, i) => (
               <div key={i} className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors">
-                <div className="w-7 h-7 rounded-lg bg-orange-50 text-[#ef7f1a] flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-purple-50 text-[#5a00b8] flex items-center justify-center shrink-0">
                   <Activity className="w-3.5 h-3.5" />
                 </div>
                 <div className="min-w-0 flex-1">

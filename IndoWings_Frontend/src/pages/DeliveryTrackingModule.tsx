@@ -181,7 +181,7 @@ const DeliveryMap: React.FC<{ order: DeliveryOrder; onEtaUpdate: (orderId: strin
       if (controller.signal.aborted) return;
 
       const points: Array<{ name: string; coordinates: [number, number]; color: string }> = [];
-      if (pickupCoords) points.push({ name: 'Pickup', coordinates: pickupCoords, color: '#ef7f1a' });
+      if (pickupCoords) points.push({ name: 'Pickup', coordinates: pickupCoords, color: '#5a00b8' });
       if (knownCurrent) points.push({ name: 'Last known location', coordinates: knownCurrent, color: '#e11d48' });
       if (destinationCoords) points.push({ name: 'Destination', coordinates: destinationCoords, color: '#15803d' });
 
@@ -286,7 +286,7 @@ const DeliveryMap: React.FC<{ order: DeliveryOrder; onEtaUpdate: (orderId: strin
     <div className="space-y-2">
       <div ref={mapContainer} className="h-72 w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-100" aria-label="Map showing available delivery locations" />
       <div className="flex flex-wrap gap-3 text-[11px] font-semibold text-slate-600">
-        <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-[#ef7f1a]" />Pickup</span>
+        <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-[#5a00b8]" />Pickup</span>
         <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-rose-600" />Last known location</span>
         <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-emerald-700" />Destination</span>
       </div>
@@ -483,7 +483,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-orange-700">Orders &amp; delivery</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-purple-700">Orders &amp; delivery</p>
             <h1 className="mt-1 text-2xl font-black text-slate-900">Delivery Tracking</h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-500">Follow dispatch and delivery progress. No live GPS source is connected; location is shown only when an actual update is recorded.</p>
           </div>
@@ -499,7 +499,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
         {cards.map(([label, value, Icon]) => (
           <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4">
             <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wide text-slate-500">
-              {label}<Icon className="h-4 w-4 text-orange-700" />
+              {label}<Icon className="h-4 w-4 text-purple-700" />
             </div>
             <p className="mt-2 text-2xl font-black text-slate-900">{value || 0}</p>
           </div>
@@ -549,7 +549,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
                   return (
                     <tr key={order.id} className="align-top hover:bg-slate-50/70 transition-colors">
                       <td className="px-4 py-3.5">
-                        <button onClick={() => setSelectedOrder(order)} className="font-mono font-bold text-orange-800 hover:underline text-left block">
+                        <button onClick={() => setSelectedOrder(order)} className="font-mono font-bold text-purple-800 hover:underline text-left block">
                           {order.delivery_id || `DEL-${order.id}`}
                         </button>
                         <p className="mt-0.5 font-mono text-[11px] text-slate-500">{order.id}</p>
@@ -594,7 +594,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
                         {location ? (
                           <div>
                             <p className="flex items-center gap-1 text-slate-800 font-medium text-[11px]">
-                              <MapPin className="h-3.5 w-3.5 shrink-0 text-orange-600" />
+                              <MapPin className="h-3.5 w-3.5 shrink-0 text-purple-600" />
                               <span className="truncate">{location}</span>
                             </p>
                             <p className="text-slate-400 text-[10px] mt-0.5">
@@ -675,7 +675,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
                             )}
 
                             {!isTerminal && (
-                              <button onClick={() => startAction(order, 'reschedule')} className="rounded-lg bg-orange-50 px-2.5 py-1.5 font-bold text-orange-800 hover:bg-orange-100 transition-colors cursor-pointer">
+                              <button onClick={() => startAction(order, 'reschedule')} className="rounded-lg bg-purple-50 px-2.5 py-1.5 font-bold text-purple-800 hover:bg-purple-100 transition-colors cursor-pointer">
                                 Reschedule
                               </button>
                             )}
@@ -706,7 +706,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
       {selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
           <section className="max-h-[90vh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
-            <div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase text-orange-700">Delivery details</p><h2 className="text-xl font-black">{selectedOrder.delivery_id || `DEL-${selectedOrder.id}`}</h2><p className="mt-1 font-mono text-xs text-slate-500">Order ID: {selectedOrder.id}</p></div><button onClick={() => setSelectedOrder(null)} aria-label="Close details"><X /></button></div>
+            <div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase text-purple-700">Delivery details</p><h2 className="text-xl font-black">{selectedOrder.delivery_id || `DEL-${selectedOrder.id}`}</h2><p className="mt-1 font-mono text-xs text-slate-500">Order ID: {selectedOrder.id}</p></div><button onClick={() => setSelectedOrder(null)} aria-label="Close details"><X /></button></div>
             {selectedOrder.status === 'cancelled' ? (
               <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-black text-rose-800">Cancelled · {selectedOrder.cancellation_reason || 'Reason recorded in history'}</div>
             ) : (
@@ -716,7 +716,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
                   const activeStage = deliveryStage(selectedOrder);
                   const complete = index < activeStage || selectedOrder.status === 'delivered' && index === activeStage;
                   const current = index === activeStage && selectedOrder.status !== 'delivered';
-                  return <div key={stage} className="space-y-1 text-center"><div className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full text-xs font-black ${complete ? 'bg-emerald-600 text-white' : current ? 'bg-orange-700 text-white' : 'bg-slate-100 text-slate-400'}`}>{complete ? '✓' : current ? '●' : '○'}</div><p className={`text-[10px] font-bold ${complete || current ? 'text-slate-800' : 'text-slate-400'}`}>{stage}</p></div>;
+                  return <div key={stage} className="space-y-1 text-center"><div className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full text-xs font-black ${complete ? 'bg-emerald-600 text-white' : current ? 'bg-purple-700 text-white' : 'bg-slate-100 text-slate-400'}`}>{complete ? '✓' : current ? '●' : '○'}</div><p className={`text-[10px] font-bold ${complete || current ? 'text-slate-800' : 'text-slate-400'}`}>{stage}</p></div>;
                 })}</div>
               </div>
             )}
@@ -750,7 +750,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
               ].map(([label, value]) => <div key={label} className="rounded-xl bg-slate-50 p-3"><p className="text-[10px] font-bold uppercase text-slate-500">{label}</p><p className="mt-1 text-sm font-semibold text-slate-800">{value}</p></div>)}
             </div>
             {selectedOrder.mapbox_route_url && (
-              <a href={selectedOrder.mapbox_route_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-orange-50 px-4 py-2.5 text-xs font-bold text-orange-800 hover:bg-orange-100">
+              <a href={selectedOrder.mapbox_route_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-purple-50 px-4 py-2.5 text-xs font-bold text-purple-800 hover:bg-purple-100">
                 Open Mapbox route <ExternalLink className="h-4 w-4" />
               </a>
             )}
@@ -760,7 +760,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
               </a>
             )}
             <p className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">Porter ID is saved against this order for the team to track in Porter. The ID alone does not provide live coordinates inside IndoFleet; that requires Porter tracking API/webhook access or manually entering location updates.</p>
-            <p className="rounded-xl border border-orange-200 bg-orange-50 p-3 text-xs text-slate-900">The Mapbox URL is assigned per delivery by an administrator or dispatcher. It opens the supplied route; ETA here is separately calculated from saved coordinates and the configured Mapbox Directions token.</p>
+            <p className="rounded-xl border border-purple-200 bg-purple-50 p-3 text-xs text-slate-900">The Mapbox URL is assigned per delivery by an administrator or dispatcher. It opens the supplied route; ETA here is separately calculated from saved coordinates and the configured Mapbox Directions token.</p>
             <div className="space-y-3 rounded-2xl border border-slate-200 p-4">
               <div>
                 <h3 className="font-bold text-slate-900">MapTiler delivery map</h3>
@@ -772,7 +772,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
                 {selectedOrder.last_location_updated_at ? ` Last GPS update: ${formatDate(selectedOrder.last_location_updated_at)}.` : ' No last-known GPS coordinate has been recorded.'}
               </p>
             </div>
-            <div><h3 className="mb-2 font-bold text-slate-900">Delivery history</h3><div className="space-y-2">{[...(selectedOrder.timeline || [])].reverse().map((entry, index) => <div key={index} className="rounded-xl border border-slate-100 p-3 text-xs"><strong>{String(entry.step || 'Update')}</strong><p className="mt-1 text-slate-500">{formatDate(String(entry.time || ''))}{entry.details ? ` · ${entry.details}` : ''}{entry.performed_by ? ` · ${entry.performed_by}` : ''}</p></div>)}{(selectedOrder.delivery_audit_log || []).slice().reverse().map((entry, index) => <div key={`audit-${index}`} className="rounded-xl border border-orange-100 bg-orange-50/40 p-3 text-xs"><strong>{entry.action === 'porter_tracking_updated' ? 'Porter tracking updated' : `${String(entry.action)} · ${String(entry.previous_status)} → ${String(entry.new_status)}`}</strong><p className="mt-1 text-slate-600">{String(entry.reason || '')} · {String(entry.performed_by || '')}{entry.action !== 'porter_tracking_updated' && ` · OTP ${entry.otp_verified ? 'verified' : 'not verified'} by ${String(entry.otp_method)}`} · {formatDate(String(entry.timestamp || ''))}</p></div>)}</div></div>
+            <div><h3 className="mb-2 font-bold text-slate-900">Delivery history</h3><div className="space-y-2">{[...(selectedOrder.timeline || [])].reverse().map((entry, index) => <div key={index} className="rounded-xl border border-slate-100 p-3 text-xs"><strong>{String(entry.step || 'Update')}</strong><p className="mt-1 text-slate-500">{formatDate(String(entry.time || ''))}{entry.details ? ` · ${entry.details}` : ''}{entry.performed_by ? ` · ${entry.performed_by}` : ''}</p></div>)}{(selectedOrder.delivery_audit_log || []).slice().reverse().map((entry, index) => <div key={`audit-${index}`} className="rounded-xl border border-purple-100 bg-purple-50/40 p-3 text-xs"><strong>{entry.action === 'porter_tracking_updated' ? 'Porter tracking updated' : `${String(entry.action)} · ${String(entry.previous_status)} → ${String(entry.new_status)}`}</strong><p className="mt-1 text-slate-600">{String(entry.reason || '')} · {String(entry.performed_by || '')}{entry.action !== 'porter_tracking_updated' && ` · OTP ${entry.otp_verified ? 'verified' : 'not verified'} by ${String(entry.otp_method)}`} · {formatDate(String(entry.timestamp || ''))}</p></div>)}</div></div>
           </section>
         </div>
       )}
@@ -821,9 +821,9 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
                 <option value="phone" disabled={!currentUser?.phone}>SMS{currentUser?.phone ? ` (${currentUser.phone})` : ' unavailable'}</option>
               </select>
             </label>
-            {!otpRequested ? <button type="button" onClick={() => void requestOtp()} disabled={busy || reason.trim().length < 5} className="w-full rounded-xl bg-orange-800 py-3 text-sm font-bold text-white disabled:opacity-50">{busy ? 'Sending…' : 'Send verification code'}</button> : <>
+            {!otpRequested ? <button type="button" onClick={() => void requestOtp()} disabled={busy || reason.trim().length < 5} className="w-full rounded-xl bg-purple-800 py-3 text-sm font-bold text-white disabled:opacity-50">{busy ? 'Sending…' : 'Send verification code'}</button> : <>
               <label className="block space-y-1 text-xs font-bold text-slate-700">Verification code<input required inputMode="numeric" value={otp} onChange={event => setOtp(event.target.value)} className="w-full rounded-xl border border-slate-200 p-3 text-sm tracking-widest" /></label>
-              <button disabled={busy || !otp.trim()} className="w-full rounded-xl bg-orange-800 py-3 text-sm font-bold text-white disabled:opacity-50">{busy ? 'Verifying…' : 'Verify and confirm action'}</button>
+              <button disabled={busy || !otp.trim()} className="w-full rounded-xl bg-purple-800 py-3 text-sm font-bold text-white disabled:opacity-50">{busy ? 'Verifying…' : 'Verify and confirm action'}</button>
             </>}
             {error && <p role="alert" className="text-sm font-semibold text-rose-700">{error}</p>}
             <p className="text-[11px] text-slate-500">Signed in as {currentUser?.name || 'operations user'}. OTP is required before this change is saved.</p>
