@@ -116,17 +116,17 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
   const dashboardInfo = currentUser ? getDashboardInfo(currentUser.role) : null;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 w-full pt-2.5 sm:pt-3.5 px-3 sm:px-6 pointer-events-none transition-all duration-300">
+    <header className="fixed top-0 left-0 right-0 z-50 w-full pt-2 sm:pt-3.5 px-2.5 sm:px-6 pointer-events-none transition-all duration-300">
       {/* ── Floating Cylindrical Glassmorphic Capsule ────────────────── */}
       <div
-        className={`max-w-[1360px] mx-auto h-[64px] sm:h-[68px] px-4 sm:px-6 rounded-full flex items-center justify-between pointer-events-auto transition-all duration-300 ${
+        className={`max-w-[1360px] mx-auto h-[58px] sm:h-[68px] px-3 sm:px-6 rounded-full flex items-center justify-between pointer-events-auto transition-all duration-300 ${
           scrolled ? 'navbar-glass-capsule-scrolled' : 'navbar-glass-capsule'
         }`}
       >
         {/* ── Brand Logo (Bigger & Crisp) ───────────────────────────── */}
-        <div className="flex items-center gap-3 shrink-0">
-          <a href="/" onClick={nav('home', '/')} className="flex items-center gap-3 group">
-            <img src="/indofleet-logo-dark.svg" alt="IndoFleet" className="h-9 sm:h-10 w-auto object-contain transition-transform group-hover:scale-[1.02]" />
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <a href="/" onClick={nav('home', '/')} className="flex items-center gap-2 group">
+            <img src="/indofleet-logo-dark.svg" alt="IndoFleet" className="h-8 sm:h-10 w-auto object-contain transition-transform group-hover:scale-[1.02]" />
           </a>
         </div>
 
@@ -169,15 +169,15 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
         </nav>
 
         {/* ── Right Actions ─────────────────────────────────────────── */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {/* Cart Quick Access */}
           <a
             href="/store"
             onClick={nav('shop', '/store')}
-            className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200/90 hover:border-orange-300 hover:bg-orange-50/80 bg-white/70 backdrop-blur-sm transition-all shadow-sm text-slate-700 hover:text-[#ef7f1a]"
+            className="relative flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full border border-slate-200/90 hover:border-orange-300 hover:bg-orange-50/80 bg-white/70 backdrop-blur-sm transition-all shadow-xs text-slate-700 hover:text-[#ef7f1a] shrink-0"
             title="Consignment Cart"
           >
-            <ShoppingCart className="w-4 h-4 text-[#ef7f1a]" />
+            <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#ef7f1a]" />
             <span className="hidden sm:inline text-xs font-bold">Cart</span>
             {cartCount > 0 && (
               <span className="px-1.5 py-0.2 bg-[#ef7f1a] text-white text-[10px] font-black rounded-full min-w-[18px] text-center leading-tight">
@@ -188,12 +188,12 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
 
           {/* User Auth / Profile Dropdown */}
           {currentUser ? (
-            <div className="relative" ref={profileRef} onMouseEnter={() => handleMouseEnter('profile')} onMouseLeave={handleMouseLeave}>
+            <div className="relative shrink-0" ref={profileRef} onMouseEnter={() => handleMouseEnter('profile')} onMouseLeave={handleMouseLeave}>
               <button
                 onClick={() => setOpenDropdown(openDropdown === 'profile' ? null : 'profile')}
-                className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full border border-slate-200 hover:border-orange-300 hover:bg-slate-50 bg-white transition-all shadow-2xs cursor-pointer"
+                className="flex items-center gap-1.5 sm:gap-2 pl-2 pr-2.5 sm:pr-3 py-1.5 rounded-full border border-slate-200 hover:border-orange-300 hover:bg-slate-50 bg-white transition-all shadow-2xs cursor-pointer"
               >
-                <div className="w-6 h-6 rounded-full bg-[#191b30] flex items-center justify-center text-white text-xs font-bold">
+                <div className="w-6 h-6 rounded-full bg-[#191b30] flex items-center justify-center text-white text-xs font-bold shrink-0">
                   {currentUser.name?.[0]?.toUpperCase() || 'U'}
                 </div>
                 <div className="text-left hidden sm:block">
@@ -258,7 +258,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
           ) : (
             <button
               onClick={onOpenAuth}
-              className="flex items-center gap-2 text-[14px] font-bold text-white bg-[#ef7f1a] hover:bg-[#d96e11] px-5 py-2.5 rounded-full shadow-md shadow-orange-900/20 transition-all active:scale-95"
+              className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-[14px] font-bold text-white bg-[#ef7f1a] hover:bg-[#d96e11] px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-full shadow-md shadow-orange-900/20 transition-all active:scale-95 whitespace-nowrap cursor-pointer shrink-0"
             >
               <User className="w-3.5 h-3.5" />
               <span>Sign In</span>
@@ -266,7 +266,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
           )}
 
           {/* Mobile hamburger */}
-          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden p-2 rounded-full text-slate-600 hover:bg-slate-100 transition-colors ml-1">
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden p-1.5 sm:p-2 rounded-full text-slate-600 hover:bg-slate-100 transition-colors shrink-0">
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
