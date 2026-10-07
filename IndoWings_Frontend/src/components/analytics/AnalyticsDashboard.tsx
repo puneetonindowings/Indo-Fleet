@@ -139,8 +139,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
   const comparisonItems = [
     { label: 'Orders', d: data.comparison.orders, fmt: formatNumber, icon: Package },
     { label: 'Deliveries', d: data.comparison.deliveries, fmt: formatNumber, icon: Truck },
-    { label: 'New Customers', d: data.comparison.newCustomers, fmt: formatNumber, icon: Users },
-    ...(canSeeRevenue ? [{ label: 'Revenue', d: data.comparison.revenue, fmt: formatCompactCurrency, icon: IndianRupee }] : [])
+    { label: 'New Customers', d: data.comparison.newCustomers, fmt: formatNumber, icon: Users }
   ];
 
   const quickActions = [
@@ -174,34 +173,68 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
 
       {/* ── ROW 1: PRIMARY KPI CARDS ───────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3.5">
-        <KpiCard label="Total Orders" value={formatNumber(k.totalOrders.current)} icon={Package} deltaPct={k.totalOrders.deltaPct} trend={k.totalOrders.trend} sparkline={k.totalOrders.sparkline} tone="text-[#ef7f1a] bg-orange-50" />
-        {canSeeRevenue && <KpiCard label="Total Revenue" value={formatCompactCurrency(k.totalRevenue.current)} icon={IndianRupee} deltaPct={k.totalRevenue.deltaPct} trend={k.totalRevenue.trend} sparkline={k.totalRevenue.sparkline} tone="text-emerald-700 bg-emerald-50" />}
-        <KpiCard label="Today's Orders" value={formatNumber(k.todaysOrders.value)} icon={Zap} subtitle={`${formatNumber(k.todaysDeliveries.value)} delivered today`} tone="text-amber-700 bg-amber-50" />
-        <KpiCard label="Pending Orders" value={formatNumber(k.pendingOrders.value)} icon={Clock3} subtitle={`${formatNumber(k.inTransit.value)} in transit`} tone="text-sky-700 bg-sky-50" />
-        <KpiCard label="Available Drones" value={formatNumber(k.availableDrones.value)} icon={Plane} subtitle={`${formatNumber(k.dispatchedDrones.value)} dispatched`} tone="text-orange-700 bg-orange-50" />
+        <KpiCard
+          label="Total Orders"
+          value={formatNumber(k.totalOrders.current)}
+          icon={Package}
+          deltaPct={k.totalOrders.deltaPct}
+          trend={k.totalOrders.trend}
+          sparkline={k.totalOrders.sparkline}
+          comparisonLabel="vs prev"
+          tone="text-[#ef7f1a] bg-orange-50"
+        />
+        <KpiCard
+          label="Delivered"
+          value={formatNumber(k.completedOrders.value)}
+          icon={CheckCircle2}
+          subtitle={`${formatNumber(k.todaysDeliveries.value)} delivered today`}
+          tone="text-emerald-700 bg-emerald-50"
+        />
+        <KpiCard
+          label="Pending Orders"
+          value={formatNumber(k.pendingOrders.value)}
+          icon={Clock3}
+          subtitle={`${formatNumber(k.inTransit.value)} in transit`}
+          tone="text-sky-700 bg-sky-50"
+        />
+        <KpiCard
+          label="Cancelled"
+          value={formatNumber(k.cancelledOrders?.value || 0)}
+          icon={XCircle}
+          subtitle="Voided / returned"
+          tone="text-rose-700 bg-rose-50"
+        />
+        <KpiCard
+          label="Available Drones"
+          value={formatNumber(k.availableDrones.value)}
+          icon={Plane}
+          subtitle={`${formatNumber(k.dispatchedDrones.value)} dispatched`}
+          tone="text-orange-700 bg-orange-50"
+        />
       </div>
 
       {/* secondary KPI strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
         {[
           { label: "Today's Deliveries", value: k.todaysDeliveries.value, icon: Truck, tone: 'text-emerald-700' },
-          { label: 'In Transit', value: k.inTransit.value, icon: Plane, tone: 'text-sky-700' },
-          { label: 'Completed', value: k.completedOrders.value, icon: CheckCircle2, tone: 'text-emerald-700' },
+          { label: 'In Transit Units', value: k.inTransit.value, icon: Plane, tone: 'text-sky-700' },
           { label: 'Pending Dispatch', value: k.pendingDispatches.value, icon: Boxes, tone: 'text-amber-700' },
-          { label: 'Dispatched Drones', value: k.dispatchedDrones.value, icon: Plane, tone: 'text-orange-700' },
+          { label: 'Dispatched Fleet', value: k.dispatchedDrones.value, icon: Plane, tone: 'text-orange-700' },
           { label: 'Open Tickets', value: k.activeSupportTickets.value, icon: Headphones, tone: 'text-rose-700' }
         ].map((s) => (
-          <div key={s.label} className="bg-white border border-slate-200 rounded-xl px-3.5 py-3 shadow-xs flex items-center gap-3">
-            <s.icon className={`w-4 h-4 ${s.tone} shrink-0`} />
+          <div key={s.label} className="bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-xs flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-slate-50 shrink-0">
+              <s.icon className={`w-4 h-4 ${s.tone}`} />
+            </div>
             <div className="min-w-0">
               <p className="text-lg font-black text-slate-900 leading-none">{formatNumber(s.value)}</p>
-              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 truncate mt-1">{s.label}</p>
+              <p className="text-[11px] font-bold text-slate-500 mt-1 whitespace-nowrap">{s.label}</p>
             </div>
           </div>
         ))}
       </div>
 
-      {/* ── ROW 2: ORDERS + REVENUE TRENDS ─────────────────────────────── */}
+      {/* ── ROW 2: ORDERS + DELIVERIES TRENDS ───────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <SectionCard title="Orders Overview" subtitle={`Order volume trend · ${data.range.granularity}`}>
           <div className="h-64">
@@ -223,48 +256,26 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
           </div>
         </SectionCard>
 
-        {canSeeRevenue ? (
-          <SectionCard title="Revenue Over Time" subtitle={`Gross settled + in-flight cargo value · ${data.range.label}`}>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data.revenue.trend} margin={{ top: 6, right: 8, left: -8, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="revFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#059669" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="#059669" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} minTickGap={16} />
-                  <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} tickFormatter={(v) => formatCompactCurrency(v)} width={54} />
-                  <Tooltip {...ChartTooltipStyle} formatter={(v: any) => formatCurrency(Number(v))} />
-                  <Area type="monotone" dataKey="revenue" stroke="#059669" strokeWidth={2.4} fill="url(#revFill)" name="Revenue" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </SectionCard>
-        ) : (
-          <SectionCard title="Deliveries Trend" subtitle="Delivered vs failed vs delayed">
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.deliveryPerformance.trend} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} minTickGap={16} />
-                  <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} allowDecimals={false} />
-                  <Tooltip {...ChartTooltipStyle} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Line type="monotone" dataKey="delivered" stroke="#15803d" strokeWidth={2} dot={false} name="Delivered" />
-                  <Line type="monotone" dataKey="failed" stroke="#b91c1c" strokeWidth={2} dot={false} name="Failed" />
-                  <Line type="monotone" dataKey="delayed" stroke="#ea580c" strokeWidth={2} dot={false} name="Delayed" />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </SectionCard>
-        )}
+        <SectionCard title="Deliveries Trend" subtitle="Delivered vs failed vs delayed">
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data.deliveryPerformance.trend} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} minTickGap={16} />
+                <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip {...ChartTooltipStyle} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Line type="monotone" dataKey="delivered" stroke="#15803d" strokeWidth={2} dot={false} name="Delivered" />
+                <Line type="monotone" dataKey="failed" stroke="#b91c1c" strokeWidth={2} dot={false} name="Failed" />
+                <Line type="monotone" dataKey="delayed" stroke="#ea580c" strokeWidth={2} dot={false} name="Delayed" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </SectionCard>
       </div>
 
-      {/* ── ROW 3: STATUS DISTRIBUTION | ORDERS VS REVENUE | COMPARISON ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      {/* ── ROW 3: STATUS DISTRIBUTION + PERIOD COMPARISON ──────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <SectionCard title="Order Status Breakdown" subtitle="Distribution across statuses in range">
           {data.statusDistribution.length === 0 ? (
             <p className="text-xs text-slate-400 font-semibold py-10 text-center">No orders in this period.</p>
@@ -297,26 +308,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
           )}
         </SectionCard>
 
-        {canSeeRevenue && (
-          <SectionCard title="Orders vs Revenue" subtitle="Volume compared with revenue movement">
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={data.ordersVsRevenue} margin={{ top: 6, right: 4, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} minTickGap={16} />
-                  <YAxis yAxisId="left" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} allowDecimals={false} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} tickFormatter={(v) => formatCompactCurrency(v)} width={50} />
-                  <Tooltip {...ChartTooltipStyle} formatter={(v: any, n: any) => (n === 'Revenue' ? formatCurrency(Number(v)) : formatNumber(Number(v)))} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar yAxisId="left" dataKey="orders" fill="#c4b5fd" radius={[4, 4, 0, 0]} name="Orders" barSize={14} />
-                  <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#059669" strokeWidth={2.2} dot={false} name="Revenue" />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </SectionCard>
-        )}
-
-        <SectionCard title="Period Comparison" subtitle="Current vs previous period" className={canSeeRevenue ? '' : 'lg:col-span-2'}>
+        <SectionCard title="Period Comparison" subtitle="Current vs previous period">
           <div className="space-y-3">
             {comparisonItems.map((item) => {
               const up = item.d.trend === 'up';
@@ -415,9 +407,24 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
             <div className="grid grid-cols-2 gap-3">
               {[
                 { label: 'Delivered', value: formatNumber(data.deliveryPerformance.delivered), icon: CheckCircle2, tone: 'text-emerald-600' },
-                { label: 'On-Time %', value: `${data.deliveryPerformance.onTimePct}%`, icon: Timer, tone: 'text-sky-600' },
-                { label: 'Avg Delivery', value: `${data.deliveryPerformance.avgDeliveryMins}m`, icon: Clock3, tone: 'text-orange-600' },
-                { label: 'Avg Transit', value: `${data.deliveryPerformance.avgTransitMins}m`, icon: Plane, tone: 'text-indigo-600' },
+                {
+                  label: 'On-Time %',
+                  value: data.deliveryPerformance.delivered > 0 ? `${data.deliveryPerformance.onTimePct}%` : '0%',
+                  icon: Timer,
+                  tone: 'text-sky-600'
+                },
+                {
+                  label: 'Avg Delivery',
+                  value: data.deliveryPerformance.delivered > 0 && data.deliveryPerformance.avgDeliveryMins > 0 ? `${data.deliveryPerformance.avgDeliveryMins}m` : '0m',
+                  icon: Clock3,
+                  tone: 'text-orange-600'
+                },
+                {
+                  label: 'Avg Transit',
+                  value: data.deliveryPerformance.avgTransitMins > 0 ? `${data.deliveryPerformance.avgTransitMins}m` : '0m',
+                  icon: Plane,
+                  tone: 'text-indigo-600'
+                },
                 { label: 'Delayed', value: formatNumber(data.deliveryPerformance.delayed), icon: AlertTriangle, tone: 'text-amber-600' },
                 { label: 'Failed', value: formatNumber(data.deliveryPerformance.failed), icon: XCircle, tone: 'text-rose-600' }
               ].map((m) => (
@@ -560,47 +567,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
         )}
       </div>
 
-      {/* ── ROW 7: TOP PERFORMERS + QUICK ACTIONS + RECENT ACTIVITY ─────── */}
-      {isAdmin && data.topPerformers.drones.length > 0 && (
-        <SectionCard title="Top Performing Data" subtitle="Rankings derived from real order, dispatch and customer data">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5 text-amber-500" /> Top Drones</p>
-              <div className="space-y-1.5">
-                {data.topPerformers.drones.map((d, i) => (
-                  <div key={d.model} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="flex items-center gap-2 min-w-0"><span className="text-[10px] font-black text-slate-400 w-3">{i + 1}</span><span className="text-[11px] font-bold text-slate-700 truncate">{d.model}</span></span>
-                    <span className="text-[11px] font-black text-slate-900 shrink-0">{d.orders} u · {formatCompactCurrency(d.revenue)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5 text-amber-500" /> Top Customers</p>
-              <div className="space-y-1.5">
-                {data.topPerformers.topCustomers.map((c, i) => (
-                  <div key={c.name + i} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="flex items-center gap-2 min-w-0"><span className="text-[10px] font-black text-slate-400 w-3">{i + 1}</span><span className="text-[11px] font-bold text-slate-700 truncate">{c.name}</span></span>
-                    <span className="text-[11px] font-black text-slate-900 shrink-0">{c.orders} · {formatCompactCurrency(c.revenue)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5 text-amber-500" /> Top Dispatchers</p>
-              <div className="space-y-1.5">
-                {data.topPerformers.topAgents.length === 0 && <p className="text-[11px] text-slate-400 font-semibold">No dispatch records yet.</p>}
-                {data.topPerformers.topAgents.map((a, i) => (
-                  <div key={a.name + i} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="flex items-center gap-2 min-w-0"><span className="text-[10px] font-black text-slate-400 w-3">{i + 1}</span><span className="text-[11px] font-bold text-slate-700 truncate">{a.name}</span></span>
-                    <span className="text-[11px] font-black text-slate-900 shrink-0">{a.dispatches}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </SectionCard>
-      )}
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <SectionCard title="Quick Actions" subtitle="Role-aware shortcuts">

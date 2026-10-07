@@ -30,7 +30,13 @@ import {
   RotateCcw,
   Image as ImageIcon,
   CheckCircle,
-  HelpCircle
+  HelpCircle,
+  ShoppingBag,
+  Copy,
+  MapPin,
+  Calendar,
+  Hash,
+  ExternalLink
 } from 'lucide-react';
 import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
@@ -137,6 +143,22 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [dispatchCarrier, setDispatchCarrier] = useState('IndoWings Secured Fleet Van');
   const [dispatchNotes, setDispatchNotes] = useState('Pre-dispatch hardware QC verified');
 
+  // Reserved Drone & Customer Booking Inspection
+  const [selectedReservedDrone, setSelectedReservedDrone] = useState<any | null>(null);
+  const [copiedText, setCopiedText] = useState<string | null>(null);
+
+  const getLinkedOrderForDrone = (drone: any) => {
+    if (!drone) return null;
+    const assignedId = drone.assigned_order || drone.delivery_data?.assigned_order;
+    if (assignedId) {
+      const byId = orders.find((o) => o.id === assignedId);
+      if (byId) return byId;
+    }
+    const byReservedList = orders.find((o) => Array.isArray(o.reserved_inventory_ids) && o.reserved_inventory_ids.includes(drone.id));
+    if (byReservedList) return byReservedList;
+    return null;
+  };
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
@@ -228,15 +250,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     }
   };
 
-  // 2. ADMIN VERIFIES OTP & PROVISIONS NEW USER
+  // 2. ADMIN PROVISIONS NEW USER DIRECTLY (NO OTP REQUIRED)
   const handleProvisionUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!provName.trim() || !provEmail.trim() || parsePhone(provPhone).national.length < 6 || !provRole) {
       setAdminOtpError('Full Name, valid Email, valid Phone number, and Role are mandatory.');
-      return;
-    }
-    if (!adminOtp.trim()) {
-      setAdminOtpError('Please enter your 6-digit Admin Security OTP.');
       return;
     }
     if (!provTempPass.trim() || provTempPass.trim().length < 6) {
@@ -376,10 +394,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   // Add Single Drone
   const handleAddSingleDrone = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inventoryOtpSent || !inventoryOtp.trim()) {
-      setAdminOtpError('Request and enter the administrator OTP before adding a drone.');
-      return;
-    }
     try {
       const res = await fetch(`${API_BASE_URL}/api/delivery/drones`, {
         method: 'POST',
@@ -388,7 +402,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
           Authorization: `Bearer ${localStorage.getItem('iw_delivery_token') || ''}`
         },
         body: JSON.stringify({
-          ...inventoryOtpFields(),
           id: newDroneId.trim(),
           model: newDroneModel.trim(),
           serial_number: newDroneSerial.trim() || newDroneId.trim(),
@@ -427,10 +440,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
       alert('Please specify at least 1 drone.');
       return;
     }
-    if (!inventoryOtpSent || !inventoryOtp.trim()) {
-      setAdminOtpError('Request and enter the administrator OTP before adding inventory.');
-      return;
-    }
     setBulkSubmitting(true);
     try {
       let dronesData: DroneImportRow[] | undefined = bulkRows.length ? bulkRows : undefined;
@@ -445,7 +454,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
           Authorization: `Bearer ${localStorage.getItem('iw_delivery_token') || ''}`
         },
         body: JSON.stringify({
-          ...inventoryOtpFields(),
           drones: dronesData,
           count: bulkCount,
           model: bulkModel,
@@ -474,8 +482,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
 
   const handleEditDrone = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingDrone || !inventoryOtpSent || !inventoryOtp.trim()) {
-      setAdminOtpError('Request and enter the administrator OTP before saving changes.');
+    if (!editingDrone) {
       return;
     }
     try {
@@ -486,7 +493,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
           Authorization: `Bearer ${localStorage.getItem('iw_delivery_token') || ''}`
         },
         body: JSON.stringify({
-          ...inventoryOtpFields(),
           model: editingDroneModel.trim(),
           serial_number: editingDroneSerial.trim() || editingDrone.id,
           category: editingDroneCategory.trim() || 'General UAV',
@@ -601,11 +607,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
 
   const filteredDrones = drones.filter((d) => {
     const isVerified = d.is_verified === true || d.verification_status === 'verified';
+    const isReserved = d.status === 'reserved' || d.status === 'en-route' || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order);
+    const isIdle = (d.status === 'idle' || !d.status) && !d.assigned_order && !d.delivery_data?.assigned_order;
+
     if (droneFilter === 'verified' && !isVerified) return false;
     if (droneFilter === 'unverified' && isVerified) return false;
+    if (droneFilter === 'reserved' && !isReserved) return false;
+    if (droneFilter === 'idle' && !isIdle) return false;
     if (droneFilter === 'qc_passed' && d.qc_status !== 'passed') return false;
     if (droneFilter === 'qc_pending' && d.qc_status === 'passed') return false;
-    if (droneFilter === 'idle' && d.status !== 'idle') return false;
     if (droneFilter === 'en-route' && d.status !== 'en-route' && d.status !== 'in-flight') return false;
 
     if (droneSearchQuery.trim()) {
@@ -615,7 +625,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
       const matchSerial = String(d.serial_number || '').toLowerCase().includes(q);
       const matchCat = String(d.category || '').toLowerCase().includes(q);
       const matchCity = String(d.current_city || '').toLowerCase().includes(q);
-      if (!matchId && !matchModel && !matchSerial && !matchCat && !matchCity) return false;
+      const matchOrder = String(d.assigned_order || d.delivery_data?.assigned_order || '').toLowerCase().includes(q);
+      if (!matchId && !matchModel && !matchSerial && !matchCat && !matchCity && !matchOrder) return false;
     }
     return true;
   });
@@ -633,6 +644,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const qcCertifiedCount = drones.filter((d) => d.qc_status === 'passed').length;
   const verifiedDronesCount = drones.filter((d) => d.is_verified === true || d.verification_status === 'verified').length;
   const unverifiedDronesCount = drones.length - verifiedDronesCount;
+  const reservedDrones = drones.filter((d) => d.status === 'reserved' || d.status === 'en-route' || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order));
+  const reservedDronesCount = reservedDrones.length;
+  const idleDronesCount = drones.filter((d) => (d.status === 'idle' || !d.status) && !d.assigned_order && !d.delivery_data?.assigned_order).length;
   const activeAccountsCount = users.filter((user) => user.status === 'active').length;
 
   return (
@@ -797,12 +811,26 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                 className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
                                   o.status === 'delivered'
                                     ? 'bg-emerald-100 text-emerald-800'
-                                    : ['in-flight', 'in_transit', 'assigned'].includes(o.status)
-                                      ? 'bg-sky-100 text-sky-800'
-                                      : 'bg-slate-100 text-slate-700'
+                                    : o.status === 'cancelled'
+                                      ? 'bg-rose-100 text-rose-800'
+                                      : o.status === 'pending'
+                                        ? 'bg-amber-100 text-amber-800'
+                                        : ['in-flight', 'in_transit', 'assigned', 'taking-off', 'out-for-delivery'].includes(o.status)
+                                          ? 'bg-sky-100 text-sky-800'
+                                          : 'bg-slate-100 text-slate-700'
                                 }`}
                               >
-                                {o.status === 'delivered' ? 'Delivered & Accepted' : 'In Transit'}
+                                {o.status === 'delivered'
+                                  ? 'Delivered & Accepted'
+                                  : o.status === 'cancelled'
+                                    ? 'Cancelled'
+                                    : o.status === 'pending'
+                                      ? 'Pending Processing'
+                                      : ['in-flight', 'in_transit'].includes(o.status)
+                                        ? 'In Flight'
+                                        : o.status === 'assigned'
+                                          ? 'Assigned / Dispatched'
+                                          : o.status || 'Active'}
                               </span>
                             </td>
                             <td className="py-3 px-4 text-right">
@@ -850,10 +878,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   <div className="flex items-center gap-2">
                     <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white">
                       <option value="all">All Roles</option>
-                      <option value="admin">Super Admin</option>
+                      <option value="admin">Admin</option>
                       <option value="fleet_manager">Fleet Manager</option>
                       <option value="dispatcher">Dispatcher</option>
-                      <option value="support">Support Specialist</option>
+                      <option value="support">Support</option>
                       <option value="customer">Customer</option>
                     </select>
 
@@ -1045,22 +1073,22 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                             onChange={(e) => setProvRole(e.target.value as any)}
                             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold bg-white focus:outline-none focus:border-[#ef7f1a]"
                           >
-                            <option value="dispatcher">Dispatcher (Outbound Drone Shipments &amp; Consignments)</option>
-                            <option value="fleet_manager">Fleet &amp; QC Manager (Drone Inventory &amp; Hardware Certification)</option>
-                            <option value="support">Support Desk Officer (Customer Inquiries &amp; Assistance)</option>
-                            <option value="customer">Customer (Drone Storefront &amp; Order Tracking)</option>
-                            <option value="admin">Super Admin (Full Control Over Entire System)</option>
+                            <option value="admin">Admin</option>
+                            <option value="fleet_manager">Fleet Manager</option>
+                            <option value="dispatcher">Dispatcher</option>
+                            <option value="support">Support</option>
+                            <option value="customer">Customer</option>
                           </select>
                         </div>
 
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1.5">Temporary Initial Password</label>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">Initial Password</label>
                           <div className="flex gap-2">
                             <input
                               type="text"
                               value={provTempPass}
                               onChange={(e) => setProvTempPass(e.target.value)}
-                              placeholder="Enter initial temporary passkey (min 6 chars)"
+                              placeholder="Enter initial password (min 6 chars)"
                               className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono focus:outline-none focus:border-[#ef7f1a] bg-slate-50/50"
                             />
                             <button
@@ -1068,99 +1096,33 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                               onClick={() => setProvTempPass('IW@' + Math.floor(1000 + Math.random() * 9000))}
                               className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl whitespace-nowrap cursor-pointer"
                             >
-                              Generate Passkey
+                              Generate Password
                             </button>
                           </div>
-                          <p className="text-[11px] text-slate-400 mt-1">User will be required to verify identity and set their permanent password upon first login.</p>
+                          <p className="text-[11px] text-slate-400 mt-1">Default temporary password for first login.</p>
                         </div>
                       </div>
 
-                      {/* Step 2: Admin OTP Verification */}
-                      <div className="border-t border-slate-100 pt-5 space-y-4">
-                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full bg-orange-100 text-[#ef7f1a] flex items-center justify-center text-xs">2</span>
-                          Admin Authorization (OTP Verification)
-                        </h3>
+                      {adminOtpError && (
+                        <p className="text-xs text-red-600 font-bold flex items-center gap-1.5 bg-red-50 p-3 rounded-xl border border-red-200">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>{adminOtpError}</span>
+                        </p>
+                      )}
 
-                        <div className="bg-orange-50/70 border border-orange-100 rounded-2xl p-4 space-y-3">
-                          <p className="text-xs text-slate-600 leading-relaxed">To authorize creating this account, enter the OTP sent to your registered Admin channel:</p>
+                      <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                        <button type="button" onClick={resetProvisioningForm} className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer">
+                          Reset Form
+                        </button>
 
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setAdminOtpChannel('email');
-                                setAdminOtpSent(false);
-                              }}
-                              className={`p-2.5 rounded-xl border text-xs font-bold text-left transition-all ${
-                                adminOtpChannel === 'email' ? 'border-[#ef7f1a] bg-white text-[#ef7f1a] shadow-xs' : 'border-orange-200 text-slate-600 bg-transparent'
-                              }`}
-                            >
-                              <p>Admin Email</p>
-                              <p className="text-[10px] text-slate-400 font-normal truncate">{currentUser?.email || 'No admin email on account'}</p>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setAdminOtpChannel('phone');
-                                setAdminOtpSent(false);
-                              }}
-                              className={`p-2.5 rounded-xl border text-xs font-bold text-left transition-all ${
-                                adminOtpChannel === 'phone' ? 'border-[#ef7f1a] bg-white text-[#ef7f1a] shadow-xs' : 'border-orange-200 text-slate-600 bg-transparent'
-                              }`}
-                            >
-                              <p>Admin Phone</p>
-                              <p className="text-[10px] text-slate-400 font-normal truncate">{currentUser?.phone || 'No admin phone on account'}</p>
-                            </button>
-                          </div>
-
-                          {!adminOtpSent ? (
-                            <button
-                              type="button"
-                              onClick={handleRequestAdminOtp}
-                              disabled={adminOtpLoading}
-                              className="w-full py-2.5 rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                            >
-                              {adminOtpLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lock className="w-3.5 h-3.5" />}
-                              <span>Send Admin Security OTP</span>
-                            </button>
-                          ) : (
-                            <div className="space-y-2 pt-1">
-                              <label className="block text-[11px] font-bold uppercase text-slate-500">Enter 6-Digit Admin OTP</label>
-                              <input
-                                type="text"
-                                maxLength={6}
-                                value={adminOtp}
-                                onChange={(e) => setAdminOtp(e.target.value.replace(/[^0-9]/g, ''))}
-                                placeholder="Enter 6-Digit OTP"
-                                className="w-full px-4 py-2.5 rounded-xl border border-orange-300 text-sm font-mono tracking-widest text-center focus:outline-none focus:border-[#ef7f1a] bg-white font-bold"
-                              />
-                            </div>
-                          )}
-                        </div>
-
-                        {adminOtpError && (
-                          <p className="text-xs text-red-600 font-bold flex items-center gap-1.5">
-                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                            <span>{adminOtpError}</span>
-                          </p>
-                        )}
-
-                        <div className="flex items-center justify-between pt-2">
-                          <button type="button" onClick={resetProvisioningForm} className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer">
-                            Reset Form
-                          </button>
-
-                          <button
-                            type="submit"
-                            disabled={adminOtpLoading || !adminOtp.trim() || !provName.trim() || !provEmail.trim() || !provTempPass.trim()}
-                            className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-900/10 flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                          >
-                            {adminOtpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                            <span>Authorize &amp; Create Member</span>
-                          </button>
-                        </div>
+                        <button
+                          type="submit"
+                          disabled={adminOtpLoading || !provName.trim() || !provEmail.trim() || !provTempPass.trim()}
+                          className="px-6 py-3 rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] text-white text-xs font-bold shadow-md shadow-orange-500/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                        >
+                          {adminOtpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                          <span>Create Member Account</span>
+                        </button>
                       </div>
                     </form>
                   </div>
@@ -1172,37 +1134,77 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
             {activeTab === 'fleet' && (
               <div className="space-y-5">
                 {/* Top Fleet KPI Metrics Bar */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center justify-between">
                     <div>
                       <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Fleet UAVs</p>
-                      <h4 className="text-2xl font-black text-slate-900 mt-1">{drones.length} <span className="text-xs font-semibold text-slate-400">/ 1,000 Capacity</span></h4>
-                      <p className="text-[10px] text-orange-700 font-semibold mt-0.5">Active Central Inventory</p>
+                      <h4 className="text-2xl font-black text-slate-900 mt-1">{drones.length} <span className="text-xs font-semibold text-slate-400">/ 1,000 Cap</span></h4>
+                      <p className="text-[10px] text-orange-700 font-semibold mt-0.5">Central Inventory</p>
                     </div>
                     <div className="w-11 h-11 rounded-2xl bg-orange-50 text-[#ef7f1a] flex items-center justify-center font-black">
                       <Truck className="w-6 h-6" />
                     </div>
                   </div>
 
-                  <div className="bg-white border border-emerald-200 rounded-2xl p-4 shadow-xs flex items-center justify-between bg-emerald-50/20">
+                  {/* Reserved for Customer Bookings */}
+                  <div
+                    onClick={() => {
+                      setDroneFilter(droneFilter === 'reserved' ? 'all' : 'reserved');
+                      setDroneCurrentPage(1);
+                    }}
+                    className={`border rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all ${
+                      droneFilter === 'reserved'
+                        ? 'bg-purple-100/70 border-purple-400 ring-2 ring-purple-400/30'
+                        : 'bg-white border-purple-200 hover:border-purple-300 bg-purple-50/20'
+                    }`}
+                  >
                     <div>
-                      <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Verified IDs</p>
-                      <h4 className="text-2xl font-black text-emerald-700 mt-1">{verifiedDronesCount}</h4>
-                      <p className="text-[10px] text-emerald-600 font-medium mt-0.5">Physical hardware verified</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[11px] font-bold text-purple-700 uppercase tracking-wider">Reserved Drones</p>
+                        <span className="px-1.5 py-0.2 text-[9px] font-extrabold bg-purple-200 text-purple-800 rounded-md">LIVE</span>
+                      </div>
+                      <h4 className="text-2xl font-black text-purple-900 mt-1">{reservedDronesCount}</h4>
+                      <p className="text-[10px] text-purple-600 font-semibold mt-0.5 flex items-center gap-1">
+                        <span>{droneFilter === 'reserved' ? 'Filtered: Reserved Only' : 'Click to inspect bookings'}</span>
+                        <ChevronRight className="w-3 h-3" />
+                      </p>
+                    </div>
+                    <div className="w-11 h-11 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-black">
+                      <ShoppingBag className="w-6 h-6" />
+                    </div>
+                  </div>
+
+                  {/* Available In-Stock */}
+                  <div
+                    onClick={() => {
+                      setDroneFilter(droneFilter === 'idle' ? 'all' : 'idle');
+                      setDroneCurrentPage(1);
+                    }}
+                    className={`border rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all ${
+                      droneFilter === 'idle'
+                        ? 'bg-emerald-100/70 border-emerald-400 ring-2 ring-emerald-400/30'
+                        : 'bg-white border-emerald-200 hover:border-emerald-300 bg-emerald-50/20'
+                    }`}
+                  >
+                    <div>
+                      <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Available In-Stock</p>
+                      <h4 className="text-2xl font-black text-emerald-800 mt-1">{idleDronesCount}</h4>
+                      <p className="text-[10px] text-emerald-600 font-medium mt-0.5">Ready for instant booking</p>
                     </div>
                     <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black">
                       <CheckCircle2 className="w-6 h-6" />
                     </div>
                   </div>
 
-                  <div className="bg-white border border-amber-200 rounded-2xl p-4 shadow-xs flex items-center justify-between bg-amber-50/20">
+                  {/* Hardware Verification */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center justify-between">
                     <div>
-                      <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Unverified IDs</p>
-                      <h4 className="text-2xl font-black text-amber-700 mt-1">{unverifiedDronesCount}</h4>
-                      <p className="text-[10px] text-amber-600 font-medium mt-0.5">Pending physical hardware ID update</p>
+                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Verified IDs</p>
+                      <h4 className="text-2xl font-black text-slate-900 mt-1">{verifiedDronesCount} <span className="text-xs font-semibold text-slate-400">/ {drones.length}</span></h4>
+                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">{unverifiedDronesCount} unverified placeholder IDs</p>
                     </div>
-                    <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-black">
-                      <AlertCircle className="w-6 h-6" />
+                    <div className="w-11 h-11 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center font-black">
+                      <Shield className="w-6 h-6" />
                     </div>
                   </div>
                 </div>
@@ -1219,7 +1221,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                           setDroneSearchQuery(e.target.value);
                           setDroneCurrentPage(1);
                         }}
-                        placeholder="Search by Drone ID, Model, Serial, Category..."
+                        placeholder="Search by Drone ID, Model, Serial, Order ID..."
                         className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#ef7f1a]"
                       />
                     </div>
@@ -1233,6 +1235,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                       className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white"
                     >
                       <option value="all">All Fleet UAVs ({drones.length})</option>
+                      <option value="reserved">Reserved for Bookings ({reservedDronesCount})</option>
+                      <option value="idle">Available / In-Stock ({idleDronesCount})</option>
                       <option value="verified">Verified IDs ({verifiedDronesCount})</option>
                       <option value="unverified">Unverified IDs ({unverifiedDronesCount})</option>
                     </select>
@@ -1288,6 +1292,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                           <th className="py-3 px-4">Drone ID &amp; Serial</th>
                           <th className="py-3 px-4">Model Name</th>
                           <th className="py-3 px-4">Category</th>
+                          <th className="py-3 px-4">Status &amp; Reservation</th>
                           <th className="py-3 px-4">ID Verification</th>
                           <th className="py-3 px-4 text-right">Actions</th>
                         </tr>
@@ -1295,6 +1300,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                       <tbody className="divide-y divide-slate-100">
                         {paginatedDrones.map((d) => {
                           const isVerified = d.is_verified === true || d.verification_status === 'verified';
+                          const linked = getLinkedOrderForDrone(d);
+                          const isReserved = d.status === 'reserved' || Boolean(linked) || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order);
+
                           return (
                             <tr key={d.id} className="hover:bg-slate-50/60 transition-colors">
                               <td className="py-3 px-4">
@@ -1317,6 +1325,29 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                 </span>
                               </td>
                               <td className="py-3 px-4">
+                                {isReserved ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedReservedDrone(d)}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer shadow-2xs group"
+                                  >
+                                    <ShoppingBag className="w-3 h-3 text-purple-600 shrink-0" />
+                                    <span>Reserved: <strong className="font-mono">{linked?.id || d.assigned_order || 'Booking'}</strong></span>
+                                    <Eye className="w-3 h-3 text-purple-400 group-hover:text-purple-700 shrink-0" />
+                                  </button>
+                                ) : d.status === 'en-route' || d.status === 'in-flight' || d.status === 'dispatched' ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
+                                    <Truck className="w-3 h-3 text-blue-600" />
+                                    Dispatched
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <Check className="w-3 h-3 text-emerald-600" />
+                                    In Stock (Idle)
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4">
                                 {isVerified ? (
                                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -1330,12 +1361,24 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                 )}
                               </td>
                               <td className="py-3 px-4 text-right">
-                                <button
-                                  onClick={() => openEditDroneModal(d)}
-                                  className="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 hover:bg-orange-50 hover:text-[#ef7f1a] hover:border-orange-200 transition-colors cursor-pointer"
-                                >
-                                  Edit Details
-                                </button>
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {isReserved && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedReservedDrone(d)}
+                                      className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" />
+                                      <span>View Order</span>
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => openEditDroneModal(d)}
+                                    className="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 hover:bg-orange-50 hover:text-[#ef7f1a] hover:border-orange-200 transition-colors cursor-pointer"
+                                  >
+                                    Edit Details
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -1635,41 +1678,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </button>
               </div>
             )}
-
-            <div className="rounded-2xl border border-orange-100 bg-orange-50 p-3 space-y-2">
-              <p className="text-xs font-bold text-slate-900">Authorize database update with administrator OTP</p>
-              <div className="flex gap-2">
-                <select
-                  value={inventoryOtpChannel}
-                  onChange={(e) => {
-                    setInventoryOtpChannel(e.target.value as 'email' | 'phone');
-                    setInventoryOtpSent(false);
-                  }}
-                  className="rounded-lg border border-orange-200 bg-white px-2 py-2 text-xs"
-                >
-                  <option value="email">Email</option>
-                  <option value="phone">Phone</option>
-                </select>
-                <button type="button" onClick={requestInventoryOtp} disabled={adminOtpLoading} className="rounded-lg bg-orange-700 px-3 py-2 text-xs font-bold text-white">
-                  {adminOtpLoading ? 'Sending…' : 'Send OTP'}
-                </button>
-                <input
-                  value={inventoryOtp}
-                  onChange={(e) => setInventoryOtp(e.target.value)}
-                  maxLength={6}
-                  inputMode="numeric"
-                  placeholder="6-digit OTP"
-                  className="min-w-0 flex-1 rounded-lg border border-orange-200 px-3 py-2 text-xs font-mono font-bold"
-                />
-              </div>
-              {adminOtpError && <p className="text-xs text-rose-600">{adminOtpError}</p>}
-            </div>
+            {adminOtpError && <p className="text-xs text-rose-600 bg-red-50 p-2.5 rounded-xl border border-red-200 font-medium">{adminOtpError}</p>}
 
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setEditingDrone(null)} className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold cursor-pointer">
                 Cancel
               </button>
-              <button type="submit" disabled={!inventoryOtpSent || !inventoryOtp.trim()} className="rounded-xl bg-[#ef7f1a] px-5 py-2 text-xs font-bold text-white disabled:opacity-50 cursor-pointer">
+              <button type="submit" className="rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] px-5 py-2 text-xs font-bold text-white cursor-pointer shadow-md shadow-orange-500/20">
                 Save Changes to DB
               </button>
             </div>
@@ -1780,34 +1795,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 )}
               </div>
 
-              <div className="rounded-2xl border border-orange-100 bg-orange-50 p-3 space-y-2">
-                <p className="text-xs font-bold text-slate-900">Confirm with administrator OTP</p>
-                <div className="flex gap-2">
-                  <select
-                    value={inventoryOtpChannel}
-                    onChange={(e) => {
-                      setInventoryOtpChannel(e.target.value as 'email' | 'phone');
-                      setInventoryOtpSent(false);
-                    }}
-                    className="rounded-lg border border-orange-200 bg-white px-2 py-2 text-xs"
-                  >
-                    <option value="email">Email</option>
-                    <option value="phone">Phone</option>
-                  </select>
-                  <button type="button" onClick={requestInventoryOtp} disabled={adminOtpLoading} className="rounded-lg bg-orange-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">
-                    {adminOtpLoading ? 'Sending…' : 'Send OTP'}
-                  </button>
-                  <input
-                    value={inventoryOtp}
-                    onChange={(e) => setInventoryOtp(e.target.value)}
-                    maxLength={6}
-                    inputMode="numeric"
-                    placeholder="6-digit OTP"
-                    className="min-w-0 flex-1 rounded-lg border border-orange-200 px-3 py-2 text-xs font-mono font-bold"
-                  />
-                </div>
-                {adminOtpError && <p className="text-xs text-rose-600">{adminOtpError}</p>}
-              </div>
+              {adminOtpError && <p className="text-xs text-rose-600 bg-red-50 p-2.5 rounded-xl border border-red-200 font-medium">{adminOtpError}</p>}
 
               <div className="pt-2 flex justify-end gap-2">
                 <button type="button" onClick={() => setShowAddSingleDrone(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold cursor-pointer">
@@ -1815,8 +1803,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </button>
                 <button
                   type="submit"
-                  disabled={!inventoryOtpSent || !inventoryOtp.trim() || adminOtpLoading}
-                  className="px-5 py-2 rounded-xl bg-[#ef7f1a] text-white text-xs font-bold cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] text-white text-xs font-bold cursor-pointer shadow-md shadow-orange-500/20"
                 >
                   Add Drone to Fleet
                 </button>
@@ -1926,34 +1913,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-orange-100 bg-orange-50 p-3 space-y-2">
-                <p className="text-xs font-bold text-slate-900">Confirm inventory change with administrator OTP</p>
-                <div className="flex flex-wrap gap-2">
-                  <select
-                    value={inventoryOtpChannel}
-                    onChange={(e) => {
-                      setInventoryOtpChannel(e.target.value as 'email' | 'phone');
-                      setInventoryOtpSent(false);
-                    }}
-                    className="rounded-lg border border-orange-200 bg-white px-2 py-2 text-xs"
-                  >
-                    <option value="email">Email</option>
-                    <option value="phone">Phone</option>
-                  </select>
-                  <button type="button" onClick={requestInventoryOtp} disabled={adminOtpLoading} className="rounded-lg bg-orange-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-50 cursor-pointer">
-                    {adminOtpLoading ? 'Sending…' : 'Send OTP'}
-                  </button>
-                  <input
-                    value={inventoryOtp}
-                    onChange={(e) => setInventoryOtp(e.target.value)}
-                    maxLength={6}
-                    inputMode="numeric"
-                    placeholder="6-digit OTP"
-                    className="min-w-0 flex-1 rounded-lg border border-orange-200 px-3 py-2 text-xs font-mono font-bold"
-                  />
-                </div>
-                {adminOtpError && <p className="text-xs text-rose-600">{adminOtpError}</p>}
-              </div>
+              {adminOtpError && <p className="text-xs text-rose-600 bg-red-50 p-2.5 rounded-xl border border-red-200 font-medium">{adminOtpError}</p>}
 
               <div className="pt-2 flex justify-end gap-2">
                 <button type="button" onClick={() => setShowBulkDroneModal(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold cursor-pointer">
@@ -1961,8 +1921,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </button>
                 <button
                   type="submit"
-                  disabled={bulkSubmitting || !inventoryOtpSent || !inventoryOtp.trim() || Boolean(bulkImportError)}
-                  className="px-5 py-2 rounded-xl bg-[#ef7f1a] hover:bg-[#280058] text-white text-xs font-bold cursor-pointer flex items-center gap-1.5"
+                  disabled={bulkSubmitting || Boolean(bulkImportError)}
+                  className="px-5 py-2 rounded-xl bg-[#ef7f1a] hover:bg-[#d96e11] text-white text-xs font-bold cursor-pointer flex items-center gap-1.5 shadow-md shadow-orange-500/20"
                 >
                   {bulkSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   <span>Add Batch of {bulkCount} Drones to DB</span>
@@ -2076,6 +2036,230 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
           </div>
         </div>
       )}
+
+      {/* ── MODAL 4: RESERVED DRONE & CUSTOMER ORDER INSPECTION ────────── */}
+      {selectedReservedDrone && (() => {
+        const drone = selectedReservedDrone;
+        const linkedOrder = getLinkedOrderForDrone(drone);
+        const copyOrderId = (id: string) => {
+          navigator.clipboard.writeText(id);
+          setCopiedText(id);
+          setTimeout(() => setCopiedText(null), 2000);
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150 border border-slate-100">
+              {/* Modal Header */}
+              <div className="flex items-start justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center font-black border border-purple-100 shrink-0">
+                    <ShoppingBag className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-black text-slate-900">Reserved Drone Specification</h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-purple-100 text-purple-800 border border-purple-200">
+                        Reserved Unit
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Drone ID <span className="font-mono font-bold text-slate-900">{drone.id}</span> is linked to active booking
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedReservedDrone(null)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Drone Hardware Summary Banner */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5 w-full sm:w-auto">
+                  {drone.image_url ? (
+                    <img src={drone.image_url} alt={drone.model} className="w-16 h-12 rounded-xl object-cover border border-slate-200 shrink-0" />
+                  ) : (
+                    <div className="w-16 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
+                      <ImageIcon className="w-5 h-5" />
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">{drone.model}</h4>
+                    <p className="text-xs text-slate-500 font-mono">Serial: {drone.serial_number || drone.id}</p>
+                    <p className="text-[11px] text-slate-400">{drone.category || 'General UAV'} • {drone.current_city || 'Noida Sector 62 Plant'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <span className="px-3 py-1 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700">
+                    Battery: {drone.battery || 100}%
+                  </span>
+                  <span className="px-3 py-1 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700">
+                    QC: <strong className="text-emerald-600 uppercase">{drone.qc_status || 'passed'}</strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Linked Booking Order Details */}
+              {linkedOrder ? (
+                <div className="space-y-4">
+                  <div className="p-4 sm:p-5 rounded-2xl bg-purple-50/40 border border-purple-200/70 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-purple-100">
+                      <div>
+                        <p className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">Consignment Order ID</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="font-mono font-black text-slate-900 text-base">{linkedOrder.id}</span>
+                          <button
+                            type="button"
+                            onClick={() => copyOrderId(linkedOrder.id)}
+                            className="p-1 rounded-lg hover:bg-purple-100 text-purple-700 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            {copiedText === linkedOrder.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                            <span className="text-[10px]">{copiedText === linkedOrder.id ? 'Copied' : 'Copy'}</span>
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-white border border-purple-200 text-purple-800 shadow-2xs uppercase">
+                          Status: {linkedOrder.status}
+                        </span>
+                        {linkedOrder.created_at && (
+                          <span className="text-[11px] text-slate-500 font-medium">
+                            {new Date(linkedOrder.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Customer & Recipient Grid */}
+                    <div className="grid sm:grid-cols-2 gap-4 text-xs">
+                      {/* Customer Contact */}
+                      <div className="p-3.5 rounded-xl bg-white border border-purple-100 space-y-1.5 shadow-2xs">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                          <User className="w-3 h-3 text-purple-600" /> Customer Information
+                        </p>
+                        <p className="font-bold text-slate-900 text-sm">{linkedOrder.customer_name || linkedOrder.client_name || 'Customer'}</p>
+                        {linkedOrder.customer_email && (
+                          <p className="text-slate-600 flex items-center gap-1.5 font-medium">
+                            <Mail className="w-3 h-3 text-slate-400" />
+                            <a href={`mailto:${linkedOrder.customer_email}`} className="hover:underline text-purple-700">{linkedOrder.customer_email}</a>
+                          </p>
+                        )}
+                        {linkedOrder.customer_phone && (
+                          <p className="text-slate-600 flex items-center gap-1.5 font-medium">
+                            <Phone className="w-3 h-3 text-slate-400" />
+                            <a href={`tel:${linkedOrder.customer_phone}`} className="hover:underline text-purple-700">{linkedOrder.customer_phone}</a>
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Delivery Address */}
+                      <div className="p-3.5 rounded-xl bg-white border border-purple-100 space-y-1.5 shadow-2xs">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-purple-600" /> Delivery Destination
+                        </p>
+                        <p className="font-bold text-slate-900">
+                          {linkedOrder.recipient_name || linkedOrder.customer_name}
+                          {linkedOrder.recipient_phone ? <span className="text-slate-500 font-normal ml-1">({linkedOrder.recipient_phone})</span> : null}
+                        </p>
+                        <p className="text-slate-600 leading-relaxed font-medium">
+                          {linkedOrder.drop_address || linkedOrder.destination_address || 'Customer destination'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Order Units & Specification */}
+                    <div className="p-3.5 rounded-xl bg-white border border-purple-100 space-y-2 text-xs shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-700">Consignment Summary:</span>
+                        <span className="font-bold text-purple-800 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                          {linkedOrder.units_count || (linkedOrder.reserved_inventory_ids?.length) || 1} Unit(s) Booked
+                        </span>
+                      </div>
+                      <p className="text-slate-600 font-medium">
+                        Model: <strong className="text-slate-900">{linkedOrder.drone_model || linkedOrder.package_type || drone.model}</strong>
+                      </p>
+                      {linkedOrder.delivery_notes && (
+                        <p className="text-slate-500 italic bg-slate-50 p-2 rounded-lg border border-slate-200/60">
+                          "Notes: {linkedOrder.delivery_notes}"
+                        </p>
+                      )}
+                    </div>
+
+                    {/* All Drones in this Reservation */}
+                    {Array.isArray(linkedOrder.reserved_inventory_ids) && linkedOrder.reserved_inventory_ids.length > 0 && (
+                      <div className="space-y-1.5">
+                        <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                          All Aircraft Reserved Under Order {linkedOrder.id} ({linkedOrder.reserved_inventory_ids.length}):
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {linkedOrder.reserved_inventory_ids.map((dId: string) => (
+                            <span
+                              key={dId}
+                              className={`px-2.5 py-1 rounded-lg font-mono text-xs font-bold border ${
+                                dId === drone.id
+                                  ? 'bg-[#ef7f1a] text-white border-[#ef7f1a] shadow-xs ring-2 ring-orange-400/30'
+                                  : 'bg-white text-slate-700 border-purple-200 hover:bg-purple-50 cursor-pointer'
+                              }`}
+                              onClick={() => {
+                                const targetDrone = drones.find((d) => d.id === dId);
+                                if (targetDrone) setSelectedReservedDrone(targetDrone);
+                              }}
+                            >
+                              {dId} {dId === drone.id ? '(Active View)' : ''}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-6 rounded-2xl bg-amber-50 border border-amber-200 text-center space-y-2">
+                  <AlertCircle className="w-8 h-8 text-amber-600 mx-auto" />
+                  <p className="text-sm font-bold text-amber-900">Assigned Order Record in Transition</p>
+                  <p className="text-xs text-amber-700">
+                    Order ID <span className="font-mono font-bold">{drone.assigned_order || drone.delivery_data?.assigned_order || 'N/A'}</span> is assigned to this drone unit.
+                  </p>
+                </div>
+              )}
+
+              {/* Modal Footer Actions */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
+                <div className="text-xs text-slate-400 font-medium">
+                  {linkedOrder ? 'Live reservation data synced from Supabase' : 'Direct Drone Unit view'}
+                </div>
+                <div className="flex items-center gap-2">
+                  {linkedOrder && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedReservedDrone(null);
+                        setActiveTab('delivery');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                    >
+                      <Package className="w-3.5 h-3.5" />
+                      <span>Track In Delivery Module</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedReservedDrone(null)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

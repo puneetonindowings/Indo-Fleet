@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { CalendarClock, CheckCircle2, Clock3, ExternalLink, MapPin, Package, RefreshCw, Search, ShieldCheck, Truck, X } from 'lucide-react';
+import * as maplibregl from 'maplibre-gl';
 import type { ErrorEvent as MapLibreErrorEvent, Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { DeliveryUser } from '../types';
@@ -29,6 +30,7 @@ interface DeliveryOrder {
   drone_id?: string;
   drone_model?: string;
   package_type?: string;
+  reserved_inventory_ids?: string[];
   pickup_address?: string;
   drop_address?: string;
   destination_address?: string;
@@ -101,11 +103,42 @@ const EMPTY_DATA: DeliveryDashboardData = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: 'Booking created', assigned: 'RPAV assigned', 'taking-off': 'Dispatched',
-  'in-flight': 'In transit', approaching: 'Out for delivery', delivered: 'Delivered',
-  'on-hold': 'On hold', rescheduled: 'Rescheduled', delayed: 'Delayed',
-  'out-for-delivery': 'Out for delivery', 'in-transit': 'In transit',
-  failed: 'Failed delivery', cancelled: 'Cancelled'
+  pending: 'Booking Created', assigned: 'RPAV Assigned', 'taking-off': 'Dispatched',
+  'in-flight': 'In Transit', approaching: 'Out for Delivery', delivered: 'Delivered',
+  'on-hold': 'On Hold', rescheduled: 'Rescheduled', delayed: 'Delayed',
+  'out-for-delivery': 'Out for Delivery', 'in-transit': 'In Transit',
+  failed: 'Failed Delivery', cancelled: 'Cancelled'
+};
+
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case 'pending':
+      return { label: 'Booking Created', className: 'bg-amber-50 text-amber-800 border border-amber-200' };
+    case 'assigned':
+      return { label: 'RPAV Assigned', className: 'bg-blue-50 text-blue-700 border border-blue-200' };
+    case 'taking-off':
+      return { label: 'Dispatched', className: 'bg-indigo-50 text-indigo-700 border border-indigo-200' };
+    case 'in-flight':
+    case 'in-transit':
+      return { label: 'In Transit', className: 'bg-purple-50 text-purple-700 border border-purple-200' };
+    case 'out-for-delivery':
+    case 'approaching':
+      return { label: 'Out for Delivery', className: 'bg-cyan-50 text-cyan-800 border border-cyan-200' };
+    case 'delivered':
+      return { label: 'Delivered', className: 'bg-emerald-50 text-emerald-700 border border-emerald-200' };
+    case 'on-hold':
+      return { label: 'On Hold', className: 'bg-amber-100 text-amber-900 border border-amber-300' };
+    case 'rescheduled':
+      return { label: 'Rescheduled', className: 'bg-sky-50 text-sky-700 border border-sky-200' };
+    case 'delayed':
+      return { label: 'Delayed', className: 'bg-yellow-50 text-yellow-800 border border-yellow-200' };
+    case 'failed':
+      return { label: 'Failed Delivery', className: 'bg-red-50 text-red-700 border border-red-200' };
+    case 'cancelled':
+      return { label: 'Cancelled', className: 'bg-rose-50 text-rose-700 border border-rose-200' };
+    default:
+      return { label: status, className: 'bg-slate-100 text-slate-700 border border-slate-200' };
+  }
 };
 
 const formatDate = (value?: string) => value ? new Date(value).toLocaleString('en-IN') : '—';
@@ -141,7 +174,6 @@ const DeliveryMap: React.FC<{ order: DeliveryOrder; onEtaUpdate: (orderId: strin
     const addMapMarkers = async () => {
       if (!map) return;
       const mapInstance = map;
-      const maplibregl = await import('maplibre-gl');
       if (controller.signal.aborted) return;
 
       const points: Array<{ name: string; coordinates: [number, number]; color: string }> = [];
@@ -217,21 +249,21 @@ const DeliveryMap: React.FC<{ order: DeliveryOrder; onEtaUpdate: (orderId: strin
     };
 
     const initializeMap = async () => {
-      const maplibregl = await import('maplibre-gl');
       if (controller.signal.aborted || !mapContainer.current) return;
-      map = new maplibregl.Map({
+      const mapInstance = new maplibregl.Map({
         container: mapContainer.current,
         style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(MAPTILER_KEY)}`,
         center: [78.9629, 20.5937],
         zoom: 4
       });
-      map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
-      map.on('load', () => {
+      map = mapInstance;
+      mapInstance.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+      mapInstance.on('load', () => {
         void addMapMarkers().catch(error => {
           if (!controller.signal.aborted) setMapError(error instanceof Error ? error.message : 'Could not load delivery locations.');
         });
       });
-      map.on('error', (event: MapLibreErrorEvent) => {
+      mapInstance.on('error', (event: MapLibreErrorEvent) => {
         if (!controller.signal.aborted && event.error) setMapError('MapTiler map could not be loaded. Check the API key and allowed-domain settings.');
       });
     };
@@ -489,36 +521,175 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
           <div className="p-12 text-center text-sm text-slate-500">No delivery orders found.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1680px] text-left text-xs">
-              <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500">
-                <tr>{['Delivery ID / Order ID', 'Customer / Organization', 'RPAV / Status', 'Delivery status', 'Pickup → Destination', 'Scheduled', 'Dispatched', 'ETA', 'Last location update', 'Actions'].map(label => <th key={label} className="px-4 py-3">{label}</th>)}</tr>
+            <table className="w-full min-w-[1320px] text-left text-xs">
+              <thead className="bg-slate-50/90 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                <tr>
+                  <th className="px-4 py-3.5">Delivery ID / Order ID</th>
+                  <th className="px-4 py-3.5">Customer / Organization</th>
+                  <th className="px-4 py-3.5">RPAV / Model</th>
+                  <th className="px-4 py-3.5">Delivery Status</th>
+                  <th className="px-4 py-3.5">Pickup → Destination</th>
+                  <th className="px-4 py-3.5">Scheduled</th>
+                  <th className="px-4 py-3.5">Dispatched</th>
+                  <th className="px-4 py-3.5">ETA</th>
+                  <th className="px-4 py-3.5">Last Location</th>
+                  <th className="px-4 py-3.5 text-right">Actions</th>
+                </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredOrders.map(order => {
                   const location = typeof order.last_known_location === 'string' ? order.last_known_location : order.last_known_location?.address;
+                  const badge = getStatusBadge(order.status);
+                  const isTerminal = ['delivered', 'cancelled', 'failed'].includes(order.status);
+
                   return (
-                    <tr key={order.id} className="align-top hover:bg-slate-50/70">
-                      <td className="px-4 py-3"><button onClick={() => setSelectedOrder(order)} className="font-mono font-bold text-orange-800 hover:underline">{order.delivery_id || `DEL-${order.id}`}</button><p className="mt-1 font-mono text-slate-600">{order.id}</p></td>
-                      <td className="px-4 py-3"><p className="font-semibold text-slate-800">{order.client_name || order.customer_name || 'Customer'}</p><p className="text-slate-500">{order.customer_phone || '—'} · {order.customer_email || '—'}</p></td>
-                      <td className="px-4 py-3"><p className="font-mono font-bold text-slate-700">{order.rpav_info?.id || order.drone_id || 'Not assigned'}</p><p className="text-slate-500">{order.rpav_info?.name || order.drone_model || order.package_type || '—'}</p><p className="mt-1 text-slate-500">{order.rpav_info?.status || 'RPAV status unavailable'}{order.rpav_info?.battery != null ? ` · ${order.rpav_info.battery}% battery` : ''}</p></td>
-                      <td className="px-4 py-3"><span className="rounded-full bg-orange-50 px-2.5 py-1 font-bold text-orange-800">{STATUS_LABELS[order.status] || order.status}</span>{order.status === 'on-hold' && <p className="mt-1 text-amber-700">On Hold</p>}{order.status === 'rescheduled' && <p className="mt-1 text-sky-700">Rescheduled</p>}</td>
-                      <td className="max-w-64 px-4 py-3"><p><strong>From:</strong> {order.pickup_address || '—'}</p><p className="mt-1"><strong>To:</strong> {order.drop_address || order.destination_address || '—'}</p></td>
-                      <td className="px-4 py-3 text-slate-600">{formatDate(order.scheduled_time)}</td>
-                      <td className="px-4 py-3 text-slate-600">{formatDate(order.dispatch_time || order.dispatched_at)}</td>
-                      <td className="px-4 py-3 text-slate-600">{routeEstimates[order.id] ? `${formatDate(routeEstimates[order.id].eta)} · ${routeEstimates[order.id].from === 'current-location' ? 'from last GPS' : 'from pickup'}` : order.tracking_eta ? formatDate(order.tracking_eta) : 'ETA unavailable'}</td>
-                      <td className="max-w-48 px-4 py-3"><p className="flex items-center gap-1 text-slate-700"><MapPin className="h-3.5 w-3.5 shrink-0" />{location || 'GPS location unavailable'}</p><p className="mt-1 text-slate-400">{order.last_location_updated_at ? `Last known · ${formatDate(order.last_location_updated_at)}` : 'No location update recorded'}</p></td>
-                      <td className="px-4 py-3"><div className="flex flex-wrap gap-1.5">
-                        <button onClick={() => setSelectedOrder(order)} className="rounded-lg border border-slate-200 px-2.5 py-1.5 font-bold text-slate-700">Details</button>
-                        {order.porter_tracking_id && order.porter_tracking_url && <a href={order.porter_tracking_url} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-sky-50 px-2.5 py-1.5 font-bold text-sky-800">Porter <ExternalLink className="inline h-3 w-3" /></a>}
-                        {canManagePorterTracking && <button onClick={() => openPorterForm(order)} className="rounded-lg bg-sky-50 px-2.5 py-1.5 font-bold text-sky-800">{order.porter_tracking_id || order.mapbox_route_url ? 'Edit tracking links' : 'Add tracking links'}</button>}
-                        {order.order_type === 'drone_purchase' && !order.dispatch_time && <button onClick={() => onNavigate?.('drone-dispatch')} className="rounded-lg bg-indigo-50 px-2.5 py-1.5 font-bold text-indigo-800">Secure Dispatch</button>}
-                        {canManagePorterTracking && order.order_type !== 'drone_purchase' && ['pending', 'assigned'].includes(order.status) && <button onClick={() => startAction(order, 'dispatch')} className="rounded-lg bg-indigo-50 px-2.5 py-1.5 font-bold text-indigo-800">Dispatch · OTP</button>}
-                        {order.status !== 'on-hold' && !['delivered', 'cancelled', 'failed'].includes(order.status) && <button onClick={() => startAction(order, 'hold')} className="rounded-lg bg-amber-50 px-2.5 py-1.5 font-bold text-amber-800">Hold</button>}
-                        {order.status === 'on-hold' && <button onClick={() => startAction(order, 'unhold')} className="rounded-lg bg-emerald-50 px-2.5 py-1.5 font-bold text-emerald-800">Unhold</button>}
-                        {!['delivered', 'cancelled', 'failed'].includes(order.status) && <button onClick={() => startAction(order, 'reschedule')} className="rounded-lg bg-orange-50 px-2.5 py-1.5 font-bold text-orange-800">Reschedule</button>}
-                        {order.status !== 'on-hold' && (['taking-off', 'in-flight', 'approaching', 'out-for-delivery', 'in-transit'].includes(order.status) || Boolean(order.dispatch_time || order.dispatched_at)) && <button onClick={() => startAction(order, 'delivered')} className="rounded-lg bg-emerald-700 px-2.5 py-1.5 font-bold text-white">Mark Delivered</button>}
-                        {!['delivered', 'cancelled', 'failed'].includes(order.status) && <button onClick={() => startAction(order, 'cancel')} className="rounded-lg bg-rose-50 px-2.5 py-1.5 font-bold text-rose-700">Cancel</button>}
-                      </div></td>
+                    <tr key={order.id} className="align-top hover:bg-slate-50/70 transition-colors">
+                      <td className="px-4 py-3.5">
+                        <button onClick={() => setSelectedOrder(order)} className="font-mono font-bold text-orange-800 hover:underline text-left block">
+                          {order.delivery_id || `DEL-${order.id}`}
+                        </button>
+                        <p className="mt-0.5 font-mono text-[11px] text-slate-500">{order.id}</p>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <p className="font-bold text-slate-900">{order.client_name || order.customer_name || 'Customer'}</p>
+                        <p className="text-slate-500 text-[11px] mt-0.5">{order.customer_phone || '—'}</p>
+                        {order.customer_email && <p className="text-slate-400 text-[10px] truncate max-w-[170px]">{order.customer_email}</p>}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <p className="font-mono font-bold text-slate-800">
+                          {order.rpav_info?.id || order.drone_id || (Array.isArray(order.reserved_inventory_ids) && order.reserved_inventory_ids.length ? `${order.reserved_inventory_ids.length} Units` : 'Not assigned')}
+                        </p>
+                        <p className="text-slate-500 text-[11px] mt-0.5">{order.rpav_info?.name || order.drone_model || order.package_type || '—'}</p>
+                        {order.rpav_info?.battery != null && <p className="text-slate-400 text-[10px]">{order.rpav_info.battery}% battery</p>}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className={`inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 rounded-full text-[11px] font-bold ${badge.className}`}>
+                          {badge.label}
+                        </span>
+                        {order.status === 'on-hold' && <p className="mt-1 text-[10px] font-bold text-amber-700 uppercase">On Hold</p>}
+                        {order.status === 'rescheduled' && <p className="mt-1 text-[10px] font-bold text-sky-700 uppercase">Rescheduled</p>}
+                      </td>
+                      <td className="px-4 py-3.5 max-w-60">
+                        <div className="space-y-1 text-[11px]">
+                          <p className="text-slate-500 truncate"><strong className="text-slate-700 font-semibold">From:</strong> {order.pickup_address || 'IndoWings Hub'}</p>
+                          <p className="text-slate-700 leading-snug"><strong className="text-slate-900 font-semibold">To:</strong> {order.drop_address || order.destination_address || '—'}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 text-slate-600 whitespace-nowrap">{formatDate(order.scheduled_time)}</td>
+                      <td className="px-4 py-3.5 text-slate-600 whitespace-nowrap">{formatDate(order.dispatch_time || order.dispatched_at)}</td>
+                      <td className="px-4 py-3.5 text-slate-600">
+                        {routeEstimates[order.id] ? (
+                          <span className="font-semibold text-slate-800">{formatDate(routeEstimates[order.id].eta)}</span>
+                        ) : order.tracking_eta ? (
+                          formatDate(order.tracking_eta)
+                        ) : (
+                          <span className="text-slate-400">ETA unavailable</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3.5 max-w-48">
+                        {location ? (
+                          <div>
+                            <p className="flex items-center gap-1 text-slate-800 font-medium text-[11px]">
+                              <MapPin className="h-3.5 w-3.5 shrink-0 text-orange-600" />
+                              <span className="truncate">{location}</span>
+                            </p>
+                            <p className="text-slate-400 text-[10px] mt-0.5">
+                              {order.last_location_updated_at ? `Updated: ${formatDate(order.last_location_updated_at)}` : 'Recorded location'}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="text-slate-400 text-[11px]">
+                            <p>GPS unavailable</p>
+                            <p className="text-[10px] text-slate-300">No update recorded</p>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3.5 text-right">
+                        {order.status === 'cancelled' ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => setSelectedOrder(order)} className="rounded-lg border border-slate-200 px-3 py-1.5 font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer">
+                              Details
+                            </button>
+                            <span className="text-[11px] text-rose-700 font-semibold bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                              Cancelled
+                            </span>
+                          </div>
+                        ) : order.status === 'delivered' ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button onClick={() => setSelectedOrder(order)} className="rounded-lg border border-slate-200 px-3 py-1.5 font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer">
+                              Details
+                            </button>
+                            {order.porter_tracking_id && order.porter_tracking_url && (
+                              <a href={order.porter_tracking_url} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-sky-50 px-2.5 py-1.5 font-bold text-sky-800 hover:bg-sky-100 flex items-center gap-1 transition-colors">
+                                Porter <ExternalLink className="inline h-3 w-3" />
+                              </a>
+                            )}
+                            <span className="text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                              Delivered
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap items-center justify-end gap-1.5">
+                            <button onClick={() => setSelectedOrder(order)} className="rounded-lg border border-slate-200 px-2.5 py-1.5 font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer">
+                              Details
+                            </button>
+
+                            {order.order_type === 'drone_purchase' && !order.dispatch_time && (
+                              <button onClick={() => onNavigate?.('drone-dispatch')} className="rounded-lg bg-indigo-50 px-2.5 py-1.5 font-bold text-indigo-800 hover:bg-indigo-100 transition-colors cursor-pointer shadow-2xs">
+                                Secure Dispatch
+                              </button>
+                            )}
+
+                            {canManagePorterTracking && order.order_type !== 'drone_purchase' && ['pending', 'assigned'].includes(order.status) && (
+                              <button onClick={() => startAction(order, 'dispatch')} className="rounded-lg bg-indigo-50 px-2.5 py-1.5 font-bold text-indigo-800 hover:bg-indigo-100 transition-colors cursor-pointer">
+                                Dispatch · OTP
+                              </button>
+                            )}
+
+                            {order.porter_tracking_id && order.porter_tracking_url && (
+                              <a href={order.porter_tracking_url} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-sky-50 px-2.5 py-1.5 font-bold text-sky-800 hover:bg-sky-100 flex items-center gap-1 transition-colors">
+                                Porter <ExternalLink className="inline h-3 w-3" />
+                              </a>
+                            )}
+
+                            {canManagePorterTracking && (
+                              <button onClick={() => openPorterForm(order)} className="rounded-lg bg-sky-50 px-2.5 py-1.5 font-bold text-sky-800 hover:bg-sky-100 transition-colors cursor-pointer">
+                                {order.porter_tracking_id || order.mapbox_route_url ? 'Edit Links' : 'Add Links'}
+                              </button>
+                            )}
+
+                            {order.status !== 'on-hold' && !isTerminal && (
+                              <button onClick={() => startAction(order, 'hold')} className="rounded-lg bg-amber-50 px-2.5 py-1.5 font-bold text-amber-800 hover:bg-amber-100 transition-colors cursor-pointer">
+                                Hold
+                              </button>
+                            )}
+
+                            {order.status === 'on-hold' && (
+                              <button onClick={() => startAction(order, 'unhold')} className="rounded-lg bg-emerald-50 px-2.5 py-1.5 font-bold text-emerald-800 hover:bg-emerald-100 transition-colors cursor-pointer">
+                                Unhold
+                              </button>
+                            )}
+
+                            {!isTerminal && (
+                              <button onClick={() => startAction(order, 'reschedule')} className="rounded-lg bg-orange-50 px-2.5 py-1.5 font-bold text-orange-800 hover:bg-orange-100 transition-colors cursor-pointer">
+                                Reschedule
+                              </button>
+                            )}
+
+                            {order.status !== 'on-hold' && (['taking-off', 'in-flight', 'approaching', 'out-for-delivery', 'in-transit'].includes(order.status) || Boolean(order.dispatch_time || order.dispatched_at)) && (
+                              <button onClick={() => startAction(order, 'delivered')} className="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1.5 font-bold text-white transition-colors cursor-pointer shadow-xs">
+                                Mark Delivered
+                              </button>
+                            )}
+
+                            {!isTerminal && (
+                              <button onClick={() => startAction(order, 'cancel')} className="rounded-lg bg-rose-50 px-2.5 py-1.5 font-bold text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer">
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}

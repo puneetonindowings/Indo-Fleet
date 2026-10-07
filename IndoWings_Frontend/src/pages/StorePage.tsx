@@ -103,8 +103,23 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
       .then(async response => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Could not load drone inventory.');
-        const loadedDrones = data.drones || data.products || [];
+        const rawList = data.drones || data.products || [];
+        const loadedDrones = rawList.filter((d: StoreDrone) => (!d.status || d.status === 'idle') && (!d.qc_status || d.qc_status === 'passed'));
         setDrones(loadedDrones);
+        
+        // Clean out any cart items that are already booked / reserved
+        setCart(prev => {
+          const availableIds = new Set(loadedDrones.map((d: StoreDrone) => d.id));
+          const next = { ...prev };
+          let changed = false;
+          for (const key of Object.keys(next)) {
+            if (!availableIds.has(key)) {
+              delete next[key];
+              changed = true;
+            }
+          }
+          return changed ? next : prev;
+        });
       })
       .catch(err => setError(err.message || 'Could not load drone inventory.'))
       .finally(() => setLoading(false));

@@ -225,6 +225,7 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
   const pendingNow = orders.filter((o) => ['pending', 'assigned'].includes(o.status)).length;
   const inTransitNow = orders.filter((o) => IN_TRANSIT_STATUSES.includes(o.status)).length;
   const completedNow = orders.filter((o) => o.status === 'delivered').length;
+  const cancelledNow = orders.filter((o) => o.status === 'cancelled').length;
   const openTickets = tickets.filter((t) => SUPPORT_OPEN.includes(t.status)).length;
 
   const availableDrones = fleet.filter((d: any) => ['idle', 'ready'].includes(d.status) && (d.qc_status === 'passed' || !d.qc_status)).length;
@@ -242,6 +243,7 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
     pendingOrders: { value: pendingNow },
     inTransit: { value: inTransitNow },
     completedOrders: { value: completedNow },
+    cancelledOrders: { value: cancelledNow },
     pendingDispatches: { value: pendingDispatchUnits },
     availableDrones: { value: availableDrones },
     dispatchedDrones: { value: dispatchedDrones },
@@ -379,11 +381,11 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
   const deliveryPerformance = {
     total: orders.length,
     delivered: deliveredOrders.length,
-    onTimePct: deliveredOrders.length ? round((onTime / deliveredOrders.length) * 100, 1) : 100,
+    onTimePct: deliveredOrders.length ? round((onTime / deliveredOrders.length) * 100, 1) : 0,
     delayed: orders.filter((o) => o.status === 'delayed').length,
     failed: orders.filter((o) => o.status === 'failed').length,
-    avgDeliveryMins: round(avg(deliveryTimes), 0),
-    avgTransitMins: round(avg(transitTimes), 0) || 22,
+    avgDeliveryMins: deliveryTimes.length ? round(avg(deliveryTimes), 0) : 0,
+    avgTransitMins: transitTimes.length ? round(avg(transitTimes), 0) : 0,
     onHold: orders.filter((o) => o.status === 'on-hold').length,
     rescheduled: orders.filter((o) => o.status === 'rescheduled').length,
     trend: ordersTrend.map((p) => ({ label: p.label, delivered: p.delivered, failed: p.failed, delayed: p.delayed }))

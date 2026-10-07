@@ -56,6 +56,7 @@ export interface AnalyticsPayload {
     pendingOrders: { value: number };
     inTransit: { value: number };
     completedOrders: { value: number };
+    cancelledOrders?: { value: number };
     pendingDispatches: { value: number };
     availableDrones: { value: number };
     dispatchedDrones: { value: number };

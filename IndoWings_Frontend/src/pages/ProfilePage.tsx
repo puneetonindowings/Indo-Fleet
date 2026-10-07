@@ -594,26 +594,79 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
     }
   };
 
+  const getBackTarget = () => {
+    if (embedded) return { label: 'Back to Dashboard', action: () => onBack?.() };
+    const role = profile?.role || currentUser?.role;
+    if (role === 'admin') {
+      return {
+        label: 'Back to Admin Dashboard',
+        action: () => {
+          onNavigate('admin');
+          window.history.pushState({}, '', '/admin');
+        }
+      };
+    }
+    if (role === 'fleet_manager') {
+      return {
+        label: 'Back to Fleet Deck',
+        action: () => {
+          onNavigate('fleet');
+          window.history.pushState({}, '', '/fleet');
+        }
+      };
+    }
+    if (role === 'dispatcher') {
+      return {
+        label: 'Back to Dispatch Operations',
+        action: () => {
+          onNavigate('drone-dispatch');
+          window.history.pushState({}, '', '/drone-dispatch');
+        }
+      };
+    }
+    if (role === 'support') {
+      return {
+        label: 'Back to Support Desk',
+        action: () => {
+          onNavigate('support-desk');
+          window.history.pushState({}, '', '/support-desk');
+        }
+      };
+    }
+    if (role === 'customer') {
+      return {
+        label: 'Back to Store',
+        action: () => {
+          onNavigate('shop');
+          window.history.pushState({}, '', '/shop');
+        }
+      };
+    }
+    return {
+      label: 'Back to Home',
+      action: () => {
+        onNavigate('home');
+        window.history.pushState({}, '', '/');
+      }
+    };
+  };
+
+  const backTarget = getBackTarget();
+
   return (
     <div className={embedded ? 'bg-[#f7f4fb] pb-8' : 'min-h-screen bg-[#f7f4fb] pb-24'}>
       {/* Header Banner */}
       <section
         className={`relative ${embedded ? 'rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm' : 'text-white'} ${embedded ? 'px-5 py-5' : 'px-6 pt-28 pb-20 sm:pt-36'} overflow-hidden`}
-        style={embedded ? undefined : { background: 'linear-gradient(135deg, #1e0940 0%, #2b114d 55%, #1a0835 100%)' }}
+        style={embedded ? undefined : { background: 'linear-gradient(135deg, #101222 0%, #191b30 55%, #0d0e1a 100%)' }}
       >
         {!embedded && <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />}
         <div className={`relative ${embedded ? '' : 'max-w-4xl mx-auto'}`}>
           <button
-            onClick={() => {
-              if (embedded) onBack?.();
-              else {
-                onNavigate('dispatch');
-                window.history.pushState({}, '', '/dispatch');
-              }
-            }}
-            className={`inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider transition-colors ${embedded ? 'mb-3 text-slate-500 hover:text-[#ef7f1a]' : 'mb-6 text-white/70 hover:text-white'}`}
+            onClick={backTarget.action}
+            className={`inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer ${embedded ? 'mb-3 text-slate-500 hover:text-[#ef7f1a]' : 'mb-6 text-white/70 hover:text-white'}`}
           >
-            <ArrowLeft className="w-3.5 h-3.5" /> {embedded ? 'Back to Dashboard' : 'Back to Drone Dispatch'}
+            <ArrowLeft className="w-3.5 h-3.5" /> {backTarget.label}
           </button>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -625,7 +678,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                 <div className="flex items-center gap-2 mb-1">
                   <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight ${embedded ? 'text-slate-900' : ''}`}>{embedded ? 'My Profile' : name || 'Customer Account'}</h1>
                   <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full ${embedded ? 'bg-orange-50 text-[#ef7f1a]' : 'bg-orange-500/20 text-orange-200 border border-orange-400/30'}`}>
-                    {profile?.role === 'admin' ? 'HQ Admin' : profile?.role === 'customer' ? 'Customer Account' : 'Verified Personnel'}
+                    {profile?.role === 'admin' ? 'HQ Admin' : profile?.role === 'customer' ? 'Customer Account' : profile?.role ? profile.role.replace('_', ' ') : 'Verified Personnel'}
                   </span>
                 </div>
                 {!embedded && <p className="text-white/70 text-sm">{email || 'IndoWings Drone Fleet Network'}</p>}
@@ -741,24 +794,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                   </div>
                 </div>
 
-                {/* Email Address with Verification Badge */}
+                {/* Email Address */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Email Address</label>
-                    {profile?.is_email_verified ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                        <Shield className="w-3 h-3 text-emerald-500" /> Verified Email
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleTriggerVerify('email', email)}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200 transition-colors"
-                      >
-                        <Sparkles className="w-3 h-3 text-amber-500" /> Verify with Email OTP
-                      </button>
-                    )}
-                  </div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Email Address</label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
@@ -773,24 +811,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                   <p className="text-[11px] text-slate-400 mt-1.5">Order receipts, tracking links, and delivery telemetry are dispatched to this inbox.</p>
                 </div>
 
-                {/* Mobile Phone Number with Verification Badge */}
+                {/* Mobile Phone Number */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Mobile Phone (SMS & OTP)</label>
-                    {profile?.is_phone_verified ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                        <Shield className="w-3 h-3 text-emerald-500" /> Verified Mobile
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleTriggerVerify('phone', phone)}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200 transition-colors"
-                      >
-                        <Sparkles className="w-3 h-3 text-amber-500" /> Verify with SMS OTP
-                      </button>
-                    )}
-                  </div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Mobile Phone Number</label>
                   <div className="relative">
                     <PhoneInput value={phone} onChange={(v) => setPhone(v)} placeholder="9XXXXXXXXX" inputClassName="py-3.5" />
                   </div>
@@ -1131,27 +1154,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                       <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-2 text-xs">
                           {order.order_type === 'drone_purchase' ? (
-                            <>
-                              <span className="bg-slate-100 text-slate-700 font-semibold px-2.5 py-1 rounded-lg">
-                                {order.units_count} unit{order.units_count === 1 ? '' : 's'} · {order.package_type}
-                              </span>
-                              <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-md bg-orange-100 text-orange-800">No payment collected</span>
-                            </>
+                            <span className="bg-slate-100 text-slate-700 font-semibold px-2.5 py-1 rounded-lg">
+                              {order.units_count} unit{order.units_count === 1 ? '' : 's'} · {order.package_type || order.drone_model}
+                            </span>
                           ) : (
                             <>
                               <span className="bg-slate-100 text-slate-700 font-semibold px-2.5 py-1 rounded-lg">
-                                {order.package_weight_kg || 1.5} kg • {order.package_type || 'Parcel'}
+                                {order.package_type || 'Parcel'}
                               </span>
                               <span className="bg-slate-100 text-slate-700 font-semibold px-2.5 py-1 rounded-lg">
                                 {order.aerial_distance_km || 14} km (~{order.flight_duration_mins || 20}m flight)
-                              </span>
-                              <span className="font-bold text-[#171222] ml-1">₹{order.fare || 249}</span>
-                              <span
-                                className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${
-                                  order.payment_method === 'cod' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
-                                }`}
-                              >
-                                {order.payment_method === 'cod' ? 'Cash on Delivery' : 'Paid Online'}
                               </span>
                             </>
                           )}
@@ -1455,9 +1467,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                 </div>
 
                 <div className="p-3 bg-white border border-slate-200 rounded-xl">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Package Payload</span>
-                  <span className="text-sm font-bold text-[#171222]">{selectedOrderDetail.package_weight_kg || 1.5} kg</span>
-                  <span className="text-[11px] text-slate-400 block mt-0.5">{selectedOrderDetail.package_type || 'Standard Parcel'}</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Consignment Package</span>
+                  <span className="text-sm font-bold text-[#171222]">{selectedOrderDetail.units_count || 1} Unit{selectedOrderDetail.units_count === 1 ? '' : 's'}</span>
+                  <span className="text-[11px] text-slate-400 block mt-0.5">{selectedOrderDetail.package_type || selectedOrderDetail.drone_model || '700RPAV'}</span>
                 </div>
               </div>
 
@@ -1497,23 +1509,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                   <div className="p-2.5 bg-slate-50 rounded-lg">
                     <span className="text-slate-400 text-[11px] block">Phone</span>
                     <span className="font-bold text-slate-800">{selectedOrderDetail.customer_phone || phone || 'Not specified'}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Payment Summary */}
-              <div className="space-y-2 border-t border-slate-100 pt-4">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Billing & Payment</span>
-                <div className="flex items-center justify-between p-3 bg-orange-50/50 border border-orange-100 rounded-xl text-xs">
-                  <div>
-                    <span className="font-bold text-slate-800 block">Total Delivery Fare</span>
-                    <span className="text-slate-500 text-[11px]">
-                      Payment Mode: <strong className="capitalize">{selectedOrderDetail.payment_method === 'cod' ? 'Cash on Delivery (COD)' : 'Direct Settlement / Invoice'}</strong>
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-base font-bold text-[#ef7f1a]">₹{selectedOrderDetail.fare || 249}</span>
-                    <span className="block text-[10px] font-bold uppercase text-emerald-600">{selectedOrderDetail.payment_method === 'cod' ? 'Payment at landing' : 'Payment Confirmed'}</span>
                   </div>
                 </div>
               </div>

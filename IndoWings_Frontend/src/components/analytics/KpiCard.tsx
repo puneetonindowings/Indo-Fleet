@@ -3,8 +3,8 @@ import { TrendingUp, TrendingDown, Minus, LucideIcon } from 'lucide-react';
 
 function Sparkline({ data, color }: { data: number[]; color: string }) {
   if (!data || data.length < 2) return null;
-  const w = 96;
-  const h = 28;
+  const w = 48;
+  const h = 18;
   const max = Math.max(...data);
   const min = Math.min(...data);
   const span = max - min || 1;
@@ -14,15 +14,15 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
   const area = `${path} L${w},${h} L0,${h} Z`;
   const id = React.useId();
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible block">
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.28" />
+          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
       <path d={area} fill={`url(#${id})`} />
-      <path d={path} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={path} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -39,35 +39,58 @@ interface KpiCardProps {
   comparisonLabel?: string;
 }
 
-export const KpiCard: React.FC<KpiCardProps> = ({ label, value, icon: Icon, tone = 'text-[#ef7f1a] bg-orange-50', subtitle, deltaPct, trend, sparkline, comparisonLabel = 'vs prev period' }) => {
-  const trendColor = trend === 'up' ? 'text-emerald-600' : trend === 'down' ? 'text-rose-600' : 'text-slate-400';
-  const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
-  const sparkColor = trend === 'down' ? '#e11d48' : '#ef7f1a';
+export const KpiCard: React.FC<KpiCardProps> = ({
+  label,
+  value,
+  icon: Icon,
+  tone = 'text-[#ef7f1a] bg-orange-50',
+  subtitle,
+  deltaPct,
+  trend,
+  sparkline,
+  comparisonLabel = 'vs prev'
+}) => {
+  const isUp = trend === 'up';
+  const isDown = trend === 'down';
+  const trendBadge = isUp
+    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
+    : isDown
+      ? 'bg-rose-50 text-rose-700 border-rose-200/60'
+      : 'bg-slate-50 text-slate-600 border-slate-200/60';
+  const TrendIcon = isUp ? TrendingUp : isDown ? TrendingDown : Minus;
+  const sparkColor = isDown ? '#e11d48' : '#ef7f1a';
+
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs hover:shadow-sm transition-shadow">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
+    <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs hover:shadow-sm transition-all flex flex-col justify-between">
+      <div>
+        <div className="flex items-start justify-between gap-2">
           <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 truncate">{label}</p>
-          <p className="text-2xl font-black text-slate-900 mt-1 leading-none">{value}</p>
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${tone}`}>
+            <Icon className="w-4 h-4" />
+          </div>
         </div>
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${tone}`}>
-          <Icon className="w-[18px] h-[18px]" />
-        </div>
+        <p className="text-2xl font-black text-slate-900 mt-1 tracking-tight leading-tight">{value}</p>
       </div>
 
-      <div className="mt-3 flex items-end justify-between gap-2">
-        <div className="min-w-0">
+      <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-1.5">
+        <div className="min-w-0 flex items-center gap-1.5 flex-wrap">
           {deltaPct !== undefined && trend ? (
-            <p className={`flex items-center gap-1 text-[11px] font-bold ${trendColor}`}>
-              <TrendIcon className="w-3.5 h-3.5" />
-              {deltaPct > 0 ? '+' : ''}
-              {deltaPct}% <span className="text-slate-400 font-semibold">{comparisonLabel}</span>
-            </p>
+            <>
+              <span className={`inline-flex items-center gap-0.5 text-[10px] font-black px-1.5 py-0.5 rounded-md border ${trendBadge}`}>
+                <TrendIcon className="w-2.5 h-2.5" />
+                {deltaPct > 0 ? '+' : ''}{deltaPct}%
+              </span>
+              <span className="text-[10px] font-semibold text-slate-400 truncate">{comparisonLabel}</span>
+            </>
           ) : subtitle ? (
-            <p className="text-[11px] font-semibold text-slate-500 truncate">{subtitle}</p>
+            <p className="text-[11px] font-medium text-slate-500 truncate" title={subtitle}>{subtitle}</p>
           ) : null}
         </div>
-        {sparkline && sparkline.length >= 2 && <Sparkline data={sparkline} color={sparkColor} />}
+        {sparkline && sparkline.length >= 2 && (
+          <div className="shrink-0">
+            <Sparkline data={sparkline} color={sparkColor} />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -256,7 +256,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     }
   };
 
-  // 2. STEP 2: VERIFY EMAIL PASSWORD & AUTO-DISPATCH SECURITY OTP
+  // 2. STEP 2: VERIFY EMAIL PASSWORD & DIRECT LOGIN (NO OTP REQUIRED)
   const handleEmailPasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
@@ -271,25 +271,34 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     setError('');
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/delivery/auth/verify-password-and-send-otp`, {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: cleanEmail, password: cleanPass }),
       });
 
       const data = await res.json();
-      if (!res.ok) {
+      if (!res.ok || !data.user || !data.token) {
         setError(data.error || 'Access Denied: Invalid account password.');
         return;
       }
 
-      // Password validated -> Transition to 6-digit OTP entry screen
-      setOtpDestination(data.destination || cleanEmail);
-      setOtpStep(true);
-      setResendTimer(60);
-      setCanResend(false);
-      setOtpDigits(['', '', '', '', '', '']);
-      setTimeout(() => otpInputsRef.current[0]?.focus(), 150);
+      const finalUser = data.user;
+      const finalToken = data.token;
+
+      if (data.must_change_password) {
+        setPendingUser(finalUser);
+        setPendingToken(finalToken);
+        setShowFirstTimeModal(true);
+        setFtChannel('email');
+        return;
+      }
+
+      localStorage.setItem('iw_delivery_token', finalToken);
+      localStorage.setItem('iw_delivery_user', JSON.stringify(finalUser));
+
+      onSuccess(finalUser, finalToken);
+      routeByRole(finalUser);
     } catch {
       setError('Cannot connect to authentication server. Please ensure backend service is running.');
     } finally {
@@ -333,7 +342,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     }
   };
 
-  // 4. STEP 2 FOR PHONE: VERIFY PHONE PASSWORD & AUTO-DISPATCH SECURITY OTP
+  // 4. STEP 2 FOR PHONE: VERIFY PHONE PASSWORD & DIRECT LOGIN (NO OTP REQUIRED)
   const handlePhonePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
@@ -348,25 +357,34 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     setError('');
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/delivery/auth/verify-password-and-send-otp`, {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: cleanPhone, password: cleanPass }),
       });
 
       const data = await res.json();
-      if (!res.ok) {
+      if (!res.ok || !data.user || !data.token) {
         setError(data.error || 'Access Denied: Invalid credentials or password.');
         return;
       }
 
-      // Password validated -> Transition to 6-digit OTP entry screen
-      setOtpDestination(data.destination || `+91 ${cleanPhone}`);
-      setOtpStep(true);
-      setResendTimer(60);
-      setCanResend(false);
-      setOtpDigits(['', '', '', '', '', '']);
-      setTimeout(() => otpInputsRef.current[0]?.focus(), 150);
+      const finalUser = data.user;
+      const finalToken = data.token;
+
+      if (data.must_change_password) {
+        setPendingUser(finalUser);
+        setPendingToken(finalToken);
+        setShowFirstTimeModal(true);
+        setFtChannel('phone');
+        return;
+      }
+
+      localStorage.setItem('iw_delivery_token', finalToken);
+      localStorage.setItem('iw_delivery_user', JSON.stringify(finalUser));
+
+      onSuccess(finalUser, finalToken);
+      routeByRole(finalUser);
     } catch {
       setError('Cannot connect to authentication server.');
     } finally {
@@ -990,7 +1008,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     ) : (
                       <ArrowRight className="w-4 h-4" />
                     )}
-                    <span>{loading ? 'Authenticating...' : 'Verify Password & Send Security OTP'}</span>
+                    <span>{loading ? 'Authenticating...' : 'Sign In to Portal'}</span>
                   </button>
                 </form>
               ) : (
@@ -1196,7 +1214,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     ) : (
                       <ArrowRight className="w-4 h-4" />
                     )}
-                    <span>{loading ? 'Authenticating...' : 'Verify Password & Send Security OTP'}</span>
+                    <span>{loading ? 'Authenticating...' : 'Sign In to Portal'}</span>
                   </button>
                 </form>
               ) : (
