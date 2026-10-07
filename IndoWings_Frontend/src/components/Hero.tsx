@@ -115,7 +115,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
       <section
         className="relative overflow-hidden flex items-center"
         style={{
-          background: 'linear-gradient(135deg, #101222 0%, #191b30 50%, #20243d 100%)'
+          background: 'linear-gradient(135deg, #090314 0%, #130626 50%, #1c0836 100%)'
         }}
       >
         {/* 3D Interactive Elevation Mesh */}
@@ -123,12 +123,12 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
 
         {/* Ambient atmospheric glows */}
         <div
-          className="absolute top-1/4 left-1/3 w-[650px] h-[650px] rounded-full opacity-15 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #ef7f1a 0%, transparent 70%)' }}
+          className="absolute top-1/4 left-1/3 w-[650px] h-[650px] rounded-full opacity-25 pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #9333ea 0%, transparent 70%)' }}
         />
         <div
-          className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full opacity-10 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #f97316 0%, transparent 70%)' }}
+          className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full opacity-20 pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #bc13fe 0%, transparent 70%)' }}
         />
 
         <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 w-full pt-28 pb-16 sm:pt-36 sm:pb-24 pointer-events-none [&_button]:pointer-events-auto [&_a]:pointer-events-auto">
@@ -137,11 +137,13 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
             <div className="space-y-6">
               {/* Title */}
               <h1 className="text-3xl sm:text-5xl lg:text-[54px] font-black leading-[1.15] tracking-tight text-white">
-                Enterprise UAV Fleet, Booking &amp;
+                Enterprise UAV Fleet,
+                <br />
+                Booking &amp;
                 <span
                   className="block mt-1 text-transparent bg-clip-text"
                   style={{
-                    backgroundImage: 'linear-gradient(90deg, #fdba74, #ef7f1a)'
+                    backgroundImage: 'linear-gradient(90deg, #c084fc, #818cf8)'
                   }}
                 >
                   Live Transit Management
@@ -157,7 +159,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button
                   onClick={() => go('store', '/store')}
-                  className="flex items-center gap-2.5 px-7 py-3.5 rounded-xl font-bold text-sm text-white bg-[#ef7f1a] hover:bg-[#d96e11] shadow-xl shadow-orange-900/30 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                  className="flex items-center gap-2.5 px-7 py-3.5 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-[#7c3aed] to-[#6366f1] hover:from-[#6d28d9] hover:to-[#4f46e5] shadow-xl shadow-purple-900/40 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
                 >
                   <ShoppingCart className="w-4 h-4 text-white" />
                   <span>Explore Fleet Store</span>
@@ -168,7 +170,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
                   onClick={() => go('track', '/track')}
                   className="flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm text-white border border-white/20 bg-white/5 hover:bg-white/10 backdrop-blur-sm transition-all active:scale-95 cursor-pointer"
                 >
-                  <Navigation className="w-4 h-4 text-orange-400" />
+                  <Navigation className="w-4 h-4 text-purple-300" />
                   <span>Track Drone Transit</span>
                 </button>
               </div>
