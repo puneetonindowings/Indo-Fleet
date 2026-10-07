@@ -1,5 +1,5 @@
 import React from 'react';
-import { DeliveryUser } from './AuthModal';
+import { DeliveryUser } from '../types';
 
 interface FooterProps {
   currentUser?: DeliveryUser | null;

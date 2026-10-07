@@ -26,7 +26,7 @@ import {
   AlertCircle,
   RefreshCw
 } from 'lucide-react';
-import { DeliveryUser } from '../components/AuthModal';
+import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
 import PhoneInput from '../components/PhoneInput';
 

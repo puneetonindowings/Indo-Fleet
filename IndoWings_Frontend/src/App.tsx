@@ -1,14 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
-import { ArchitectureGrid } from './components/ArchitectureGrid';
-import { CapabilitiesAccordion } from './components/CapabilitiesAccordion';
-import { InteractiveDemo } from './components/InteractiveDemo';
-import { EcosystemSummary } from './components/EcosystemSummary';
-import { SecuritySection } from './components/SecuritySection';
-import { GcsSpotlight } from './components/GcsSpotlight';
-import { AudienceMatrix } from './components/AudienceMatrix';
-import { CtaBand } from './components/CtaBand';
 import { Footer } from './components/Footer';
 import { PlatformPage } from './pages/PlatformPage';
 import { CommandCenterPage } from './pages/CommandCenterPage';
@@ -32,12 +24,11 @@ import { StorePage } from './pages/StorePage';
 import { CommandCenterModal } from './components/CommandCenterModal';
 import { DemoBookingModal } from './components/DemoBookingModal';
 import { API_BASE_URL } from './config/api';
-import { AuthModal, DeliveryUser } from './components/AuthModal';
 import { SEOHead } from './components/SEOHead';
 import { DeliveryTrackingModule } from './pages/DeliveryTrackingModule';
-import { UserProfile } from './types';
+import { UserProfile, DeliveryUser } from './types';
 
-type Page = 'home' | 'platform' | 'command-center' | 'gcs' | 'downloads' | 'versions' | 'track' | 'dispatch' | 'drone-dispatch' | 'delivery-tracking' | 'login' | 'profile' | 'orders' | 'support' | 'docs' | 'company' | 'feedback' | 'legal' | 'admin' | 'fleet' | 'support-desk' | 'shop';
+type Page = 'home' | 'platform' | 'command-center' | 'gcs' | 'downloads' | 'versions' | 'track' | 'dispatch' | 'drone-dispatch' | 'delivery-tracking' | 'login' | 'profile' | 'orders' | 'support' | 'docs' | 'company' | 'feedback' | 'legal' | 'admin' | 'fleet' | 'support-desk' | 'shop' | 'store';
 
 const getInitialPage = (): Page => {
   if (typeof window === 'undefined') return 'home';
@@ -122,10 +113,6 @@ export const App: React.FC = () => {
           if (role === 'dispatcher') routeToDesk('dispatch', '/dispatch');
           else if (role === 'support') routeToDesk('support-desk', '/support-desk');
           else routeToDesk('login', '/login');
-        } else if (currentPage === 'dispatch' && role !== 'dispatcher' && role !== 'admin') {
-          if (role === 'fleet_manager') routeToDesk('fleet', '/fleet');
-          else if (role === 'support') routeToDesk('support-desk', '/support-desk');
-          else routeToDesk('login', '/login');
         } else if (currentPage === 'support-desk' && role !== 'support' && role !== 'admin') {
           if (role === 'fleet_manager') routeToDesk('fleet', '/fleet');
           else if (role === 'dispatcher') routeToDesk('dispatch', '/dispatch');
@@ -156,7 +143,13 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  const handleNavigate = (page: string) => setCurrentPage(page as Page);
+  const handleNavigate = (page: string) => {
+    if (page === 'store' || page === 'shop') {
+      setCurrentPage('shop');
+      return;
+    }
+    setCurrentPage(page as Page);
+  };
 
   const handleDeliveryLogin = (user: DeliveryUser, token: string) => {
     setDeliveryUser(user);

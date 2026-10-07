@@ -60,20 +60,23 @@ function fromDrone(row: JsonRecord) {
     created_at,
     updated_at
   } = row;
+  const isVerified = metadata.is_verified === true || metadata.verification_status === 'verified';
   return {
     ...metadata,
     id,
     model: model_name,
-    category,
+    category: category || metadata.category || 'General UAV',
     serial_number,
     status,
-    battery: Number(battery_pct),
-    flight_hours: Number(flight_hours),
-    max_range_km: Number(max_range_km),
-    endurance_mins: Number(endurance_mins),
-    speed_kmh: Number(max_speed_kmh),
-    payload_kg: Number(payload_capacity_kg),
-    image_url,
+    battery: Number(battery_pct ?? 100),
+    flight_hours: Number(flight_hours || 0),
+    max_range_km: Number(max_range_km || 0),
+    endurance_mins: Number(endurance_mins || 0),
+    speed_kmh: Number(max_speed_kmh || 0),
+    payload_kg: Number(payload_capacity_kg || 0),
+    image_url: image_url || metadata.image_url || '',
+    is_verified: isVerified,
+    verification_status: isVerified ? 'verified' : 'unverified',
     created_at,
     updated_at
   };
@@ -81,13 +84,14 @@ function fromDrone(row: JsonRecord) {
 
 function toDrone(drone: JsonRecord) {
   const { row, metadata } = splitMetadata(drone, [
-    'id', 'serial_number', 'model', 'status', 'battery', 'speed_kmh',
+    'id', 'serial_number', 'model', 'category', 'status', 'battery', 'speed_kmh',
     'payload_kg', 'payload_capacity_kg', 'image_url', 'created_at', 'updated_at'
   ]);
+  const isVerified = drone.is_verified === true || drone.verification_status === 'verified';
   return {
     id: row.id,
     model_name: row.model || 'Cyberone Pro',
-    category: metadata.category || '',
+    category: row.category || metadata.category || 'General UAV',
     serial_number: row.serial_number || row.id,
     status: row.status || 'idle',
     battery_pct: Number(row.battery ?? 100),
@@ -97,8 +101,12 @@ function toDrone(drone: JsonRecord) {
     max_speed_kmh: Number(row.speed_kmh || 0),
     payload_capacity_kg: Number(row.payload_kg ?? row.payload_capacity_kg ?? 0),
     image_url: row.image_url || '',
-    delivery_data: metadata,
-    created_at: row.created_at,
+    delivery_data: {
+      ...metadata,
+      is_verified: isVerified,
+      verification_status: isVerified ? 'verified' : 'unverified'
+    },
+    created_at: row.created_at || new Date().toISOString(),
     updated_at: row.updated_at || new Date().toISOString()
   };
 }
@@ -133,6 +141,7 @@ function toOrder(order: JsonRecord) {
     reserved_inventory_ids: row.reserved_inventory_ids || [],
     timeline: row.timeline || [],
     delivery_data: metadata,
+    created_at: row.created_at || new Date().toISOString(),
     updated_at: row.updated_at || new Date().toISOString()
   };
 }
@@ -246,6 +255,7 @@ function toSupport(request: JsonRecord) {
     status: row.status || 'open',
     call_logs: row.call_logs || [],
     request_data: metadata,
+    created_at: row.created_at || new Date().toISOString(),
     updated_at: row.updated_at || new Date().toISOString()
   };
 }
@@ -275,6 +285,7 @@ function toFeedback(feedback: JsonRecord) {
     verified_order: Boolean(row.verified_order),
     status: row.status || 'published',
     feedback_data: metadata,
+    created_at: row.created_at || new Date().toISOString(),
     updated_at: row.updated_at || new Date().toISOString()
   };
 }
@@ -314,9 +325,15 @@ export const deliveryStore = {
       const existingIds = new Set((existingRows || []).map((row: JsonRecord) => row.id));
       const mappedRows = await Promise.all(collection.rows.map(collection.map));
       const rows = mappedRows.filter(row => !existingIds.has(row.id));
-      if (rows.length === 0) {
-        report[collection.key] = `already present; left ${mappedRows.length} records unchanged`;
-        continue;
+      if (collection.key === 'feedbacks' || collection.key === 'supportRequests') {
+        const { data: orderRows } = await db().from('delivery_orders').select('id');
+        const validOrderIds = new Set((orderRows || []).map((r: JsonRecord) => r.id));
+        const { data: userRows } = await db().from('delivery_users').select('id');
+        const validUserIds = new Set((userRows || []).map((r: JsonRecord) => r.id));
+        rows.forEach(r => {
+          if (r.order_id && !validOrderIds.has(r.order_id)) r.order_id = null;
+          if (r.customer_id && !validUserIds.has(r.customer_id)) r.customer_id = null;
+        });
       }
       await insertInBatches(collection.table, rows, 'insert');
       report[collection.key] = `imported ${rows.length}; left ${existingIds.size} existing records unchanged`;

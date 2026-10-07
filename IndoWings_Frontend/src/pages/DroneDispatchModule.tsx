@@ -4,7 +4,7 @@ import {
   Phone, RefreshCw, Search, ShieldCheck, Truck, UserRound, X
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
-import { DeliveryUser } from '../components/AuthModal';
+import { DeliveryUser } from '../types';
 
 interface DispatchModuleProps {
   currentUser: DeliveryUser | null;

@@ -2,7 +2,6 @@ import '../env.js';
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import Razorpay from 'razorpay';
 import { createClient } from '@supabase/supabase-js';
 import { fileDB } from '../db.js';
 import { buildAnalyticsPayload } from '../analytics.js';
@@ -171,27 +170,11 @@ async function verifyAdminOtp(admin: any, adminTarget: string, otp: string, purp
   return true;
 }
 
-// ServiceHub Supabase Phone Auth Client (Configured with Live SMS Gateway)
-const SH_SB_URL = process.env.SERVICEHUB_SUPABASE_URL || 'https://tpypyxuvmtzhoncasiln.supabase.co';
-const SH_SB_KEY = process.env.SERVICEHUB_SUPABASE_ANON_KEY || '';
+// Optional Secondary Supabase Phone Auth Client
+const SH_SB_URL = process.env.SERVICEHUB_SUPABASE_URL || process.env.SUPABASE_URL || '';
+const SH_SB_KEY = process.env.SERVICEHUB_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
 const serviceHubOtpClient = SH_SB_URL && SH_SB_KEY ? createClient(SH_SB_URL, SH_SB_KEY) : (null as any);
-if (serviceHubOtpClient) console.log('[sms] ServiceHub Supabase OTP client configured (separate project).');
-
-let razorpayInstance: Razorpay | null = null;
-try {
-  const key_id = process.env.RAZORPAY_KEY_ID || '';
-  const key_secret = process.env.RAZORPAY_KEY_SECRET || '';
-  if (key_id && key_secret) {
-    razorpayInstance = new Razorpay({
-      key_id,
-      key_secret
-    });
-    console.log('[payment] Razorpay Gateway Initialized');
-  }
-} catch (err: unknown) {
-  const msg = err instanceof Error ? err.message : String(err);
-  console.warn('[payment] Razorpay init warning:', msg);
-}
+if (serviceHubOtpClient && process.env.SERVICEHUB_SUPABASE_URL) console.log('[sms] Secondary Supabase OTP client configured.');
 
 // Auth: Direct Email or Phone + Password Login (Default password: 123 123)
 router.post('/auth/login', async (req, res) => {
@@ -815,37 +798,43 @@ router.get('/drones', async (req, res) => {
   res.json({ drones: fleet, count: fleet.length });
 });
 
-// Single Drone Add
+// Single Drone Add (Drone Name, ID, Image URL, Optional Category, Verification)
 router.post('/drones', async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
-  const { id, model, serial_number, image_url, current_city, status, battery, qc_status, payload_kg, adminTarget, otp } = req.body;
-  if (typeof model !== 'string' || !model.trim() || typeof id !== 'string' || !id.trim()) {
-    res.status(400).json({ error: 'Drone name and drone ID are required.' });
+  const { id, model, serial_number, image_url, category, is_verified, verification_status, current_city, status, battery, qc_status, payload_kg, adminTarget, otp } = req.body;
+  if (typeof model !== 'string' || !model.trim()) {
+    res.status(400).json({ error: 'Drone Name / Model is required.' });
     return;
   }
   if (image_url && (typeof image_url !== 'string' || image_url.length > 2_000_000)) {
-    res.status(400).json({ error: 'Drone image must be a valid image smaller than 1.5 MB.' });
+    res.status(400).json({ error: 'Drone image must be smaller than 1.5 MB.' });
     return;
   }
   const fleet = await fileDB.getFleet();
   const idNum = fleet.length + 1;
-  const droneId = id.trim();
-  const droneSerial = typeof serial_number === 'string' && serial_number.trim() ? serial_number.trim() : `IW-${model.substring(0, 3).toUpperCase()}-2026-${String(100 + idNum)}`;
-  if (fleet.some((drone) => drone.id.toLowerCase() === droneId.toLowerCase() || drone.serial_number?.toLowerCase() === droneSerial.toLowerCase())) {
-    res.status(409).json({ error: 'A drone with this ID or serial number already exists.' });
+  const droneId = typeof id === 'string' && id.trim() ? id.trim() : `INW-UAV-${String(idNum).padStart(4, '0')}`;
+  const droneSerial = typeof serial_number === 'string' && serial_number.trim() ? serial_number.trim() : droneId;
+  
+  if (fleet.some((drone) => drone.id.toLowerCase() === droneId.toLowerCase())) {
+    res.status(409).json({ error: 'A drone with this Drone ID already exists.' });
     return;
   }
   if (!(await verifyAdminOtp(admin, adminTarget, otp, 'admin-inventory', res))) return;
+  
+  const verified = is_verified === true || verification_status === 'verified';
   const newDrone = {
     id: droneId,
     serial_number: droneSerial,
-    model: model || 'Cyberone Pro',
+    model: model.trim(),
+    category: typeof category === 'string' && category.trim() ? category.trim() : 'General UAV',
     image_url: image_url || '',
+    is_verified: verified,
+    verification_status: verified ? 'verified' : 'unverified',
     status: status || 'idle',
     qc_status: qc_status || 'passed',
-    qc_notes: 'IndoWings pre-dispatch assembly verified',
-    qc_certified_by: 'Fleet Engineering',
+    qc_notes: verified ? 'Physical hardware ID verified' : 'Temporary ID - hardware verification pending',
+    qc_certified_by: verified ? (admin.name || 'Admin') : 'Pending Verification',
     battery: Number(battery) || 100,
     speed_kmh: 0,
     altitude_m: 0,
@@ -861,11 +850,11 @@ router.post('/drones', async (req, res) => {
   res.status(201).json({ message: 'Drone added successfully', drone: newDrone });
 });
 
-// Bulk Batch Drone Provisioning
+// Bulk Batch Drone Provisioning (Scale up to 1000+ Drones)
 router.post('/drones/bulk', async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
-  const { drones, count, prefix, model, current_city, adminTarget, otp } = req.body;
+  const { drones, count, prefix, model, category, current_city, is_verified, adminTarget, otp } = req.body;
   const existingFleet = await fileDB.getFleet();
   let newDronesList: any[] = [];
 
@@ -883,14 +872,18 @@ router.post('/drones/bulk', async (req, res) => {
       const droneModel = typeof d?.model === 'string' && d.model.trim() ? d.model.trim() : typeof model === 'string' && model.trim() ? model.trim() : 'Cyberone Pro';
       const requestedId = typeof d?.id === 'string' ? d.id.trim() : '';
       const requestedSerial = typeof d?.serial_number === 'string' ? d.serial_number.trim() : '';
+      const verified = d.is_verified === true || d.verification_status === 'verified';
       return {
-        id: requestedId || `INW-UAV-${String(idNum).padStart(3, '0')}`,
-        serial_number: requestedSerial || `IW-${droneModel.substring(0, 3).toUpperCase()}-2026-${String(100 + idNum)}`,
+        id: requestedId || `INW-UAV-${String(idNum).padStart(4, '0')}`,
+        serial_number: requestedSerial || requestedId || `IW-${droneModel.substring(0, 3).toUpperCase()}-2026-${String(100 + idNum)}`,
         model: droneModel,
+        category: typeof d?.category === 'string' && d.category.trim() ? d.category.trim() : (category || 'General UAV'),
         image_url: typeof d?.image_url === 'string' ? d.image_url : '',
+        is_verified: verified,
+        verification_status: verified ? 'verified' : 'unverified',
         status: d.status || 'idle',
         qc_status: d.qc_status || 'passed',
-        qc_notes: 'Batch provisioned unit - QC initial check verified',
+        qc_notes: verified ? 'Physical hardware ID verified' : 'Temporary ID - hardware verification pending',
         battery: Number(d.battery) || 100,
         speed_kmh: 0,
         altitude_m: 0,
@@ -906,16 +899,22 @@ router.post('/drones/bulk', async (req, res) => {
     const qty = Math.min(Number(count), 5000);
     const pfx = prefix || 'IW-UAV-BATCH';
     const mdl = model || 'Cyberone Pro';
+    const cat = category || 'General UAV';
     const city = current_city || 'Noida Sector 62 Plant';
+    const verified = is_verified === true;
     for (let i = 0; i < qty; i++) {
       const idNum = existingFleet.length + i + 1;
       newDronesList.push({
-        id: `INW-UAV-${String(idNum).padStart(3, '0')}`,
+        id: `INW-UAV-${String(idNum).padStart(4, '0')}`,
         serial_number: `${pfx}-${String(100 + idNum)}`,
         model: mdl,
+        category: cat,
+        image_url: '',
+        is_verified: verified,
+        verification_status: verified ? 'verified' : 'unverified',
         status: 'idle',
         qc_status: 'passed',
-        qc_notes: 'Bulk manufactured unit - QC passed & ready for client delivery',
+        qc_notes: verified ? 'Physical hardware ID verified' : 'Temporary ID - hardware verification pending',
         battery: 100,
         speed_kmh: 0,
         altitude_m: 0,
@@ -935,14 +934,10 @@ router.post('/drones/bulk', async (req, res) => {
   }
 
   const knownIds = new Set(existingFleet.map((drone) => String(drone.id).toLowerCase()));
-  const knownSerials = new Set(existingFleet.map((drone) => String(drone.serial_number || '').toLowerCase()));
   for (const drone of newDronesList) {
     const droneId = String(drone.id).trim().toLowerCase();
-    const serial = String(drone.serial_number || '')
-      .trim()
-      .toLowerCase();
-    if (!droneId || !serial || knownIds.has(droneId) || knownSerials.has(serial)) {
-      res.status(409).json({ error: `Duplicate or missing drone ID/serial: ${drone.id || serial || 'unknown'}` });
+    if (!droneId || knownIds.has(droneId)) {
+      res.status(409).json({ error: `Duplicate or missing drone ID: ${drone.id || 'unknown'}` });
       return;
     }
     if (String(drone.image_url || '').length > 2_000_000) {
@@ -950,7 +945,6 @@ router.post('/drones/bulk', async (req, res) => {
       return;
     }
     knownIds.add(droneId);
-    knownSerials.add(serial);
   }
 
   if (!(await verifyAdminOtp(admin, adminTarget, otp, 'admin-inventory', res))) return;
@@ -964,29 +958,38 @@ router.post('/drones/bulk', async (req, res) => {
   });
 });
 
+// Edit / Update Drone Details (Drone Name, ID/Serial, Image, Category, Verification)
 router.patch('/drones/:id', async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
   const { adminTarget, otp, ...updates } = req.body || {};
-  const allowed = ['model', 'serial_number', 'image_url', 'current_city', 'payload_kg'];
-  if (typeof updates.model !== 'string' || !updates.model.trim() || typeof updates.serial_number !== 'string' || !updates.serial_number.trim()) {
-    res.status(400).json({ error: 'Drone name and serial number are required.' });
+  const allowed = [
+    'model', 'serial_number', 'image_url', 'category', 'is_verified',
+    'verification_status', 'current_city', 'payload_kg', 'battery', 'status', 'qc_status'
+  ];
+  if (typeof updates.model !== 'string' || !updates.model.trim()) {
+    res.status(400).json({ error: 'Drone Name / Model is required.' });
     return;
   }
   const safeUpdates: Record<string, unknown> = {};
   for (const field of allowed) {
-    if (typeof updates[field] === 'string') safeUpdates[field] = updates[field].trim();
-    if (field === 'payload_kg' && Number.isFinite(Number(updates[field]))) safeUpdates[field] = Number(updates[field]);
+    if (field === 'is_verified') {
+      safeUpdates.is_verified = updates.is_verified === true || updates.verification_status === 'verified';
+      safeUpdates.verification_status = safeUpdates.is_verified ? 'verified' : 'unverified';
+      if (safeUpdates.is_verified) {
+        safeUpdates.qc_notes = 'Physical hardware ID verified';
+        safeUpdates.qc_certified_by = admin.name || 'Admin';
+      }
+    } else if (typeof updates[field] === 'string') {
+      safeUpdates[field] = updates[field].trim();
+    } else if (field === 'payload_kg' && Number.isFinite(Number(updates[field]))) {
+      safeUpdates[field] = Number(updates[field]);
+    } else if (field === 'battery' && Number.isFinite(Number(updates[field]))) {
+      safeUpdates[field] = Number(updates[field]);
+    }
   }
   if (safeUpdates.image_url && String(safeUpdates.image_url).length > 2_000_000) {
     res.status(400).json({ error: 'Drone image must be smaller than 1.5 MB.' });
-    return;
-  }
-  const duplicate = (await fileDB.getFleet()).find(
-    (drone) => drone.id !== req.params.id && safeUpdates.serial_number && drone.serial_number?.toLowerCase() === String(safeUpdates.serial_number).toLowerCase()
-  );
-  if (duplicate) {
-    res.status(409).json({ error: 'Another drone already uses this serial number.' });
     return;
   }
   if (!(await verifyAdminOtp(admin, adminTarget, otp, 'admin-inventory', res))) return;
@@ -1308,19 +1311,11 @@ router.post('/dispatch/confirm', async (req, res) => {
 
 router.get('/store/products', async (_req, res) => {
   const inventory = await fileDB.getFleet();
-  const products = new Map<string, { model: string; available_stock: number }>();
-
-  inventory.forEach((drone) => {
-    const model = String(drone.model || '').trim();
-    if (!model) return;
-    const product = products.get(model) || { model, available_stock: 0 };
-    if (drone.qc_status === 'passed' && drone.status === 'idle') {
-      product.available_stock++;
-    }
-    products.set(model, product);
+  res.json({
+    drones: inventory,
+    count: inventory.length,
+    products: inventory
   });
-
-  res.json({ products: Array.from(products.values()) });
 });
 
 router.get('/store/orders', async (req, res) => {
@@ -1334,9 +1329,10 @@ router.post('/store/orders', async (req, res) => {
   const user = await requireCustomer(req, res);
   if (!user) return;
 
+  const droneIdsInput: string[] = Array.isArray(req.body.drone_ids) ? req.body.drone_ids : [];
   const itemsInput = Array.isArray(req.body.items) ? req.body.items : [];
   const address = req.body.address;
-  if (!itemsInput.length || !address || typeof address.full_address !== 'string' || !address.full_address.trim()) {
+  if ((!droneIdsInput.length && !itemsInput.length) || !address || typeof address.full_address !== 'string' || !address.full_address.trim()) {
     res.status(400).json({ error: 'Choose at least one drone and provide a delivery address.' });
     return;
   }
@@ -1345,28 +1341,51 @@ router.post('/store/orders', async (req, res) => {
     return;
   }
 
-  const requested = new Map<string, number>();
-  for (const item of itemsInput) {
-    const model = typeof item?.model === 'string' ? item.model.trim() : '';
-    const quantity = Number(item?.quantity);
-    if (!model || !Number.isInteger(quantity) || quantity < 1 || quantity > 100) {
-      res.status(400).json({ error: 'Each cart item must have a model and a quantity from 1 to 100.' });
-      return;
-    }
-    requested.set(model, (requested.get(model) || 0) + quantity);
-  }
-
   const inventory = await fileDB.getFleet();
   const reservations: any[] = [];
-  for (const [model, quantity] of requested) {
-    const available = inventory.filter((drone) => drone.model === model && drone.qc_status === 'passed' && drone.status === 'idle');
-    if (available.length < quantity) {
-      res.status(409).json({
-        error: `Only ${available.length} ${model} unit${available.length === 1 ? '' : 's'} currently available. Please update your cart.`
-      });
-      return;
+  const requestedItems: Array<{ model: string; quantity: number }> = [];
+
+  if (droneIdsInput.length > 0) {
+    for (const dId of droneIdsInput) {
+      const drone = inventory.find((d) => d.id === dId && d.qc_status === 'passed' && d.status === 'idle');
+      if (!drone) {
+        res.status(409).json({ error: `Drone ${dId} is no longer available. Please select another drone.` });
+        return;
+      }
+      reservations.push(drone);
     }
-    reservations.push(...available.slice(0, quantity));
+    const modelCounts = new Map<string, number>();
+    reservations.forEach((d) => {
+      modelCounts.set(d.model, (modelCounts.get(d.model) || 0) + 1);
+    });
+    for (const [model, quantity] of modelCounts) {
+      requestedItems.push({ model, quantity });
+    }
+  } else {
+    const requested = new Map<string, number>();
+    for (const item of itemsInput) {
+      const model = typeof item?.model === 'string' ? item.model.trim() : '';
+      const quantity = Number(item?.quantity);
+      if (!model || !Number.isInteger(quantity) || quantity < 1 || quantity > 100) {
+        res.status(400).json({ error: 'Each cart item must have a model and a quantity from 1 to 100.' });
+        return;
+      }
+      requested.set(model, (requested.get(model) || 0) + quantity);
+    }
+
+    for (const [model, quantity] of requested) {
+      const available = inventory.filter((drone) => drone.model === model && drone.qc_status === 'passed' && drone.status === 'idle');
+      if (available.length < quantity) {
+        res.status(409).json({
+          error: `Only ${available.length} ${model} unit${available.length === 1 ? '' : 's'} currently available. Please update your cart.`
+        });
+        return;
+      }
+      reservations.push(...available.slice(0, quantity));
+    }
+    for (const [model, quantity] of requested) {
+      requestedItems.push({ model, quantity });
+    }
   }
 
   const now = new Date();
@@ -1376,7 +1395,7 @@ router.post('/store/orders', async (req, res) => {
     orderId = `IW-${datePart}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
   } while (await fileDB.findOrderById(orderId));
 
-  const items = Array.from(requested, ([model, quantity]) => ({ model, quantity }));
+  const items = requestedItems;
   const dropAddress = [
     address.recipient_name || user.name,
     address.recipient_phone || user.phone || '',
@@ -2162,86 +2181,6 @@ router.get('/analytics', async (req, res) => {
     res.json(payload);
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Failed to build analytics payload' });
-  }
-});
-
-// Payments: Create Razorpay order intent
-router.post('/payment/create-order', async (req, res) => {
-  try {
-    const { amount_inr, order_id, package_type } = req.body;
-    const finalAmount = Math.max(49, Number(amount_inr) || 149);
-
-    const options = {
-      amount: Math.round(finalAmount * 100), // paise
-      currency: 'INR',
-      receipt: `iw_rcpt_${Date.now().toString().slice(-8)}`,
-      notes: {
-        delivery_order_id: order_id || 'PENDING_DISPATCH',
-        service: 'IndoWings Drone Aerial Logistics',
-        package_type: package_type || 'Standard'
-      }
-    };
-
-    if (razorpayInstance) {
-      try {
-        const rzpOrder = await razorpayInstance.orders.create(options);
-        res.json({
-          id: rzpOrder.id,
-          amount: rzpOrder.amount,
-          currency: rzpOrder.currency,
-          key_id: process.env.RAZORPAY_KEY_ID || ''
-        });
-        return;
-      } catch (err: any) {
-        console.warn('[payment] Razorpay notice:', err.message);
-      }
-    }
-
-    // High availability fallback for demo/testing
-    res.json({
-      id: `order_mock_${Date.now()}`,
-      amount: options.amount,
-      currency: 'INR',
-      key_id: process.env.RAZORPAY_KEY_ID || ''
-    });
-  } catch (error: any) {
-    console.error('Payment order creation error:', error);
-    res.status(500).json({ error: 'Failed to create payment order' });
-  }
-});
-
-// Payments: Verify Razorpay signature
-router.post('/payment/verify-payment', async (req, res) => {
-  try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, delivery_order_id } = req.body;
-
-    let isValid = true;
-    const secret = process.env.RAZORPAY_KEY_SECRET;
-
-    if (secret && razorpay_order_id && razorpay_payment_id && razorpay_signature) {
-      const generated_signature = crypto
-        .createHmac('sha256', secret)
-        .update(razorpay_order_id + '|' + razorpay_payment_id)
-        .digest('hex');
-      isValid = generated_signature === razorpay_signature;
-    }
-
-    if (delivery_order_id) {
-      await fileDB.updateOrder(delivery_order_id, {
-        payment_status: 'paid',
-        payment_id: razorpay_payment_id || `PAY-${Date.now()}`,
-        payment_time: new Date().toISOString()
-      });
-      console.log(`[payment] Order ${delivery_order_id} marked as PAID via Razorpay (${razorpay_payment_id})`);
-    }
-
-    res.json({
-      success: true,
-      message: 'Payment verified successfully',
-      payment_id: razorpay_payment_id
-    });
-  } catch (error: any) {
-    res.status(500).json({ error: 'Payment verification failed' });
   }
 });
 
