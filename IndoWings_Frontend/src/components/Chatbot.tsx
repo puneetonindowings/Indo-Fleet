@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, X, Minimize2, Maximize2, RefreshCw, Bot, User, Plane, Radar, Sparkles, Phone, Building2, Package, ArrowRight } from 'lucide-react';
+import { Send, X, Minimize2, Maximize2, RefreshCw, Bot, User, Plane, Radar, Sparkles, Phone, Building2, Package, ArrowRight, Search } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
 interface ChatMessage {
@@ -7,7 +7,7 @@ interface ChatMessage {
   sender: 'bot' | 'user';
   text: string;
   time: string;
-  cardType?: 'order_detail' | 'order_list' | 'otp_prompt' | 'drones_info' | 'company_info';
+  cardType?: 'order_detail' | 'order_list' | 'otp_prompt' | 'drones_info' | 'company_info' | 'support_info' | 'store_guide';
   cardData?: any;
 }
 
@@ -18,27 +18,33 @@ interface ChatbotProps {
 const QUICK_ACTIONS = [
   {
     icon: Package,
-    label: 'Track Flight',
+    label: 'Track Order',
     query: 'Track my delivery order',
-    desc: 'Live telemetry & ETA'
+    desc: 'Live telemetry & status'
   },
   {
-    icon: Phone,
+    icon: Search,
     label: 'Find Order ID',
-    query: 'Find my Order ID (Mobile/Email)',
-    desc: 'Verify via Mobile OTP'
-  },
-  {
-    icon: Plane,
-    label: 'Drone Fleet',
-    query: 'IndoWings Drone Fleet & Specs',
-    desc: 'Cyberone & S-500 specs'
+    query: 'Find my Order ID',
+    desc: 'Name, Phone & Date lookup'
   },
   {
     icon: Building2,
     label: 'About IndoWings',
     query: 'About IndoWings Company & DGCA',
-    desc: 'Company, DGCA & Founder'
+    desc: 'DGCA certs & capabilities'
+  },
+  {
+    icon: Phone,
+    label: 'Support Team',
+    query: 'Support team contact details',
+    desc: '24/7 Helpline & Ticket Desk'
+  },
+  {
+    icon: Plane,
+    label: 'Drone Fleet',
+    query: 'IndoWings Drone Fleet & Specs',
+    desc: '700RPAV & Cyberone specs'
   }
 ];
 
@@ -52,23 +58,28 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
 
   // Conversational state machine
   const [convState, setConvState] = useState<{
-    step: 'idle' | 'awaiting_name' | 'awaiting_identifier' | 'awaiting_otp';
+    step: 'idle' | 'awaiting_name' | 'lookup_name' | 'lookup_phone' | 'lookup_date' | 'awaiting_identifier' | 'awaiting_otp';
     pendingOrderId?: string;
     pendingIdentifier?: string;
+    lookupData?: {
+      name?: string;
+      phone?: string;
+      date?: string;
+    };
   }>({ step: 'idle' });
 
   const pendingIdentifierRef = useRef<string>(sessionStorage.getItem('cb_pending_identifier') || '');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Initial welcome message in English
+  // Initial welcome message
   useEffect(() => {
     const welcomeTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     setMessages([
       {
         id: 'msg-welcome-1',
         sender: 'bot',
-        text: 'Hello! Welcome to IndoWings AI Copilot.\n\nYou can track any delivery flight in real-time, retrieve your Order ID using your mobile number, or explore our DGCA-certified drone fleet.',
+        text: 'Namaste! Welcome to IndoWings AI Assistant 🛰️\n\nHow can I help you today?\n• Track flight / delivery order\n• Find lost Order ID using your Name & Phone\n• Company profile & DGCA certifications\n• Support team & 24/7 Command Center helpline',
         time: welcomeTime
       }
     ]);
@@ -105,7 +116,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       {
         id: `msg-${Date.now()}`,
         sender: 'bot',
-        text: 'Chat history has been reset. How can I assist you today?',
+        text: 'Chat history reset. How can I assist you with your IndoWings drone delivery today?',
         time
       }
     ]);
@@ -114,47 +125,47 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
     sessionStorage.removeItem('cb_pending_identifier');
   };
 
-  // Helper to trigger OTP request for phone or email
-  const requestOtpForIdentifier = async (rawIdentifier: string) => {
-    const identifier = rawIdentifier.trim();
-    if (!identifier) return;
-
+  // Helper to trigger direct order lookup by Name + Phone + Date
+  const executeOrderLookup = async (lookupData: { name?: string; phone?: string; date?: string }) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/delivery/chatbot/request-id-otp`, {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/chatbot/lookup-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier })
+        body: JSON.stringify({
+          name: lookupData.name,
+          phone: lookupData.phone,
+          date: lookupData.date === 'skip' ? '' : lookupData.date
+        })
       });
       const data = await res.json();
 
-      if (data.success) {
-        const iden = data.identifier || identifier;
-        pendingIdentifierRef.current = iden;
-        sessionStorage.setItem('cb_pending_identifier', iden);
-        setConvState({ step: 'awaiting_otp', pendingIdentifier: iden });
+      if (data.success && data.orders && data.orders.length > 0) {
+        setConvState({ step: 'idle' });
         addMessage({
           sender: 'bot',
-          text: `${data.message || `A 6-digit verification code has been dispatched to ${iden}.`}\n\nPlease enter the 6-digit OTP code below (or type "cancel"):`,
-          cardType: 'otp_prompt'
+          text: `Verification successful! Found ${data.orders.length} order(s) matching your details. Click below to view full live flight tracking:`,
+          cardType: 'order_list',
+          cardData: data.orders
         });
       } else {
+        setConvState({ step: 'idle' });
         addMessage({
           sender: 'bot',
-          text: data.message || `Unable to send verification code. Please enter a valid 10-digit mobile number or email address.`
+          text: `No active orders found matching Name: "${lookupData.name}" and Phone: "${lookupData.phone}".\n\nTips:\n• Verify the registered phone number\n• Check for spelling in customer name\n• Contact our 24/7 Support Desk for assistance.`
         });
       }
     } catch (err: any) {
       addMessage({
         sender: 'bot',
-        text: `Connection error: ${err.message}. Please try again.`
+        text: `Connection error during lookup: ${err.message}. Please try again.`
       });
     } finally {
       setLoading(false);
     }
   };
 
-  // Helper to render bold markdown cleanly without showing raw asterisks
+  // Helper to render bold markdown cleanly
   const renderFormattedText = (rawText: string) => {
     const lines = rawText.split('\n');
     return lines.map((line, lineIdx) => {
@@ -194,14 +205,53 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       setConvState({ step: 'idle' });
       pendingIdentifierRef.current = '';
       sessionStorage.removeItem('cb_pending_identifier');
-      addMessage({ sender: 'bot', text: 'Action cancelled. How else can I assist you today?' });
+      addMessage({ sender: 'bot', text: 'Action cancelled. How else can I assist you?' });
       return;
     }
 
     setLoading(true);
 
     try {
-      // 1. STATE: Awaiting customer name for Order ID verification
+      // 1. STATE: Step 1 of Lost Order ID Lookup — Name entered
+      if (convState.step === 'lookup_name') {
+        const enteredName = clean;
+        setConvState({
+          step: 'lookup_phone',
+          lookupData: { name: enteredName }
+        });
+        addMessage({
+          sender: 'bot',
+          text: `Thank you, **${enteredName}**! Now please enter your **10-digit registered Mobile number** (or Email address):`
+        });
+        setLoading(false);
+        return;
+      }
+
+      // 2. STATE: Step 2 of Lost Order ID Lookup — Phone/Email entered
+      if (convState.step === 'lookup_phone') {
+        const enteredPhone = clean;
+        const currentLookup = { ...convState.lookupData, phone: enteredPhone };
+        setConvState({
+          step: 'lookup_date',
+          lookupData: currentLookup
+        });
+        addMessage({
+          sender: 'bot',
+          text: `Got it! What was the **approximate booking date**?\n• e.g. "Today", "Yesterday", or "07 Oct"\n• Or type **"skip"** to search all dates:`
+        });
+        setLoading(false);
+        return;
+      }
+
+      // 3. STATE: Step 3 of Lost Order ID Lookup — Date entered -> execute search
+      if (convState.step === 'lookup_date') {
+        const enteredDate = clean;
+        const completeLookup = { ...convState.lookupData, date: enteredDate };
+        await executeOrderLookup(completeLookup);
+        return;
+      }
+
+      // 4. STATE: Awaiting customer name for Order ID verification
       if (convState.step === 'awaiting_name' && convState.pendingOrderId) {
         const orderId = convState.pendingOrderId;
         const res = await fetch(`${API_BASE_URL}/api/delivery/chatbot/track-by-id`, {
@@ -222,92 +272,33 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         } else {
           addMessage({
             sender: 'bot',
-            text: data.message || `Customer name did not match the booking records. Please enter the name registered with the order (or type "cancel"):`
+            text: data.message || `Customer name did not match the booking records for Order #${orderId}. Please enter the registered name (or type "cancel"):`
           });
         }
         setLoading(false);
         return;
       }
 
-      // 2. CHECK FOR 6-DIGIT OTP (either explicitly in awaiting_otp or entered directly as 6 digits)
-      const pureDigits = clean.replace(/[^0-9]/g, '');
-      const is6DigitOtp = /^\d{6}$/.test(pureDigits);
+      // 5. CHECK IF USER WANTS TO FIND / RETRIEVE THEIR LOST ORDER ID
+      const findIdKeywords = [
+        'find my order', 'find order', 'order id nahi', 'order id nhi', 'order id bhul',
+        'lost order', 'order id lost', 'kya order id hai', 'dont know order id', 'na mil rhi',
+        'order id', 'forgot order'
+      ];
+      const wantsToFindOrderId = findIdKeywords.some((kw) => clean.toLowerCase().includes(kw));
 
-      if (is6DigitOtp || convState.step === 'awaiting_otp') {
-        const targetIden = convState.pendingIdentifier || pendingIdentifierRef.current || sessionStorage.getItem('cb_pending_identifier');
-
-        if (!targetIden) {
-          addMessage({
-            sender: 'bot',
-            text: 'You entered a verification code, but no pending session was found. Please enter your 10-digit mobile number or email address first:'
-          });
-          setConvState({ step: 'awaiting_identifier' });
-          setLoading(false);
-          return;
-        }
-
-        const otpCode = is6DigitOtp ? pureDigits : clean.replace(/[^0-9]/g, '');
-        const res = await fetch(`${API_BASE_URL}/api/delivery/chatbot/verify-id-otp`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifier: targetIden, otp: otpCode || clean })
+      if (wantsToFindOrderId && !clean.toUpperCase().includes('IW-') && !clean.toUpperCase().includes('INW-')) {
+        setConvState({ step: 'lookup_name', lookupData: {} });
+        addMessage({
+          sender: 'bot',
+          text: `No worries! I will help you find your Order ID.\n\nPlease enter your **Full Name** registered with the booking (or type "cancel"):`
         });
-        const data = await res.json();
-
-        if (data.success && data.verified) {
-          setConvState({ step: 'idle' });
-          pendingIdentifierRef.current = '';
-          sessionStorage.removeItem('cb_pending_identifier');
-
-          if (!data.orders || data.orders.length === 0) {
-            addMessage({
-              sender: 'bot',
-              text: `OTP verified! However, no active delivery orders were found specifically for ${targetIden}. If you placed orders under another number or email, you can enter it anytime.`
-            });
-          } else {
-            addMessage({
-              sender: 'bot',
-              text: `OTP verified successfully! Found ${data.orders.length} order(s) for your account. Click any order below to view live flight telemetry:`,
-              cardType: 'order_list',
-              cardData: data.orders
-            });
-          }
-        } else {
-          addMessage({
-            sender: 'bot',
-            text: data.message || `Invalid or expired verification code. Please enter the correct 6-digit OTP (or type "cancel"):`
-          });
-        }
         setLoading(false);
         return;
       }
 
-      // 3. STATE: Awaiting phone number or email
-      if (convState.step === 'awaiting_identifier') {
-        await requestOtpForIdentifier(clean);
-        return;
-      }
-
-      // 4. CHECK IF QUERY CONTAINS AN EMAIL OR 10-DIGIT MOBILE NUMBER
-      const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
-      const emailMatch = clean.match(emailRegex);
-      const phoneRegex = /(?:\+?91[\s-]?)?([6-9]\d{9})/;
-      const phoneMatch = clean.match(phoneRegex);
-
-      if (emailMatch && !clean.toUpperCase().includes('INW-')) {
-        const iden = emailMatch[0].toLowerCase();
-        await requestOtpForIdentifier(iden);
-        return;
-      }
-
-      if (phoneMatch && !clean.toUpperCase().includes('INW-')) {
-        const iden = phoneMatch[1];
-        await requestOtpForIdentifier(iden);
-        return;
-      }
-
-      // 5. CHECK IF QUERY CONTAINS AN ORDER ID DIRECTLY (e.g. INW-2026-001 or INW-2024-1001)
-      const orderIdRegex = /(INW-?\d{4}-?\d{1,6}|IW-?\d{3,6})/i;
+      // 6. CHECK IF QUERY CONTAINS AN ORDER ID DIRECTLY (e.g. IW-20261007-4BB5E1 or INW-2026-001)
+      const orderIdRegex = /(IW-?\d{4,8}-?[A-Z0-9]{3,8}|INW-?\d{4}-?\d{1,6})/i;
       const orderMatch = clean.match(orderIdRegex);
       if (orderMatch) {
         const foundId = orderMatch[0].toUpperCase();
@@ -322,84 +313,79 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
           setConvState({ step: 'awaiting_name', pendingOrderId: foundId });
           addMessage({
             sender: 'bot',
-            text: `Order #${foundId} located!\n\nFor security verification, please enter the Customer Name provided during booking:`
+            text: `Order **#${foundId}** located in flight dispatch records! 🛰️\n\nFor security verification, please enter the **Customer Name** provided during booking:`
           });
-        } else if (!data.success) {
+        } else if (data.success && data.order) {
           addMessage({
             sender: 'bot',
-            text: data.message || `Order #${foundId} was not found in our dispatch system. Please verify the ID.`
+            text: `Live flight telemetry for Order #${foundId}:`,
+            cardType: 'order_detail',
+            cardData: data.order
+          });
+        } else {
+          addMessage({
+            sender: 'bot',
+            text: data.message || `Order #${foundId} was not found in our dispatch system. Please verify the ID or click "Find Order ID".`
           });
         }
         setLoading(false);
         return;
       }
 
-      // 6. CHECK IF USER WANTS TO FIND / GET THEIR ORDER ID VIA PHONE OR EMAIL
-      const findIdKeywords = ['find my order', 'find order', 'order id', 'forgot order', 'lost order', 'mobile number', 'phone', 'email'];
-      const wantsOrderId = findIdKeywords.some((kw) => clean.toLowerCase().includes(kw));
-
-      if (wantsOrderId) {
-        setConvState({ step: 'awaiting_identifier' });
-        addMessage({
-          sender: 'bot',
-          text: 'Retrieve Order ID:\n\nPlease enter your 10-digit mobile number or email address. We will send you a 6-digit OTP code to verify and display your orders.'
-        });
-        setLoading(false);
-        return;
-      }
-
       // 7. CHECK IF USER ASKS TO TRACK ORDER (GENERIC)
-      const trackKeywords = ['track', 'status', 'where is', 'eta'];
-      if (trackKeywords.some((kw) => clean.toLowerCase().includes(kw)) && clean.length < 35) {
+      const trackKeywords = ['track', 'status', 'where is', 'kahan hai', 'kya status', 'delivery status', 'eta'];
+      if (trackKeywords.some((kw) => clean.toLowerCase().includes(kw)) && clean.length < 40) {
         addMessage({
           sender: 'bot',
-          text: 'Live Flight Tracking:\n\nPlease enter your Order ID (e.g. INW-2026-001).\n\nIf you do not have your Order ID, click "Find Order ID" or type your 10-digit mobile number.'
+          text: `Live Order & Flight Tracking:\n\n• If you have your Order ID, please enter it (e.g. **IW-20261007-XXXX**).\n• If you don't know your Order ID, click **"Find Order ID"** below to look it up using your Name & Phone.`
         });
         setLoading(false);
         return;
       }
 
-      // 8. KNOWLEDGE BASE: DRONES & FLEET
-      const droneKeywords = ['drone', 'fleet', 'cyberone', 's-500', 's500', 'aircraft', 'uav', 'vtol', 'payload', 'sortie'];
-      if (droneKeywords.some((kw) => clean.toLowerCase().includes(kw))) {
-        addMessage({
-          sender: 'bot',
-          text: "IndoWings Drone Fleet Overview:\n\nIndoWings operates India's premier DGCA type-certified delivery fleet. Key specifications:",
-          cardType: 'drones_info'
-        });
-        setLoading(false);
-        return;
-      }
-
-      // 9. KNOWLEDGE BASE: COMPANY & FOUNDER & DGCA
-      const companyKeywords = ['indowings', 'company', 'founder', 'ceo', 'paras jain', 'headquarter', 'office', 'dgca', 'address', 'cin'];
+      // 8. KNOWLEDGE BASE: COMPANY & FOUNDER & DGCA
+      const companyKeywords = ['indowings', 'company', 'founder', 'ceo', 'paras jain', 'headquarter', 'office', 'dgca', 'cin', 'about'];
       if (companyKeywords.some((kw) => clean.toLowerCase().includes(kw))) {
         addMessage({
           sender: 'bot',
-          text: 'IndoWings Corporate Profile:\n\nIndoWings Private Limited is a premier aerospace and autonomous drone logistics company in India:',
+          text: 'IndoWings Corporate Profile & Manufacturing:\n\nIndoWings Private Limited is a leading Indian enterprise drone manufacturing and autonomous logistics company.',
           cardType: 'company_info'
         });
         setLoading(false);
         return;
       }
 
-      // 10. KNOWLEDGE BASE: MEDICAL COLD-CHAIN & EMERGENCY
-      const medicalKeywords = ['medical', 'hospital', 'blood', 'medicine', 'cold chain', 'emergency'];
-      if (medicalKeywords.some((kw) => clean.toLowerCase().includes(kw))) {
+      // 9. KNOWLEDGE BASE: SUPPORT & CONTACT
+      const supportKeywords = ['support', 'contact', 'call', 'phone', 'help', 'customer care', 'helpline', 'email', 'complaint', 'expert'];
+      if (supportKeywords.some((kw) => clean.toLowerCase().includes(kw))) {
         addMessage({
           sender: 'bot',
-          text: 'Medical Drone Transit Corridors:\n\n• Active Cold-Chain: 2°C to 8°C temperature control for blood units, vaccines, and diagnostic samples.\n• Sub-15 Minute Transit: Direct emergency hospital-to-hospital corridors.\n• Precision Payload Release: Motorized tether gently lowers payloads from 15 meters without rotor blast.'
+          text: 'IndoWings 24/7 Customer Support & Command Center:\n\nOur operations and technical support engineers are available round the clock:',
+          cardType: 'support_info'
         });
         setLoading(false);
         return;
       }
 
-      // 11. KNOWLEDGE BASE: SUPPORT & EXPERT
-      const expertKeywords = ['expert', 'support', 'contact', 'call', 'phone', 'help', 'customer care'];
-      if (expertKeywords.some((kw) => clean.toLowerCase().includes(kw))) {
+      // 10. KNOWLEDGE BASE: DRONE FLEET & SPECS
+      const droneKeywords = ['drone', 'fleet', '700rpav', 'cyberone', 'aircraft', 'uav', 'payload', 'specs', 'battery', 'range', 'speed'];
+      if (droneKeywords.some((kw) => clean.toLowerCase().includes(kw))) {
         addMessage({
           sender: 'bot',
-          text: 'IndoWings Dispatch & Support:\n\n• Air Dispatch Desk: 24/7 Operations Helpdesk\n• Email: support@indowings.com\n• Helpline: +91 99999 99999\n• Operations Consultation: Speak with the IndoWings operations team on the Support page.'
+          text: "IndoWings Drone Fleet Overview:\n\nIndoWings manufactures DGCA type-certified enterprise UAV platforms built for logistics, defense surveillance, and industrial mapping:",
+          cardType: 'drones_info'
+        });
+        setLoading(false);
+        return;
+      }
+
+      // 11. KNOWLEDGE BASE: STORE / HOW TO BOOK DRONES
+      const bookingKeywords = ['book', 'buy', 'purchase', 'store', 'order kaise', 'kaise kharide', 'inventory', 'catalog'];
+      if (bookingKeywords.some((kw) => clean.toLowerCase().includes(kw))) {
+        addMessage({
+          sender: 'bot',
+          text: 'How to Book Drones from IndoWings Store:\n\n1. Visit the **Store** page to browse available verified idle drones.\n2. Add desired drone units (e.g. 700RPAV) to your Consignment Cart.\n3. Enter your Delivery Facility Address and confirm booking.\n4. Booked drones are instantly reserved in inventory and prepared for dispatch.',
+          cardType: 'store_guide'
         });
         setLoading(false);
         return;
@@ -408,7 +394,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       // 12. DEFAULT INTELLIGENT FALLBACK
       addMessage({
         sender: 'bot',
-        text: 'I am here to assist you! You can ask about:\n\n1. Track Sortie: Enter your Sortie ID (e.g. INW-2026-001).\n2. Find Sortie ID: Enter your 10-digit mobile number to verify via OTP.\n3. Drone Fleet: Inquire about speed, payload, range, or precision release.\n4. About IndoWings: DGCA approvals, headquarters, or corporate details.'
+        text: 'I am here to assist you with IndoWings Flight Operations:\n\n1. 📦 **Track Order**: Enter your Order ID to view live telemetry.\n2. 🔍 **Find Order ID**: Provide your Name & Phone to recover your ID.\n3. 🏢 **Company Info**: Learn about IndoWings DGCA manufacturing.\n4. 🎧 **Support Team**: Contact our 24/7 Operations Helpdesk.\n5. 🚁 **Drone Fleet**: Check 700RPAV and Cyberone specifications.'
       });
     } catch (err: any) {
       addMessage({
@@ -792,6 +778,57 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                         </div>
                       )}
 
+                      {/* ── CARD: SUPPORT & CONTACT INFO ── */}
+                      {msg.cardType === 'support_info' && (
+                        <div className="bg-white rounded-xl border border-slate-200 p-2.5 space-y-1.5 shadow-xs text-[11px] text-slate-600">
+                          <div className="p-2 rounded-lg bg-orange-50/70 border border-orange-100 flex items-center justify-between">
+                            <div>
+                              <p className="font-bold text-slate-900 text-xs">24/7 Command Center Helpline</p>
+                              <p className="text-[10px] text-orange-700 font-semibold font-mono mt-0.5">+91 98765 43210 / 1800-IND-WINGS</p>
+                            </div>
+                            <Phone className="w-4 h-4 text-[#ef7f1a]" />
+                          </div>
+                          <div className="space-y-0.5 text-[10px]">
+                            <p><strong className="text-slate-800">Support Email:</strong> support@indowings.com</p>
+                            <p><strong className="text-slate-800">Dispatch Office:</strong> Sector 62, Noida, Uttar Pradesh</p>
+                            <p><strong className="text-slate-800">Operations:</strong> Live Sortie Telemetry & Airway Approvals</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setIsOpen(false);
+                              nav('support', '/support');
+                            }}
+                            className="w-full py-1.5 bg-[#ef7f1a] hover:bg-[#4a0099] text-white font-semibold text-[11px] rounded-lg cursor-pointer mt-1 transition-colors flex items-center justify-center gap-1.5"
+                          >
+                            <span>Open Support Desk & Raise Ticket</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* ── CARD: STORE GUIDE ── */}
+                      {msg.cardType === 'store_guide' && (
+                        <div className="bg-white rounded-xl border border-slate-200 p-2.5 space-y-2 shadow-xs text-[11px]">
+                          <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <p className="font-bold text-emerald-900 text-xs flex items-center gap-1.5">
+                              <Package className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Drone Consignment Booking</span>
+                            </p>
+                            <p className="text-[10px] text-emerald-700 mt-0.5">Browse 990+ verified idle UAVs, add to consignment cart, and schedule instant delivery.</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setIsOpen(false);
+                              nav('store', '/store');
+                            }}
+                            className="w-full py-1.5 bg-[#ef7f1a] hover:bg-[#4a0099] text-white font-semibold text-[11px] rounded-lg cursor-pointer transition-colors flex items-center justify-center gap-1.5"
+                          >
+                            <span>Visit Store & Book Drone</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+
                       <span className="text-[9px] text-slate-400 block px-1">{msg.time}</span>
                     </div>
 
@@ -838,11 +875,17 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                     placeholder={
                       convState.step === 'awaiting_name'
                         ? 'Enter customer name...'
-                        : convState.step === 'awaiting_identifier'
-                          ? 'Enter mobile number or email...'
-                          : convState.step === 'awaiting_otp'
-                            ? 'Enter 6-digit OTP code...'
-                            : 'Enter Order ID, phone or question...'
+                        : convState.step === 'lookup_name'
+                          ? 'Enter registered full name...'
+                          : convState.step === 'lookup_phone'
+                            ? 'Enter 10-digit mobile or email...'
+                            : convState.step === 'lookup_date'
+                              ? 'Enter booking date (e.g. "Today" or "skip")...'
+                              : convState.step === 'awaiting_identifier'
+                                ? 'Enter mobile number or email...'
+                                : convState.step === 'awaiting_otp'
+                                  ? 'Enter 6-digit OTP code...'
+                                  : 'Enter Order ID, phone or ask anything...'
                     }
                     className="w-full bg-transparent text-slate-800 placeholder-slate-400 text-xs focus:outline-none"
                   />
