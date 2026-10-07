@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import * as maplibregl from 'maplibre-gl';
 import type { ErrorEvent as MapLibreErrorEvent, Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { MapPinOff } from 'lucide-react';
@@ -29,7 +30,6 @@ export const LiveDeliveryMap: React.FC<Props> = ({ deliveries, center }) => {
     const plot = async () => {
       if (!map) return;
       const instance = map;
-      const maplibregl = await import('maplibre-gl');
       if (controller.signal.aborted) return;
 
       // clear previous markers
@@ -100,7 +100,6 @@ export const LiveDeliveryMap: React.FC<Props> = ({ deliveries, center }) => {
     };
 
     const init = async () => {
-      const maplibregl = await import('maplibre-gl');
       if (controller.signal.aborted || !containerRef.current) return;
       const initialStyle = MAPTILER_KEY
         ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(MAPTILER_KEY)}`

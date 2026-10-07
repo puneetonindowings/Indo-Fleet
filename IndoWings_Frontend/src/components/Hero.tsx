@@ -99,8 +99,6 @@ const TRANSIT_STAGES = [
 ];
 
 export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
-
   const go = (page: string, url: string) => {
     onNavigate?.(page);
     window.history.pushState({}, '', url);
@@ -379,14 +377,6 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
                     <ShoppingCart className="w-3.5 h-3.5" />
                     <span>Browse Fleet Store</span>
                   </button>
-
-                  <button
-                    onClick={() => setShowDiagnostics(!showDiagnostics)}
-                    className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-all active:scale-95 cursor-pointer"
-                  >
-                    <Cpu className="w-3.5 h-3.5 text-[#ef7f1a]" />
-                    <span>{showDiagnostics ? 'Hide Diagnostics' : 'View QC Diagnostics'}</span>
-                  </button>
                 </div>
               </div>
 
@@ -424,34 +414,6 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
                     </div>
                   </div>
                 </div>
-
-                {/* Diagnostics Toggle Card */}
-                {showDiagnostics && (
-                  <div className="bg-orange-50/70 rounded-2xl p-5 border border-orange-200/80 animate-in fade-in duration-150 space-y-2.5 text-xs">
-                    <p className="font-bold text-[#191b30] flex items-center gap-2">
-                      <Cpu className="w-4 h-4 text-[#ef7f1a]" />
-                      Pre-Delivery QC Bench Standards
-                    </p>
-                    <div className="space-y-1.5 pt-1 text-slate-600 font-medium">
-                      <div className="flex justify-between">
-                        <span>Dual RTK Satellite Lock:</span>
-                        <span className="font-bold text-emerald-600">3D Fix Centimetric</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Solid-State Battery Cell:</span>
-                        <span className="font-bold text-emerald-600">Optimal Balance (No Runaway)</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Ingress Protection:</span>
-                        <span className="font-bold text-[#ef7f1a]">IP53 Weatherproof</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Flight Computer:</span>
-                        <span className="font-bold text-emerald-600">H7 Processor Verified</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
             </div>

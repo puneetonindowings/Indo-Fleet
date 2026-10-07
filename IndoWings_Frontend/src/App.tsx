@@ -8,7 +8,6 @@ import { GcsPage } from './pages/GcsPage';
 import { DownloadsPage } from './pages/DownloadsPage';
 import { VersionsPage } from './pages/VersionsPage';
 import { TrackOrderPage } from './pages/TrackOrderPage';
-import { DispatchPage } from './pages/DispatchPage';
 import { DroneDispatchModule } from './pages/DroneDispatchModule';
 import { LoginPage } from './pages/LoginPage';
 import { ProfilePage } from './pages/ProfilePage';
@@ -226,9 +225,7 @@ export const App: React.FC = () => {
           <VersionsPage onNavigate={handleNavigate} onOpenDemoBooking={() => handleOpenDemoBooking()} />
         ) : currentPage === 'track' ? (
           <TrackOrderPage onNavigate={handleNavigate} />
-        ) : currentPage === 'dispatch' ? (
-          <DispatchPage onNavigate={handleNavigate} currentUser={deliveryUser} />
-        ) : currentPage === 'drone-dispatch' ? (
+        ) : (currentPage === 'dispatch' || currentPage === 'drone-dispatch') ? (
           <DroneDispatchModule
             currentUser={deliveryUser}
             onNavigate={handleNavigate}

@@ -1,5 +1,4 @@
 import React from "react";
-import { Shield, Radio, Sparkles, Navigation, Zap } from "lucide-react";
 
 interface InteractiveDroneProps {
   onOrderClick?: () => void;
@@ -18,7 +17,7 @@ export const InteractiveDrone: React.FC<InteractiveDroneProps> = ({ onOrderClick
 
       {/* ── Main Floating Character Container (Clean & Focused) ── */}
       <div className="relative z-10 flex flex-col items-center">
-        {/* Floating Character Image from CSCA */}
+        {/* Floating Character Image */}
         <div className="relative flex justify-center">
           <img
             src="/images/floating-character.png"
@@ -43,7 +42,7 @@ export const InteractiveDrone: React.FC<InteractiveDroneProps> = ({ onOrderClick
         />
       </div>
 
-      {/* ── Embedded CSS Animation (Exact CSCA Style) ── */}
+      {/* ── Embedded CSS Animation ── */}
       <style>{`
         @keyframes floatGlow {
           0%, 100% {

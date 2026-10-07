@@ -115,25 +115,6 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
 
   const dashboardInfo = currentUser ? getDashboardInfo(currentUser.role) : null;
 
-  // 2. Transit & Tracking
-  const TRANSIT_ITEMS = [
-    {
-      icon: Navigation,
-      label: 'Live Drone Tracking',
-      sub: 'Real-time GPS flight path & status',
-      page: 'track',
-      url: '/track',
-      badge: 'Live'
-    },
-    {
-      icon: Clock,
-      label: 'Flight & Dispatch History',
-      sub: 'Dispatches, transit logs & challans',
-      page: 'orders',
-      url: '/profile?tab=orders'
-    }
-  ];
-
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full pt-2.5 sm:pt-3.5 px-3 sm:px-6 pointer-events-none transition-all duration-300">
       {/* ── Floating Cylindrical Glassmorphic Capsule ────────────────── */}
@@ -151,42 +132,15 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
 
         {/* ── Desktop Navigation Menu (Cylindrical Pills) ───────────── */}
         <nav className="hidden lg:flex items-center gap-1.5 text-[14px] font-bold text-slate-800" ref={dropdownRef}>
-          {/* 1. Track Drone Dropdown */}
-          <div className="relative" onMouseEnter={() => handleMouseEnter('transit')} onMouseLeave={handleMouseLeave}>
-            <button
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full transition-all ${
-                openDropdown === 'transit' ? 'bg-orange-50 text-[#ef7f1a]' : 'hover:bg-slate-100/80 text-slate-700 hover:text-slate-900'
-              }`}
-            >
-              <Navigation className="w-3.5 h-3.5 text-[#ef7f1a]" />
-              <span>Track Drone</span>
-              <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${openDropdown === 'transit' ? 'rotate-180 text-[#ef7f1a]' : 'text-slate-400'}`} />
-            </button>
-
-            {openDropdown === 'transit' && (
-              <div className="absolute top-[calc(100%+10px)] left-0 pt-1 w-72 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                <div className="dropdown-glass rounded-2xl p-2">
-                  <div className="px-3 pt-2 pb-1.5">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Live Flight Tracking</p>
-                  </div>
-                  {TRANSIT_ITEMS.map((item) => (
-                    <a key={item.label} href={item.url} onClick={nav(item.page, item.url)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-all group">
-                      <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 group-hover:bg-orange-50 group-hover:text-[#ef7f1a] flex items-center justify-center shrink-0">
-                        <item.icon className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs font-bold text-slate-800 truncate">{item.label}</p>
-                          {item.badge && <span className="text-[9px] font-black px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full animate-pulse">{item.badge}</span>}
-                        </div>
-                        <p className="text-[11px] text-slate-400 truncate mt-0.5">{item.sub}</p>
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          {/* 1. Track Order (Direct Link) */}
+          <a
+            href="/track"
+            onClick={nav('track', '/track')}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full hover:bg-orange-50 hover:text-[#ef7f1a] transition-all text-slate-700 font-bold group"
+          >
+            <Navigation className="w-3.5 h-3.5 text-[#ef7f1a] group-hover:scale-110 transition-transform" />
+            <span>Track Order</span>
+          </a>
 
           {/* 2. Fleet Store */}
           <a
@@ -357,15 +311,14 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
             <span>Support Desk</span>
           </a>
 
-          <div className="px-3 pt-2 pb-1">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Flight &amp; Drone Tracking</p>
-          </div>
-          {TRANSIT_ITEMS.map((item) => (
-            <a key={item.label} href={item.url} onClick={nav(item.page, item.url)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-50">
-              <item.icon className="w-4 h-4 text-[#ef7f1a] shrink-0" />
-              <span>{item.label}</span>
-            </a>
-          ))}
+          <a
+            href="/track"
+            onClick={nav('track', '/track')}
+            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all mb-1"
+          >
+            <Navigation className="w-4 h-4 text-[#ef7f1a]" />
+            <span>Track Order</span>
+          </a>
 
           <div className="px-3 pt-2 pb-1">
             <a href="/company" onClick={nav('company', '/company')} className="flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-[#ef7f1a]">
