@@ -70,6 +70,9 @@ export const KpiCard: React.FC<KpiCardProps> = ({
           </div>
         </div>
         <p className="text-2xl font-black text-slate-900 mt-1 tracking-tight leading-tight">{value}</p>
+        {subtitle && (
+          <p className="text-[10.5px] font-semibold text-slate-500 mt-0.5 truncate" title={subtitle}>{subtitle}</p>
+        )}
       </div>
 
       <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-1.5">
@@ -82,9 +85,9 @@ export const KpiCard: React.FC<KpiCardProps> = ({
               </span>
               <span className="text-[10px] font-semibold text-slate-400 truncate">{comparisonLabel}</span>
             </>
-          ) : subtitle ? (
-            <p className="text-[11px] font-medium text-slate-500 truncate" title={subtitle}>{subtitle}</p>
-          ) : null}
+          ) : (
+            <span className="text-[10px] font-bold text-slate-400">Live Status</span>
+          )}
         </div>
         {sparkline && sparkline.length >= 2 && (
           <div className="shrink-0">

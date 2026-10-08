@@ -218,7 +218,13 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
   const spark = (arr: any[], key: string) => arr.slice(-8).map((p) => Number(p[key]) || 0);
 
   // ── KPI cards ────────────────────────────────────────────────────────────────
+  const allTimeTotalOrders = orders.length;
+  const allTimeCancelledOrders = orders.filter((o) => o.status === 'cancelled').length;
+  const allTimeDeliveredOrders = orders.filter((o) => o.status === 'delivered').length;
+  const allTimePendingOrders = orders.filter((o) => ['pending', 'assigned'].includes(o.status)).length;
+
   const todaysOrders = orders.filter((o) => ts(o.created_at) >= todayStart && ts(o.created_at) <= todayEnd);
+  const todaysCancelled = orders.filter((o) => o.status === 'cancelled' && ((o.cancelled_at && ts(o.cancelled_at) >= todayStart && ts(o.cancelled_at) <= todayEnd) || (ts(o.created_at) >= todayStart && ts(o.created_at) <= todayEnd)));
   const deliveredToday = orders.filter((o) => o.delivered_at && ts(o.delivered_at) >= todayStart && ts(o.delivered_at) <= todayEnd);
   const revenueToday = sum(orders.filter((o) => ts(o.created_at) >= todayStart && ts(o.created_at) <= todayEnd).map(orderRevenue));
 
@@ -237,7 +243,12 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
   const kpis = {
     totalOrders: { ...delta(ordersInRange.length, ordersPrev.length), sparkline: spark(ordersTrend, 'orders') },
     totalRevenue: { ...delta(round(revenueInRange, 0), round(revenuePrev, 0)), sparkline: spark(ordersTrend, 'revenue') },
+    allTimeTotalOrders: { value: allTimeTotalOrders },
+    allTimeCancelledOrders: { value: allTimeCancelledOrders },
+    allTimeDeliveredOrders: { value: allTimeDeliveredOrders },
+    allTimePendingOrders: { value: allTimePendingOrders },
     todaysOrders: { value: todaysOrders.length },
+    todaysCancelled: { value: todaysCancelled.length },
     todaysDeliveries: { value: deliveredToday.length },
     todaysRevenue: { value: round(revenueToday, 0) },
     pendingOrders: { value: pendingNow },
