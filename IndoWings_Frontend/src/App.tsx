@@ -77,9 +77,9 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // Route Protection & Role Governance for Enterprise Dashboards
+  // Route Protection & Role Governance for Enterprise Dashboards & Fleet Store
   useEffect(() => {
-    const protectedPages: Page[] = ['admin', 'fleet', 'support-desk', 'dispatch', 'drone-dispatch', 'delivery-tracking'];
+    const protectedPages: Page[] = ['admin', 'fleet', 'support-desk', 'dispatch', 'drone-dispatch', 'delivery-tracking', 'shop', 'store'];
     if (protectedPages.includes(currentPage)) {
       const token = localStorage.getItem('iw_delivery_token');
       const userStr = localStorage.getItem('iw_delivery_user');
@@ -105,17 +105,15 @@ export const App: React.FC = () => {
         } else if (currentPage === 'delivery-tracking' && !['admin', 'dispatcher', 'fleet_manager'].includes(role)) {
           if (role === 'support') routeToDesk('support-desk', '/support-desk');
           else routeToDesk('login', '/login');
-        } else if ((currentPage === 'dispatch' || currentPage === 'drone-dispatch') && role !== 'dispatcher' && role !== 'admin') {
-          if (role === 'fleet_manager') routeToDesk('fleet', '/fleet');
-          else if (role === 'support') routeToDesk('support-desk', '/support-desk');
+        } else if ((currentPage === 'dispatch' || currentPage === 'drone-dispatch') && !['dispatcher', 'admin', 'fleet_manager'].includes(role)) {
+          if (role === 'support') routeToDesk('support-desk', '/support-desk');
           else routeToDesk('login', '/login');
-        } else if (currentPage === 'fleet' && role !== 'fleet_manager' && role !== 'admin') {
+        } else if (currentPage === 'fleet' && !['fleet_manager', 'admin'].includes(role)) {
           if (role === 'dispatcher') routeToDesk('dispatch', '/dispatch');
           else if (role === 'support') routeToDesk('support-desk', '/support-desk');
           else routeToDesk('login', '/login');
-        } else if (currentPage === 'support-desk' && role !== 'support' && role !== 'admin') {
-          if (role === 'fleet_manager') routeToDesk('fleet', '/fleet');
-          else if (role === 'dispatcher') routeToDesk('dispatch', '/dispatch');
+        } else if (currentPage === 'support-desk' && !['support', 'admin', 'fleet_manager'].includes(role)) {
+          if (role === 'dispatcher') routeToDesk('dispatch', '/dispatch');
           else routeToDesk('login', '/login');
         }
       } catch {
@@ -145,6 +143,13 @@ export const App: React.FC = () => {
 
   const handleNavigate = (page: string) => {
     if (page === 'store' || page === 'shop') {
+      const token = localStorage.getItem('iw_delivery_token');
+      const userStr = localStorage.getItem('iw_delivery_user');
+      if (!token || !userStr || !deliveryUser) {
+        setCurrentPage('login');
+        window.history.pushState({}, '', '/login');
+        return;
+      }
       setCurrentPage('shop');
       return;
     }
@@ -161,7 +166,7 @@ export const App: React.FC = () => {
     setDeliveryUser(null);
     localStorage.removeItem('iw_delivery_token');
     localStorage.removeItem('iw_delivery_user');
-    const protectedPages: Page[] = ['admin', 'fleet', 'support-desk', 'dispatch', 'drone-dispatch', 'delivery-tracking'];
+    const protectedPages: Page[] = ['admin', 'fleet', 'support-desk', 'dispatch', 'drone-dispatch', 'delivery-tracking', 'shop', 'store'];
     if (protectedPages.includes(currentPage)) {
       setCurrentPage('login');
       window.history.pushState({}, '', '/login');
@@ -233,7 +238,9 @@ export const App: React.FC = () => {
             onLogout={handleDeliveryLogout}
           />
         ) : currentPage === 'delivery-tracking' ? (
-          <DeliveryTrackingModule currentUser={deliveryUser} onNavigate={handleNavigate} />
+          <div className="min-h-screen bg-[#f8fafc] text-slate-900 pt-28 sm:pt-32 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            <DeliveryTrackingModule currentUser={deliveryUser} onNavigate={handleNavigate} />
+          </div>
         ) : currentPage === 'support' ? (
           <SupportPage onNavigate={handleNavigate} currentUser={deliveryUser} />
         ) : currentPage === 'docs' ? (

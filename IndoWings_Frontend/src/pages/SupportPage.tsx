@@ -561,15 +561,15 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black">1</div>
                   <div>
-                    <h3 className="text-base font-bold text-[#171222]">Packaging & Weight Rules</h3>
-                    <p className="text-xs text-slate-400">Cyberone Pro Payload Specifications</p>
+                    <h3 className="text-base font-bold text-[#171222]">Packaging & Cargo Rules</h3>
+                    <p className="text-xs text-slate-400">Cyberone Pro Consignment Specifications</p>
                   </div>
                 </div>
 
                 <div className="p-3.5 bg-slate-50 rounded-2xl space-y-2 text-xs">
                   <div className="flex items-center justify-between border-b border-slate-200/70 pb-2">
-                    <span className="text-slate-500 font-medium">Maximum Flight Payload:</span>
-                    <strong className="text-slate-900 font-bold">5.0 kg Max</strong>
+                    <span className="text-slate-500 font-medium">Consignment Standard:</span>
+                    <strong className="text-slate-900 font-bold">Standard Certified Package</strong>
                   </div>
                   <div className="flex items-center justify-between border-b border-slate-200/70 pb-2">
                     <span className="text-slate-500 font-medium">Standard Box Dimension:</span>
@@ -589,14 +589,14 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                       <p>• Medicines & Lab Samples</p>
                       <p>• Documents & Contracts</p>
                       <p>• Electronics & Small Spares</p>
-                      <p>• Scientific & Survey Payloads</p>
+                      <p>• Scientific & Survey Sensors</p>
                     </div>
                     <div className="p-2.5 bg-rose-50/70 border border-rose-200 rounded-xl text-rose-900 space-y-1">
                       <strong className="block text-rose-800 font-bold">✗ PROHIBITED:</strong>
                       <p>• Flammable liquids / gas</p>
-                      <p>• Loose lithium batteries</p>
-                      <p>• Unpadded glass items</p>
-                      <p>• Weight &gt; 5 kg</p>
+                      <p>• Hazardous chemical materials</p>
+                      <p>• Unpadded fragile glassware</p>
+                      <p>• Non-compliant dimensions</p>
                     </div>
                   </div>
                 </div>
@@ -608,7 +608,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                   <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black">2</div>
                   <div>
                     <h3 className="text-base font-bold text-[#171222]">Launch Port Safety (5m Perimeter Rule)</h3>
-                    <p className="text-xs text-slate-400">Hub Ground Pad Clearance & Crew Protocols</p>
+                    <p className="text-xs text-slate-400">Facility Ground Pad Clearance & Crew Protocols</p>
                   </div>
                 </div>
 
@@ -670,7 +670,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                   <div className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl">
                     <span className="w-6 h-6 rounded-full bg-[#5a00b8] text-white text-[10px] font-bold flex items-center justify-center">3</span>
                     <div>
-                      <strong className="text-[#171222]">Terminal Descent & Hub Recovery</strong>
+                      <strong className="text-[#171222]">Terminal Descent & Facility Recovery</strong>
                       <p className="text-[11px] text-slate-500">RTK precision approach and automated motor shutdown on pad touchdown.</p>
                     </div>
                   </div>
@@ -690,7 +690,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                 <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl text-xs space-y-2">
                   <p className="font-bold text-amber-900">DGCA Flight Log Compliance:</p>
                   <p className="text-amber-800 text-[11px] leading-relaxed">
-                    Following touchdown, blackbox flight telemetry and battery cell impedance metrics are automatically synced with DGCA DigitalSky and the IndoFleet Command Center.
+                    Following touchdown, blackbox flight telemetry and propulsion avionics metrics are automatically synced with DGCA DigitalSky and the IndoFleet Command Center.
                   </p>
                 </div>
 
@@ -702,7 +702,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                     • <strong>Live Telemetry Confirmation:</strong> Downward sensor records touchdown timestamp.
                   </p>
                   <p>
-                    • <strong>Mission Sign-off:</strong> Base technician and pilot verify return-to-hub telemetry.
+                    • <strong>Mission Sign-off:</strong> Base technician and pilot verify return flight telemetry.
                   </p>
                 </div>
               </div>

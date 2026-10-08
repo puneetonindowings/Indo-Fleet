@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarClock, CheckCircle2, Clock3, ExternalLink, MapPin, Package, RefreshCw, Search, ShieldCheck, Truck, X } from 'lucide-react';
+import { AlertTriangle, BellRing, CalendarClock, CheckCircle2, Clock3, ExternalLink, MapPin, Package, Pause, RefreshCw, Search, ShieldAlert, ShieldCheck, Truck, Volume2, VolumeX, X } from 'lucide-react';
 import * as maplibregl from 'maplibre-gl';
 import type { ErrorEvent as MapLibreErrorEvent, Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -12,6 +12,72 @@ if (typeof (maplibregl as any).setWorkerUrl === 'function') {
 
 const MAPTILER_KEY = (import.meta as any).env?.VITE_MAPTILER_KEY as string | undefined;
 const MAPBOX_TOKEN = (import.meta as any).env?.VITE_MAPBOX_ACCESS_TOKEN as string | undefined;
+
+// Web Audio API Loud Emergency Siren Alert Synthesizer
+class HoldSirenAlarm {
+  private ctx: AudioContext | null = null;
+  private gainNode: GainNode | null = null;
+  private intervalId: any = null;
+  public isPlaying: boolean = false;
+
+  start() {
+    if (this.isPlaying) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      this.ctx = new AudioCtx();
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+
+      this.gainNode = this.ctx.createGain();
+      this.gainNode.gain.setValueAtTime(0.25, this.ctx.currentTime);
+      this.gainNode.connect(this.ctx.destination);
+
+      let toggle = false;
+      const playTone = () => {
+        if (!this.ctx || !this.gainNode) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(toggle ? 920 : 620, now);
+        osc.connect(this.gainNode);
+        osc.start(now);
+        osc.stop(now + 0.32);
+        toggle = !toggle;
+      };
+
+      playTone();
+      this.intervalId = setInterval(playTone, 350);
+      this.isPlaying = true;
+
+      // Heavy vibration alarm for mobile drivers / pilots
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try {
+          navigator.vibrate([800, 300, 800, 300, 1200]);
+        } catch {}
+      }
+    } catch (e) {
+      console.warn('Could not start hold siren audio context:', e);
+    }
+  }
+
+  stop() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
+    if (this.ctx) {
+      try {
+        this.ctx.close();
+      } catch {}
+      this.ctx = null;
+    }
+    this.isPlaying = false;
+  }
+}
+
+const holdSiren = new HoldSirenAlarm();
 
 interface RouteEstimate {
   eta: string;
@@ -69,6 +135,9 @@ interface DeliveryOrder {
   delivered_at?: string;
   cancelled_at?: string;
   cancellation_reason?: string;
+  hold_reason?: string;
+  held_at?: string;
+  held_by?: string;
   delivery_audit_log?: Array<Record<string, string | boolean>>;
   timeline?: Array<Record<string, string | boolean | null>>;
   status_before_hold?: string;
@@ -147,7 +216,12 @@ const getStatusBadge = (status: string) => {
 
 const formatDate = (value?: string) => value ? new Date(value).toLocaleString('en-IN') : '—';
 
-const DeliveryMap: React.FC<{ order: DeliveryOrder; onEtaUpdate: (orderId: string, estimate: RouteEstimate | null) => void }> = ({ order, onEtaUpdate }) => {
+const DeliveryMap: React.FC<{
+  order: DeliveryOrder;
+  onEtaUpdate: (orderId: string, estimate: RouteEstimate | null) => void;
+  isSirenPlaying?: boolean;
+  onToggleSiren?: () => void;
+}> = ({ order, onEtaUpdate, isSirenPlaying, onToggleSiren }) => {
   const mapContainer = React.useRef<HTMLDivElement>(null);
   const [mapError, setMapError] = useState('');
   const [mapNotice, setMapNotice] = useState('');
@@ -284,7 +358,51 @@ const DeliveryMap: React.FC<{ order: DeliveryOrder; onEtaUpdate: (orderId: strin
 
   return (
     <div className="space-y-2">
-      <div ref={mapContainer} className="h-72 w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-100" aria-label="Map showing available delivery locations" />
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-inner">
+        <div
+          ref={mapContainer}
+          className={`h-72 w-full transition-all duration-300 ${order.status === 'on-hold' ? 'filter brightness-40 grayscale-75 pointer-events-none' : ''}`}
+          aria-label="Map showing available delivery locations"
+        />
+
+        {order.status === 'on-hold' && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-[2px] p-6 text-center text-white border-2 border-amber-500 shadow-2xl">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center mb-3 shadow-lg ring-4 ring-amber-400/20 animate-pulse">
+              <Pause className="w-7 h-7 text-amber-300" />
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-500 text-slate-950 text-xs font-black uppercase tracking-wider mb-2 shadow-md">
+              🛑 FLIGHT &amp; TRANSIT FROZEN · ORDER ON HOLD
+            </div>
+            <div className="max-w-md bg-amber-950/60 border border-amber-500/40 rounded-xl px-4 py-2.5 mt-1">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-amber-300">Mandatory Hold Reason</p>
+              <p className="text-sm font-black text-amber-100 mt-0.5">&ldquo;{order.hold_reason || 'Corridor Weather / Operational Security Pause'}&rdquo;</p>
+            </div>
+            <p className="text-[11px] text-slate-300 mt-2 max-w-sm">
+              Pilot &amp; Driver Safety Lock: Navigation corridor is frozen. Halt transit immediately until cleared by Dispatch Operations.
+            </p>
+            {order.held_by && (
+              <p className="text-[10px] text-amber-400/90 mt-1 font-mono">
+                Authorized By: {order.held_by} {order.held_at ? `· ${new Date(order.held_at).toLocaleTimeString('en-IN')}` : ''}
+              </p>
+            )}
+            {onToggleSiren && (
+              <button
+                type="button"
+                onClick={onToggleSiren}
+                className={`mt-3 px-4 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md transition ${
+                  isSirenPlaying
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white animate-bounce ring-2 ring-white'
+                    : 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-400/40'
+                }`}
+              >
+                {isSirenPlaying ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                <span>{isSirenPlaying ? 'Acknowledge & Silence Siren' : 'Test Hold Emergency Siren'}</span>
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="flex flex-wrap gap-3 text-[11px] font-semibold text-slate-600">
         <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-[#5a00b8]" />Pickup</span>
         <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-rose-600" />Last known location</span>
@@ -321,6 +439,31 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
   const [otp, setOtp] = useState('');
   const [otpRequested, setOtpRequested] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [sirenPlaying, setSirenPlaying] = useState(false);
+
+  const toggleSiren = useCallback(() => {
+    if (sirenPlaying) {
+      holdSiren.stop();
+      setSirenPlaying(false);
+    } else {
+      holdSiren.start();
+      setSirenPlaying(true);
+    }
+  }, [sirenPlaying]);
+
+  useEffect(() => {
+    if (selectedOrder?.status === 'on-hold') {
+      holdSiren.start();
+      setSirenPlaying(true);
+    } else {
+      holdSiren.stop();
+      setSirenPlaying(false);
+    }
+    return () => {
+      holdSiren.stop();
+    };
+  }, [selectedOrder?.id, selectedOrder?.status]);
+
   const canManagePorterTracking = currentUser?.role === 'admin' || currentUser?.role === 'dispatcher';
   const handleRouteEta = useCallback((orderId: string, estimate: RouteEstimate | null) => {
     setRouteEstimates(previous => {
@@ -495,6 +638,32 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
 
       {error && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">{error}</div>}
 
+      {sirenPlaying && (
+        <div className="rounded-2xl border-2 border-red-500 bg-red-600 p-4 text-white shadow-xl flex flex-wrap items-center justify-between gap-3 animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <Volume2 className="w-6 h-6 text-white animate-spin" />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider text-red-100 flex items-center gap-1.5">
+                <BellRing className="w-4 h-4" /> 🚨 EMERGENCY MISSION ON HOLD: SIREN ALARM SOUNDING
+              </p>
+              <p className="text-sm font-bold mt-0.5">
+                {selectedOrder?.id ? `Order #${selectedOrder.id}: ` : ''}
+                {selectedOrder?.hold_reason || 'Corridor transit frozen. Pilot/Driver halt vehicle immediately!'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={toggleSiren}
+            className="px-4 py-2 bg-white hover:bg-slate-100 text-red-700 rounded-xl font-black text-xs uppercase tracking-wider cursor-pointer shadow-md shrink-0 flex items-center gap-1.5"
+          >
+            <VolumeX className="w-4 h-4" />
+            <span>Acknowledge &amp; Stop Siren</span>
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {cards.map(([label, value, Icon]) => (
           <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -564,18 +733,23 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
                           {order.rpav_info?.id || order.drone_id || (Array.isArray(order.reserved_inventory_ids) && order.reserved_inventory_ids.length ? `${order.reserved_inventory_ids.length} Units` : 'Not assigned')}
                         </p>
                         <p className="text-slate-500 text-[11px] mt-0.5">{order.rpav_info?.name || order.drone_model || order.package_type || '—'}</p>
-                        {order.rpav_info?.battery != null && <p className="text-slate-400 text-[10px]">{order.rpav_info.battery}% battery</p>}
                       </td>
                       <td className="px-4 py-3.5">
                         <span className={`inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 rounded-full text-[11px] font-bold ${badge.className}`}>
                           {badge.label}
                         </span>
-                        {order.status === 'on-hold' && <p className="mt-1 text-[10px] font-bold text-amber-700 uppercase">On Hold</p>}
+                        {order.status === 'on-hold' && (
+                          <div className="mt-1">
+                            <span className="inline-block text-[10px] font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
+                              Reason: {order.hold_reason || 'Operational Hold'}
+                            </span>
+                          </div>
+                        )}
                         {order.status === 'rescheduled' && <p className="mt-1 text-[10px] font-bold text-sky-700 uppercase">Rescheduled</p>}
                       </td>
                       <td className="px-4 py-3.5 max-w-60">
                         <div className="space-y-1 text-[11px]">
-                          <p className="text-slate-500 truncate"><strong className="text-slate-700 font-semibold">From:</strong> {order.pickup_address || 'IndoWings Hub'}</p>
+                          <p className="text-slate-500 truncate"><strong className="text-slate-700 font-semibold">From:</strong> {order.pickup_address || 'IndoWings Origin Facility'}</p>
                           <p className="text-slate-700 leading-snug"><strong className="text-slate-900 font-semibold">To:</strong> {order.drop_address || order.destination_address || '—'}</p>
                         </div>
                       </td>
@@ -706,7 +880,50 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
       {selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
           <section className="max-h-[90vh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
-            <div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase text-purple-700">Delivery details</p><h2 className="text-xl font-black">{selectedOrder.delivery_id || `DEL-${selectedOrder.id}`}</h2><p className="mt-1 font-mono text-xs text-slate-500">Order ID: {selectedOrder.id}</p></div><button onClick={() => setSelectedOrder(null)} aria-label="Close details"><X /></button></div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase text-purple-700">Delivery details</p>
+                <h2 className="text-xl font-black">{selectedOrder.delivery_id || `DEL-${selectedOrder.id}`}</h2>
+                <p className="mt-1 font-mono text-xs text-slate-500">Order ID: {selectedOrder.id}</p>
+              </div>
+              <button onClick={() => { setSelectedOrder(null); holdSiren.stop(); setSirenPlaying(false); }} aria-label="Close details"><X /></button>
+            </div>
+
+            {selectedOrder.status === 'on-hold' && (
+              <div className="rounded-2xl border-2 border-amber-400 bg-amber-50 p-4 text-amber-950 flex flex-wrap items-start justify-between gap-3 shadow-md">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-200 border border-amber-300 flex items-center justify-center shrink-0 mt-0.5">
+                    <Pause className="w-5 h-5 text-amber-800" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                      🛑 MISSION TRANSIT FROZEN · DELIVERY ON HOLD
+                    </p>
+                    <p className="text-sm font-bold text-amber-950 mt-1">
+                      Hold Reason: &ldquo;{selectedOrder.hold_reason || 'Safety & Operational Hold'}&rdquo;
+                    </p>
+                    {selectedOrder.held_by && (
+                      <p className="text-xs text-amber-800 mt-1">
+                        Authorized by <strong>{selectedOrder.held_by}</strong> {selectedOrder.held_at ? `on ${new Date(selectedOrder.held_at).toLocaleString('en-IN')}` : ''}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleSiren}
+                  className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm shrink-0 transition ${
+                    sirenPlaying
+                      ? 'bg-rose-600 hover:bg-rose-700 text-white animate-bounce'
+                      : 'bg-amber-200 hover:bg-amber-300 text-amber-900 border border-amber-400'
+                  }`}
+                >
+                  {sirenPlaying ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                  <span>{sirenPlaying ? 'Silence Siren' : 'Test Siren'}</span>
+                </button>
+              </div>
+            )}
+
             {selectedOrder.status === 'cancelled' ? (
               <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-black text-rose-800">Cancelled · {selectedOrder.cancellation_reason || 'Reason recorded in history'}</div>
             ) : (
@@ -730,7 +947,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
                 ['Organization ID', selectedOrder.organization_id || '—'],
                 ['RPAV ID / model', `${selectedOrder.rpav_info?.id || selectedOrder.drone_id || 'Unassigned'} · ${selectedOrder.rpav_info?.name || selectedOrder.drone_model || ''}`],
                 ['RPAV status', selectedOrder.rpav_info?.status || 'Unavailable'],
-                ['Last recorded battery', selectedOrder.rpav_info?.battery != null ? `${selectedOrder.rpav_info.battery}%` : 'Telemetry unavailable'],
+                ['Airworthiness telemetry', 'Nominal corridor status'],
                 ['RPAV current location', selectedOrder.rpav_info?.current_location || 'Not recorded'],
                 ['Status', STATUS_LABELS[selectedOrder.status] || selectedOrder.status],
                 ['Pickup', selectedOrder.pickup_address || '—'],
@@ -766,7 +983,7 @@ export const DeliveryTrackingModule: React.FC<{ currentUser: DeliveryUser | null
                 <h3 className="font-bold text-slate-900">MapTiler delivery map</h3>
                 <p className="mt-1 text-xs text-slate-500">Markers use saved coordinates only. Customer delivery addresses are not sent to MapTiler for lookup.</p>
               </div>
-              <DeliveryMap order={selectedOrder} onEtaUpdate={handleRouteEta} />
+              <DeliveryMap order={selectedOrder} onEtaUpdate={handleRouteEta} isSirenPlaying={sirenPlaying} onToggleSiren={toggleSiren} />
               <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
                 Live location tracking is not connected. Markers use only saved GPS coordinates and do not represent a live carrier position.
                 {selectedOrder.last_location_updated_at ? ` Last GPS update: ${formatDate(selectedOrder.last_location_updated_at)}.` : ' No last-known GPS coordinate has been recorded.'}

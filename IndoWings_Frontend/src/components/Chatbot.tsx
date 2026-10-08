@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, X, Minimize2, Maximize2, RefreshCw, Bot, User, Plane, Radar, Sparkles, Phone, Building2, Package, ArrowRight, Search, ShieldCheck, ChevronRight, HelpCircle, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Send, X, Minimize2, Maximize2, RefreshCw, Bot, User, Plane, Radar, Sparkles, Phone, Building2, Package, ArrowRight, Search, ShieldCheck, ChevronRight, HelpCircle, FileText, CheckCircle2, AlertCircle, ShoppingBag, Truck } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
 interface ChatMessage {
@@ -19,9 +19,9 @@ interface ChatbotProps {
 const SUGGESTED_TOPICS = [
   {
     icon: Package,
-    label: 'Track Order with Live Telemetry',
+    label: 'Track Order with Live GPS',
     query: 'Track my delivery order',
-    desc: 'Enter Order ID to view real-time flight HUD & ETA'
+    desc: 'Enter Order ID to view real-time delivery GPS route & ETA'
   },
   {
     icon: Search,
@@ -30,22 +30,22 @@ const SUGGESTED_TOPICS = [
     desc: '3-step recovery using Name, Phone & Booking Date'
   },
   {
-    icon: Plane,
-    label: '700RPAV Specifications & Range',
+    icon: Package,
+    label: '700RPAV Hardware Specifications',
     query: '700RPAV specs and performance',
-    desc: '65 mins endurance, 10 km range, PPK/RTK payload'
+    desc: 'IndoWings 700RPAV commercial drone hardware specs'
   },
   {
     icon: ShieldCheck,
-    label: 'Troubleshooting & Hardware Fix Guides',
+    label: 'Troubleshooting & Hardware Support',
     query: 'Hardware diagnostics and fix guides',
-    desc: 'Weather hold, RTK drift, NPNT permissions & avionics'
+    desc: 'Road delivery updates, RTK calibration, and support'
   },
   {
-    icon: Package,
+    icon: ShoppingBag,
     label: 'How to Book Drones from Store?',
     query: 'How to book 700RPAV consignment',
-    desc: 'Browse verified inventory & schedule instant dispatch'
+    desc: 'Browse available inventory & schedule road delivery'
   },
   {
     icon: Building2,
@@ -84,7 +84,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       {
         id: 'msg-welcome-1',
         sender: 'bot',
-        text: 'Hello! I am your IndoWings Flight & Logistics Assistant.\n\nHow can I help you today? Choose one of the common topics below, or type your question:',
+        text: 'Hello! I am your IndoWings Logistics & Consignment Assistant.\n\nHow can I help you today? Choose one of the common topics below, or type your question:',
         time: welcomeTime
       }
     ]);
@@ -122,7 +122,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       {
         id: `msg-${Date.now()}`,
         sender: 'bot',
-        text: 'Chat history reset. How can I assist you with your IndoWings 700RPAV flights today?',
+        text: 'Chat history reset. How can I assist you with your IndoWings 700RPAV consignments today?',
         time
       }
     ]);
@@ -213,7 +213,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         if (data.success && data.orders && data.orders.length > 0) {
           addMessage({
             sender: 'bot',
-            text: `Found **${data.orders.length} matching consignment${data.orders.length > 1 ? 's' : ''}** for **${finalLookup.name}**!\n\nSelect any order below to track its live flight telemetry:`,
+            text: `Found **${data.orders.length} matching consignment${data.orders.length > 1 ? 's' : ''}** for **${finalLookup.name}**!\n\nSelect any order below to track its live delivery route:`,
             cardType: 'order_list',
             cardData: {
               orders: data.orders,
@@ -249,7 +249,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         if (data.success && data.order) {
           addMessage({
             sender: 'bot',
-            text: `Identity verified for **${clean}**! Live flight telemetry for Order **#${orderId}**:`,
+            text: `Identity verified for **${clean}**! Live delivery tracking for Order **#${orderId}**:`,
             cardType: 'order_detail',
             cardData: data.order
           });
@@ -298,12 +298,12 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
           setConvState({ step: 'awaiting_name', pendingOrderId: foundId });
           addMessage({
             sender: 'bot',
-            text: `Order **#${foundId}** located in flight dispatch records.\n\nFor security verification, please enter the registered **Customer Name**:`
+            text: `Order **#${foundId}** located in consignment dispatch records.\n\nFor security verification, please enter the registered **Customer Name**:`
           });
         } else if (data.success && data.order) {
           addMessage({
             sender: 'bot',
-            text: `Live flight telemetry for Order **#${foundId}**:`,
+            text: `Live delivery tracking for Order **#${foundId}**:`,
             cardType: 'order_detail',
             cardData: data.order
           });
@@ -322,7 +322,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       if (greetingKeywords.some((kw) => lower === kw || lower.startsWith(kw + ' ') || lower.endsWith(' ' + kw))) {
         addMessage({
           sender: 'bot',
-          text: 'Hello! I am your IndoWings Flight & Logistics Assistant.\n\nI can help you track live flights, recover lost order IDs, check 700RPAV specifications, resolve diagnostic issues, or connect with our support desk. What would you like assistance with?'
+          text: 'Hello! I am your IndoWings Logistics & Support Assistant.\n\nI can help you track live road deliveries, recover lost order IDs, check 700RPAV specifications, or connect with our support desk. What would you like assistance with?'
         });
         setLoading(false);
         return;
@@ -333,7 +333,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       if (thankKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
           sender: 'bot',
-          text: 'You are welcome! Let me know if you need anything else for your 700RPAV drone flights or consignments.'
+          text: 'You are welcome! Let me know if you need anything else for your 700RPAV drone hardware consignments.'
         });
         setLoading(false);
         return;
@@ -451,7 +451,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       if (bookingKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
           sender: 'bot',
-          text: 'How to Book 700RPAV Drones from IndoWings Store:\n\n1. Visit the Store page to view available 700RPAV inventory.\n2. Add the required units to your Consignment Cart.\n3. Enter your Delivery Facility Address and schedule corridor dispatch.\n4. Aircraft undergo automated pre-flight diagnostics before takeoff.',
+          text: 'How to Book 700RPAV Drones from IndoWings Store:\n\n1. Visit the Store page to view available 700RPAV hardware inventory.\n2. Add the required units to your Consignment Cart.\n3. Enter your Delivery Facility Address and schedule road dispatch.\n4. Hardware units undergo diagnostic inspection before handover to delivery partner.',
           cardType: 'store_guide'
         });
         setLoading(false);
@@ -475,7 +475,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       if (cancelKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
           sender: 'bot',
-          text: 'IndoWings Consignment Cancellation Policy:\n\n• Customer Cancellation: You can cancel an order from your Profile / Orders tab at any time prior to physical airway dispatch.\n• Operations Cancellation: When cancelled, reserved 700RPAV aircraft units are automatically returned to factory hangar inventory.'
+          text: 'IndoWings Consignment Cancellation Policy:\n\n• Customer Cancellation: You can cancel an order from your Profile / Orders tab at any time prior to physical road dispatch.\n• Operations Cancellation: When cancelled, reserved 700RPAV hardware units are automatically returned to factory inventory.'
         });
         setLoading(false);
         return;
@@ -624,7 +624,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                         {renderFormattedText(msg.text)}
                       </div>
 
-                      {/* ── CARD: LIVE FLIGHT TELEMETRY & HUD ── */}
+                      {/* ── CARD: LIVE DELIVERY TRACKING & HUD ── */}
                       {msg.cardType === 'order_detail' && msg.cardData && (
                         <div className="bg-white rounded-2xl border border-slate-200 p-3 shadow-xs space-y-2.5 animate-in fade-in">
                           {/* Order Header */}
@@ -637,21 +637,21 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                               className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
                                 msg.cardData.status === 'delivered'
                                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : msg.cardData.status === 'in-flight'
+                                  : msg.cardData.status === 'in-flight' || msg.cardData.status === 'on-hold'
                                     ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
                                     : 'bg-amber-50 text-amber-700 border border-amber-200'
                               }`}
                             >
-                              {msg.cardData.status}
+                              {msg.cardData.status === 'on-hold' ? 'On The Way' : msg.cardData.status}
                             </span>
                           </div>
 
                           {/* Route Progress */}
                           <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1.5">
                             <div className="flex items-center justify-between text-[10px] text-slate-600 font-semibold">
-                              <span className="truncate max-w-[110px]">{msg.cardData.pickup_address?.split(',')[0]}</span>
-                              <Plane className="w-3.5 h-3.5 text-[#5a00b8]" />
-                              <span className="truncate max-w-[110px]">{msg.cardData.drop_address?.split(',')[0]}</span>
+                              <span className="truncate max-w-[110px]">{msg.cardData.pickup_address?.split(',')[0] || 'Factory Hub'}</span>
+                              <Truck className="w-3.5 h-3.5 text-[#5a00b8]" />
+                              <span className="truncate max-w-[110px]">{msg.cardData.drop_address?.split(',')[0] || 'Destination'}</span>
                             </div>
                             <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
                               <div
@@ -661,27 +661,23 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                             </div>
                           </div>
 
-                          {/* Telemetry Grid */}
-                          <div className="grid grid-cols-3 gap-1.5 text-center">
+                          {/* Delivery Partner & ETA Grid */}
+                          <div className="grid grid-cols-2 gap-1.5 text-center">
                             <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                              <span className="text-[9px] text-slate-400 block font-medium">Speed</span>
-                              <span className="text-[11px] font-bold text-slate-800 font-mono">{msg.cardData.speed_kmh || 58} km/h</span>
+                              <span className="text-[9px] text-slate-400 block font-medium">Delivery Partner</span>
+                              <span className="text-[11px] font-bold text-slate-800 truncate block">{msg.cardData.pilot_assigned || msg.cardData.delivery_partner_name || 'Assigned Driver'}</span>
                             </div>
                             <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                              <span className="text-[9px] text-slate-400 block font-medium">Altitude</span>
-                              <span className="text-[11px] font-bold text-slate-800 font-mono">{msg.cardData.altitude_m || 120} m</span>
-                            </div>
-                            <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                              <span className="text-[9px] text-slate-400 block font-medium">ETA</span>
-                              <span className="text-[11px] font-bold text-[#5a00b8] font-mono">{msg.cardData.eta_mins || 18} mins</span>
+                              <span className="text-[9px] text-slate-400 block font-medium">Estimated Window</span>
+                              <span className="text-[11px] font-bold text-[#5a00b8] font-mono">{msg.cardData.eta_mins ? `${msg.cardData.eta_mins} mins` : 'On Schedule'}</span>
                             </div>
                           </div>
 
                           {/* Assigned Drone & Customer */}
                           <div className="p-2 bg-purple-50/60 rounded-xl border border-purple-100 flex items-center justify-between text-[10px]">
                             <div>
-                              <span className="text-slate-500 block font-medium">Assigned Aircraft:</span>
-                              <span className="font-bold text-[#5a00b8]">{msg.cardData.drone_model || '700RPAV'} ({msg.cardData.drone_id || 'UAV-SYS-01'})</span>
+                              <span className="text-slate-500 block font-medium">Hardware Model:</span>
+                              <span className="font-bold text-[#5a00b8]">{msg.cardData.drone_model || '700RPAV'} ({msg.cardData.drone_id || '700RPAV-01'})</span>
                             </div>
                             <div className="text-right">
                               <span className="text-slate-500 block font-medium">Recipient:</span>
@@ -689,15 +685,15 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                             </div>
                           </div>
 
-                          {/* View Full Radar button */}
+                          {/* View Full Tracking button */}
                           <button
                             onClick={() => {
                               setIsOpen(false);
-                              nav('track', `/track?orderId=${msg.cardData.id}`);
+                              nav('track', `/track?id=${msg.cardData.id}`);
                             }}
                             className="w-full py-2 bg-[#5a00b8] hover:bg-[#4a0099] text-white font-bold text-[11px] rounded-xl cursor-pointer transition-all shadow-xs flex items-center justify-center gap-1.5"
                           >
-                            <span>Open Full Terrain Tracking View</span>
+                            <span>Open Full Live GPS Tracking View</span>
                             <ArrowRight className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -719,9 +715,13 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                                   <div className="flex items-center gap-1.5">
                                     <span className="font-mono font-bold text-xs text-slate-900">#{ord.id}</span>
                                     <span className={`px-1.5 py-0.2 rounded text-[8px] font-black uppercase ${
-                                      ord.status === 'delivered' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                                      ord.status === 'delivered'
+                                        ? 'bg-emerald-100 text-emerald-800'
+                                        : ord.status === 'on-hold' || ord.status === 'in-flight'
+                                          ? 'bg-blue-100 text-blue-800'
+                                          : 'bg-amber-100 text-amber-800'
                                     }`}>
-                                      {ord.status}
+                                      {ord.status === 'on-hold' ? 'On The Way' : ord.status}
                                     </span>
                                   </div>
                                   <p className="text-[10px] text-slate-500 mt-0.5 truncate">
@@ -950,7 +950,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                               <span>700RPAV Consignment Booking</span>
                             </p>
                             <p className="text-[10px] text-emerald-700 mt-0.5">
-                              Browse 1000+ verified idle aircraft, add to consignment cart, and schedule instant delivery.
+                              Browse available fleet aircraft, add to consignment cart, and schedule instant delivery.
                             </p>
                           </div>
                           <button

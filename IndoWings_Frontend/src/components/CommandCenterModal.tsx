@@ -235,7 +235,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-[11px] font-mono pt-1 text-slate-300">
-                      <div>Battery: <strong className="text-emerald-400">{drone.battery_pct}%</strong></div>
+                      <div>Link: <strong className="text-emerald-400">Optimal</strong></div>
                       <div>Hours: <strong>{drone.flight_hours} h</strong></div>
                       <div>Range: <strong>{drone.max_range_km} km</strong></div>
                       <div>Endurance: <strong>{drone.endurance_mins} min</strong></div>
