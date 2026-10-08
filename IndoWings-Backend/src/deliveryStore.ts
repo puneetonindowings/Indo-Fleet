@@ -491,6 +491,11 @@ export const deliveryStore = {
     const rows = await insertInBatches('drone_fleet', drones.map(toDrone), 'insert');
     return rows.map(fromDrone);
   },
+  async deleteDrone(id: string) {
+    const { error } = await db().from('drone_fleet').delete().eq('id', id);
+    fail('delete drone', error);
+    return true;
+  },
 
   async saveOTP(identifier: string, otp: string, meta: JsonRecord = {}) {
     const destination_hash = otpDestinationHash(identifier);

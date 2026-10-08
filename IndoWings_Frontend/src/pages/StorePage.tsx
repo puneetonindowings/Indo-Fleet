@@ -24,7 +24,8 @@ import {
   Compass,
   ChevronLeft,
   Eye,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Lock
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 import { DeliveryUser, SavedAddress } from '../types';
@@ -172,7 +173,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     window.dispatchEvent(new Event('iw_cart_updated'));
   }, [cart]);
 
-  // Filter 1,000 drones by Drone ID / search query
+  // Filter drones by Drone ID / search query
   const filteredDrones = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return drones;
@@ -344,6 +345,35 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
       setSubmitting(false);
     }
   };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // RENDER: AUTHENTICATION REQUIRED GATEWAY
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] text-slate-800 pt-28 sm:pt-36 pb-20 px-4 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 p-8 shadow-xs text-center">
+          <div className="w-16 h-16 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center mx-auto mb-4 border border-purple-100 shadow-2xs">
+            <Lock className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-black text-slate-900 mb-2 tracking-tight">Login Required for Fleet Store</h2>
+          <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+            Access to IndoWings 700RPAV Fleet Store and aircraft consignment booking is restricted to verified users. Please sign in to view available inventory units and schedule deliveries.
+          </p>
+          <button
+            onClick={() => {
+              onNavigate('login');
+              window.history.pushState({}, '', '/login');
+            }}
+            className="w-full py-3 rounded-xl bg-[#5a00b8] hover:bg-[#4a0099] text-white font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span>Sign In to Continue</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER: CLEAN LIGHT PRODUCT PAGE (GENUINE INDOWINGS DATA ONLY)

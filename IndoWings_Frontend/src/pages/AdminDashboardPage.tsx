@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Users,
   Shield,
+  ShieldAlert,
   Truck,
   Plus,
   Search,
@@ -37,7 +38,13 @@ import {
   MapPin,
   Calendar,
   Hash,
-  ExternalLink
+  ExternalLink,
+  Wrench,
+  Pause,
+  Play,
+  SlidersHorizontal,
+  AlertTriangle,
+  Radio
 } from 'lucide-react';
 import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
@@ -49,6 +56,7 @@ import { ProfilePage } from './ProfilePage';
 import { SupportDeskPage } from './SupportDeskPage';
 import { DeliveryTrackingModule } from './DeliveryTrackingModule';
 import { AnalyticsDashboard } from '../components/analytics/AnalyticsDashboard';
+import { CustomerOrderLiveMap } from '../components/CustomerOrderLiveMap';
 
 interface AdminDashboardProps {
   currentUser: DeliveryUser | null;
@@ -67,6 +75,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [orders, setOrders] = useState<any[]>([]);
   const [expertRequests, setExpertRequests] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [adminTrackingOrder, setAdminTrackingOrder] = useState<any | null>(null);
   
   // Single Drone Form State
   const [showAddSingleDrone, setShowAddSingleDrone] = useState(false);
@@ -88,9 +97,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [editingDroneCategory, setEditingDroneCategory] = useState('');
   const [editingDroneIsVerified, setEditingDroneIsVerified] = useState(false);
 
-  // Bulk Drone Import State (50, 100, 250, 500, 1000)
+  // Bulk Drone Import State
   const [showBulkDroneModal, setShowBulkDroneModal] = useState(false);
-  const [bulkCount, setBulkCount] = useState(1000);
+  const [bulkCount, setBulkCount] = useState(50);
   const [bulkModel, setBulkModel] = useState('700RPAV');
   const [bulkCategory, setBulkCategory] = useState('General UAV');
   const [bulkPrefix, setBulkPrefix] = useState('INW-700RPAV');
@@ -599,6 +608,148 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     } catch {}
   };
 
+  // Manage Order State (Hold, Cancel, Reschedule, Resume)
+  const [managingOrder, setManagingOrder] = useState<any | null>(null);
+  const [manageAction, setManageAction] = useState<'hold' | 'cancel' | 'reschedule' | 'resume'>('hold');
+  const [manageReason, setManageReason] = useState('');
+  const [manageDate, setManageDate] = useState('');
+  const [manageTime, setManageTime] = useState('');
+  const [manageOtp, setManageOtp] = useState('');
+  const [manageOtpSent, setManageOtpSent] = useState(false);
+  const [manageOtpSending, setManageOtpSending] = useState(false);
+  const [manageOtpMessage, setManageOtpMessage] = useState('');
+  const [manageSubmitting, setManageSubmitting] = useState(false);
+  const [manageError, setManageError] = useState('');
+
+  // Handle Request Security Verification OTP for placing order on hold
+  const handleRequestHoldOtp = async () => {
+    if (!managingOrder) return;
+    if (manageReason.trim().length < 5) {
+      setManageError('Please enter a specific reason (at least 5 characters) before requesting security OTP.');
+      return;
+    }
+    setManageOtpSending(true);
+    setManageError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/orders/${encodeURIComponent(managingOrder.id)}/hold-request-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('iw_delivery_token') || ''}`
+        },
+        body: JSON.stringify({
+          reason: manageReason.trim()
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setManageError(data.error || 'Failed to dispatch security verification OTP');
+        return;
+      }
+      setManageOtpSent(true);
+      setManageOtpMessage(data.message || 'Security verification OTP dispatched!');
+      if (data.dev_otp) {
+        setManageOtp(data.dev_otp);
+      }
+    } catch (err: any) {
+      setManageError(err.message || 'Error requesting verification OTP');
+    } finally {
+      setManageOtpSending(false);
+    }
+  };
+
+  // Handle Toggle Drone Maintenance
+  const handleToggleDroneMaintenance = async (drone: any) => {
+    const isMaint = drone.status === 'maintenance';
+    const nextStatus = isMaint ? 'idle' : 'maintenance';
+    const nextQc = isMaint ? 'passed' : 'pending';
+    const nextNotes = isMaint ? 'Maintenance cleared and certified ready' : 'Under scheduled technical maintenance';
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/drones/${encodeURIComponent(drone.id)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('iw_delivery_token') || ''}`
+        },
+        body: JSON.stringify({
+          model: drone.model,
+          status: nextStatus,
+          qc_status: nextQc,
+          qc_notes: nextNotes
+        })
+      });
+
+      if (res.ok) {
+        showToast(
+          isMaint
+            ? `Drone ${drone.id} maintenance cleared & returned to stock.`
+            : `Drone ${drone.id} marked under maintenance (excluded from customer store).`
+        );
+        await fetchData();
+      } else {
+        const d = await res.json();
+        showToast(d.error || 'Failed to update maintenance status');
+      }
+    } catch (err) {
+      console.error('Toggle maintenance error:', err);
+    }
+  };
+
+  // Handle Manage Order Status (Hold, Cancel, Reschedule, Resume)
+  const handleManageOrderStatus = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!managingOrder) return;
+    if (manageAction === 'hold') {
+      if (manageReason.trim().length < 5) {
+        setManageError('A detailed reason (at least 5 characters) is required to put an order on hold.');
+        return;
+      }
+      if (!manageOtp.trim()) {
+        setManageError('Please request and enter your 6-digit operator security OTP.');
+        return;
+      }
+    }
+    setManageSubmitting(true);
+    setManageError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/orders/${encodeURIComponent(managingOrder.id)}/manage-status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('iw_delivery_token') || ''}`
+        },
+        body: JSON.stringify({
+          action: manageAction,
+          reason: manageReason.trim(),
+          rescheduled_date: manageDate,
+          scheduled_time: manageTime,
+          otp: manageOtp.trim()
+        })
+      });
+
+      const resData = await res.json();
+      if (!res.ok) {
+        setManageError(resData.error || 'Failed to update order status');
+        return;
+      }
+
+      showToast(resData.message || `Order #${managingOrder.order_number || managingOrder.id} status updated to ${manageAction.toUpperCase()}`);
+      setManagingOrder(null);
+      setManageReason('');
+      setManageDate('');
+      setManageTime('');
+      setManageOtp('');
+      setManageOtpSent(false);
+      setManageOtpMessage('');
+      await fetchData();
+    } catch (err: any) {
+      setManageError(err.message || 'Connection error managing order status');
+    } finally {
+      setManageSubmitting(false);
+    }
+  };
+
   // Filtered Lists
   const filteredUsers = users.filter((u) => {
     const matchesSearch =
@@ -609,13 +760,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
 
   const filteredDrones = drones.filter((d) => {
     const isVerified = d.is_verified === true || d.verification_status === 'verified';
-    const isReserved = d.status === 'reserved' || d.status === 'en-route' || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order);
-    const isIdle = (d.status === 'idle' || !d.status) && !d.assigned_order && !d.delivery_data?.assigned_order;
+    const isMaintenance = d.status === 'maintenance';
+    const isReserved = !isMaintenance && (d.status === 'reserved' || d.status === 'en-route' || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order));
+    const isIdle = !isMaintenance && (d.status === 'idle' || !d.status) && !d.assigned_order && !d.delivery_data?.assigned_order;
 
     if (droneFilter === 'verified' && !isVerified) return false;
     if (droneFilter === 'unverified' && isVerified) return false;
     if (droneFilter === 'reserved' && !isReserved) return false;
     if (droneFilter === 'idle' && !isIdle) return false;
+    if (droneFilter === 'maintenance' && !isMaintenance) return false;
     if (droneFilter === 'qc_passed' && d.qc_status !== 'passed') return false;
     if (droneFilter === 'qc_pending' && d.qc_status === 'passed') return false;
     if (droneFilter === 'en-route' && d.status !== 'en-route' && d.status !== 'in-flight') return false;
@@ -646,9 +799,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const qcCertifiedCount = drones.filter((d) => d.qc_status === 'passed').length;
   const verifiedDronesCount = drones.filter((d) => d.is_verified === true || d.verification_status === 'verified').length;
   const unverifiedDronesCount = drones.length - verifiedDronesCount;
-  const reservedDrones = drones.filter((d) => d.status === 'reserved' || d.status === 'en-route' || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order));
+  const maintenanceDronesCount = drones.filter((d) => d.status === 'maintenance').length;
+  const reservedDrones = drones.filter((d) => d.status !== 'maintenance' && (d.status === 'reserved' || d.status === 'en-route' || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order)));
   const reservedDronesCount = reservedDrones.length;
-  const idleDronesCount = drones.filter((d) => (d.status === 'idle' || !d.status) && !d.assigned_order && !d.delivery_data?.assigned_order).length;
+  const idleDronesCount = drones.filter((d) => d.status !== 'maintenance' && (d.status === 'idle' || !d.status) && !d.assigned_order && !d.delivery_data?.assigned_order).length;
   const activeAccountsCount = users.filter((user) => user.status === 'active').length;
 
   const adminNavItems = [
@@ -949,36 +1103,72 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                     ? 'bg-emerald-100 text-emerald-800'
                                     : o.status === 'cancelled'
                                       ? 'bg-rose-100 text-rose-800'
-                                      : o.status === 'pending'
-                                        ? 'bg-amber-100 text-amber-800'
-                                        : ['in-flight', 'in_transit', 'assigned', 'taking-off', 'out-for-delivery'].includes(o.status)
-                                          ? 'bg-sky-100 text-sky-800'
-                                          : 'bg-slate-100 text-slate-700'
+                                      : o.status === 'on-hold'
+                                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                        : o.status === 'pending'
+                                          ? 'bg-amber-100 text-amber-800'
+                                          : ['in-flight', 'in_transit', 'assigned', 'taking-off', 'out-for-delivery'].includes(o.status)
+                                            ? 'bg-sky-100 text-sky-800'
+                                            : 'bg-slate-100 text-slate-700'
                                 }`}
                               >
                                 {o.status === 'delivered'
                                   ? 'Delivered & Accepted'
                                   : o.status === 'cancelled'
                                     ? 'Cancelled'
-                                    : o.status === 'pending'
-                                      ? 'Pending Processing'
-                                      : ['in-flight', 'in_transit'].includes(o.status)
-                                        ? 'In Flight'
-                                        : o.status === 'assigned'
-                                          ? 'Assigned / Dispatched'
-                                          : o.status || 'Active'}
+                                    : o.status === 'on-hold'
+                                      ? 'On Hold'
+                                      : o.status === 'pending'
+                                        ? 'Pending Processing'
+                                        : ['in-flight', 'in_transit'].includes(o.status)
+                                          ? 'In Flight'
+                                          : o.status === 'assigned'
+                                            ? 'Assigned / Dispatched'
+                                            : o.status || 'Active'}
                               </span>
+                              {o.status === 'on-hold' && o.hold_reason && (
+                                <p className="text-[10px] text-amber-900 font-semibold mt-1 truncate max-w-[180px]" title={o.hold_reason}>
+                                  Reason: {o.hold_reason}
+                                </p>
+                              )}
                             </td>
                             <td className="py-3 px-4 text-right">
-                              <button
-                                onClick={() => {
-                                  onNavigate('track');
-                                  window.history.pushState({}, '', `/track?id=${o.id}`);
-                                }}
-                                className="text-[#5a00b8] hover:underline font-bold text-[11px]"
-                              >
-                                Track Shipment &rarr;
-                              </button>
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => setAdminTrackingOrder(o)}
+                                  className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-[#5a00b8] border border-purple-200 font-bold rounded-lg text-[11px] transition cursor-pointer flex items-center gap-1"
+                                  title="View Live GPS & Radar Tracking"
+                                >
+                                  <MapPin className="w-3 h-3" />
+                                  <span>Live Radar</span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    onNavigate('track');
+                                    window.history.pushState({}, '', `/track?id=${o.id}`);
+                                  }}
+                                  className="text-[#5a00b8] hover:underline font-bold text-[11px]"
+                                >
+                                  Details &rarr;
+                                </button>
+                                {!['delivered'].includes(o.status) && (
+                                  <button
+                                    onClick={() => {
+                                      setManagingOrder(o);
+                                      setManageAction(o.status === 'on-hold' ? 'resume' : 'hold');
+                                      setManageReason('');
+                                      setManageDate(o.rescheduled_date || '');
+                                      setManageTime(o.scheduled_time || '');
+                                      setManageError('');
+                                    }}
+                                    className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-[#5a00b8] border border-purple-200 font-bold rounded-lg text-[11px] transition cursor-pointer flex items-center gap-1"
+                                    title="Manage order status (Hold, Cancel, Reschedule, Resume)"
+                                  >
+                                    <SlidersHorizontal className="w-3 h-3" />
+                                    <span>Manage</span>
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -1210,8 +1400,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold bg-white focus:outline-none focus:border-[#5a00b8]"
                           >
                             <option value="admin">Admin</option>
-                            <option value="fleet_manager">Fleet Manager</option>
+                            <option value="pilot">Flight Pilot / Delivery Agent</option>
                             <option value="dispatcher">Dispatcher</option>
+                            <option value="fleet_manager">Fleet Manager</option>
                             <option value="support">Support</option>
                             <option value="customer">Customer</option>
                           </select>
@@ -1270,11 +1461,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
             {activeTab === 'fleet' && (
               <div className="space-y-5">
                 {/* Top Fleet KPI Metrics Bar */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
                   <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center justify-between">
                     <div>
                       <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Fleet UAVs</p>
-                      <h4 className="text-2xl font-black text-slate-900 mt-1">{drones.length} <span className="text-xs font-semibold text-slate-400">/ 1,000 Cap</span></h4>
+                      <h4 className="text-2xl font-black text-slate-900 mt-1">{drones.length}</h4>
                       <p className="text-[10px] text-purple-700 font-semibold mt-0.5">Central Inventory</p>
                     </div>
                     <div className="w-11 h-11 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black">
@@ -1332,6 +1523,28 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     </div>
                   </div>
 
+                  {/* Under Maintenance */}
+                  <div
+                    onClick={() => {
+                      setDroneFilter(droneFilter === 'maintenance' ? 'all' : 'maintenance');
+                      setDroneCurrentPage(1);
+                    }}
+                    className={`border rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all ${
+                      droneFilter === 'maintenance'
+                        ? 'bg-amber-100/70 border-amber-400 ring-2 ring-amber-400/30'
+                        : 'bg-white border-amber-200 hover:border-amber-300 bg-amber-50/20'
+                    }`}
+                  >
+                    <div>
+                      <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Under Maintenance</p>
+                      <h4 className="text-2xl font-black text-amber-800 mt-1">{maintenanceDronesCount}</h4>
+                      <p className="text-[10px] text-amber-600 font-medium mt-0.5">Excluded from customer store</p>
+                    </div>
+                    <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-black">
+                      <Wrench className="w-6 h-6" />
+                    </div>
+                  </div>
+
                   {/* Hardware Verification */}
                   <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center justify-between">
                     <div>
@@ -1373,6 +1586,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                       <option value="all">All Fleet UAVs ({drones.length})</option>
                       <option value="reserved">Reserved for Bookings ({reservedDronesCount})</option>
                       <option value="idle">Available / In-Stock ({idleDronesCount})</option>
+                      <option value="maintenance">Under Maintenance ({maintenanceDronesCount})</option>
                       <option value="verified">Verified IDs ({verifiedDronesCount})</option>
                       <option value="unverified">Unverified IDs ({unverifiedDronesCount})</option>
                     </select>
@@ -1401,7 +1615,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     <button
                       onClick={() => {
                         setShowBulkDroneModal(true);
-                        setBulkCount(1000);
+                        setBulkCount(50);
                         setBulkModel('700RPAV');
                         setBulkCategory('General UAV');
                         setBulkPrefix('INW-700RPAV');
@@ -1413,7 +1627,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                       className="px-4 py-2 rounded-xl bg-[#5a00b8] hover:bg-[#2e0066] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap"
                     >
                       <Layers className="w-3.5 h-3.5" />
-                      <span>Bulk Batch Add (50 to 1000+)</span>
+                      <span>Bulk Batch Add</span>
                     </button>
                   </div>
                 </div>
@@ -1437,7 +1651,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         {paginatedDrones.map((d) => {
                           const isVerified = d.is_verified === true || d.verification_status === 'verified';
                           const linked = getLinkedOrderForDrone(d);
-                          const isReserved = d.status === 'reserved' || Boolean(linked) || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order);
+                          const isReserved = d.status !== 'maintenance' && (d.status === 'reserved' || Boolean(linked) || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order));
 
                           return (
                             <tr key={d.id} className="hover:bg-slate-50/60 transition-colors">
@@ -1461,7 +1675,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                 </span>
                               </td>
                               <td className="py-3 px-4">
-                                {isReserved ? (
+                                {d.status === 'maintenance' ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
+                                    <Wrench className="w-3 h-3 text-amber-600 shrink-0" />
+                                    <span>Under Maintenance</span>
+                                  </span>
+                                ) : isReserved ? (
                                   <button
                                     type="button"
                                     onClick={() => setSelectedReservedDrone(d)}
@@ -1509,6 +1728,19 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                     </button>
                                   )}
                                   <button
+                                    type="button"
+                                    onClick={() => handleToggleDroneMaintenance(d)}
+                                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer flex items-center gap-1 ${
+                                      d.status === 'maintenance'
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                                        : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                                    }`}
+                                    title={d.status === 'maintenance' ? 'Clear maintenance and restore to stock' : 'Mark under technical maintenance'}
+                                  >
+                                    <Wrench className="w-3 h-3" />
+                                    <span>{d.status === 'maintenance' ? 'Clear Maint.' : 'Set Maint.'}</span>
+                                  </button>
+                                  <button
                                     onClick={() => openEditDroneModal(d)}
                                     className="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 hover:bg-purple-50 hover:text-[#5a00b8] hover:border-purple-200 transition-colors cursor-pointer"
                                   >
@@ -1524,7 +1756,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                             <td colSpan={6} className="py-12 text-center text-slate-400">
                               <Truck className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                               <p className="text-sm font-semibold">No drones match your search or filter.</p>
-                              <p className="text-xs text-slate-400 mt-0.5">Click "+1 Single Drone" or "Bulk Batch Add (50 to 1000+)" to populate inventory.</p>
+                              <p className="text-xs text-slate-400 mt-0.5">Click "+1 Single Drone" or "Bulk Batch Add" to populate inventory.</p>
                             </td>
                           </tr>
                         )}
@@ -1621,19 +1853,41 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                             <td className="py-3 px-4 text-slate-600 truncate max-w-[200px]">{o.destination_address || o.drop_address}</td>
                             <td className="py-3 px-4 text-slate-500 font-medium">{o.carrier || 'IndoWings Fleet Van'}</td>
                             <td className="py-3 px-4">
-                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${o.status === 'delivered' ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-sky-800'}`}>
-                                {o.status === 'delivered' ? 'Delivered & Accepted' : 'In Transit'}
+                              <span
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                                  o.status === 'delivered'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : o.status === 'cancelled'
+                                      ? 'bg-rose-100 text-rose-800'
+                                      : o.status === 'pending'
+                                        ? 'bg-amber-100 text-amber-800'
+                                        : o.status === 'assigned'
+                                          ? 'bg-purple-100 text-purple-800'
+                                          : ['in-flight', 'in-transit', 'taking-off', 'approaching', 'out-for-delivery'].includes(o.status)
+                                            ? 'bg-sky-100 text-sky-800'
+                                            : 'bg-slate-100 text-slate-700'
+                                }`}
+                              >
+                                {o.status === 'delivered'
+                                  ? 'Delivered & Accepted'
+                                  : o.status === 'cancelled'
+                                    ? 'Cancelled'
+                                    : o.status === 'pending'
+                                      ? 'Pending Dispatch'
+                                      : o.status === 'assigned'
+                                        ? 'Assigned'
+                                        : ['in-flight', 'in-transit', 'taking-off', 'approaching', 'out-for-delivery'].includes(o.status)
+                                          ? 'In Transit'
+                                          : o.status}
                               </span>
                             </td>
                             <td className="py-3 px-4 text-right">
                               <button
-                                onClick={() => {
-                                  onNavigate('track');
-                                  window.history.pushState({}, '', `/track?id=${o.id}`);
-                                }}
-                                className="px-2.5 py-1 rounded-lg text-slate-600 hover:text-[#5a00b8] hover:bg-purple-50 font-bold text-[11px] cursor-pointer"
+                                onClick={() => setAdminTrackingOrder(o)}
+                                className="px-3 py-1.5 rounded-xl bg-purple-50 text-[#5a00b8] hover:bg-purple-100 font-bold text-xs border border-purple-200 cursor-pointer flex items-center gap-1.5 ml-auto shadow-2xs"
                               >
-                                Track &rarr;
+                                <Radio className="w-3.5 h-3.5 text-purple-600 animate-pulse" />
+                                <span>Track Flight &rarr;</span>
                               </button>
                             </td>
                           </tr>
@@ -1689,7 +1943,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 <strong>{selectedUser.phone || '—'}</strong>
               </div>
               <div className="rounded-xl bg-slate-50 p-3">
-                <span className="block text-[10px] uppercase text-slate-400">Station</span>
+                <span className="block text-[10px] uppercase text-slate-400">Assigned Facility</span>
                 <strong>{selectedUser.station || '—'}</strong>
               </div>
               <div className="rounded-xl bg-slate-50 p-3">
@@ -1949,16 +2203,16 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         </div>
       )}
 
-      {/* ── MODAL 2: BULK BATCH GENERATOR (50 TO 1000+) ──────────────────── */}
+      {/* ── MODAL 2: BULK BATCH GENERATOR ───────────────────────────────── */}
       {showBulkDroneModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">Bulk Drone Fleet Provisioning</h3>
-                <p className="text-xs text-slate-500">Scale inventory up to 1,000+ drones with initial placeholder IDs</p>
+                <p className="text-xs text-slate-500">Bulk provision drone inventory with initial placeholder IDs</p>
               </div>
-              <button onClick={() => setShowBulkDroneModal(false)} className="text-slate-400 hover:text-slate-700">
+              <button onClick={() => setShowBulkDroneModal(false)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1966,8 +2220,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
             <form onSubmit={handleBulkAddDrones} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">Batch Quantity Presets</label>
-                <div className="grid grid-cols-5 gap-2 mb-3">
-                  {[50, 100, 250, 500, 1000].map((qty) => (
+                <div className="grid grid-cols-6 gap-2 mb-3">
+                  {[10, 25, 50, 100, 250, 500].map((qty) => (
                     <button
                       key={qty}
                       type="button"
@@ -2002,7 +2256,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     <option value="Cyberone Max">Cyberone Max (Heavy Cargo &amp; Defense)</option>
                     <option value="IndoHawk Alpha">IndoHawk Alpha (High-Speed Patrol)</option>
                     <option value="StealthPro VTOL">StealthPro VTOL (Long Endurance Hybrid)</option>
-                    <option value="AgriWing X">AgriWing X (Agricultural Payload)</option>
+                    <option value="AgriWing X">AgriWing X (Agricultural Operations)</option>
                   </select>
                 </div>
 
@@ -2231,7 +2485,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </div>
                 <div className="flex items-center gap-2 self-end sm:self-auto">
                   <span className="px-3 py-1 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700">
-                    Battery: {drone.battery || 100}%
+                    Status: <strong className="text-purple-700 uppercase">{drone.status || 'Active'}</strong>
                   </span>
                   <span className="px-3 py-1 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700">
                     QC: <strong className="text-emerald-600 uppercase">{drone.qc_status || 'passed'}</strong>
@@ -2396,6 +2650,329 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
           </div>
         );
       })()}
+
+      {/* ── MODAL: MANAGE ORDER STATUS (HOLD / CANCEL / RESCHEDULE / RESUME) ──── */}
+      {managingOrder && (
+        <div className="fixed inset-0 z-[120] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Manage Order #{managingOrder.order_number || managingOrder.id}</h3>
+                <p className="text-xs text-slate-500">Hold, cancel, reschedule, or resume order fulfillment</p>
+              </div>
+              <button onClick={() => setManagingOrder(null)} className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Current Order Summary */}
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Customer / Client:</span>
+                <span className="font-bold text-slate-900">{managingOrder.customer_name || managingOrder.client_name || 'Client'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Current Status:</span>
+                <span className="font-mono font-bold uppercase text-[#5a00b8]">{managingOrder.status}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Destination:</span>
+                <span className="font-medium text-slate-700 truncate max-w-[240px]">{managingOrder.drop_address || managingOrder.destination_address || '—'}</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleManageOrderStatus} className="space-y-4 text-xs">
+              {/* Action Selection */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Select Action</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setManageAction('hold')}
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition ${
+                      manageAction === 'hold'
+                        ? 'bg-amber-50 border-amber-400 text-amber-900 ring-2 ring-amber-400/30'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Pause className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Put On Hold</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setManageAction('reschedule')}
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition ${
+                      manageAction === 'reschedule'
+                        ? 'bg-purple-50 border-purple-400 text-[#5a00b8] ring-2 ring-purple-400/30'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Reschedule</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setManageAction('resume')}
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition ${
+                      manageAction === 'resume'
+                        ? 'bg-emerald-50 border-emerald-400 text-emerald-900 ring-2 ring-emerald-400/30'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Play className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Resume Order</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setManageAction('cancel')}
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition ${
+                      manageAction === 'cancel'
+                        ? 'bg-rose-50 border-rose-400 text-rose-900 ring-2 ring-rose-400/30'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <X className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Cancel Order</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Reschedule Date and Time */}
+              {manageAction === 'reschedule' && (
+                <div className="grid grid-cols-2 gap-3 p-3 bg-purple-50/50 rounded-2xl border border-purple-100">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">New Delivery Date *</label>
+                    <input
+                      type="date"
+                      required
+                      value={manageDate}
+                      onChange={(e) => setManageDate(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold bg-white focus:outline-none focus:border-[#5a00b8]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Preferred Time Window</label>
+                    <input
+                      type="time"
+                      value={manageTime}
+                      onChange={(e) => setManageTime(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:border-[#5a00b8]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Reason / Notes */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Reason / Operational Notes {manageAction === 'cancel' || manageAction === 'hold' ? '*' : '(Optional)'}
+                </label>
+                <textarea
+                  rows={2}
+                  required={manageAction === 'cancel' || manageAction === 'hold'}
+                  minLength={manageAction === 'hold' ? 5 : 1}
+                  value={manageReason}
+                  onChange={(e) => setManageReason(e.target.value)}
+                  placeholder={
+                    manageAction === 'hold'
+                      ? 'Detailed reason required (e.g. Weather hold, customer unreachable, clearance pending)...'
+                      : manageAction === 'cancel'
+                      ? 'e.g. Requested by customer, address unreachable...'
+                      : manageAction === 'reschedule'
+                      ? 'e.g. Customer requested delivery tomorrow morning...'
+                      : 'e.g. Cleared to resume dispatch...'
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#5a00b8]"
+                />
+              </div>
+
+              {/* Hold Two-Factor Self-Verification */}
+              {manageAction === 'hold' && (
+                <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 space-y-2.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-amber-950 flex items-center gap-1.5">
+                      <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+                      Operator Self-Verification (Required)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRequestHoldOtp}
+                      disabled={manageOtpSending || manageReason.trim().length < 5}
+                      className="px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] disabled:opacity-50 cursor-pointer shadow-xs"
+                    >
+                      {manageOtpSending ? 'Sending OTP...' : manageOtpSent ? 'Resend Code' : 'Send Security Code'}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-amber-900 leading-snug">
+                    To freeze mission transit, verify your identity with the 6-digit security code sent to your registered email/phone.
+                  </p>
+                  {manageOtpSent && (
+                    <div className="space-y-1 pt-1.5 border-t border-amber-200">
+                      <label className="block text-[11px] font-bold text-amber-950 uppercase tracking-wider">
+                        Enter 6-Digit Verification Code *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        value={manageOtp}
+                        onChange={(e) => setManageOtp(e.target.value.replace(/\D/g, ''))}
+                        placeholder="••••••"
+                        className="w-full px-3 py-2 rounded-xl border border-amber-300 font-mono font-black text-center text-sm tracking-widest bg-white focus:outline-none focus:border-amber-600"
+                      />
+                      {manageOtpMessage && (
+                        <p className="text-[10px] text-emerald-700 font-bold">{manageOtpMessage}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {manageAction === 'cancel' && (
+                <div className="p-3 bg-rose-50 rounded-xl border border-rose-200 text-[11px] text-rose-800 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <span>
+                    Cancelling this order will release all reserved fleet drones back to active stock and notify the customer via email.
+                  </span>
+                </div>
+              )}
+
+              {manageError && (
+                <p className="text-xs text-rose-600 bg-red-50 p-2.5 rounded-xl border border-red-200 font-medium">
+                  {manageError}
+                </p>
+              )}
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setManagingOrder(null);
+                    setManageOtp('');
+                    setManageOtpSent(false);
+                    setManageOtpMessage('');
+                  }}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold cursor-pointer hover:bg-slate-50"
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  disabled={
+                    manageSubmitting ||
+                    (manageAction === 'hold' && (manageReason.trim().length < 5 || manageOtp.trim().length !== 6))
+                  }
+                  className={`px-5 py-2 rounded-xl text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50 ${
+                    manageAction === 'cancel'
+                      ? 'bg-rose-600 hover:bg-rose-700'
+                      : manageAction === 'hold'
+                      ? 'bg-amber-600 hover:bg-amber-700'
+                      : 'bg-[#5a00b8] hover:bg-purple-900'
+                  }`}
+                >
+                  {manageSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span className="capitalize">Confirm {manageAction}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: ADMIN LIVE RADAR & FLIGHT TRACKING ──── */}
+      {adminTrackingOrder && (
+        <div className="fixed inset-0 z-[130] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-3xl w-full max-h-[92vh] overflow-y-auto shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                  <h3 className="text-lg font-black text-slate-900">
+                    Live Flight Radar — #{adminTrackingOrder.order_number || adminTrackingOrder.id}
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">Real-time GPS telemetry, corridor route &amp; mission checkpoints</p>
+              </div>
+              <button
+                onClick={() => setAdminTrackingOrder(null)}
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Live Interactive Flight Map */}
+            <div className="space-y-2">
+              <CustomerOrderLiveMap order={adminTrackingOrder} />
+            </div>
+
+            {/* Mission Key Logistics Info */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Customer / Enterprise</span>
+                <p className="font-bold text-slate-900 mt-0.5">{adminTrackingOrder.customer_name || adminTrackingOrder.client_name || 'Client Facility'}</p>
+                <p className="text-[11px] text-slate-500 font-mono mt-0.5">{adminTrackingOrder.customer_phone || 'Direct dispatch'}</p>
+              </div>
+
+              <div className="p-3 bg-purple-50/50 rounded-2xl border border-purple-100">
+                <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block">Operational Status</span>
+                <p className="font-mono font-bold uppercase text-[#5a00b8] mt-0.5">{adminTrackingOrder.status}</p>
+                {adminTrackingOrder.status === 'on-hold' && adminTrackingOrder.hold_reason && (
+                  <p className="text-[11px] text-amber-900 font-medium mt-0.5">Hold: {adminTrackingOrder.hold_reason}</p>
+                )}
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Hardware Consignment</span>
+                <p className="font-semibold text-slate-800 mt-0.5">{adminTrackingOrder.drones_shipped || adminTrackingOrder.package_type || '700RPAV Unit'}</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Carrier: {adminTrackingOrder.carrier || 'IndoWings Fleet'}</p>
+              </div>
+            </div>
+
+            {/* Pickup & Destination Address Bar */}
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1.5">
+              <div className="flex items-start gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shrink-0">
+                  Origin Hub
+                </span>
+                <span className="text-slate-700 font-medium">{adminTrackingOrder.pickup_address || 'IndoWings Central Assembly Hub, Sector 62, Noida'}</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200 shrink-0">
+                  Destination
+                </span>
+                <span className="text-slate-900 font-semibold">{adminTrackingOrder.drop_address || adminTrackingOrder.destination_address || 'Client Landing Base'}</span>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <button
+                onClick={() => {
+                  const targetId = adminTrackingOrder.id;
+                  setAdminTrackingOrder(null);
+                  onNavigate('track');
+                  window.history.pushState({}, '', `/track?id=${targetId}`);
+                }}
+                className="px-4 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#5a00b8] border border-purple-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Open Full Tracking Page</span>
+              </button>
+
+              <button
+                onClick={() => setAdminTrackingOrder(null)}
+                className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold cursor-pointer transition shadow-xs"
+              >
+                Close Radar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

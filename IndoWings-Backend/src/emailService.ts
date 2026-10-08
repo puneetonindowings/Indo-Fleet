@@ -162,6 +162,66 @@ Sector 62, Noida, Uttar Pradesh
   await sendEmail({ to, subject, text });
 }
 
+// ── Helper: Clean Light Email Layout Wrapper ──────────────────────────────
+function renderCleanEmail({
+  title,
+  subtitle,
+  bodyHtml,
+  footerNote
+}: {
+  title: string;
+  subtitle?: string;
+  bodyHtml: string;
+  footerNote?: string;
+}) {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+</head>
+<body style="margin: 0; padding: 24px 16px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1e293b; line-height: 1.6;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 580px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <!-- Brand Header -->
+    <tr>
+      <td style="padding: 24px 28px 20px 28px; border-bottom: 1px solid #f1f5f9;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+          <tr>
+            <td>
+              <span style="font-size: 18px; font-weight: 800; color: #5a00b8; letter-spacing: -0.5px;">INDOWINGS</span>
+              <span style="font-size: 13px; color: #64748b; margin-left: 8px; font-weight: 500;">| Operations</span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- Main Content Area -->
+    <tr>
+      <td style="padding: 28px;">
+        <h1 style="margin: 0 0 6px 0; font-size: 19px; font-weight: 700; color: #0f172a; line-height: 1.3;">${title}</h1>
+        ${subtitle ? `<p style="margin: 0 0 20px 0; font-size: 13px; color: #64748b;">${subtitle}</p>` : '<div style="height: 14px;"></div>'}
+        
+        ${bodyHtml}
+      </td>
+    </tr>
+
+    <!-- Footer -->
+    <tr>
+      <td style="padding: 20px 28px; background-color: #f8fafc; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8; line-height: 1.5;">
+        ${footerNote ? `<p style="margin: 0 0 6px 0; color: #64748b;">${footerNote}</p>` : ''}
+        <p style="margin: 0;">&copy; 2026 IndoWings Aerospace &bull; Sector 62, Noida, Uttar Pradesh</p>
+        <p style="margin: 4px 0 0 0; font-size: 11px;">Helpline: 1800-IND-WINGS &bull; Email: connect@indowings.com</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
 // ── 1B. Enterprise Team Member Account Provisioned Email ─────────────────────
 export async function sendUserProvisionedEmail({
   to,
@@ -188,94 +248,78 @@ export async function sendUserProvisionedEmail({
   const roleName = roleLabels[role] || role.toUpperCase();
   const url = loginUrl || `${process.env.FRONTEND_URL || 'https://indowings.com'}/login`;
 
-  const subject = `IndoWings Account Provisioned: Credentials & Next Steps for ${name}`;
+  const subject = `IndoWings Account Provisioned: Credentials for ${name}`;
   const text = `
 Hello ${name},
 
-Your official IndoWings operations account has been provisioned by the Administrator.
+Your official IndoWings operations account has been provisioned.
 
-Your Login Credentials:
+Account Credentials:
 --------------------------------------------------
 User ID: ${userId}
 Registered Email: ${to}
 Assigned Role: ${roleName}
 Temporary Password: ${temporaryPassword}
-Login Portal URL: ${url}
+Login Portal: ${url}
 --------------------------------------------------
 
-NEXT STEPS TO ACTIVATE YOUR ACCOUNT (MANDATORY):
+NEXT STEPS TO ACTIVATE:
 1. Open the Login Portal: ${url}
-2. Select "Email Access", enter your email (${to}) and click Continue.
-3. Enter your temporary password: ${temporaryPassword}
-4. Choose whether to receive a 6-digit Security OTP on your Email or Mobile Phone.
-5. Enter the OTP code received and set your permanent secure password.
-6. Once saved, you will gain direct access to your ${roleName} operations workspace.
+2. Enter your email (${to}) and temporary password.
+3. Verify your identity with OTP and set your permanent password.
 
-For any assistance, contact IndoWings Support at connect@indowings.com.
-
-Best regards,
 IndoWings Aerospace Operations
 Sector 62, Noida, Uttar Pradesh
 `.trim();
 
-  const html = `
- <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #1e293b; background: #ffffff;">
- <div style="text-align: center; margin-bottom: 24px;">
- <h1 style="color: #3b0080; margin: 0; font-size: 24px; font-weight: 900;">INDOWINGS AEROSPACE</h1>
- <p style="color: #64748b; font-size: 13px; margin: 4px 0 0;">Enterprise Operations Gateway</p>
- </div>
+  const bodyHtml = `
+    <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
+      Hello <strong>${name}</strong>,<br>
+      Your official IndoWings operations account has been provisioned by the Administrator.
+    </p>
 
- <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
- <h2 style="color: #0f172a; font-size: 18px; margin-top: 0; margin-bottom: 12px;">Hello ${name},</h2>
- <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 16px;">
- Your official IndoWings operations account has been provisioned by Administrator Puneet Kushwaha.
- </p>
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+      <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 6px 0; color: #64748b; font-weight: 600; width: 130px;">User ID:</td>
+          <td style="padding: 6px 0; color: #0f172a; font-family: monospace; font-weight: 700;">${userId}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Email:</td>
+          <td style="padding: 6px 0; color: #0f172a;">${to}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Assigned Role:</td>
+          <td style="padding: 6px 0; color: #5a00b8; font-weight: 700;">${roleName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Temporary Pass:</td>
+          <td style="padding: 6px 0; color: #0f172a; font-family: monospace; font-weight: 700;">${temporaryPassword}</td>
+        </tr>
+      </table>
+    </div>
 
- <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
- <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; font-weight: bold; margin: 0 0 12px;">Account Credentials</p>
- <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
- <tr>
- <td style="padding: 6px 0; color: #64748b; font-weight: 600; width: 140px;">User ID:</td>
- <td style="padding: 6px 0; color: #0f172a; font-family: monospace; font-weight: bold;">${userId}</td>
- </tr>
- <tr>
- <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Registered Email:</td>
- <td style="padding: 6px 0; color: #0f172a; font-weight: 600;">${to}</td>
- </tr>
- <tr>
- <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Assigned Role:</td>
- <td style="padding: 6px 0; color: #3b0080; font-weight: bold;">${roleName}</td>
- </tr>
- <tr>
- <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Temporary Pass:</td>
- <td style="padding: 6px 0; color: #b45309; font-family: monospace; font-weight: bold;">${temporaryPassword}</td>
- </tr>
- </table>
- </div>
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${url}" style="background-color: #5a00b8; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-block;">
+        Open Login Portal &rarr;
+      </a>
+    </div>
 
- <div style="text-align: center; margin: 24px 0;">
- <a href="${url}" style="background: #3b0080; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: bold; font-size: 14px; display: inline-block;">
- Open Login Portal &rarr;
- </a>
- </div>
+    <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; margin-top: 16px;">
+      <p style="font-size: 12px; font-weight: 700; color: #0f172a; margin: 0 0 6px 0;">Next Steps to Activate Your Account:</p>
+      <ol style="font-size: 12px; color: #64748b; padding-left: 18px; margin: 0; line-height: 1.6;">
+        <li>Log in with your temporary password.</li>
+        <li>Verify with a 6-digit OTP sent to your email or phone.</li>
+        <li>Set your permanent password to complete setup.</li>
+      </ol>
+    </div>
+  `;
 
- <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 16px;">
- <p style="font-size: 12px; font-weight: bold; color: #0f172a; margin: 0 0 8px;">Next Steps to Activate Your Workspace:</p>
- <ol style="font-size: 12px; color: #475569; padding-left: 18px; margin: 0; line-height: 1.6;">
- <li>Click the <strong>Open Login Portal</strong> button above.</li>
- <li>Enter your corporate email (<strong>${to}</strong>) and temporary password.</li>
- <li>Choose to receive a 6-digit OTP via Email or Mobile SMS to verify your identity.</li>
- <li>Set your permanent personal password.</li>
- <li>Access your dedicated operations workspace.</li>
- </ol>
- </div>
- </div>
-
- <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">
- &copy; 2026 IndoWings Aerospace &bull; Sector 62, Noida, Uttar Pradesh
- </p>
- </div>
- `;
+  const html = renderCleanEmail({
+    title: 'Account Provisioned',
+    subtitle: 'Your operations account credentials and setup instructions',
+    bodyHtml
+  });
 
   return sendEmail({ to, subject, text, html });
 }
@@ -319,13 +363,11 @@ Login Information:
 - Account: ${to}
 - Role: ${role.toUpperCase()}
 - Date & Time: ${timestamp} IST
-- Access Gateway: IndoWings Command Center & Delivery Portal
 - Client IP: ${ip || '127.0.0.1 (Local)'}
 
 If this was you, no action is needed. If you did not authorize this session, please contact IndoWings security immediately.
 
-Regards,
-IndoWings Cyber Security & Flight Command
+IndoWings Flight Operations
 `.trim();
 
   await sendEmail({ to, subject, text });
@@ -336,7 +378,7 @@ export async function sendOrderPlacedEmail(order: any) {
   const to = order.customer_email;
   if (!to) return;
 
-  const subject = `Order Confirmed: Drone Delivery ${order.id} Assigned`;
+  const subject = `Order Confirmed: Drone Delivery ${order.id}`;
   const text = `
 Hello ${order.customer_name},
 
@@ -346,12 +388,11 @@ ORDER DETAILS:
 --------------------------------------------------
 Order ID: ${order.id}
 Package Type: ${order.package_type}
-Weight: ${order.weight_kg} kg
 Total Fare: Rs. ${order.fare_inr || 149}
 Payment Method: ${(order.payment_method || 'online').toUpperCase()}
 Payment Status: ${(order.payment_status || 'paid').toUpperCase()}
 Assigned UAV: ${order.drone_id || 'Auto-assigning'} (${order.drone_model || 'Cyberone Max'})
-Est. Aerial Distance:${order.aerial_distance_km ? order.aerial_distance_km + ' km' : '~14.8 km'}
+Est. Distance: ${order.aerial_distance_km ? order.aerial_distance_km + ' km' : '~14.8 km'}
 Est. Flight Time: ${order.flight_duration_mins ? order.flight_duration_mins + ' mins' : '~18 mins'}
 
 TRANSIT ROUTE:
@@ -359,13 +400,10 @@ TRANSIT ROUTE:
 Pickup Point: ${order.pickup_address}
 Drop Destination: ${order.drop_address}
 
-You can track your live drone flight and telemetry here:
-http://localhost:3000/track?id=${order.id}
+View your order and tracking updates:
+${process.env.FRONTEND_URL || 'https://indowings.com'}/profile?tab=orders
 
-Thank you for choosing IndoWings Aerial Logistics.
-
-Flight Operations Desk
-IndoWings Pvt Ltd
+IndoWings Operations
 `.trim();
 
   await sendEmail({ to, subject, text });
@@ -392,13 +430,12 @@ Current status: ${order.status}
 You can view order history and tracking updates here:
 ${storeUrl}
 
-Our operations team will review the order and update its dispatch status.
 IndoWings Customer Operations
 `.trim()
   });
 }
 
-// ── 4. Order Status Update Email (Dispatch, Hold, Delivered, Failed) ─────────
+// ── 4. Order Status Update Email ───────────────────────────────────────────
 export async function sendOrderStatusEmail(order: any, newStatus: string) {
   const to = order.customer_email;
   if (!to) return;
@@ -419,10 +456,9 @@ Items:
 ${items}
 Delivery address: ${order.drop_address}
 
-View your order and tracking details:
+View your order:
 ${process.env.FRONTEND_URL || 'https://indowings.com'}/profile?tab=orders
 
-No online payment was collected for this booking.
 IndoWings Customer Operations
 `.trim()
     });
@@ -451,24 +487,20 @@ IndoWings Customer Operations
   const text = `
 Hello ${order.customer_name},
 
-There is a real-time status update for your drone delivery order ${order.id}.
-
-Current Flight Status: ${currentLabel}
+Status update for your drone delivery order ${order.id}:
+Current Status: ${currentLabel}
 Timestamp: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
 
 ORDER SUMMARY:
 --------------------------------------------------
 Order ID: ${order.id}
 Assigned UAV: ${order.drone_id || 'Cyberone UAV'}
-Package: ${order.package_type} (${order.weight_kg} kg)
+Package: ${order.package_type}
 Pickup: ${order.pickup_address}
 Drop: ${order.drop_address}
-Payment Status: ${(order.payment_status || 'PAID').toUpperCase()}
 
-View your order and tracking updates:
+View order updates:
 ${process.env.FRONTEND_URL || 'https://indowings.com'}/profile?tab=orders
-
-For flight support or corridor queries, contact IndoWings Air Traffic Desk.
 
 IndoWings Flight Operations
 `.trim();
@@ -481,111 +513,80 @@ export async function sendExpertRequestCreatedEmail(request: any) {
   const to = request.email;
   if (!to || !to.includes('@')) return;
 
-  const subject = `Consultation Request Confirmed [${request.id}] - IndoWings Flight Operations`;
+  const subject = `Consultation Request Confirmed [${request.id}] - IndoWings`;
   const text = `
 Hello ${request.name || 'Valued Customer'},
 
-Thank you for contacting the IndoWings Flight Operations & Aerial Delivery Desk.
-
-Your consultation callback request has been recorded and scheduled in our active engineering queue.
+Thank you for contacting IndoWings. Your consultation callback request has been scheduled.
 
 CONSULTATION DETAILS:
 --------------------------------------------------
 Reference ID: ${request.id}
-Topic / Category: ${request.category}
+Category: ${request.category}
 Preferred Slot: ${request.preferred_time}
 Contact Phone: ${request.phone || 'N/A'}
 Contact Email: ${request.email}
-Current Status: PENDING CALLBACK
-Logged At: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
+Status: Pending Callback
 
-YOUR INQUIRY NOTES:
+Your Inquiry Notes:
 "${request.message || 'No additional notes provided.'}"
 
-NEXT STEPS:
-1. Our flight operations engineer will review your terrace / drop coordinates and mission feasibility.
-2. We will reach out to you at ${request.phone || 'your registered number'} during your requested slot (${request.preferred_time}).
-3. For immediate assistance, feel free to WhatsApp us directly: https://wa.me/919999999999
-
-Best regards,
-IndoWings Flight Command Desk
+IndoWings Flight Operations
 Sector 62, Noida, Uttar Pradesh
-Helpline: 1800-IND-WINGS
 `.trim();
 
-  const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f7f4fb; margin: 0; padding: 30px 20px; color: #171222;">
- <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(59, 0, 128, 0.06);">
- <div style="background: linear-gradient(135deg, #1e0940 0%, #3b0080 100%); padding: 28px; text-align: center; color: white;">
- <h1 style="margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">IndoWings Aerial Logistics</h1>
- <p style="margin: 6px 0 0 0; font-size: 13px; color: #e9d5ff;">Flight Operations & Technical Consultation Desk</p>
- </div>
+  const bodyHtml = `
+    <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
+      Hello <strong>${request.name || 'Valued Customer'}</strong>,<br>
+      Your consultation callback request has been received. Our flight operations team will review your requirements and reach out during your requested time slot.
+    </p>
 
- <div style="padding: 28px;">
- <div style="background: #fdf2f8; border-left: 4px solid #3b0080; padding: 12px 16px; border-radius: 6px; margin-bottom: 22px;">
- <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #3b0080; letter-spacing: 1px;">Request Logged</span>
- <h2 style="margin: 4px 0 0 0; font-size: 17px; color: #171222;">Consultation Callback Scheduled</h2>
- </div>
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+      <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 8px 0; color: #64748b; font-weight: 600; width: 130px;">Reference ID:</td>
+          <td style="padding: 8px 0; font-weight: 700; color: #5a00b8; font-family: monospace;">${request.id}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Category:</td>
+          <td style="padding: 8px 0; color: #0f172a; font-weight: 600;">${request.category}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Preferred Slot:</td>
+          <td style="padding: 8px 0; color: #0f172a;">${request.preferred_time}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Contact Phone:</td>
+          <td style="padding: 8px 0; color: #0f172a;">${request.phone || 'N/A'}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Current Status:</td>
+          <td style="padding: 8px 0;"><span style="background-color: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 6px; font-weight: 600; font-size: 12px;">Pending Callback</span></td>
+        </tr>
+      </table>
+    </div>
 
- <p style="font-size: 14px; line-height: 1.6; color: #475569;">
- Hello <strong>${request.name || 'Valued Customer'}</strong>,<br>
- Your consultation request has been received. Our flight operations team will review your terrace and mission parameters and call you during your requested slot.
- </p>
+    ${request.message ? `
+    <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+      <p style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin: 0 0 4px 0;">Your Inquiry Notes</p>
+      <p style="margin: 0; font-size: 13px; color: #334155;">${request.message}</p>
+    </div>` : ''}
 
- <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px;">
- <tr style="border-bottom: 1px solid #f1f5f9;">
- <td style="padding: 10px 0; color: #64748b; font-weight: 600;">Reference Ticket</td>
- <td style="padding: 10px 0; font-weight: 700; color: #3b0080; font-family: monospace; font-size: 15px;">${request.id}</td>
- </tr>
- <tr style="border-bottom: 1px solid #f1f5f9;">
- <td style="padding: 10px 0; color: #64748b; font-weight: 600;">Inquiry Category</td>
- <td style="padding: 10px 0; font-weight: 600; color: #1e293b;">${request.category}</td>
- </tr>
- <tr style="border-bottom: 1px solid #f1f5f9;">
- <td style="padding: 10px 0; color: #64748b; font-weight: 600;">Preferred Slot</td>
- <td style="padding: 10px 0; font-weight: 600; color: #1e293b;">${request.preferred_time}</td>
- </tr>
- <tr style="border-bottom: 1px solid #f1f5f9;">
- <td style="padding: 10px 0; color: #64748b; font-weight: 600;">Contact Phone</td>
- <td style="padding: 10px 0; font-weight: 600; color: #1e293b;">${request.phone || 'N/A'}</td>
- </tr>
- <tr>
- <td style="padding: 10px 0; color: #64748b; font-weight: 600;">Current Status</td>
- <td style="padding: 10px 0;"><span style="background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; text-transform: uppercase;">Pending Callback</span></td>
- </tr>
- </table>
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="https://wa.me/917669478937?text=${encodeURIComponent(`Hello IndoWings, I have a callback booked with reference ID ${request.id}`)}" style="background-color: #16a34a; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-block; margin-right: 8px;">
+        Chat on WhatsApp
+      </a>
+      <a href="${process.env.FRONTEND_URL || 'https://indowings.com'}/support" style="background-color: #5a00b8; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-block;">
+        Support Desk
+      </a>
+    </div>
+  `;
 
- ${
-   request.message
-     ? `
- <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 22px;">
- <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 4px;">Your Inquiry Notes</span>
- <p style="margin: 0; font-size: 13px; color: #334155; font-style: italic;">"${request.message}"</p>
- </div>`
-     : ''
- }
-
- <div style="text-align: center; margin: 25px 0;">
- <a href="https://wa.me/919999999999?text=${encodeURIComponent(`Hello IndoWings, I have a callback booked with reference ID ${request.id}`)}" style="display: inline-block; background: #25D366; color: white; padding: 12px 24px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 13px; margin-right: 8px;">
- Chat on WhatsApp
- </a>
- <a href="http://localhost:3000/support" style="display: inline-block; background: #3b0080; color: white; padding: 12px 24px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 13px;">
- View Knowledge Center
- </a>
- </div>
- </div>
-
- <div style="background: #f8fafc; padding: 18px 28px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 12px; color: #94a3b8;">
- &copy; 2026 IndoWings Technologies. DGCA & Aerospace Compliance.<br>
- Sector 62, Noida, Uttar Pradesh · Helpline: 1800-IND-WINGS
- </div>
- </div>
-</body>
-</html>
-`.trim();
+  const html = renderCleanEmail({
+    title: 'Consultation Callback Scheduled',
+    subtitle: `Reference: ${request.id}`,
+    bodyHtml
+  });
 
   await sendEmail({ to, subject, text, html });
 }
@@ -595,178 +596,74 @@ export async function sendExpertRequestStatusEmail(request: any, newStatus: stri
   const to = request.email;
   if (!to || !to.includes('@')) return;
 
-  const statusDescriptions: Record<string, { label: string; bg: string; textCol: string; message: string }> = {
-    open: {
-      label: 'OPEN',
-      bg: '#dbeafe',
-      textCol: '#1e40af',
-      message: 'Your request has been received and is waiting for review.'
-    },
-    pending: {
-      label: 'PENDING CALLBACK',
-      bg: '#fef3c7',
-      textCol: '#92400e',
-      message: 'Your callback request is in the operations queue and will be picked up shortly.'
-    },
-    in_progress: {
-      label: 'IN PROGRESS / REVIEWING',
-      bg: '#e0e7ff',
-      textCol: '#3730a3',
-      message: 'A support specialist is reviewing your request.'
-    },
-    'in-progress': {
-      label: 'IN PROGRESS / REVIEWING',
-      bg: '#e0e7ff',
-      textCol: '#3730a3',
-      message: 'A support specialist is reviewing your request.'
-    },
-    waiting_for_customer: {
-      label: 'WAITING FOR YOUR RESPONSE',
-      bg: '#fef3c7',
-      textCol: '#92400e',
-      message: 'Our support team needs more information from you to continue reviewing this request.'
-    },
-    waiting_for_internal_team: {
-      label: 'UNDER REVIEW',
-      bg: '#e0e7ff',
-      textCol: '#3730a3',
-      message: 'Your request is being reviewed by the relevant operations team.'
-    },
-    reopened: {
-      label: 'REOPENED',
-      bg: '#dbeafe',
-      textCol: '#1e40af',
-      message: 'Your request has been reopened for further review.'
-    },
-    unresolved: {
-      label: 'UNRESOLVED',
-      bg: '#fee2e2',
-      textCol: '#991b1b',
-      message: 'Your request remains unresolved. Please contact our support team if you need further assistance.'
-    },
-    contacted: {
-      label: 'CONTACT INITIATED',
-      bg: '#e0f2fe',
-      textCol: '#0369a1',
-      message: 'Our flight engineer has reached out to you via phone/WhatsApp regarding your consultation request.'
-    },
-    resolved: {
-      label: 'RESOLVED & COMPLETED',
-      bg: '#dcfce7',
-      textCol: '#166534',
-      message: 'Your request has been resolved by our support team.'
-    },
-    closed: {
-      label: 'CLOSED',
-      bg: '#dcfce7',
-      textCol: '#166534',
-      message: 'Your support request has been closed.'
-    }
+  const statusLabels: Record<string, string> = {
+    open: 'Open',
+    pending: 'Pending Callback',
+    in_progress: 'In Progress',
+    'in-progress': 'In Progress',
+    waiting_for_customer: 'Waiting for Customer',
+    waiting_for_internal_team: 'Under Review',
+    reopened: 'Reopened',
+    unresolved: 'Unresolved',
+    contacted: 'Contact Initiated',
+    resolved: 'Resolved',
+    closed: 'Closed'
   };
 
-  const statusInfo = statusDescriptions[newStatus] || {
-    label: newStatus.toUpperCase(),
-    bg: '#f1f5f9',
-    textCol: '#334155',
-    message: `Your consultation request status has been updated to ${newStatus}.`
-  };
-
-  const subject = `Consultation Update [${request.id}]: ${statusInfo.label}`;
+  const currentLabel = statusLabels[newStatus] || newStatus.toUpperCase();
+  const subject = `Consultation Update [${request.id}]: ${currentLabel}`;
   const text = `
 Hello ${request.name || 'Valued Customer'},
 
-Your IndoWings consultation request status has been updated.
+Your IndoWings consultation request (${request.id}) status has been updated to: ${currentLabel}.
 
-STATUS UPDATE:
---------------------------------------------------
 Reference ID: ${request.id}
-Topic: ${request.category}
-Updated Status: ${statusInfo.label}
-Details: ${statusInfo.message}
+Category: ${request.category}
+Status: ${currentLabel}
 Timestamp: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
 
-Original Request:
-- Preferred Time: ${request.preferred_time}
-- Notes: "${request.message || 'N/A'}"
-
-If you have further questions or want to place your drone delivery order now, please visit:
-${process.env.FRONTEND_URL || 'https://indowings.com'}/order
-
-Best regards,
-IndoWings Flight Operations Desk
-Sector 62, Noida, Uttar Pradesh
+IndoWings Flight Operations
 `.trim();
 
-  const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f7f4fb; margin: 0; padding: 30px 20px; color: #171222;">
- <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(59, 0, 128, 0.06);">
- <div style="background: linear-gradient(135deg, #1e0940 0%, #3b0080 100%); padding: 28px; text-align: center; color: white;">
- <h1 style="margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">IndoWings Aerial Logistics</h1>
- <p style="margin: 6px 0 0 0; font-size: 13px; color: #e9d5ff;">Flight Operations & Technical Consultation Desk</p>
- </div>
+  const bodyHtml = `
+    <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
+      Hello <strong>${request.name || 'Valued Customer'}</strong>,<br>
+      The status of your consultation inquiry regarding <strong>${request.category}</strong> has been updated.
+    </p>
 
- <div style="padding: 28px;">
- <div style="background: #f8fafc; border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
- <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 1px; display: block; margin-bottom: 6px;">Lifecycle Status</span>
- <div style="display: flex; align-items: center; justify-content: space-between;">
- <h2 style="margin: 0; font-size: 18px; color: #171222;">Ticket ${request.id}</h2>
- <span style="background: ${statusInfo.bg}; color: ${statusInfo.textCol}; padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 12px; text-transform: uppercase;">
- ${statusInfo.label}
- </span>
- </div>
- </div>
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+      <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 8px 0; color: #64748b; font-weight: 600; width: 130px;">Reference ID:</td>
+          <td style="padding: 8px 0; font-weight: 700; color: #5a00b8; font-family: monospace;">${request.id}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Category:</td>
+          <td style="padding: 8px 0; color: #0f172a; font-weight: 600;">${request.category}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Updated Status:</td>
+          <td style="padding: 8px 0; color: #0f172a; font-weight: 700;">${currentLabel}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Updated At:</td>
+          <td style="padding: 8px 0; color: #0f172a;">${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST</td>
+        </tr>
+      </table>
+    </div>
 
- <div style="background: #faf5ff; border-left: 4px solid #3b0080; padding: 14px 18px; border-radius: 8px; margin-bottom: 22px;">
- <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #334155; font-weight: 500;">
- ${statusInfo.message}
- </p>
- </div>
+    <div style="text-align: center; margin: 20px 0;">
+      <a href="${process.env.FRONTEND_URL || 'https://indowings.com'}/support" style="background-color: #5a00b8; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-block;">
+        View Support Desk
+      </a>
+    </div>
+  `;
 
- <p style="font-size: 14px; line-height: 1.6; color: #475569;">
- Hello <strong>${request.name || 'Valued Customer'}</strong>,<br>
- Our flight dispatch command has updated the status of your consultation inquiry regarding <strong>${request.category}</strong>.
- </p>
-
- <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px;">
- <tr style="border-bottom: 1px solid #f1f5f9;">
- <td style="padding: 10px 0; color: #64748b; font-weight: 600;">Reference Ticket</td>
- <td style="padding: 10px 0; font-weight: 700; color: #3b0080; font-family: monospace;">${request.id}</td>
- </tr>
- <tr style="border-bottom: 1px solid #f1f5f9;">
- <td style="padding: 10px 0; color: #64748b; font-weight: 600;">Topic</td>
- <td style="padding: 10px 0; font-weight: 600; color: #1e293b;">${request.category}</td>
- </tr>
- <tr style="border-bottom: 1px solid #f1f5f9;">
- <td style="padding: 10px 0; color: #64748b; font-weight: 600;">Requested Slot</td>
- <td style="padding: 10px 0; font-weight: 600; color: #1e293b;">${request.preferred_time}</td>
- </tr>
- <tr>
- <td style="padding: 10px 0; color: #64748b; font-weight: 600;">Updated At</td>
- <td style="padding: 10px 0; color: #1e293b;">${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST</td>
- </tr>
- </table>
-
- <div style="text-align: center; margin: 25px 0;">
- <a href="${process.env.FRONTEND_URL || 'https://indowings.com'}/order" style="display: inline-block; background: #3b0080; color: white; padding: 12px 24px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 13px; margin-right: 8px;">
- Dispatch Drone Delivery
- </a>
- <a href="${process.env.FRONTEND_URL || 'https://indowings.com'}/support" style="display: inline-block; background: #f1f5f9; color: #334155; padding: 12px 24px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 13px;">
- Knowledge Center
- </a>
- </div>
- </div>
-
- <div style="background: #f8fafc; padding: 18px 28px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 12px; color: #94a3b8;">
- &copy; 2026 IndoWings Technologies. DGCA & Aerospace Compliance.<br>
- Sector 62, Noida, Uttar Pradesh · Helpline: 1800-IND-WINGS
- </div>
- </div>
-</body>
-</html>
-`.trim();
+  const html = renderCleanEmail({
+    title: 'Consultation Status Update',
+    subtitle: `Ticket ${request.id} is now ${currentLabel}`,
+    bodyHtml
+  });
 
   await sendEmail({ to, subject, text, html });
 }
@@ -776,114 +673,61 @@ export async function sendFeedbackInvitationEmail(order: any) {
   const to = order.customer_email;
   if (!to || !to.includes('@')) return;
 
-  const droneModel = order.drone_model || order.drone_id || 'Cyberone UAV Platform';
-  const subject = `Flight Delivered: Rate Your Drone Cargo Experience [Order ${order.id}] - IndoWings`;
-  const feedbackUrl = `http://localhost:3000/feedback?orderId=${order.id}&drone=${encodeURIComponent(droneModel)}&name=${encodeURIComponent(order.customer_name || '')}&email=${encodeURIComponent(to)}`;
+  const droneModel = order.drone_model || order.drone_id || 'IndoWings Drone Platform';
+  const subject = `Delivery Complete: Rate Your Experience [Order ${order.id}]`;
+  const feedbackUrl = `${process.env.FRONTEND_URL || 'https://indowings.com'}/feedback?orderId=${order.id}&drone=${encodeURIComponent(droneModel)}&name=${encodeURIComponent(order.customer_name || '')}&email=${encodeURIComponent(to)}`;
 
   const text = `
 Hello ${order.customer_name || 'Valued Customer'},
 
-Your IndoWings drone flight for Order ${order.id} has touched down and completed successfully!
+Your IndoWings drone flight for Order ${order.id} has completed successfully.
 
-FLIGHT SUMMARY:
---------------------------------------------------
 Order ID: ${order.id}
-Autonomous UAV: ${droneModel}
+Vehicle: ${droneModel}
 Pickup: ${order.pickup_address}
 Drop: ${order.drop_address}
-Touchdown Time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
 
-We value your feedback to continually enhance autonomous flight corridors, delivery speed, and safety.
-Please take 30 seconds to rate your delivery and tell us about your experience:
-
+Please take a moment to rate your delivery experience:
 ${feedbackUrl}
 
-Thank you for choosing IndoWings Aerial Logistics.
-
-IndoWings Flight Operations & Customer Experience
-Sector 62, Noida, Uttar Pradesh
+IndoWings Flight Operations
 `.trim();
 
-  const html = `
-<!DOCTYPE html>
-<html>
-<head>
- <meta charset="utf-8">
- <title>Rate Your Delivery</title>
-</head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f7f4fb; margin: 0; padding: 30px 15px;">
- <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
+  const bodyHtml = `
+    <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
+      Hello <strong>${order.customer_name || 'Valued Customer'}</strong>,<br>
+      Your package for order <strong>#${order.id}</strong> was delivered safely by <strong>${droneModel}</strong>.
+    </p>
 
- <!-- Top Header -->
- <div style="background: #1b0038; padding: 28px 24px; text-align: center;">
- <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">IndoWings Aerial Logistics</h1>
- <p style="color: #d8b4fe; margin: 6px 0 0 0; font-size: 13px; font-weight: 500;">DGCA Type-Certified Autonomous Cargo Network</p>
- </div>
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+      <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 6px 0; color: #64748b; font-weight: 600; width: 130px;">Order ID:</td>
+          <td style="padding: 6px 0; font-weight: 700; color: #5a00b8; font-family: monospace;">${order.id}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Delivery Vehicle:</td>
+          <td style="padding: 6px 0; color: #0f172a;">${droneModel}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Drop Destination:</td>
+          <td style="padding: 6px 0; color: #0f172a;">${order.drop_address || 'Registered Location'}</td>
+        </tr>
+      </table>
+    </div>
 
- <!-- Body Content -->
- <div style="padding: 28px 24px;">
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${feedbackUrl}" style="background-color: #5a00b8; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-block;">
+        Rate Delivery &amp; Share Feedback &rarr;
+      </a>
+    </div>
+  `;
 
- <!-- Completed Badge -->
- <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin-bottom: 22px; text-align: center;">
- <span style="display: inline-block; background: #16a34a; color: white; padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
- ✓ Delivery Complete
- </span>
- <h2 style="margin: 4px 0 0 0; font-size: 19px; color: #14532d; font-weight: 800;">
- Order ${order.id} Touched Down
- </h2>
- <p style="margin: 4px 0 0 0; font-size: 13px; color: #166534;">
- Your payload was delivered safely by <strong>${droneModel}</strong>.
- </p>
- </div>
-
- <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 20px;">
- Hello <strong>${order.customer_name || 'Valued Customer'}</strong>,<br>
- How was your autonomous drone delivery experience? Your feedback helps us optimize precision winch landings, corridor speeds, and overall mission execution.
- </p>
-
- <!-- Rating Prompt Box -->
- <div style="background: #faf5ff; border: 2px dashed #c084fc; border-radius: 14px; padding: 22px; text-align: center; margin: 24px 0;">
- <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #7e22ce; letter-spacing: 1px; display: block; margin-bottom: 8px;">Quick Flight Rating</span>
- <div style="font-size: 28px; margin-bottom: 14px; letter-spacing: 4px;">
-
- </div>
- <a href="${feedbackUrl}" style="display: inline-block; background: #3b0080; color: #ffffff; padding: 14px 32px; border-radius: 10px; font-weight: 800; text-decoration: none; font-size: 15px; box-shadow: 0 4px 12px rgba(59,0,128,0.25);">
- Rate Your Delivery & Share Feedback →
- </a>
- <p style="margin: 10px 0 0 0; font-size: 11px; color: #6b7280;">Takes only 30 seconds · Live verification</p>
- </div>
-
- <!-- Order Recap Table -->
- <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px;">
- <tr style="border-bottom: 1px solid #f1f5f9;">
- <td style="padding: 10px 0; color: #64748b; font-weight: 600;">Order ID</td>
- <td style="padding: 10px 0; font-weight: 700; color: #3b0080; font-family: monospace;">${order.id}</td>
- </tr>
- <tr style="border-bottom: 1px solid #f1f5f9;">
- <td style="padding: 10px 0; color: #64748b; font-weight: 600;">Assigned UAV</td>
- <td style="padding: 10px 0; font-weight: 700; color: #1e293b;">${droneModel}</td>
- </tr>
- <tr style="border-bottom: 1px solid #f1f5f9;">
- <td style="padding: 10px 0; color: #64748b; font-weight: 600;">Pickup</td>
- <td style="padding: 10px 0; color: #1e293b;">${order.pickup_address || 'Registered Hub'}</td>
- </tr>
- <tr style="border-bottom: 1px solid #f1f5f9;">
- <td style="padding: 10px 0; color: #64748b; font-weight: 600;">Drop Destination</td>
- <td style="padding: 10px 0; color: #1e293b;">${order.drop_address || 'Recipient Landing Zone'}</td>
- </tr>
- </table>
-
- </div>
-
- <!-- Footer -->
- <div style="background: #f8fafc; padding: 18px 24px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 12px; color: #94a3b8;">
- &copy; 2026 IndoWings Technologies. DGCA & Aerospace Compliance.<br>
- Sector 62, Noida, Uttar Pradesh · Helpline: 1800-IND-WINGS
- </div>
- </div>
-</body>
-</html>
-`.trim();
+  const html = renderCleanEmail({
+    title: 'Delivery Complete',
+    subtitle: `Order #${order.id} delivered successfully`,
+    bodyHtml
+  });
 
   await sendEmail({ to, subject, text, html });
 }
@@ -891,144 +735,143 @@ Sector 62, Noida, Uttar Pradesh
 // ── 8. Support Query: Alert to Support Team ──────────────────────────────────
 export async function sendSupportQueryAlertToTeam(query: any) {
   const to = 'connect@indowings.com';
-  const subject = `[SUPPORT QUERY] ${query.priority ? `[${query.priority.toUpperCase()}]` : ''} Ticket ${query.id} - ${query.name || 'Customer'}`;
+  const priorityLabel = (query.priority || 'NORMAL').toUpperCase();
+  const subject = `[Support Query] [${priorityLabel}] Ticket ${query.id} - ${query.name || 'Customer'}`;
   const text = `
 New Customer Query Submitted!
 
 Ticket ID: ${query.id}
 Customer: ${query.name} (${query.email || 'N/A'}, ${query.phone || 'N/A'})
 Associated Order: ${query.order_id || 'N/A'}
-Delivery Site Address: ${query.delivery_address || 'N/A'}
+Site Address: ${query.delivery_address || 'N/A'}
 Drone Serial: ${query.drone_serial || 'N/A'}
 Category: ${query.category || 'General'}
-Priority: ${query.priority || 'Normal'}
+Priority: ${priorityLabel}
 Callback Preference: ${query.preferred_time || query.preferred_callback || 'N/A'}
 
-Message / Query:
+Message:
 ${query.message || 'No description provided.'}
 
 Time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
-Manage in Support Desk: http://localhost:3000/support-desk
 `.trim();
 
-  const html = `
-<!DOCTYPE html>
-<html>
-<body style="font-family: sans-serif; background: #f8fafc; padding: 20px; color: #1e293b;">
- <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
- <div style="background: #3b0080; padding: 20px; color: white;">
- <h2 style="margin: 0; font-size: 18px;">New Incoming Customer Query</h2>
- <p style="margin: 4px 0 0 0; font-size: 12px; opacity: 0.8;">IndoFleet Central Grievance & Support Desk</p>
- </div>
- <div style="padding: 24px;">
- <div style="background: #f1f5f9; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; font-size: 14px;">
- Ticket ID: <span style="color: #3b0080; font-family: monospace;">${query.id}</span>
- <span style="float: right; background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 12px; font-size: 11px;">${(query.priority || 'NORMAL').toUpperCase()}</span>
- </div>
+  const bodyHtml = `
+    <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
+      A new customer query has been submitted and assigned reference ID <strong>${query.id}</strong>.
+    </p>
 
- <table style="width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.8;">
- <tr><td style="color: #64748b; width: 140px;">Customer Name:</td><td><strong>${query.name}</strong></td></tr>
- <tr><td style="color: #64748b;">Email Address:</td><td><a href="mailto:${query.email}">${query.email}</a></td></tr>
- <tr><td style="color: #64748b;">Phone Number:</td><td><a href="tel:${query.phone}">${query.phone}</a></td></tr>
- <tr><td style="color: #64748b;">Order Reference:</td><td><strong style="color: #3b0080; font-family: monospace;">${query.order_id || 'Not Linked'}</strong></td></tr>
- <tr><td style="color: #64748b;">Delivery Address:</td><td>${query.delivery_address || 'Not Provided'}</td></tr>
- <tr><td style="color: #64748b;">Drone Serial ID:</td><td>${query.drone_serial || 'N/A'}</td></tr>
- <tr><td style="color: #64748b;">Category:</td><td>${query.category || 'General Support'}</td></tr>
- <tr><td style="color: #64748b;">Callback Window:</td><td>${query.preferred_time || query.preferred_callback || 'Immediate'}</td></tr>
- </table>
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+      <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 6px 0; color: #64748b; font-weight: 600; width: 140px;">Customer Name:</td>
+          <td style="padding: 6px 0; color: #0f172a; font-weight: 700;">${query.name}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Email:</td>
+          <td style="padding: 6px 0; color: #0f172a;"><a href="mailto:${query.email}" style="color: #5a00b8;">${query.email}</a></td>
+        </tr>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Phone:</td>
+          <td style="padding: 6px 0; color: #0f172a;">${query.phone || 'N/A'}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Order Reference:</td>
+          <td style="padding: 6px 0; color: #0f172a; font-family: monospace;">${query.order_id || 'None'}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Category:</td>
+          <td style="padding: 6px 0; color: #0f172a;">${query.category || 'General'}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Priority:</td>
+          <td style="padding: 6px 0; color: #dc2626; font-weight: 700;">${priorityLabel}</td>
+        </tr>
+      </table>
+    </div>
 
- <div style="background: #f8fafc; border-left: 4px solid #3b0080; padding: 14px; margin-top: 20px; border-radius: 4px;">
- <span style="font-size: 11px; font-weight: bold; text-transform: uppercase; color: #64748b; display: block; margin-bottom: 4px;">Query Description</span>
- <p style="margin: 0; font-size: 14px; color: #1e293b; white-space: pre-wrap;">${query.message || 'No description provided.'}</p>
- </div>
+    <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+      <p style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin: 0 0 4px 0;">Customer Query Description</p>
+      <p style="margin: 0; font-size: 13px; color: #334155; white-space: pre-wrap;">${query.message || 'No description provided.'}</p>
+    </div>
 
- <div style="margin-top: 24px; text-align: center;">
- <a href="http://localhost:3000/support-desk" style="background: #3b0080; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13px; display: inline-block;">
- Open in Support Desk Console →
- </a>
- </div>
- </div>
- </div>
-</body>
-</html>
-`.trim();
+    <div style="text-align: center; margin: 20px 0;">
+      <a href="${process.env.FRONTEND_URL || 'https://indowings.com'}/support-desk" style="background-color: #5a00b8; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-block;">
+        Open Support Desk Console &rarr;
+      </a>
+    </div>
+  `;
+
+  const html = renderCleanEmail({
+    title: 'New Customer Query Received',
+    subtitle: `Ticket ID: ${query.id} | Priority: ${priorityLabel}`,
+    bodyHtml
+  });
 
   await sendEmail({ to, subject, text, html });
 }
 
 // ── 9. Support Query: Resolution Notification to User ────────────────────────
-export async function sendQueryResolutionEmail(query: any, resolutionNotes: string, agentName: string = 'IndoFleet Support') {
+export async function sendQueryResolutionEmail(query: any, resolutionNotes: string, agentName: string = 'IndoWings Support') {
   if (!query.email) return;
   const to = query.email;
-  const subject = `Your Support Query [${query.id}] Has Been Resolved - IndoFleet Support`;
+  const subject = `Your Support Query [${query.id}] Has Been Resolved - IndoWings`;
   const text = `
 Dear ${query.name || 'Valued Customer'},
 
 Your support inquiry (Ticket ID: ${query.id}) regarding "${query.category || 'Support Request'}" has been resolved by our operations team.
 
-Resolution & Action Taken:
+Resolution Details:
 ------------------------------------
 ${resolutionNotes}
 ------------------------------------
 
-Order Reference: ${query.order_id || 'N/A'}
-Site Address: ${query.delivery_address || 'N/A'}
+Ticket: ${query.id}
 Resolved By: ${agentName}
 
-If you have any further questions, you can contact our 24/7 Operations Support:
-Phone: +91 7669478937 | Toll-Free: 1800 572 7363
-Email: connect@indowings.com
-
-Thank you for choosing IndoFleet Aerospace.
+Helpline: 1800-IND-WINGS | Email: connect@indowings.com
+IndoWings Flight Operations
 `.trim();
 
-  const html = `
-<!DOCTYPE html>
-<html>
-<body style="font-family: sans-serif; background: #f8fafc; padding: 20px; color: #1e293b;">
- <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
- <div style="background: #059669; padding: 20px; color: white;">
- <h2 style="margin: 0; font-size: 18px;">Query Resolved: Ticket ${query.id}</h2>
- <p style="margin: 4px 0 0 0; font-size: 12px; opacity: 0.9;">IndoFleet Enterprise UAV Support Services</p>
- </div>
- <div style="padding: 24px;">
- <p style="font-size: 14px; line-height: 1.6; color: #334155;">
- Dear <strong>${query.name || 'Valued Customer'}</strong>,<br>
- Our support operations team has reviewed and resolved your inquiry regarding <strong>${query.category || 'Flight Operations'}</strong>.
- </p>
+  const bodyHtml = `
+    <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
+      Dear <strong>${query.name || 'Valued Customer'}</strong>,<br>
+      Our support operations team has reviewed and resolved your inquiry regarding <strong>${query.category || 'Flight Operations'}</strong>.
+    </p>
 
- <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; padding: 16px; margin: 20px 0;">
- <span style="font-size: 11px; font-weight: 800; color: #166534; text-transform: uppercase; display: block; margin-bottom: 6px;">Official Resolution & Action Taken:</span>
- <p style="margin: 0; font-size: 14px; color: #14532d; line-height: 1.6; white-space: pre-wrap;">${resolutionNotes}</p>
- </div>
+    <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+      <p style="font-size: 11px; font-weight: 700; color: #166534; text-transform: uppercase; margin: 0 0 6px 0;">Official Resolution Note:</p>
+      <p style="margin: 0; font-size: 13px; color: #14532d; line-height: 1.6; white-space: pre-wrap;">${resolutionNotes}</p>
+    </div>
 
- <table style="width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.8; margin-bottom: 20px;">
- <tr style="border-bottom: 1px solid #f1f5f9;"><td style="color: #64748b; padding: 6px 0;">Ticket Reference:</td><td style="font-family: monospace; font-weight: bold; color: #3b0080;">${query.id}</td></tr>
- ${query.order_id ? `<tr style="border-bottom: 1px solid #f1f5f9;"><td style="color: #64748b; padding: 6px 0;">Order Reference:</td><td style="font-family: monospace; font-weight: bold;">${query.order_id}</td></tr>` : ''}
- ${query.delivery_address ? `<tr style="border-bottom: 1px solid #f1f5f9;"><td style="color: #64748b; padding: 6px 0;">Delivery Address:</td><td>${query.delivery_address}</td></tr>` : ''}
- <tr><td style="color: #64748b; padding: 6px 0;">Resolved By:</td><td><strong>${agentName}</strong></td></tr>
- </table>
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+      <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 4px 0; color: #64748b; width: 130px;">Ticket Reference:</td>
+          <td style="padding: 4px 0; color: #5a00b8; font-family: monospace; font-weight: 700;">${query.id}</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 0; color: #64748b;">Resolved By:</td>
+          <td style="padding: 4px 0; color: #0f172a; font-weight: 600;">${agentName}</td>
+        </tr>
+      </table>
+    </div>
 
- <div style="background: #faf5ff; border: 1px dashed #c084fc; border-radius: 10px; padding: 14px; text-align: center; margin-top: 20px;">
- <p style="margin: 0; font-size: 12px; color: #6b21a8; font-weight: 600;">Need more assistance? Reach our 24/7 Operations Desk</p>
- <p style="margin: 4px 0 0 0; font-size: 13px; font-weight: 800; color: #3b0080;">
- +91 7669478937 · Toll-Free: 1800 572 7363 · connect@indowings.com
- </p>
- </div>
- </div>
- <div style="background: #f8fafc; padding: 16px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 11px; color: #94a3b8;">
- &copy; 2026 IndoFleet Aerospace Technologies Ltd. All rights reserved.
- </div>
- </div>
-</body>
-</html>
-`.trim();
+    <p style="font-size: 12px; color: #64748b; margin: 0;">
+      If you have additional questions, feel free to reply to this email or reach our support helpline.
+    </p>
+  `;
+
+  const html = renderCleanEmail({
+    title: 'Query Resolved',
+    subtitle: `Ticket ${query.id} has been marked as resolved`,
+    bodyHtml
+  });
 
   await sendEmail({ to, subject, text, html });
 }
 
 // ── 10. Direct Email Reply from Support Agent ─────────────────────────────────
-export async function sendDirectSupportEmail(to: string, subject: string, message: string, agentName: string = 'IndoFleet Support Desk') {
+export async function sendDirectSupportEmail(to: string, subject: string, message: string, agentName: string = 'IndoWings Support Desk') {
   if (!to || !to.includes('@')) return { success: false, error: 'Customer email address is invalid.' };
   if (!RESEND_KEY) return { success: false, error: 'Resend is not configured for Support Desk email.' };
   if (!SUPPORT_FROM_EMAIL || !SUPPORT_FROM_EMAIL.includes('@')) {
@@ -1051,36 +894,26 @@ ${message}
 
 ------------------------------------
 ${agentName}
-IndoFleet Aerospace Technologies Ltd.
-Phone: +91 7669478937 | Toll-Free: 1800 572 7363
-Email: connect@indowings.com
+IndoWings Aerospace Technologies Ltd.
+Phone: 1800-IND-WINGS | Email: connect@indowings.com
 `.trim();
 
-  const html = `
-<!DOCTYPE html>
-<html>
-<body style="font-family: sans-serif; background: #f8fafc; padding: 20px; color: #1e293b;">
- <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
- <div style="background: #3b0080; padding: 18px 24px; color: white;">
- <h3 style="margin: 0; font-size: 16px;">IndoFleet Support Operations</h3>
- <p style="margin: 2px 0 0 0; font-size: 12px; opacity: 0.85;">Direct Message from Support Officer</p>
- </div>
- <div style="padding: 24px;">
- <div style="font-size: 14px; line-height: 1.7; color: #334155; white-space: pre-wrap; margin-bottom: 24px;">
- ${safeMessage}
- </div>
+  const bodyHtml = `
+    <div style="font-size: 14px; line-height: 1.7; color: #334155; white-space: pre-wrap; margin-bottom: 24px;">
+      ${safeMessage}
+    </div>
 
- <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; font-size: 12px; color: #64748b;">
- <strong style="color: #1e293b; display: block; font-size: 13px;">${safeAgentName}</strong>
- Support & Operations Command Desk<br>
- IndoFleet Aerospace Technologies Ltd.<br>
- Direct Phone: +91 7669478937 · Toll-Free: 1800 572 7363 · Email: connect@indowings.com
- </div>
- </div>
- </div>
-</body>
-</html>
-`.trim();
+    <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; font-size: 12px; color: #64748b;">
+      <strong style="color: #0f172a; display: block; font-size: 13px;">${safeAgentName}</strong>
+      Support &amp; Operations Command Desk<br>
+      IndoWings Aerospace Technologies Ltd.
+    </div>
+  `;
+
+  const html = renderCleanEmail({
+    title: 'Support Desk Message',
+    bodyHtml
+  });
 
   try {
     const { data, error } = await resend.emails.send({
@@ -1103,3 +936,458 @@ Email: connect@indowings.com
     return { success: false, error: reason };
   }
 }
+
+// ── 12. Flight Started Customer Notification Email ──────────────────────────
+export async function sendFlightStartedCustomerEmail({
+  to,
+  customerName,
+  orderNumber,
+  pilotName,
+  pilotPhone,
+  vehicleId,
+  trackingUrl,
+  deliveryAddress
+}: {
+  to: string;
+  customerName: string;
+  orderNumber: string;
+  pilotName: string;
+  pilotPhone?: string;
+  vehicleId?: string;
+  trackingUrl: string;
+  deliveryAddress: string;
+}) {
+  const subject = `Your IndoWings Delivery #${orderNumber} is In-Flight`;
+  const text = `
+Hello ${customerName},
+
+Your consignment #${orderNumber} has taken flight and is actively en-route to your destination.
+
+DISPATCH DETAILS:
+• Order Number: ${orderNumber}
+• Flight Pilot: ${pilotName}
+• Pilot Contact: ${pilotPhone || '+91 7669478937'}
+• Vehicle ID: ${vehicleId || 'IndoWings Drone'}
+• Destination: ${deliveryAddress}
+
+Live Tracking Link:
+${trackingUrl}
+
+IndoWings Flight Operations
+`.trim();
+
+  const bodyHtml = `
+    <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
+      Hello <strong>${customerName}</strong>,<br>
+      Your package for order <strong>#${orderNumber}</strong> has departed our facility and is en-route.
+    </p>
+
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+      <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 6px 0; color: #64748b; width: 130px;">Order Number:</td>
+          <td style="padding: 6px 0; color: #5a00b8; font-weight: 700; font-family: monospace;">#${orderNumber}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 6px 0; color: #64748b;">Pilot:</td>
+          <td style="padding: 6px 0; color: #0f172a; font-weight: 600;">${pilotName}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 6px 0; color: #64748b;">Pilot Contact:</td>
+          <td style="padding: 6px 0; color: #0f172a;">${pilotPhone || '+91 7669478937'}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 6px 0; color: #64748b;">Vehicle:</td>
+          <td style="padding: 6px 0; color: #0f172a;">${vehicleId || 'IndoWings Drone'}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #64748b;">Destination:</td>
+          <td style="padding: 6px 0; color: #0f172a;">${deliveryAddress}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${trackingUrl}" style="background-color: #5a00b8; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-block;">
+        View Live Flight Tracking &rarr;
+      </a>
+    </div>
+  `;
+
+  const html = renderCleanEmail({
+    title: 'Your Delivery is In-Flight',
+    subtitle: `Order #${orderNumber} is on its way`,
+    bodyHtml
+  });
+
+  return sendEmail({ to, subject, text, html });
+}
+
+// ── 13. SOS Emergency Alert Email to Admin & Dispatch Operations ─────────────
+export async function sendSosEmergencyAlertEmail({
+  adminEmail,
+  pilotName,
+  pilotPhone,
+  vehicleId,
+  latitude,
+  longitude,
+  batteryPct,
+  timestamp,
+  audioNote
+}: {
+  adminEmail: string;
+  pilotName: string;
+  pilotPhone?: string;
+  vehicleId?: string;
+  latitude: number;
+  longitude: number;
+  batteryPct?: number;
+  timestamp: string;
+  audioNote?: string;
+}) {
+  const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+  const subject = `[URGENT SOS] Pilot ${pilotName} Triggered Emergency Beacon`;
+  const text = `
+URGENT SOS EMERGENCY BEACON TRIGGERED
+
+Pilot: ${pilotName}
+Phone: ${pilotPhone || 'N/A'}
+Vehicle ID: ${vehicleId || 'N/A'}
+Timestamp: ${timestamp}
+Device Charge: ${batteryPct ?? 'N/A'}%
+
+GPS Coordinates: ${latitude}, ${longitude}
+Map Link: ${mapsUrl}
+
+${audioNote ? `Notes: ${audioNote}\n` : ''}
+
+IndoWings Automated Emergency Alert System
+`.trim();
+
+  const bodyHtml = `
+    <div style="background-color: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+      <p style="margin: 0; font-size: 13px; font-weight: 700; color: #991b1b;">
+        An emergency beacon was triggered by pilot ${pilotName}.
+      </p>
+    </div>
+
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+      <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 6px 0; color: #64748b; width: 130px;">Pilot:</td>
+          <td style="padding: 6px 0; color: #0f172a; font-weight: 700;">${pilotName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #64748b;">Phone:</td>
+          <td style="padding: 6px 0; color: #0f172a;"><a href="tel:${pilotPhone}">${pilotPhone || 'N/A'}</a></td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #64748b;">Vehicle ID:</td>
+          <td style="padding: 6px 0; color: #0f172a;">${vehicleId || 'N/A'}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #64748b;">Power Level:</td>
+          <td style="padding: 6px 0; color: #0f172a;">${batteryPct ?? 'N/A'}%</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #64748b;">Coordinates:</td>
+          <td style="padding: 6px 0; color: #0f172a; font-family: monospace;">${latitude.toFixed(6)}, ${longitude.toFixed(6)}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="text-align: center; margin: 20px 0;">
+      <a href="${mapsUrl}" style="background-color: #dc2626; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-block;">
+        Open Location on Google Maps &rarr;
+      </a>
+    </div>
+  `;
+
+  const html = renderCleanEmail({
+    title: 'Emergency SOS Alert',
+    subtitle: `Pilot ${pilotName} at ${timestamp}`,
+    bodyHtml
+  });
+
+  return sendEmail({ to: adminEmail, subject, text, html });
+}
+
+// ── 14. Delivery Completed & Handover Confirmation Email ────────────────────
+export async function sendDeliveryCompletedEmail({
+  to,
+  orderNumber,
+  recipientName,
+  pilotName,
+  deliveryLat,
+  deliveryLng,
+  deliveryAddress,
+  notes,
+  signatureDataUrl
+}: {
+  to: string;
+  orderNumber: string;
+  recipientName: string;
+  pilotName: string;
+  deliveryLat?: number;
+  deliveryLng?: number;
+  deliveryAddress: string;
+  notes?: string;
+  signatureDataUrl?: string;
+}) {
+  const mapsUrl = deliveryLat && deliveryLng ? `https://www.google.com/maps?q=${deliveryLat},${deliveryLng}` : '';
+  const subject = `Delivery Completed: Order #${orderNumber}`;
+  const text = `
+Order #${orderNumber} has been successfully delivered and handed over.
+
+Recipient: ${recipientName}
+Delivery Pilot: ${pilotName}
+Destination: ${deliveryAddress}
+Time: ${new Date().toISOString()}
+
+IndoWings Operations Desk
+`.trim();
+
+  const bodyHtml = `
+    <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
+      Order <strong>#${orderNumber}</strong> has been successfully delivered and handed over.
+    </p>
+
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+      <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 6px 0; color: #64748b; width: 130px;">Recipient:</td>
+          <td style="padding: 6px 0; color: #0f172a; font-weight: 700;">${recipientName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #64748b;">Pilot:</td>
+          <td style="padding: 6px 0; color: #0f172a;">${pilotName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #64748b;">Destination:</td>
+          <td style="padding: 6px 0; color: #0f172a;">${deliveryAddress}</td>
+        </tr>
+        ${notes ? `
+        <tr>
+          <td style="padding: 6px 0; color: #64748b;">Notes:</td>
+          <td style="padding: 6px 0; color: #0f172a;">${notes}</td>
+        </tr>` : ''}
+      </table>
+    </div>
+
+    ${signatureDataUrl ? `
+    <div style="text-align: center; margin: 16px 0; padding: 12px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
+      <p style="margin: 0 0 8px 0; font-size: 11px; color: #64748b; font-weight: 600;">Digital Signature</p>
+      <img src="${signatureDataUrl}" alt="Digital Signature" style="max-width: 200px; height: auto;" />
+    </div>` : ''}
+
+    ${mapsUrl ? `
+    <div style="text-align: center; margin: 20px 0;">
+      <a href="${mapsUrl}" style="background-color: #16a34a; color: #ffffff; text-decoration: none; padding: 10px 22px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-block;">
+        View Location on Map &rarr;
+      </a>
+    </div>` : ''}
+  `;
+
+  const html = renderCleanEmail({
+    title: 'Delivery Confirmed',
+    subtitle: `Order #${orderNumber} successfully completed`,
+    bodyHtml
+  });
+
+  return sendEmail({ to, subject, text, html });
+}
+
+// ── 15. Delivery Partner Accepted Order Alert (Sent to Dispatcher) ──────────
+export async function sendOrderAcceptedByDeliveryAlert({
+  dispatcherEmail,
+  dispatcherName,
+  orderNumber,
+  deliveryPartnerName,
+  deliveryPartnerPhone,
+  vehicleId,
+  dlId,
+  orderId
+}: {
+  dispatcherEmail: string;
+  dispatcherName: string;
+  orderNumber: string;
+  deliveryPartnerName: string;
+  deliveryPartnerPhone?: string;
+  vehicleId?: string;
+  dlId?: string;
+  orderId: string;
+}) {
+  const targetEmail = dispatcherEmail || process.env.ADMIN_EMAIL || 'ops@indowings.com';
+  const subject = `Order #${orderNumber} Accepted by ${deliveryPartnerName}`;
+  const text = `
+Hello ${dispatcherName || 'Dispatcher'},
+
+Delivery Partner ${deliveryPartnerName} has accepted Order #${orderNumber}.
+
+Partner Details:
+• Name: ${deliveryPartnerName}
+• Phone: ${deliveryPartnerPhone || 'N/A'}
+• Vehicle ID: ${vehicleId || 'N/A'}
+• License ID: ${dlId || 'Verified'}
+
+IndoWings Operations Desk
+`.trim();
+
+  const bodyHtml = `
+    <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
+      Hello <strong>${dispatcherName || 'Dispatcher'}</strong>,<br>
+      Delivery Partner <strong>${deliveryPartnerName}</strong> has accepted Order <strong>#${orderNumber}</strong>.
+    </p>
+
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+      <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 6px 0; color: #64748b; width: 140px;">Delivery Partner:</td>
+          <td style="padding: 6px 0; color: #0f172a; font-weight: 700;">${deliveryPartnerName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #64748b;">Phone:</td>
+          <td style="padding: 6px 0; color: #0f172a;">${deliveryPartnerPhone || 'N/A'}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #64748b;">Vehicle:</td>
+          <td style="padding: 6px 0; color: #0f172a;">${vehicleId || 'N/A'}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #64748b;">License (DL):</td>
+          <td style="padding: 6px 0; color: #0f172a;">${dlId || 'Verified'}</td>
+        </tr>
+      </table>
+    </div>
+  `;
+
+  const html = renderCleanEmail({
+    title: 'Order Accepted',
+    subtitle: `Order #${orderNumber} accepted by partner`,
+    bodyHtml
+  });
+
+  return sendEmail({ to: targetEmail, subject, text, html });
+}
+
+// ── 16. Password Change Verification OTP Email (Valid for 10 Minutes) ───────────
+export async function sendPasswordChangeOtpEmail({
+  email,
+  name,
+  otp
+}: {
+  email: string;
+  name?: string;
+  otp: string;
+}) {
+  const subject = `Your Password Change Verification Code: ${otp}`;
+  const text = `
+Hello ${name || 'Valued User'},
+
+We received a request to update the password for your account (${email}).
+
+Your 6-digit Verification Code is:
+------------------------------------
+  ${otp}
+------------------------------------
+
+This code is valid for 10 minutes only. Enter it in your profile to complete your password update.
+If you did not make this request, please contact your Administrator immediately.
+
+IndoWings Security
+`.trim();
+
+  const bodyHtml = `
+    <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
+      Hello <strong>${name || 'Valued User'}</strong>,<br>
+      A request was made to update the password for your account (<strong>${email}</strong>).
+    </p>
+
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+      <p style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px 0;">Verification Code</p>
+      <div style="font-family: monospace; font-size: 32px; font-weight: 800; color: #5a00b8; letter-spacing: 6px; margin: 4px 0;">
+        ${otp}
+      </div>
+      <p style="margin: 8px 0 0 0; font-size: 12px; color: #dc2626; font-weight: 600;">Valid for 10 minutes only</p>
+    </div>
+
+    <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin: 0;">
+      Enter this code on the password update screen. If you did not request this, please contact your Administrator to secure your account.
+    </p>
+  `;
+
+  const html = renderCleanEmail({
+    title: 'Password Change Verification',
+    subtitle: '10-Minute Verification Code',
+    bodyHtml
+  });
+
+  return sendEmail({ to: email, subject, text, html });
+}
+
+// ── 17. Temporary Password Dispatch Email (Valid for 10 Minutes) ────────────────
+export async function sendTemporaryPasswordEmail({
+  email,
+  name,
+  tempPassword,
+  adminGenerated
+}: {
+  email: string;
+  name?: string;
+  tempPassword: string;
+  adminGenerated?: boolean;
+}) {
+  const subject = `Your Temporary Login Password: ${tempPassword}`;
+  const text = `
+Hello ${name || 'Valued User'},
+
+A temporary login password has been ${adminGenerated ? 'generated by your Administrator' : 'issued for your account'} (${email}).
+
+Your Temporary Password is:
+------------------------------------
+  ${tempPassword}
+------------------------------------
+
+INSTRUCTIONS:
+• Valid for 10 minutes ONLY.
+• Use this temporary password to log in.
+• Immediately update your password in Profile Settings upon signing in.
+
+IndoWings Security
+`.trim();
+
+  const bodyHtml = `
+    <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
+      Hello <strong>${name || 'Valued User'}</strong>,<br>
+      A temporary password has been ${adminGenerated ? 'generated by your Administrator' : 'requested for your account'} (<strong>${email}</strong>).
+    </p>
+
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+      <p style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px 0;">Temporary Password</p>
+      <div style="font-family: monospace; font-size: 24px; font-weight: 800; color: #5a00b8; letter-spacing: 2px; margin: 4px 0;">
+        ${tempPassword}
+      </div>
+      <p style="margin: 8px 0 0 0; font-size: 12px; color: #dc2626; font-weight: 600;">Valid for 10 minutes only</p>
+    </div>
+
+    <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; margin-top: 16px;">
+      <p style="font-size: 12px; font-weight: 700; color: #0f172a; margin: 0 0 6px 0;">Instructions:</p>
+      <ol style="font-size: 12px; color: #64748b; padding-left: 18px; margin: 0; line-height: 1.6;">
+        <li>Log in with this temporary password within 10 minutes.</li>
+        <li>Go to your <strong>Profile Settings &rarr; Change Password</strong>.</li>
+        <li>Set your new permanent password.</li>
+      </ol>
+    </div>
+  `;
+
+  const html = renderCleanEmail({
+    title: 'Temporary Login Password',
+    subtitle: 'Access recovery for your account',
+    bodyHtml
+  });
+
+  return sendEmail({ to: email, subject, text, html });
+}
+
+
+

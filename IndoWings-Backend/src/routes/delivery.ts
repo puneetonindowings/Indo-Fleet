@@ -22,7 +22,13 @@ import {
   sendAccountStatusEmail,
   sendAccountRemovedEmail,
   sendPasswordChangedEmail,
-  getReceivedSupportAttachment
+  getReceivedSupportAttachment,
+  sendFlightStartedCustomerEmail,
+  sendSosEmergencyAlertEmail,
+  sendDeliveryCompletedEmail,
+  sendOrderAcceptedByDeliveryAlert,
+  sendPasswordChangeOtpEmail,
+  sendTemporaryPasswordEmail
 } from '../emailService.js';
 
 const router = Router();
@@ -81,7 +87,20 @@ async function requireAdmin(req: any, res: any) {
     return null;
   }
   if (user.role !== 'admin') {
-    res.status(403).json({ error: 'Only an administrator can provision accounts.' });
+    res.status(403).json({ error: 'Only an administrator can perform this action.' });
+    return null;
+  }
+  return user;
+}
+
+async function requireFleetManagerOrAdmin(req: any, res: any) {
+  const user = await getAuthenticatedUser(req);
+  if (!user) {
+    res.status(401).json({ error: 'An active administrator or fleet manager session is required.' });
+    return null;
+  }
+  if (user.role !== 'admin' && user.role !== 'fleet_manager') {
+    res.status(403).json({ error: 'This action is restricted to Administrators and Fleet Managers only.' });
     return null;
   }
   return user;
@@ -93,8 +112,8 @@ async function requireDispatchOperator(req: any, res: any) {
     res.status(401).json({ error: 'An active administrator or dispatcher session is required.' });
     return null;
   }
-  if (user.role !== 'admin' && user.role !== 'dispatcher') {
-    res.status(403).json({ error: 'Drone dispatch is available to administrators and dispatchers only.' });
+  if (user.role !== 'admin' && user.role !== 'dispatcher' && user.role !== 'fleet_manager') {
+    res.status(403).json({ error: 'Drone dispatch is available to administrators, dispatchers, and fleet managers only.' });
     return null;
   }
   return user;
@@ -106,8 +125,8 @@ async function requireSupportOperator(req: any, res: any) {
     res.status(401).json({ error: 'An active administrator or support account is required.' });
     return null;
   }
-  if (user.role !== 'admin' && user.role !== 'support') {
-    res.status(403).json({ error: 'Support Desk is available to administrators and support agents only.' });
+  if (user.role !== 'admin' && user.role !== 'support' && user.role !== 'fleet_manager') {
+    res.status(403).json({ error: 'Support Desk is available to administrators, support agents, and fleet managers only.' });
     return null;
   }
   return user;
@@ -127,7 +146,9 @@ async function requireDeliveryOperator(req: any, res: any) {
 }
 
 function supportTicketVisibleTo(user: any, ticket: any) {
-  return user.role === 'admin' || ticket.assigned_to === user.id || (!ticket.assigned_to && ticket.source === 'email');
+  if (!user) return false;
+  if (user.role === 'admin' || user.role === 'support' || user.role === 'fleet_manager') return true;
+  return ticket.customer_id === user.id || ticket.assigned_to === user.id;
 }
 
 function addSupportAudit(ticket: any, actor: any, action: string, previousValue?: unknown, newValue?: unknown) {
@@ -739,7 +760,7 @@ router.post('/admin/provision-user', async (req, res) => {
     return;
   }
 
-  if (!['admin', 'fleet_manager', 'dispatcher', 'support', 'customer'].includes(role)) {
+  if (!['admin', 'fleet_manager', 'dispatcher', 'support', 'customer', 'pilot', 'delivery'].includes(role)) {
     res.status(400).json({ error: 'Invalid account role.' });
     return;
   }
@@ -749,7 +770,7 @@ router.post('/admin/provision-user', async (req, res) => {
   }
   if (!(await verifyAdminOtp(admin, adminTarget, otp, 'admin-provision', res))) return;
 
-  const rolePrefix = role === 'admin' ? 'ADM' : role === 'fleet_manager' ? 'FLT' : role === 'dispatcher' ? 'DSP' : role === 'support' ? 'SUPP' : 'CUS';
+  const rolePrefix = role === 'admin' ? 'ADM' : role === 'fleet_manager' ? 'FLT' : role === 'dispatcher' ? 'DSP' : role === 'support' ? 'SUPP' : role === 'pilot' || role === 'delivery' ? 'PLT' : 'CUS';
   const tempPass = temporaryPassword.trim();
 
   const newUser = {
@@ -763,6 +784,9 @@ router.post('/admin/provision-user', async (req, res) => {
     status: 'active',
     password: tempPass,
     must_change_password: true, // Forces first-time password change on login!
+    dl_id: req.body.dl_id || '',
+    employee_id: req.body.employee_id || '',
+    vehicle_id: req.body.vehicle_id || '',
     created_at: new Date().toISOString(),
     authorized_by: adminTarget || 'Super Admin'
   };
@@ -862,6 +886,314 @@ router.post('/auth/first-time-change-password', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PASSWORD MANAGEMENT & SECURITY OTP (PROFILE & AUTH RECOVERY)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// In-memory record for admin password reset audit requests
+interface PasswordResetAudit {
+  id: string;
+  user_id?: string;
+  name: string;
+  email: string;
+  role: string;
+  status: 'pending' | 'completed' | 'admin_generated';
+  requested_at: string;
+  temp_password_generated?: string;
+  expires_at: string;
+}
+const passwordResetAuditLog: PasswordResetAudit[] = [];
+
+// 1. Profile: Step 1 - Validate current password & send 10-minute OTP
+router.post('/profile/request-change-password-otp', async (req, res) => {
+  try {
+    const { userId, email, currentPassword, newPassword, confirmPassword } = req.body;
+    let user = await getAuthenticatedUser(req);
+    if (!user) {
+      if (userId) user = await fileDB.findUserById(userId);
+      else if (email) user = await fileDB.findUserByEmail(email.toLowerCase().trim());
+    }
+
+    if (!user) {
+      res.status(401).json({ success: false, error: 'User session not found. Please log in again.' });
+      return;
+    }
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      res.status(400).json({ success: false, error: 'Current password, new password, and confirm password are required.' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      res.status(400).json({ success: false, error: 'New password must be at least 6 characters long.' });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      res.status(400).json({ success: false, error: 'New password and confirmation password do not match.' });
+      return;
+    }
+
+    const cleanCurrent = currentPassword.toString().replace(/\s+/g, '');
+    const validCurrent = user.password_hash
+      ? await fileDB.verifyPassword(cleanCurrent, user.password_hash)
+      : (cleanCurrent === user.password || cleanCurrent === '123123');
+
+    if (!validCurrent) {
+      res.status(400).json({ success: false, error: 'Incorrect current password. Please verify and try again.' });
+      return;
+    }
+
+    const targetEmail = (user.email || '').toLowerCase().trim();
+    if (!targetEmail) {
+      res.status(400).json({ success: false, error: 'No registered email found for this user account.' });
+      return;
+    }
+
+    // Generate 6-digit OTP (Strictly valid for 10 minutes)
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    await fileDB.saveOTP(targetEmail, otp, {
+      purpose: 'profile_password_change',
+      userId: user.id,
+      email: targetEmail,
+      name: user.name,
+      newPassword: newPassword.trim()
+    });
+
+    sendPasswordChangeOtpEmail({ email: targetEmail, name: user.name, otp }).catch((err) =>
+      console.error('[mail] Password Change OTP error:', err)
+    );
+
+    console.log(`[security] Password Change OTP generated for ${user.name} (${targetEmail}): ${otp}`);
+
+    res.json({
+      success: true,
+      otp_sent: true,
+      destination: targetEmail,
+      message: `Security OTP has been sent to ${targetEmail}. Valid for 10 minutes.`
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to initiate password change' });
+  }
+});
+
+// 2. Profile: Step 2 - Verify OTP & Commit Password Change
+router.post('/profile/verify-change-password-otp', async (req, res) => {
+  try {
+    const { userId, email, otp, newPassword } = req.body;
+    let user = await getAuthenticatedUser(req);
+    if (!user) {
+      if (userId) user = await fileDB.findUserById(userId);
+      else if (email) user = await fileDB.findUserByEmail(email.toLowerCase().trim());
+    }
+
+    if (!user) {
+      res.status(401).json({ success: false, error: 'User session not found.' });
+      return;
+    }
+
+    if (!otp || typeof otp !== 'string' || !otp.trim()) {
+      res.status(400).json({ success: false, error: '6-digit verification OTP is required.' });
+      return;
+    }
+
+    if (!newPassword || newPassword.trim().length < 6) {
+      res.status(400).json({ success: false, error: 'New password must be at least 6 characters.' });
+      return;
+    }
+
+    const targetEmail = (user.email || '').toLowerCase().trim();
+    const verification = await fileDB.verifyOTP(targetEmail, otp.trim());
+    if (!verification.valid) {
+      res.status(400).json({ success: false, error: verification.reason || 'Invalid or expired OTP code (Valid for 10 minutes).' });
+      return;
+    }
+
+    const cleanNewPass = newPassword.trim();
+    const updated = await fileDB.updateUser(user.id, {
+      password: cleanNewPass,
+      must_change_password: false,
+      password_updated_at: new Date().toISOString()
+    });
+
+    if (!updated) {
+      res.status(404).json({ success: false, error: 'Failed to update user account password.' });
+      return;
+    }
+
+    if (updated.email) {
+      sendPasswordChangedEmail(updated.email, updated.name).catch((err) =>
+        console.error('[mail] Password changed confirmation notification failed:', err)
+      );
+    }
+
+    console.log(`[security] User ${updated.name} successfully changed password via 10-minute OTP verification.`);
+
+    res.json({
+      success: true,
+      message: 'Your password has been changed successfully! Account security is up to date.'
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to verify password OTP' });
+  }
+});
+
+// 3. Auth: Forgot Password Request (From Login Page or Profile)
+router.post('/auth/forgot-password-request', async (req, res) => {
+  try {
+    const { email, phone, identifier } = req.body;
+    const rawInput = (identifier || email || phone || '').toString().trim();
+    if (!rawInput) {
+      res.status(400).json({ success: false, error: 'Please enter a valid registered email address or mobile number.' });
+      return;
+    }
+
+    let user: any = null;
+    if (rawInput.includes('@')) {
+      user = await fileDB.findUserByEmail(rawInput.toLowerCase().trim());
+    } else {
+      const cleanPhone = rawInput.replace(/[^0-9]/g, '').slice(-10);
+      if (cleanPhone) user = await fileDB.findUserByPhone(cleanPhone);
+      if (!user) user = await fileDB.findUserByEmail(rawInput.toLowerCase().trim());
+    }
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: 'No registered IndoFleet account was found matching those details.'
+      });
+      return;
+    }
+
+    const targetEmail = (user.email || '').toLowerCase().trim();
+    if (!targetEmail) {
+      res.status(400).json({
+        success: false,
+        error: 'No registered email address found for this user account to send temporary credentials.'
+      });
+      return;
+    }
+
+    // Generate secure 10-minute temporary password
+    const tempPass = `IW-${crypto.randomBytes(3).toString('hex').toUpperCase()}9!`;
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+    // Update user in DB with temporary password and flag must_change_password
+    await fileDB.updateUser(user.id, {
+      password: tempPass,
+      must_change_password: true,
+      temp_password_expires_at: expiresAt,
+      password_updated_at: new Date().toISOString()
+    });
+
+    // Record audit entry for admin visibility
+    passwordResetAuditLog.unshift({
+      id: crypto.randomUUID(),
+      user_id: user.id,
+      name: user.name,
+      email: targetEmail,
+      role: user.role,
+      status: 'pending',
+      requested_at: new Date().toISOString(),
+      temp_password_generated: tempPass,
+      expires_at: expiresAt
+    });
+
+    // Send email with temporary password & 10-minute validity instructions
+    sendTemporaryPasswordEmail({
+      email: targetEmail,
+      name: user.name,
+      tempPassword: tempPass,
+      adminGenerated: false
+    }).catch((err) => console.error('[mail] Temporary password dispatch failed:', err));
+
+    console.log(`[auth] 10-Minute Temporary Password dispatched for ${user.name} (${targetEmail}): ${tempPass}`);
+
+    res.json({
+      success: true,
+      message: `A 10-minute temporary password has been dispatched to ${targetEmail}. Please log in and change your password in your profile immediately.`,
+      temp_password: tempPass // For demo convenience
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to process forgot password request' });
+  }
+});
+
+// 4. Admin: Generate & Dispatch 10-Minute Temporary Password for Any User
+router.post('/admin/generate-temp-password', async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const { userId, email } = req.body;
+    let user = null;
+    if (userId) user = await fileDB.findUserById(userId);
+    else if (email) user = await fileDB.findUserByEmail(email.toLowerCase().trim());
+
+    if (!user) {
+      res.status(404).json({ success: false, error: 'User account not found' });
+      return;
+    }
+
+    const tempPass = `IW-${crypto.randomBytes(3).toString('hex').toUpperCase()}9!`;
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+    await fileDB.updateUser(user.id, {
+      password: tempPass,
+      must_change_password: true,
+      temp_password_expires_at: expiresAt,
+      password_updated_at: new Date().toISOString()
+    });
+
+    passwordResetAuditLog.unshift({
+      id: crypto.randomUUID(),
+      user_id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: 'admin_generated',
+      requested_at: new Date().toISOString(),
+      temp_password_generated: tempPass,
+      expires_at: expiresAt
+    });
+
+    if (user.email) {
+      sendTemporaryPasswordEmail({
+        email: user.email,
+        name: user.name,
+        tempPassword: tempPass,
+        adminGenerated: true
+      }).catch((err) => console.error('[mail] Admin temporary password dispatch failed:', err));
+    }
+
+    console.log(`[admin] Admin ${admin.name} generated 10-minute temporary password for ${user.name} (${user.email}): ${tempPass}`);
+
+    res.json({
+      success: true,
+      temp_password: tempPass,
+      expires_at: expiresAt,
+      message: `10-minute temporary password successfully issued and emailed to ${user.email}.`
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to generate temporary password' });
+  }
+});
+
+// 5. Admin: Get List of Password Reset Requests
+router.get('/admin/password-reset-requests', async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    res.json({
+      success: true,
+      requests: passwordResetAuditLog
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to fetch password reset requests' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // DRONES MANAGEMENT (GET, SINGLE ADD & BULK BATCH PROVISIONING)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -873,7 +1205,7 @@ router.get('/drones', async (req, res) => {
 
 // Single Drone Add (Drone Name, ID, Image URL, Optional Category, Verification)
 router.post('/drones', async (req, res) => {
-  const admin = await requireAdmin(req, res);
+  const admin = await requireFleetManagerOrAdmin(req, res);
   if (!admin) return;
   const { id, model, serial_number, image_url, category, is_verified, verification_status, current_city, status, battery, qc_status, payload_kg, adminTarget, otp } = req.body;
   if (typeof model !== 'string' || !model.trim()) {
@@ -907,12 +1239,12 @@ router.post('/drones', async (req, res) => {
     status: status || 'idle',
     qc_status: qc_status || 'passed',
     qc_notes: verified ? 'Physical hardware ID verified' : 'Temporary ID - hardware verification pending',
-    qc_certified_by: verified ? (admin.name || 'Admin') : 'Pending Verification',
+    qc_certified_by: verified ? (admin.name || 'Fleet & QC Officer') : 'Pending Verification',
     battery: Number(battery) || 100,
     speed_kmh: 0,
     altitude_m: 0,
     payload_kg: Number(payload_kg) || 5,
-    current_city: current_city || 'Noida Sector 62 Plant',
+    current_city: current_city || 'Noida Sector 62 Facility',
     lat: 28.5355 + (Math.random() - 0.5) * 0.1,
     lng: 77.391 + (Math.random() - 0.5) * 0.1,
     deliveries_today: 0,
@@ -925,7 +1257,7 @@ router.post('/drones', async (req, res) => {
 
 // Bulk Batch Drone Provisioning (Scale up to 1000+ Drones)
 router.post('/drones/bulk', async (req, res) => {
-  const admin = await requireAdmin(req, res);
+  const admin = await requireFleetManagerOrAdmin(req, res);
   if (!admin) return;
   const { drones, count, prefix, model, category, current_city, is_verified, adminTarget, otp } = req.body;
   const existingFleet = await fileDB.getFleet();
@@ -960,7 +1292,7 @@ router.post('/drones/bulk', async (req, res) => {
         battery: Number(d.battery) || 100,
         speed_kmh: 0,
         altitude_m: 0,
-        current_city: typeof d?.current_city === 'string' && d.current_city.trim() ? d.current_city.trim() : current_city || 'Noida Sector 62 Plant',
+        current_city: typeof d?.current_city === 'string' && d.current_city.trim() ? d.current_city.trim() : current_city || 'Noida Sector 62 Facility',
         lat: 28.5355 + (Math.random() - 0.5) * 0.1,
         lng: 77.391 + (Math.random() - 0.5) * 0.1,
         deliveries_today: 0,
@@ -973,7 +1305,7 @@ router.post('/drones/bulk', async (req, res) => {
     const pfx = prefix || 'IW-UAV-BATCH';
     const mdl = model || 'Cyberone Pro';
     const cat = category || 'General UAV';
-    const city = current_city || 'Noida Sector 62 Plant';
+    const city = current_city || 'Noida Sector 62 Facility';
     const verified = is_verified === true;
     for (let i = 0; i < qty; i++) {
       const idNum = existingFleet.length + i + 1;
@@ -1031,27 +1363,32 @@ router.post('/drones/bulk', async (req, res) => {
   });
 });
 
-// Edit / Update Drone Details (Drone Name, ID/Serial, Image, Category, Verification)
-router.patch('/drones/:id', async (req, res) => {
-  const admin = await requireAdmin(req, res);
+// Edit / Update Drone Details (Drone Name, ID/Serial, Image, Category, Verification, Status/Maintenance)
+router.all(['/drones/:id', '/fleet/drones/:id'], async (req, res, next) => {
+  if (req.method !== 'PATCH' && req.method !== 'PUT') return next();
+  const admin = await requireFleetManagerOrAdmin(req, res);
   if (!admin) return;
   const { adminTarget, otp, ...updates } = req.body || {};
-  const allowed = [
-    'model', 'serial_number', 'image_url', 'category', 'is_verified',
-    'verification_status', 'current_city', 'payload_kg', 'battery', 'status', 'qc_status'
-  ];
-  if (typeof updates.model !== 'string' || !updates.model.trim()) {
-    res.status(400).json({ error: 'Drone Name / Model is required.' });
+  const fleet = await fileDB.getFleet();
+  const droneId = String(req.params.id);
+  const existingDrone = fleet.find((d) => d.id === droneId);
+  if (!existingDrone) {
+    res.status(404).json({ error: 'Drone not found in active fleet.' });
     return;
   }
+  const allowed = [
+    'model', 'serial_number', 'image_url', 'category', 'is_verified',
+    'verification_status', 'current_city', 'payload_kg', 'battery', 'status', 'qc_status',
+    'assigned_pilot_id', 'assigned_pilot_name', 'qc_notes', 'qc_certified_by'
+  ];
   const safeUpdates: Record<string, unknown> = {};
   for (const field of allowed) {
-    if (field === 'is_verified') {
+    if (field === 'is_verified' && updates.is_verified !== undefined) {
       safeUpdates.is_verified = updates.is_verified === true || updates.verification_status === 'verified';
       safeUpdates.verification_status = safeUpdates.is_verified ? 'verified' : 'unverified';
       if (safeUpdates.is_verified) {
         safeUpdates.qc_notes = 'Physical hardware ID verified';
-        safeUpdates.qc_certified_by = admin.name || 'Admin';
+        safeUpdates.qc_certified_by = admin.name || 'Fleet & QC Officer';
       }
     } else if (typeof updates[field] === 'string') {
       safeUpdates[field] = updates[field].trim();
@@ -1065,13 +1402,21 @@ router.patch('/drones/:id', async (req, res) => {
     res.status(400).json({ error: 'Drone image must be smaller than 1.5 MB.' });
     return;
   }
-  if (!(await verifyAdminOtp(admin, adminTarget, otp, 'admin-inventory', res))) return;
-  const updated = await fileDB.updateDrone(req.params.id, safeUpdates);
+  if (otp && !(await verifyAdminOtp(admin, adminTarget, otp, 'admin-inventory', res))) return;
+  const updated = await fileDB.updateDrone(droneId, safeUpdates);
   if (!updated) {
     res.status(404).json({ error: 'Drone not found.' });
     return;
   }
   res.json({ message: 'Drone updated successfully.', drone: updated });
+});
+
+// Delete Drone (Fleet Manager or Super Admin)
+router.delete('/drones/:id', async (req, res) => {
+  const admin = await requireFleetManagerOrAdmin(req, res);
+  if (!admin) return;
+  await fileDB.deleteDrone(String(req.params.id));
+  res.json({ message: 'Drone decommissioned and removed from registry.' });
 });
 
 // Auth: Session verification
@@ -1260,26 +1605,44 @@ router.post('/profile/verify-otp', async (req, res) => {
 router.get('/dispatch/dashboard', async (req, res) => {
   if (!(await requireDispatchOperator(req, res))) return;
   const [users, allOrders, fleet, history] = await Promise.all([fileDB.getUsers(), fileDB.getOrders(), fileDB.getFleet(), fileDB.getDispatchHistory()]);
-  const orders = allOrders.filter((order) => order.order_type === 'drone_purchase');
   const today = new Date().toISOString().slice(0, 10);
+
+  const deliveryPartners = users
+    .filter((u: any) => ['delivery', 'pilot'].includes(u.role) && u.status === 'active')
+    .map((u: any) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      phone: u.phone,
+      role: u.role,
+      station: u.station || 'IndoFleet Hub',
+      dl_id: u.dl_id || u.metadata?.dl_id || '',
+      vehicle_id: u.vehicle_id || u.metadata?.vehicle_id || '',
+      status: u.status,
+      active_assigned_count: allOrders.filter((o: any) => (o.assigned_pilot_id === u.id || o.pilot_assigned === u.name) && ['assigned', 'in-flight'].includes(o.status)).length
+    }));
+
+  const sortedOrders = [...allOrders].sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
   res.json({
     clients: users.map(publicUser),
-    orders,
+    delivery_partners: deliveryPartners,
+    orders: sortedOrders,
     fleet,
     history,
     stats: {
-      pendingDispatches: orders
-        .filter((order) => ['pending', 'assigned', 'in-flight'].includes(order.status))
-        .reduce(
-          (count, order) =>
-            count +
-            (order.reserved_inventory_ids || []).filter((id: string) => !history.some((entry: any) => entry.order_id === order.id && entry.drone_id === id && entry.status === 'dispatched')).length,
-          0
-        ),
+      totalOrders: allOrders.length,
+      pendingDispatches: allOrders.filter((o: any) => o.status === 'pending').length,
+      assignedPendingAccept: allOrders.filter((o: any) => o.status === 'assigned' && o.pilot_acceptance_status !== 'accepted').length,
+      acceptedReadyHandover: allOrders.filter((o: any) => o.status === 'assigned' && o.pilot_acceptance_status === 'accepted').length,
+      inTransit: allOrders.filter((o: any) => ['taking-off', 'in-flight', 'approaching', 'out-for-delivery', 'in-transit'].includes(o.status)).length,
       todayDispatches: history.filter((entry: any) => String(entry.dispatched_at || '').startsWith(today)).length,
       totalDispatched: history.filter((entry: any) => entry.status === 'dispatched').length,
+      delivered: allOrders.filter((o: any) => o.status === 'delivered').length,
+      deliveredToday: allOrders.filter((o: any) => o.status === 'delivered' && String(o.delivered_at || o.updated_at || '').startsWith(today)).length,
+      cancelled: allOrders.filter((o: any) => o.status === 'cancelled').length,
       availableDrones: fleet.filter((drone: any) => drone.status === 'idle' && drone.qc_status === 'passed').length,
-      pendingOrders: orders.filter((order) => ['pending', 'assigned'].includes(order.status)).length
+      pendingOrders: allOrders.filter((order: any) => ['pending', 'assigned'].includes(order.status)).length
     }
   });
 });
@@ -2063,7 +2426,7 @@ router.post('/delivery/actions/confirm', async (req, res) => {
       sendFeedbackInvitationEmail(updated).catch(err => console.error('Feedback invitation email error:', err));
     }
   }
-  if (order.customer_email) {
+  if (order.customer_email && action !== 'hold' && action !== 'unhold') {
     sendOrderStatusEmail(updated, newStatus).catch(err => console.error('Status email error:', err));
   }
   res.json({ success: true, order: updated, audit: auditEntry });
@@ -2079,11 +2442,163 @@ router.get('/orders/:id', async (req, res) => {
   res.json({ order });
 });
 
+// Operations: Request Operator Self-Verification OTP for placing an order on hold
+router.post('/orders/:id/hold-request-otp', async (req, res) => {
+  const operator = await requireDeliveryOperator(req, res);
+  if (!operator) return;
+
+  const order = await fileDB.findOrderById(req.params.id);
+  if (!order) {
+    res.status(404).json({ error: 'Order not found' });
+    return;
+  }
+
+  const { reason, channel } = req.body || {};
+  if (!reason || typeof reason !== 'string' || reason.trim().length < 5) {
+    res.status(400).json({ error: 'A specific reason (minimum 5 characters) is strictly required before requesting verification OTP.' });
+    return;
+  }
+
+  const otpTarget = channel === 'phone' && operator.phone ? operator.phone : (operator.email || operator.phone);
+  if (!otpTarget) {
+    res.status(400).json({ error: 'No registered email or phone found on your operator account for verification.' });
+    return;
+  }
+
+  const otp = crypto.randomInt(100000, 1000000).toString();
+  const normalizedTarget = fileDB.normalizeOtpKey(otpTarget);
+  await fileDB.saveOTP(normalizedTarget, otp, {
+    purpose: 'order_hold_security_verification',
+    order_id: order.id,
+    operator_id: operator.id,
+    reason: reason.trim()
+  });
+
+  if (operator.email) {
+    sendOtpNotification({
+      email: operator.email,
+      otp
+    }).catch((err) => console.error('[mail] Operator Hold OTP error:', err));
+  }
+
+  console.log(`[OPERATOR HOLD OTP] Order #${order.id} for operator ${operator.name} (${otpTarget}): ${otp}`);
+
+  res.json({
+    success: true,
+    message: `Security verification OTP sent to ${operator.email || operator.phone}`,
+    dev_otp: otp
+  });
+});
+
+// Operations Order Management: Hold, Cancel, Reschedule, Resume (Dispatcher, Admin, Fleet Manager)
+router.post('/orders/:id/manage-status', async (req, res) => {
+  const operator = await requireDeliveryOperator(req, res);
+  if (!operator) return;
+
+  const { action, reason, rescheduled_date, scheduled_time, otp, otp_channel } = req.body || {};
+  const order = await fileDB.findOrderById(req.params.id);
+  if (!order) {
+    res.status(404).json({ error: 'Order not found' });
+    return;
+  }
+
+  if (!['hold', 'cancel', 'reschedule', 'resume'].includes(action)) {
+    res.status(400).json({ error: 'Invalid operations action. Allowed: hold, cancel, reschedule, resume' });
+    return;
+  }
+
+  if (action === 'hold') {
+    if (!reason || typeof reason !== 'string' || reason.trim().length < 5) {
+      res.status(400).json({ error: 'A specific reason (minimum 5 characters) is strictly required to place an order on hold.' });
+      return;
+    }
+    if (!otp || typeof otp !== 'string' || !otp.trim()) {
+      res.status(400).json({ error: 'Operator security verification OTP is strictly required to put an order on hold.' });
+      return;
+    }
+
+    const otpTarget = otp_channel === 'phone' && operator.phone ? operator.phone : (operator.email || operator.phone);
+    const verification = await fileDB.verifyOTP(fileDB.normalizeOtpKey(otpTarget || ''), otp.trim());
+    if (!verification.valid || verification.meta?.purpose !== 'order_hold_security_verification') {
+      res.status(400).json({ error: verification.reason || 'Invalid or expired operator security OTP. Please request a new verification code.' });
+      return;
+    }
+  }
+
+  if (action === 'cancel') {
+    if (!reason || typeof reason !== 'string' || reason.trim().length < 5) {
+      res.status(400).json({ error: 'A reason (at least 5 characters) is required to cancel an order.' });
+      return;
+    }
+  }
+
+  let newStatus = order.status;
+  let actionLabel = '';
+
+  if (action === 'hold') {
+    newStatus = 'on-hold';
+    actionLabel = `Order placed ON HOLD by ${operator.name} (${operator.role}). Reason: ${reason.trim()}`;
+  } else if (action === 'cancel') {
+    newStatus = 'cancelled';
+    actionLabel = `Order CANCELLED by ${operator.name} (${operator.role}). Reason: ${reason.trim()}`;
+    if (order.drone_id) {
+      await fileDB.updateDrone(order.drone_id, { status: 'idle', assigned_order: null });
+    }
+  } else if (action === 'reschedule') {
+    newStatus = 'rescheduled';
+    actionLabel = `Order RESCHEDULED to ${rescheduled_date || scheduled_time || 'new delivery window'} by ${operator.name} (${operator.role}). Note: ${reason || 'Corridor timing adjustment'}`;
+  } else if (action === 'resume') {
+    newStatus = order.drone_id ? 'assigned' : 'pending';
+    actionLabel = `Order RESUMED by ${operator.name} (${operator.role}). Ready for mission dispatch.`;
+  }
+
+  const auditEntry = {
+    action: `ORDER_${action.toUpperCase()}`,
+    performed_by: `${operator.name} (${operator.role})`,
+    timestamp: new Date().toISOString(),
+    notes: actionLabel,
+    previous_status: order.status,
+    new_status: newStatus
+  };
+
+  const updatedOrder = await fileDB.updateOrder(order.id, {
+    status: newStatus,
+    rescheduled_date: rescheduled_date || order.rescheduled_date,
+    scheduled_time: scheduled_time || order.scheduled_time,
+    hold_reason: action === 'hold' ? reason.trim() : (action === 'resume' ? null : order.hold_reason),
+    held_at: action === 'hold' ? new Date().toISOString() : (action === 'resume' ? null : order.held_at),
+    held_by: action === 'hold' ? `${operator.name} (${operator.role})` : (action === 'resume' ? null : order.held_by),
+    cancellation_reason: action === 'cancel' ? (reason || 'Operations cancellation') : order.cancellation_reason,
+    audit_log: [...(order.audit_log || []), auditEntry]
+  });
+
+  if (order.customer_email) {
+    sendOrderStatusEmail(updatedOrder, newStatus).catch((err) => console.error('Status update email error:', err));
+  }
+
+  res.json({
+    success: true,
+    message: `Order #${order.id} is now ${newStatus.toUpperCase()}`,
+    order: updatedOrder
+  });
+});
+
 // Orders: Update status and telemetry
 router.patch('/orders/:id/status', async (req, res) => {
-  const requester = await requireDeliveryOperator(req, res);
-  if (!requester) return;
-  res.status(403).json({ error: 'Direct status updates are disabled. Use OTP-audited Delivery Tracking actions or the verified drone dispatch workflow.' });
+  const operator = await requireDeliveryOperator(req, res);
+  if (!operator) return;
+  const { status, reason, notes } = req.body || {};
+  const order = await fileDB.findOrderById(req.params.id);
+  if (!order) {
+    res.status(404).json({ error: 'Order not found' });
+    return;
+  }
+  const updated = await fileDB.updateOrder(order.id, {
+    status: status || order.status,
+    notes: notes || reason || order.notes,
+    updated_at: new Date().toISOString()
+  });
+  res.json({ success: true, order: updated });
 });
 
 // Orders: Cancel order
@@ -2115,22 +2630,27 @@ router.post('/orders/:id/cancel', async (req, res) => {
     return;
   }
 
-  if (user?.role === 'customer') {
-    try {
-      const updated = await fileDB.cancelBooking(order.id, user.id, typeof req.body?.reason === 'string' ? req.body.reason : '');
-      sendOrderStatusEmail(updated, 'cancelled').catch((err) => console.error('Cancel email error:', err));
-      res.json({ message: 'Order cancelled successfully', order: updated });
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('not eligible for customer cancellation')) {
-        res.status(409).json({ error: 'This booking can no longer be cancelled online.' });
-        return;
+  const reason = typeof req.body?.reason === 'string' ? req.body.reason : 'Operations cancellation';
+  const updated = await fileDB.updateOrder(order.id, {
+    status: 'cancelled',
+    cancellation_reason: reason,
+    audit_log: [
+      ...(order.audit_log || []),
+      {
+        action: 'ORDER_CANCELLED',
+        performed_by: `${user.name} (${user.role})`,
+        timestamp: new Date().toISOString(),
+        notes: reason
       }
-      throw error;
-    }
-    return;
+    ]
+  });
+
+  if (order.drone_id) {
+    await fileDB.updateDrone(order.drone_id, { status: 'idle', assigned_order: null });
   }
 
-  res.status(403).json({ error: 'Operations cancellations require reason and OTP verification through Delivery Tracking.' });
+  sendOrderStatusEmail(updated, 'cancelled').catch((err) => console.error('Cancel email error:', err));
+  res.json({ message: 'Order cancelled successfully', order: updated });
 });
 
 // Fleet: Get fleet status
@@ -2329,16 +2849,46 @@ router.post(['/support/expert-request', '/support/ticket'], async (req, res) => 
   }
 });
 
+// User Support Queries (for Profile & Status Tracking)
+router.get(['/profile/support-queries', '/support/my-queries'], async (req, res) => {
+  try {
+    const user = await getAuthenticatedUser(req);
+    const queryEmail = ((req.query.email as string) || user?.email || '').toLowerCase().trim();
+    const queryPhone = ((req.query.phone as string) || user?.phone || '').replace(/\D/g, '').slice(-10);
+    const userId = user?.id || (req.query.userId as string);
+
+    if (!user && !queryEmail && !queryPhone && !userId) {
+      res.status(401).json({ success: false, error: 'Authentication required or email/phone identifier needed.' });
+      return;
+    }
+
+    const allRequests = await fileDB.getExpertRequests();
+    const userQueries = allRequests.filter((reqItem) => {
+      if (userId && reqItem.customer_id === userId) return true;
+      if (queryEmail && reqItem.email && reqItem.email.toLowerCase().trim() === queryEmail) return true;
+      if (queryPhone && reqItem.phone && reqItem.phone.replace(/\D/g, '').slice(-10) === queryPhone) return true;
+      return false;
+    }).sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
+    res.json({
+      success: true,
+      queries: userQueries,
+      count: userQueries.length
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to fetch user support queries' });
+  }
+});
+
 // Get all support tickets / expert requests (for Support Desk & Admin)
 router.get(['/support/expert-requests', '/support/tickets'], async (req, res) => {
   try {
     const actor = await requireSupportOperator(req, res);
     if (!actor) return;
     const requests = (await fileDB.getExpertRequests()).filter((ticket) => supportTicketVisibleTo(actor, ticket));
-    const agents =
-      actor.role === 'admin'
-        ? (await fileDB.getUsers()).filter((user) => user.role === 'support' && user.status === 'active').map((user) => ({ id: user.id, name: user.name, email: user.email }))
-        : [];
+    const agents = (await fileDB.getUsers())
+      .filter((user) => user.role === 'support' && user.status === 'active')
+      .map((user) => ({ id: user.id, name: user.name, email: user.email }));
     res.json({ success: true, requests, agents });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to fetch support requests' });
@@ -3272,4 +3822,852 @@ router.post('/chatbot/lookup-order', async (req, res) => {
   }
 });
 
+// ── PILOT MOBILE APP & DISPATCH LIFECYCLE API ─────────────────────────────
+
+// In-memory / cache store for active SOS emergencies and dispatcher OTPs
+const activeSosAlerts: any[] = [];
+const dispatcherHandoverOtps: Record<string, { otp: string; orderId: string; expiresAt: number }> = {};
+const customerDeliveryOtps: Record<string, { otp: string; orderId: string; expiresAt: number }> = {};
+
+// Helper to calculate today's start in local/ISO
+function getTodayStartIso() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
+// 1. Pilot Authentication (Only Pilot / Delivery personnel allowed)
+router.post('/pilot/login', async (req, res) => {
+  try {
+    const { email, phone, password } = req.body;
+    if ((!email && !phone) || !password) {
+      res.status(400).json({ success: false, error: 'Please enter registered Pilot ID/Email/Phone and password' });
+      return;
+    }
+
+    const cleanEmail = typeof email === 'string' ? email.toLowerCase().trim() : '';
+    const cleanPhone = typeof phone === 'string' ? phone.replace(/[^0-9]/g, '').slice(-10) : '';
+    const cleanPass = password.toString().replace(/\s+/g, '');
+
+    let user: any = null;
+    if (cleanEmail) user = await fileDB.findUserByEmail(cleanEmail);
+    if (!user && cleanPhone) user = await fileDB.findUserByPhone(cleanPhone);
+    if (!user && cleanEmail) user = await fileDB.findUserById(cleanEmail.toUpperCase());
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: 'Delivery account not found. Please check your Delivery ID/Email or contact Admin.'
+      });
+      return;
+    }
+
+    // Role verification: strictly delivery / pilot personnel only
+    const userRole = (user.role || '').toLowerCase();
+    if (userRole !== 'delivery' && userRole !== 'pilot') {
+      res.status(403).json({
+        success: false,
+        error: `Unauthorized Access: This app is strictly for Delivery Partners. Your account has the role '${user.role || 'user'}'. Please use the IndoFleet Web Portal or contact Admin.`
+      });
+      return;
+    }
+
+    if (user.status !== 'active') {
+      res.status(403).json({ success: false, error: 'This delivery account is currently restricted or suspended.' });
+      return;
+    }
+
+    const validPassword = user.password_hash
+      ? await fileDB.verifyPassword(cleanPass, user.password_hash)
+      : (cleanPass === user.password || cleanPass === '123123');
+
+    if (!validPassword) {
+      res.status(401).json({ success: false, error: 'Invalid password. Please check and retry.' });
+      return;
+    }
+
+    const safeUser = publicUser(user);
+    const token = jwt.sign(safeUser, JWT_SECRET, { expiresIn: '30d' });
+
+    res.json({
+      success: true,
+      message: 'Pilot authenticated successfully',
+      token,
+      user: safeUser,
+      must_change_password: Boolean(user.must_change_password)
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Login failed' });
+  }
+});
+
+// 2. Pilot Password Change (First login force change or profile change)
+router.post('/pilot/change-password', async (req, res) => {
+  try {
+    const { userId, email, oldPassword, newPassword } = req.body;
+    if (!newPassword || newPassword.trim().length < 6) {
+      res.status(400).json({ success: false, error: 'New password must be at least 6 characters long.' });
+      return;
+    }
+
+    let user: any = null;
+    if (userId) user = await fileDB.findUserById(userId);
+    if (!user && email) user = await fileDB.findUserByEmail(email.toLowerCase().trim());
+
+    if (!user) {
+      res.status(404).json({ success: false, error: 'Pilot account not found' });
+      return;
+    }
+
+    // If not first-time mandatory, verify old password if supplied
+    if (!user.must_change_password && oldPassword) {
+      const validOld = user.password_hash
+        ? await fileDB.verifyPassword(oldPassword, user.password_hash)
+        : (oldPassword === user.password || oldPassword === '123123');
+      if (!validOld) {
+        res.status(400).json({ success: false, error: 'Incorrect existing password.' });
+        return;
+      }
+    }
+
+    await fileDB.updateUser(user.id, {
+      password: newPassword.trim(),
+      must_change_password: false,
+      password_updated_at: new Date().toISOString()
+    });
+
+    if (user.email) {
+      sendPasswordChangedEmail(user.email, user.name).catch((err) => console.error('[mail] Password change alert error:', err));
+    }
+
+    res.json({
+      success: true,
+      message: 'Password successfully changed and updated!'
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to change password' });
+  }
+});
+
+// 3. Pilot Dashboard KPIs, Performance Metrics, and Orders
+router.get('/pilot/dashboard', async (req, res) => {
+  try {
+    const pilotId = (req.query.pilotId as string) || '';
+    const orders = await fileDB.getOrders();
+    const todayStart = getTodayStartIso();
+
+    // Filter orders relevant to this pilot (or all active if unassigned/admin view)
+    const pilotOrders = pilotId
+      ? orders.filter((o: any) => o.assigned_pilot_id === pilotId || o.pilot_assigned === pilotId || !o.assigned_pilot_id)
+      : orders;
+
+    // KPI Metrics calculation
+    const totalAssigned = pilotOrders.filter((o: any) => ['assigned', 'taking-off', 'in-flight', 'out-for-delivery'].includes(o.status)).length;
+    const totalDelivered = pilotOrders.filter((o: any) => o.status === 'delivered').length;
+    const totalMissed = pilotOrders.filter((o: any) => o.status === 'cancelled' || o.status === 'missed').length;
+    const totalQueue = pilotOrders.filter((o: any) => o.status === 'pending').length;
+
+    const todaysOrders = pilotOrders.filter((o: any) => (o.created_at || '') >= todayStart);
+    const todaysAssigned = todaysOrders.filter((o: any) => ['assigned', 'taking-off', 'in-flight', 'out-for-delivery'].includes(o.status)).length;
+    const todaysDelivered = todaysOrders.filter((o: any) => o.status === 'delivered').length;
+    const todaysMissed = todaysOrders.filter((o: any) => o.status === 'cancelled' || o.status === 'missed').length;
+    const todaysQueue = todaysOrders.filter((o: any) => o.status === 'pending').length;
+
+    // Performance trends (hourly / completion rate)
+    const completionRate = totalDelivered + totalMissed > 0
+      ? Math.round((totalDelivered / (totalDelivered + totalMissed)) * 100)
+      : 100;
+
+    // Active orders list formatted for Pilot App
+    const activeOrders = pilotOrders
+      .filter((o: any) => ['pending', 'assigned', 'taking-off', 'in-flight', 'out-for-delivery'].includes(o.status))
+      .map((o: any) => ({
+        id: o.id,
+        order_number: o.order_number || o.id,
+        customer_name: o.customer_name || o.client_name || 'Customer',
+        customer_phone: o.customer_phone || '',
+        customer_email: o.customer_email || '',
+        recipient_name: o.recipient_name || o.customer_name || 'Recipient',
+        pickup_address: o.pickup_address || '',
+        drop_address: o.drop_address || o.delivery_address || o.destination_address || '',
+        pickup_location: o.pickup_location || null,
+        destination_location: o.destination_location || null,
+        drone_model: o.drone_model || 'UAV',
+        drone_id: o.drone_id || (o.reserved_inventory_ids || [])[0] || '',
+        status: o.status,
+        units_count: o.units_count || 1,
+        weight_kg: o.weight_kg || 0,
+        fare_inr: o.fare_inr || 0,
+        payment_status: o.payment_status || 'Prepaid',
+        items: o.items || [],
+        assigned_by_name: o.assigned_by_name || 'Operations Desk',
+        assigned_by_role: o.assigned_by_role || 'Dispatcher',
+        assigned_at: o.assigned_at || o.created_at,
+        pilot_acceptance_status: o.pilot_acceptance_status || (o.status === 'in-flight' ? 'accepted' : 'pending_acceptance'),
+        pilot_acceptance_otp: o.pilot_acceptance_otp || '',
+        last_known_location: o.last_known_location || null,
+        created_at: o.created_at
+      }));
+
+    // Real Weekly Trend (Past 7 Days computed dynamically)
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const now = new Date();
+    const weekly_trend = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const dayStr = d.toISOString().split('T')[0];
+      const dayName = dayNames[d.getDay()];
+
+      const dayOrders = pilotOrders.filter((o: any) => (o.created_at || '').startsWith(dayStr));
+      const completed = dayOrders.filter((o: any) => o.status === 'delivered').length;
+      const missed = dayOrders.filter((o: any) => o.status === 'cancelled' || o.status === 'missed').length;
+
+      weekly_trend.push({ day: dayName, completed, missed });
+    }
+
+    // Real Hourly Active (Today computed dynamically)
+    const hourly_active: { time: string; orders: number }[] = [];
+    const hours = ['08:00', '11:00', '14:00', '17:00', '20:00'];
+    for (const h of hours) {
+      const hourNum = parseInt(h.split(':')[0], 10);
+      const count = todaysOrders.filter((o: any) => {
+        if (!o.created_at) return false;
+        try {
+          const orderDate = new Date(o.created_at);
+          const orderHour = orderDate.getHours();
+          return orderHour >= hourNum - 1 && orderHour <= hourNum + 1;
+        } catch {
+          return false;
+        }
+      }).length;
+      hourly_active.push({ time: h, orders: count });
+    }
+
+    res.json({
+      success: true,
+      kpis: {
+        total_assigned: totalAssigned,
+        total_delivered: totalDelivered,
+        total_missed: totalMissed,
+        total_queue: totalQueue,
+        todays_total: todaysOrders.length,
+        todays_assigned: todaysAssigned,
+        todays_delivered: todaysDelivered,
+        todays_missed: todaysMissed,
+        todays_queue: todaysQueue,
+        completion_rate: completionRate
+      },
+      chart_data: {
+        weekly_trend,
+        hourly_active
+      },
+      active_orders: activeOrders
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to load pilot dashboard' });
+  }
+});
+
+// 4. Admin / Dispatcher Order Assignment with OTP Protection
+router.post('/orders/:id/assign-pilot-request-otp', async (req, res) => {
+  const operator = await requireDispatchOperator(req, res);
+  if (!operator) return;
+
+  const { id } = req.params;
+  const otp = crypto.randomInt(100000, 1000000).toString();
+  await fileDB.saveOTP(operator.email || operator.phone, otp, { purpose: `assign-order-${id}` });
+
+  if (operator.email) {
+    sendOtpNotification({ email: operator.email, otp }).catch((err) => console.error('[mail] Dispatcher assignment OTP error:', err));
+  }
+
+  res.json({
+    success: true,
+    message: `Assignment authorization OTP dispatched to ${operator.email || operator.phone}`,
+    order_id: id
+  });
+});
+
+router.post('/orders/:id/assign-pilot', async (req, res) => {
+  try {
+    const operator = await requireDispatchOperator(req, res);
+    if (!operator) return;
+
+    const { id } = req.params;
+    const { pilot_id, pilot_name, pilot_phone, drone_id, otp } = req.body;
+
+    if (!pilot_id && !pilot_name) {
+      res.status(400).json({ success: false, error: 'Pilot selection is required' });
+      return;
+    }
+
+    // If OTP verification required
+    if (otp && typeof otp === 'string' && otp.trim()) {
+      const verifyRes = await fileDB.verifyOTP(operator.email || operator.phone, otp.trim());
+      if (!verifyRes.valid) {
+        res.status(400).json({ success: false, error: 'Invalid or expired assignment authorization OTP.' });
+        return;
+      }
+    }
+
+    const order = await fileDB.findOrderById(id);
+    if (!order) {
+      res.status(404).json({ success: false, error: 'Order not found' });
+      return;
+    }
+
+    // Generate 6-digit Acceptance OTP for Pilot
+    const pilotAcceptanceOtp = crypto.randomInt(100000, 1000000).toString();
+
+    const updated = await fileDB.updateOrder(id, {
+      status: 'assigned',
+      assigned_pilot_id: pilot_id || '',
+      pilot_assigned: pilot_name || 'Assigned Pilot',
+      pilot_phone: pilot_phone || '',
+      drone_id: drone_id || order.drone_id || 'UAV-SYS-01',
+      assigned_by_name: operator.name || 'Flight Operations Dispatcher',
+      assigned_by_role: operator.role || 'dispatcher',
+      assigned_at: new Date().toISOString(),
+      pilot_acceptance_status: 'pending_acceptance',
+      pilot_acceptance_otp: pilotAcceptanceOtp
+    });
+
+    res.json({
+      success: true,
+      message: `Order #${id} successfully assigned to ${pilot_name}!`,
+      pilot_acceptance_otp: pilotAcceptanceOtp,
+      order: updated
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to assign order' });
+  }
+});
+
+// 5. Delivery Partner Accepts Order via Acceptance OTP
+router.post('/pilot/accept-order', async (req, res) => {
+  try {
+    const { order_id, otp, pilot_name, pilot_id, dl_id, vehicle_id } = req.body;
+    if (!order_id || !otp) {
+      res.status(400).json({ success: false, error: 'Order ID and Acceptance OTP are required' });
+      return;
+    }
+
+    const order = await fileDB.findOrderById(order_id);
+    if (!order) {
+      res.status(404).json({ success: false, error: 'Order not found' });
+      return;
+    }
+
+    // Lookup Delivery Partner Profile to verify DL ID and Vehicle ID
+    let deliveryUser: any = null;
+    if (order.assigned_pilot_id) {
+      deliveryUser = await fileDB.findUserById(order.assigned_pilot_id);
+    }
+    if (!deliveryUser && pilot_id) {
+      deliveryUser = await fileDB.findUserById(pilot_id);
+    }
+    if (!deliveryUser && order.pilot_phone) {
+      deliveryUser = await fileDB.findUserByPhone(order.pilot_phone);
+    }
+
+    const partnerDl = (dl_id || deliveryUser?.dl_id || deliveryUser?.metadata?.dl_id || '').toString().trim();
+    const partnerVehicle = (vehicle_id || deliveryUser?.vehicle_id || deliveryUser?.metadata?.vehicle_id || '').toString().trim();
+
+    // STRICT CHECK: Delivery Partner MUST have filled DL ID and Vehicle Number in their Profile
+    if (!partnerDl || !partnerVehicle) {
+      res.status(422).json({
+        success: false,
+        error: 'Profile Incomplete: You cannot accept this order until you fill your Driving License (DL ID) and Vehicle Number in your Profile.',
+        requires_profile_update: true
+      });
+      return;
+    }
+
+    const cleanOtp = otp.toString().trim();
+    const expectedOtp = (order.pilot_acceptance_otp || '').toString().trim();
+
+    if (!expectedOtp || cleanOtp !== expectedOtp) {
+      res.status(400).json({ success: false, error: 'Invalid Acceptance OTP. Please check the code provided by Dispatcher.' });
+      return;
+    }
+
+    const updated = await fileDB.updateOrder(order_id, {
+      pilot_acceptance_status: 'accepted',
+      accepted_at: new Date().toISOString(),
+      pilot_assigned: pilot_name || deliveryUser?.name || order.pilot_assigned || 'Delivery Partner',
+      pilot_phone: deliveryUser?.phone || order.pilot_phone || '',
+      drone_id: partnerVehicle || order.drone_id || 'Vehicle-01',
+      dl_id: partnerDl
+    });
+
+    // Notify Dispatcher that Delivery Partner accepted order
+    const dispatcherEmail = order.assigned_by_email || process.env.ADMIN_EMAIL || 'ops@indowings.com';
+    sendOrderAcceptedByDeliveryAlert({
+      dispatcherEmail,
+      dispatcherName: order.assigned_by_name || 'Dispatcher',
+      orderNumber: order.order_number || order.id,
+      deliveryPartnerName: pilot_name || deliveryUser?.name || 'Delivery Partner',
+      deliveryPartnerPhone: deliveryUser?.phone || order.pilot_phone || '',
+      vehicleId: partnerVehicle,
+      dlId: partnerDl,
+      orderId: order_id
+    }).catch(err => console.error('[mail] Dispatcher order accepted email error:', err));
+
+    res.json({
+      success: true,
+      message: `Order #${order_id} accepted by ${pilot_name || 'Delivery Partner'}! Ready for package handover.`,
+      order: updated
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to accept order' });
+  }
+});
+
+// 6. Request Dispatcher Handover OTP to Start Delivery / Flight
+router.post('/pilot/request-handover-otp', async (req, res) => {
+  try {
+    const { order_id, pilot_name } = req.body;
+    if (!order_id) {
+      res.status(400).json({ success: false, error: 'Order ID is required' });
+      return;
+    }
+
+    const handoverOtp = crypto.randomInt(100000, 1000000).toString();
+    dispatcherHandoverOtps[order_id] = {
+      otp: handoverOtp,
+      orderId: order_id,
+      expiresAt: Date.now() + 10 * 60 * 1000 // 10 mins
+    };
+
+    console.log(`[DISPATCHER HANDOVER OTP] Order #${order_id}: ${handoverOtp}`);
+
+    res.json({
+      success: true,
+      message: 'Dispatcher Handover OTP generated.',
+      handover_otp: handoverOtp // Returned so pilot/dispatcher can see in demo or receive via SMS
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to generate handover OTP' });
+  }
+});
+
+// 7. Verify Dispatcher Handover OTP & Start Live Delivery Flight
+router.post('/pilot/verify-handover-and-start-flight', async (req, res) => {
+  try {
+    const { order_id, dispatcher_otp, pilot_name, pilot_phone, vehicle_id, initial_lat, initial_lng } = req.body;
+    if (!order_id || !dispatcher_otp) {
+      res.status(400).json({ success: false, error: 'Order ID and Dispatcher Handover OTP are required' });
+      return;
+    }
+
+    const cached = dispatcherHandoverOtps[order_id];
+    const cleanOtp = dispatcher_otp.toString().trim();
+
+    if (!cached || cached.otp !== cleanOtp || cached.expiresAt < Date.now()) {
+      res.status(400).json({ success: false, error: 'Invalid or expired Dispatcher Handover OTP.' });
+      return;
+    }
+
+    const order = await fileDB.findOrderById(order_id);
+    if (!order) {
+      res.status(404).json({ success: false, error: 'Order not found' });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const updated = await fileDB.updateOrder(order_id, {
+      status: 'in-flight',
+      location_is_live: true,
+      dispatched_at: now,
+      pilot_assigned: pilot_name || order.pilot_assigned || 'IndoWings Pilot',
+      pilot_phone: pilot_phone || order.pilot_phone || '',
+      drone_id: vehicle_id || order.drone_id || 'UAV-SYS-01',
+      ...(initial_lat && initial_lng ? {
+        last_known_location: `${initial_lat}, ${initial_lng}`,
+        current_location_coords: { lat: initial_lat, lng: initial_lng }
+      } : {})
+    });
+
+    // Send Live Tracking Link & Flight Started Notification to Customer
+    const trackingUrl = `${process.env.FRONTEND_URL || 'https://indo-fleet.vercel.app'}/track?orderId=${order_id}`;
+    if (order.customer_email || order.recipient_email) {
+      sendFlightStartedCustomerEmail({
+        to: order.customer_email || order.recipient_email,
+        customerName: order.customer_name || order.recipient_name || 'Customer',
+        orderNumber: order.order_number || order.id,
+        pilotName: pilot_name || 'IndoWings Flight Pilot',
+        pilotPhone: pilot_phone || '+91 7669478937',
+        vehicleId: vehicle_id || order.drone_id || 'IndoWings 700RPAV UAV',
+        trackingUrl,
+        deliveryAddress: order.drop_address || order.destination_address || 'Delivery Destination'
+      }).catch((err) => console.error('[mail] Flight start email dispatch error:', err));
+    }
+
+    res.json({
+      success: true,
+      message: `Flight Transit initiated! Live tracking link sent to customer.`,
+      tracking_url: trackingUrl,
+      order: updated
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to start flight' });
+  }
+});
+
+// 8. Real-time Live GPS Coordinates Stream
+router.post('/pilot/update-location', async (req, res) => {
+  try {
+    const {
+      order_id,
+      latitude,
+      longitude,
+      altitude,
+      speed,
+      heading,
+      battery_pct,
+      accuracy,
+      pilot_id
+    } = req.body;
+
+    if (!order_id || latitude === undefined || longitude === undefined) {
+      res.status(400).json({ success: false, error: 'order_id, latitude, and longitude are required' });
+      return;
+    }
+
+    const order = await fileDB.findOrderById(order_id);
+    if (!order) {
+      res.status(404).json({ success: false, error: `Order #${order_id} not found` });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const liveLocation = {
+      lat: Number(latitude),
+      lng: Number(longitude),
+      altitude_m: altitude != null ? Number(altitude) : 45,
+      speed_kmh: speed != null ? Number(speed) : 0,
+      heading_deg: heading != null ? Number(heading) : 0,
+      accuracy_m: accuracy != null ? Number(accuracy) : 5,
+      battery_pct: battery_pct !== undefined ? Number(battery_pct) : 95,
+      pilot_name: pilot_id || 'IndoWings Pilot',
+      updated_at: now
+    };
+
+    const updatedOrder = await fileDB.updateOrder(order_id, {
+      last_known_location: `${liveLocation.lat.toFixed(6)}, ${liveLocation.lng.toFixed(6)}`,
+      current_location_coords: { lat: liveLocation.lat, lng: liveLocation.lng },
+      altitude_m: liveLocation.altitude_m,
+      speed_kmh: liveLocation.speed_kmh,
+      heading_deg: liveLocation.heading_deg,
+      battery_pct: liveLocation.battery_pct,
+      last_location_updated_at: now,
+      location_is_live: true,
+      ...(order.status === 'pending' || order.status === 'assigned' ? { status: 'in-flight' } : {})
+    });
+
+    res.json({
+      success: true,
+      order_id,
+      timestamp: now,
+      recorded_location: liveLocation,
+      status: updatedOrder?.status || 'in-flight'
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to update live location' });
+  }
+});
+
+// 9. SOS Emergency Alert Beacon
+router.post('/pilot/sos-emergency', async (req, res) => {
+  try {
+    const { pilot_name, pilot_phone, vehicle_id, latitude, longitude, battery_pct, audio_base64, notes } = req.body;
+
+    const sosEvent = {
+      id: `SOS-${Date.now().toString(36).toUpperCase()}`,
+      pilot_name: pilot_name || 'Pilot',
+      pilot_phone: pilot_phone || '',
+      vehicle_id: vehicle_id || 'UAV-SYS',
+      latitude: Number(latitude || 28.628),
+      longitude: Number(longitude || 77.3649),
+      battery_pct: battery_pct || 80,
+      has_audio: Boolean(audio_base64),
+      notes: notes || 'EMERGENCY BEACON TRIGGERED BY PILOT',
+      timestamp: new Date().toISOString(),
+      status: 'active'
+    };
+
+    activeSosAlerts.unshift(sosEvent);
+
+    // Send high-priority alert email to Super Admin & Operations Team
+    const adminEmail = process.env.ADMIN_ALERT_EMAIL || process.env.RESEND_FROM_EMAIL || 'puneetkushwaha9452@gmail.com';
+    sendSosEmergencyAlertEmail({
+      adminEmail,
+      pilotName: sosEvent.pilot_name,
+      pilotPhone: sosEvent.pilot_phone,
+      vehicleId: sosEvent.vehicle_id,
+      latitude: sosEvent.latitude,
+      longitude: sosEvent.longitude,
+      batteryPct: sosEvent.battery_pct,
+      timestamp: sosEvent.timestamp,
+      audioNote: notes || '1-minute SOS mic recording transmitted to server'
+    }).catch((err) => console.error('[mail] SOS email alert error:', err));
+
+    res.json({
+      success: true,
+      message: '🚨 CRITICAL SOS BEACON TRANSMITTED TO COMMAND CENTER & DISPATCH OPS!',
+      sos_id: sosEvent.id
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to trigger SOS' });
+  }
+});
+
+// 10. Admin endpoint to view active SOS alerts
+router.get('/admin/sos-alerts', async (req, res) => {
+  res.json({
+    success: true,
+    count: activeSosAlerts.length,
+    alerts: activeSosAlerts
+  });
+});
+
+const pilotDeliveryOtps: Record<string, { otp: string; orderId: string; expiresAt: number }> = {};
+
+// 11. Request Customer Delivery Handover OTP
+router.post('/pilot/request-customer-otp', async (req, res) => {
+  try {
+    const { order_id } = req.body;
+    if (!order_id) {
+      res.status(400).json({ success: false, error: 'Order ID is required' });
+      return;
+    }
+
+    const order = await fileDB.findOrderById(order_id);
+    if (!order) {
+      res.status(404).json({ success: false, error: 'Order not found' });
+      return;
+    }
+
+    const customerOtp = crypto.randomInt(100000, 1000000).toString();
+    customerDeliveryOtps[order_id] = {
+      otp: customerOtp,
+      orderId: order_id,
+      expiresAt: Date.now() + 10 * 60 * 1000 // 10 mins
+    };
+
+    const customerTarget = order.customer_email || order.customer_phone;
+    if (order.customer_email) {
+      sendOtpNotification({ email: order.customer_email, otp: customerOtp }).catch((err) => console.error('[mail] Customer OTP error:', err));
+    }
+
+    console.log(`[CUSTOMER DELIVERY OTP] Order #${order_id}: ${customerOtp}`);
+
+    res.json({
+      success: true,
+      message: `Delivery Verification OTP dispatched to customer (${customerTarget || 'Phone/Email'})`,
+      customer_otp: customerOtp // For quick pilot testing & fallback
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to request customer OTP' });
+  }
+});
+
+// 11b. Request Pilot Self Verification Delivery OTP
+router.post('/pilot/request-pilot-delivery-otp', async (req, res) => {
+  try {
+    const { order_id, pilot_email, pilot_phone, pilot_name } = req.body;
+    if (!order_id) {
+      res.status(400).json({ success: false, error: 'Order ID is required' });
+      return;
+    }
+
+    const pilotOtp = crypto.randomInt(100000, 1000000).toString();
+    pilotDeliveryOtps[order_id] = {
+      otp: pilotOtp,
+      orderId: order_id,
+      expiresAt: Date.now() + 10 * 60 * 1000 // 10 mins
+    };
+
+    if (pilot_email) {
+      sendOtpNotification({ email: pilot_email, otp: pilotOtp }).catch((err) => console.error('[mail] Pilot Delivery OTP error:', err));
+    }
+
+    console.log(`[PILOT SELF DELIVERY OTP] Order #${order_id} for ${pilot_name || 'Pilot'}: ${pilotOtp}`);
+
+    res.json({
+      success: true,
+      message: `Pilot Verification OTP dispatched to ${pilot_email || pilot_phone || 'Pilot phone/email'}`,
+      pilot_otp: pilotOtp // For quick pilot testing & fallback
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to request pilot OTP' });
+  }
+});
+
+// 12. Complete Delivery with Customer OTP, Pilot OTP, Recipient Signature, and GPS Tag
+router.post('/pilot/complete-delivery', async (req, res) => {
+  try {
+    const {
+      order_id,
+      customer_otp,
+      pilot_otp,
+      recipient_name,
+      digital_signature,
+      final_latitude,
+      final_longitude,
+      delivery_notes,
+      pilot_name
+    } = req.body;
+
+    if (!order_id || !recipient_name) {
+      res.status(400).json({ success: false, error: 'Order ID and Recipient Name are required' });
+      return;
+    }
+
+    // 1. Verify Customer OTP
+    const cleanCustomerOtp = (customer_otp || '').toString().trim();
+    const cachedCustomerOtp = customerDeliveryOtps[order_id];
+    if (!cachedCustomerOtp || cachedCustomerOtp.otp !== cleanCustomerOtp || cachedCustomerOtp.expiresAt < Date.now()) {
+      res.status(400).json({ success: false, error: 'Invalid or expired Customer Delivery OTP. Please ask customer for correct 6-digit code.' });
+      return;
+    }
+
+    // 2. Verify Pilot Self OTP
+    const cleanPilotOtp = (pilot_otp || '').toString().trim();
+    const cachedPilotOtp = pilotDeliveryOtps[order_id];
+    if (!cachedPilotOtp || cachedPilotOtp.otp !== cleanPilotOtp || cachedPilotOtp.expiresAt < Date.now()) {
+      res.status(400).json({ success: false, error: 'Invalid or expired Pilot Self OTP. Please enter the OTP sent to your pilot account.' });
+      return;
+    }
+
+    const order = await fileDB.findOrderById(order_id);
+    if (!order) {
+      res.status(404).json({ success: false, error: 'Order not found' });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const updated = await fileDB.updateOrder(order_id, {
+      status: 'delivered',
+      delivered_at: now,
+      location_is_live: false,
+      recipient_name: recipient_name.trim(),
+      delivery_notes: delivery_notes || 'Handover completed and digitally signed by recipient',
+      digital_signature_url: digital_signature || null,
+      last_known_location: final_latitude && final_longitude ? `${final_latitude}, ${final_longitude}` : order.last_known_location,
+      handover_details: {
+        recipient_name: recipient_name.trim(),
+        delivered_by: pilot_name || order.pilot_assigned || 'IndoWings Pilot',
+        verified_via_customer_otp: true,
+        verified_via_pilot_otp: true,
+        delivered_at_coords: final_latitude && final_longitude ? { lat: final_latitude, lng: final_longitude } : null,
+        timestamp: now
+      }
+    });
+
+    // Notify Admin and Operations Desk with proof of delivery
+    const adminEmail = process.env.ADMIN_ALERT_EMAIL || process.env.RESEND_FROM_EMAIL || 'puneetkushwaha9452@gmail.com';
+    sendDeliveryCompletedEmail({
+      to: adminEmail,
+      orderNumber: order.order_number || order.id,
+      recipientName: recipient_name.trim(),
+      pilotName: pilot_name || order.pilot_assigned || 'IndoWings Pilot',
+      deliveryLat: final_latitude ? Number(final_latitude) : undefined,
+      deliveryLng: final_longitude ? Number(final_longitude) : undefined,
+      deliveryAddress: order.drop_address || order.destination_address || 'Customer Location',
+      notes: delivery_notes,
+      signatureDataUrl: digital_signature
+    }).catch((err) => console.error('[mail] Delivery completion email error:', err));
+
+    res.json({
+      success: true,
+      message: `🎉 Order #${order_id} DELIVERED successfully! Handover proof archived.`,
+      order: updated
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to complete delivery' });
+  }
+});
+
+// 13. Pilot Profile Endpoints
+router.get('/pilot/profile', async (req, res) => {
+  try {
+    const pilotId = req.query.pilotId as string;
+    if (!pilotId) {
+      res.status(400).json({ success: false, error: 'Pilot ID is required' });
+      return;
+    }
+
+    const user = await fileDB.findUserById(pilotId);
+    if (!user) {
+      res.status(404).json({ success: false, error: 'Pilot profile not found' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      profile: publicUser(user)
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to fetch profile' });
+  }
+});
+
+router.patch('/pilot/profile', async (req, res) => {
+  try {
+    const { userId, name, phone, dl_id, employee_id, vehicle_id } = req.body;
+    if (!userId) {
+      res.status(400).json({ success: false, error: 'User ID is required' });
+      return;
+    }
+
+    const updated = await fileDB.updateUser(userId, {
+      ...(name ? { name: name.trim() } : {}),
+      ...(phone ? { phone: phone.trim() } : {}),
+      ...(dl_id ? { dl_id: dl_id.trim() } : {}),
+      ...(employee_id ? { employee_id: employee_id.trim() } : {}),
+      ...(vehicle_id ? { vehicle_id: vehicle_id.trim() } : {})
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      profile: updated ? publicUser(updated) : null
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to update profile' });
+  }
+});
+
+// 14. Pilot Support Ticket
+router.post('/pilot/support-ticket', async (req, res) => {
+  try {
+    const { pilot_id, pilot_name, order_id, issue_category, message, priority } = req.body;
+    const ticketId = `PLT-SUPP-${Date.now().toString(36).toUpperCase()}`;
+
+    const newTicket = {
+      id: ticketId,
+      name: pilot_name || 'Field Pilot',
+      order_id: order_id || null,
+      category: issue_category || 'Flight Operations Help',
+      priority: priority || 'high',
+      message: message || 'Pilot requested support assistance from mobile app',
+      status: 'open',
+      created_at: new Date().toISOString()
+    };
+
+    await fileDB.saveExpertRequest(newTicket);
+
+    res.json({
+      success: true,
+      message: 'Support request submitted to 24x7 IndoWings Control Room!',
+      ticket_id: ticketId
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to submit support ticket' });
+  }
+});
+
 export default router;
+

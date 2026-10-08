@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { MapPin, Package, Check, Clock, Loader2, AlertCircle, Search, Truck, Phone, Mail, ChevronRight } from 'lucide-react';
+import { MapPin, Package, Check, Clock, Loader2, AlertCircle, AlertTriangle, Pause, Search, Truck, Phone, Mail, ChevronRight } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
+import { CustomerOrderLiveMap } from '../components/CustomerOrderLiveMap';
 
 interface TrackOrderPageProps {
   onNavigate: (page: string) => void;
@@ -11,7 +12,7 @@ interface TrackOrderPageProps {
 const STATUS_COLORS: Record<string, string> = {
   delivered: 'bg-green-100 text-green-700 border-green-200',
   'in-flight': 'bg-blue-100 text-blue-700 border-blue-200',
-  'on-hold': 'bg-purple-100 text-purple-700 border-purple-200',
+  'on-hold': 'bg-blue-100 text-blue-700 border-blue-200',
   assigned: 'bg-purple-100 text-purple-700 border-purple-200',
   rescheduled: 'bg-yellow-100 text-yellow-700 border-yellow-200',
   pending: 'bg-slate-100 text-slate-600 border-slate-200',
@@ -22,13 +23,13 @@ const STATUS_COLORS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   delivered: 'Delivered',
-  'in-flight': 'In Flight',
-  'on-hold': 'On Hold',
-  assigned: 'Drone Assigned',
+  'in-flight': 'On The Way',
+  'on-hold': 'On The Way',
+  assigned: 'Dispatched with Partner',
   rescheduled: 'Rescheduled',
-  pending: 'Pending',
-  'taking-off': 'Taking Off',
-  approaching: 'Approaching',
+  pending: 'Processing Order',
+  'taking-off': 'Out for Delivery',
+  approaching: 'Approaching Destination',
   failed: 'Failed'
 };
 
@@ -168,9 +169,9 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
             <div className="w-16 h-16 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center mx-auto mb-5 text-[#5a00b8]">
               <Search className="w-7 h-7" />
             </div>
-            <h3 className="text-xl font-bold text-[#171222] mb-2">Track Any Flight or Consignment</h3>
+            <h3 className="text-xl font-bold text-[#171222] mb-2">Track Any Consignment</h3>
             <p className="text-slate-500 text-sm max-w-md mx-auto leading-relaxed">
-              Enter a Flight Sortie or Consignment ID above to view live GPS coordinates, altitude, battery telemetry, and dispatch checkpoints.
+              Enter a Consignment Order ID above to view real-time Driver GPS and delivery checkpoints.
             </p>
           </div>
         )}
@@ -191,7 +192,7 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
                       onClick={() => onOpenFeedback?.(order)}
                       className="px-4 py-2 rounded-full text-xs font-bold bg-[#5a00b8] hover:bg-[#280058] text-white shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
                     >
-                      <span>{order.order_type === 'drone_purchase' ? 'Rate your purchase' : 'Rate Flight / Feedback'}</span>
+                      <span>Rate Delivery / Feedback</span>
                     </button>
                   )}
                   <span className={`px-4 py-2 rounded-full text-sm font-bold border ${STATUS_COLORS[order.status] || STATUS_COLORS.pending}`}>{STATUS_LABELS[order.status] || order.status}</span>
@@ -199,18 +200,34 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
               </div>
             </div>
 
+            {/* Live Interactive Location Map */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Live Delivery Partner GPS Tracking
+                </span>
+                <span className="text-xs font-semibold text-purple-700 font-mono">
+                  {order.drone_model || '700RPAV Unit'}
+                </span>
+              </div>
+              <CustomerOrderLiveMap order={order} className="h-80 sm:h-96" />
+            </div>
+
             <div className="grid lg:grid-cols-[1fr_360px] gap-6">
               {/* Timeline */}
               <div className="bg-white border border-[#e2e8f0] rounded-2xl p-6 shadow-sm">
                 <h3 className="text-sm font-bold text-[#171222] mb-6">Delivery Timeline</h3>
                 <div className="space-y-0">
-                  {(order.timeline || []).map((step: any, i: number) => (
+                  {(order.timeline || [])
+                    .filter((step: any) => !['Delivery placed on hold', 'Delivery resumed'].includes(step.step))
+                    .map((step: any, i: number, arr: any[]) => (
                     <div key={i} className="flex gap-4">
                       <div className="flex flex-col items-center">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 shrink-0 ${step.done ? 'bg-[#5a00b8] border-[#5a00b8]' : 'bg-white border-slate-200'}`}>
                           {step.done ? <Check className="w-4 h-4 text-white" /> : <div className="w-2 h-2 rounded-full bg-slate-300" />}
                         </div>
-                        {i < order.timeline.length - 1 && <div className={`w-0.5 flex-1 my-1 ${step.done ? 'bg-[#5a00b8]' : 'bg-slate-100'}`} style={{ minHeight: '28px' }} />}
+                        {i < arr.length - 1 && <div className={`w-0.5 flex-1 my-1 ${step.done ? 'bg-[#5a00b8]' : 'bg-slate-100'}`} style={{ minHeight: '28px' }} />}
                       </div>
                       <div className="pb-6">
                         <p className={`text-sm font-semibold ${step.done ? 'text-[#171222]' : 'text-slate-400'}`}>{step.step}</p>
@@ -267,11 +284,11 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
                   <div className="flex justify-between text-sm">
                     <div>
                       <p className="text-slate-400 text-xs">Type</p>
-                      <p className="font-semibold text-[#171222]">{order.package_type}</p>
+                      <p className="font-semibold text-[#171222]">{order.package_type || 'Standard Consignment'}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-slate-400 text-xs">Weight</p>
-                      <p className="font-semibold text-[#171222]">{order.weight_kg} kg</p>
+                      <p className="text-slate-400 text-xs">Status</p>
+                      <p className="font-semibold text-purple-700">{STATUS_LABELS[order.status] || order.status}</p>
                     </div>
                   </div>
                 </div>
