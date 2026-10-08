@@ -174,18 +174,18 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
       {/* ── ROW 1: PRIMARY KPI CARDS ───────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3.5">
         <KpiCard
-          label="Total Orders"
+          label={range.key === 'today' ? "Today's Orders" : 'Total Orders'}
           value={formatNumber(k.totalOrders.current)}
           icon={Package}
           deltaPct={k.totalOrders.deltaPct}
           trend={k.totalOrders.trend}
           sparkline={k.totalOrders.sparkline}
           comparisonLabel="vs prev"
-          subtitle={`All-Time: ${formatNumber(k.allTimeTotalOrders?.value ?? k.totalOrders.current)} · Today: ${formatNumber(k.todaysOrders?.value ?? 0)}`}
+          subtitle={`All-Time: ${formatNumber(k.allTimeTotalOrders?.value ?? k.totalOrders.current)} orders`}
           tone="text-[#5a00b8] bg-purple-50"
         />
         <KpiCard
-          label="Delivered"
+          label={range.key === 'today' ? "Today's Delivered" : 'Delivered'}
           value={formatNumber(k.completedOrders.value)}
           icon={CheckCircle2}
           subtitle={`${formatNumber(k.todaysDeliveries.value)} delivered today`}
@@ -199,10 +199,10 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
           tone="text-sky-700 bg-sky-50"
         />
         <KpiCard
-          label="Cancelled Orders"
-          value={formatNumber(k.allTimeCancelledOrders?.value ?? k.cancelledOrders?.value ?? 0)}
+          label={range.key === 'today' ? "Today's Cancelled" : 'Cancelled Orders'}
+          value={formatNumber(range.key === 'today' ? (k.todaysCancelled?.value ?? 0) : (k.allTimeCancelledOrders?.value ?? k.cancelledOrders?.value ?? 0))}
           icon={XCircle}
-          subtitle={`Today: ${formatNumber(k.todaysCancelled?.value ?? 0)} cancelled`}
+          subtitle={`All-Time: ${formatNumber(k.allTimeCancelledOrders?.value ?? k.cancelledOrders?.value ?? 0)} cancelled`}
           tone="text-rose-700 bg-rose-50"
         />
         <KpiCard
@@ -214,23 +214,22 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
         />
       </div>
 
-      {/* secondary KPI strip: Overall & Today's Vital Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+      {/* secondary KPI strip: Operations & Fleet Metrics */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
         {[
-          { label: 'Overall Total Orders', value: k.allTimeTotalOrders?.value ?? k.totalOrders.current, icon: Package, tone: 'text-[#5a00b8] bg-purple-50' },
-          { label: "Today's Orders", value: k.todaysOrders?.value ?? 0, icon: Clock3, tone: 'text-indigo-700 bg-indigo-50' },
-          { label: 'Overall Cancelled', value: k.allTimeCancelledOrders?.value ?? k.cancelledOrders?.value ?? 0, icon: XCircle, tone: 'text-rose-700 bg-rose-50' },
-          { label: "Today's Cancelled", value: k.todaysCancelled?.value ?? 0, icon: XCircle, tone: 'text-amber-700 bg-amber-50' },
           { label: "Today's Deliveries", value: k.todaysDeliveries.value, icon: Truck, tone: 'text-emerald-700 bg-emerald-50' },
-          { label: 'In Transit Units', value: k.inTransit.value, icon: Plane, tone: 'text-sky-700 bg-sky-50' }
+          { label: 'In Transit Units', value: k.inTransit.value, icon: Plane, tone: 'text-sky-700 bg-sky-50' },
+          { label: 'Pending Dispatch', value: k.pendingDispatches.value, icon: Boxes, tone: 'text-amber-700 bg-amber-50' },
+          { label: 'Dispatched Fleet', value: k.dispatchedDrones.value, icon: Plane, tone: 'text-purple-700 bg-purple-50' },
+          { label: 'Open Support Tickets', value: k.activeSupportTickets.value, icon: Headphones, tone: 'text-rose-700 bg-rose-50' }
         ].map((s) => (
-          <div key={s.label} className="bg-white border border-slate-200 rounded-xl px-3.5 py-3 shadow-xs flex items-center gap-2.5">
+          <div key={s.label} className="bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-xs flex items-center gap-3">
             <div className={`p-2 rounded-lg shrink-0 ${s.tone}`}>
               <s.icon className="w-4 h-4" />
             </div>
             <div className="min-w-0">
               <p className="text-lg font-black text-slate-900 leading-none">{formatNumber(s.value)}</p>
-              <p className="text-[10.5px] font-bold text-slate-500 mt-1 truncate" title={s.label}>{s.label}</p>
+              <p className="text-[11px] font-bold text-slate-500 mt-1 truncate" title={s.label}>{s.label}</p>
             </div>
           </div>
         ))}
