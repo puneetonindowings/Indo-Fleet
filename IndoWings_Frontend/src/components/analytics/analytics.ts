@@ -50,7 +50,12 @@ export interface AnalyticsPayload {
   kpis: {
     totalOrders: KpiWithDelta;
     totalRevenue: KpiWithDelta;
+    allTimeTotalOrders?: { value: number };
+    allTimeCancelledOrders?: { value: number };
+    allTimeDeliveredOrders?: { value: number };
+    allTimePendingOrders?: { value: number };
     todaysOrders: { value: number };
+    todaysCancelled?: { value: number };
     todaysDeliveries: { value: number };
     todaysRevenue: { value: number };
     pendingOrders: { value: number };
