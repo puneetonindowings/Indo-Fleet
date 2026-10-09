@@ -1,70 +1,91 @@
 import './env.js';
 import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
 const RESEND_KEY = process.env.RESEND_API_KEY || '';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@dev2dev.online';
 const SUPPORT_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.SUPPORT_EMAIL || FROM_EMAIL;
 const SUPPORT_FROM_NAME = process.env.RESEND_FROM_NAME || process.env.SUPPORT_EMAIL_NAME || 'IndoFleet Support Desk';
 const MAIL_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.SUPPORT_EMAIL || FROM_EMAIL;
-const MAIL_FROM_NAME = process.env.RESEND_FROM_NAME || process.env.SUPPORT_EMAIL_NAME || 'IndoWings Flight Operations';
+const MAIL_FROM_NAME = process.env.RESEND_FROM_NAME || process.env.SUPPORT_EMAIL_NAME || 'IndoFleet Flight Operations';
 
 const resend = new Resend(RESEND_KEY);
 
-// All application email is sent through Resend; SMTP is deliberately not a fallback.
+const smtpTransporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: Number(process.env.SMTP_PORT) || 587,
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || ''
+  }
+});
+
 export async function sendEmail({ to, subject, text, html }: { to: string; subject: string; text: string; html?: string }): Promise<boolean> {
   if (!to || !to.includes('@')) {
     console.error('[mail] Not sent: destination email address is invalid.');
     return false;
   }
-  if (!RESEND_KEY) {
-    console.error('[mail] Not sent: RESEND_API_KEY is not configured.');
-    return false;
-  }
-  if (!MAIL_FROM_EMAIL || !MAIL_FROM_EMAIL.includes('@')) {
-    console.error('[mail] Not sent: configure a verified Resend sender address.');
-    return false;
-  }
 
-  try {
-    const { data, error } = await resend.emails.send({
-      from: `${MAIL_FROM_NAME} <${MAIL_FROM_EMAIL}>`,
-      to: [to],
-      subject,
-      text,
-      html: html || undefined
-    });
+  const activeResendKey = process.env.RESEND_API_KEY || RESEND_KEY;
+  const mailClient = activeResendKey ? new Resend(activeResendKey) : null;
 
-    if (data && !error) {
-      console.log(`[mail] Resend accepted message for ${to} (ID: ${data.id})`);
-      return true;
-    }
-
-    // If Resend rejected because domain is not verified, fallback to testing email address
-    if (error?.message && error.message.includes('only send testing emails to your own email address')) {
-      const match = error.message.match(/\(([^)]+@[\w.-]+)\)/);
-      const ownerEmail = match ? match[1] : 'puneetkushwaha9452@gmail.com';
-      console.warn(`[mail] Destination ${to} requires verified domain on Resend. Forwarding testing email to account owner: ${ownerEmail}`);
-      
-      const fallbackRes = await resend.emails.send({
-        from: `${MAIL_FROM_NAME} <${MAIL_FROM_EMAIL}>`,
-        to: [ownerEmail],
-        subject: `[For: ${to}] ${subject}`,
-        text: `NOTE: Resend is in testing mode (domain unverified). Original intended recipient: ${to}\n\n${text}`,
-        html: html ? `<p style="padding: 8px; background: #fff3cd; color: #856404; border-radius: 6px; font-size: 12px; margin-bottom: 12px;"><strong>Testing Mode Notice:</strong> Domain not yet verified in Resend. Originally intended for: <strong>${to}</strong></p>${html}` : undefined
+  // 1. Try Resend API
+  if (activeResendKey && mailClient) {
+    const fromAddr = process.env.FROM_EMAIL || 'onboarding@resend.dev';
+    try {
+      const { data, error } = await mailClient.emails.send({
+        from: `${MAIL_FROM_NAME} <${fromAddr}>`,
+        to: [to],
+        subject,
+        text,
+        html: html || undefined
       });
 
-      if (fallbackRes.data && !fallbackRes.error) {
-        console.log(`[mail] Fallback OTP successfully delivered to owner mailbox ${ownerEmail} (ID: ${fallbackRes.data.id})`);
+      if (data && !error) {
+        console.log(`[mail] Resend delivered email to ${to} (ID: ${data.id})`);
         return true;
       }
-    }
 
-    console.error(`[mail] Resend rejected message: ${error?.message || 'No message ID returned.'}`);
-    return false;
-  } catch (err) {
-    console.error('[mail] Resend request failed:', err instanceof Error ? err.message : 'Unknown provider error.');
-    return false;
+      console.warn(`[mail] Resend sender ${fromAddr} returned error: ${error?.message}. Trying fallback sender...`);
+
+      // If custom domain is not verified, try onboarding@resend.dev
+      if (fromAddr !== 'onboarding@resend.dev') {
+        const retry = await mailClient.emails.send({
+          from: `${MAIL_FROM_NAME} <onboarding@resend.dev>`,
+          to: [to],
+          subject,
+          text,
+          html: html || undefined
+        });
+        if (retry.data && !retry.error) {
+          console.log(`[mail] Resend delivered via onboarding@resend.dev to ${to} (ID: ${retry.data.id})`);
+          return true;
+        }
+      }
+    } catch (err) {
+      console.warn('[mail] Resend exception. Attempting Gmail SMTP fallback:', err instanceof Error ? err.message : err);
+    }
   }
+
+  // 2. Fallback to Gmail SMTP via Nodemailer
+  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    try {
+      const info = await smtpTransporter.sendMail({
+        from: `"${MAIL_FROM_NAME}" <${process.env.SMTP_USER}>`,
+        to,
+        subject,
+        text,
+        html: html || undefined
+      });
+      console.log(`[mail] Gmail SMTP delivered message for ${to} (ID: ${info.messageId})`);
+      return true;
+    } catch (smtpErr) {
+      console.error('[mail] Gmail SMTP fallback failed:', smtpErr instanceof Error ? smtpErr.message : smtpErr);
+    }
+  }
+
+  return false;
 }
 
 export async function getReceivedSupportAttachment(emailId: string, attachmentId: string) {
@@ -80,12 +101,12 @@ export async function sendOtpNotification({ email, phone, otp }: { email?: strin
   // 1. Send direct plain-text Email OTP
   if (email && email.includes('@')) {
     const isEmailLogin = !phone;
-    const subject = isEmailLogin ? `Your IndoWings Login Verification Code: ${otp}` : `Your IndoWings Verification Code: ${otp}`;
+    const subject = isEmailLogin ? `Your IndoFleet Login Verification Code: ${otp}` : `Your IndoFleet Verification Code: ${otp}`;
     const text = isEmailLogin
       ? `
 Hello,
 
-Your 6-digit IndoWings login verification code for ${email} is:
+Your 6-digit IndoFleet login verification code for ${email} is:
 
 ------------------------------------
  ${otp}
@@ -95,13 +116,13 @@ Valid for 10 minutes. Please enter this code in the login portal to access your 
 
 If you did not request this code, please ignore this email.
 
-IndoWings Flight Operations
+IndoFleet Flight Operations
 Sector 62, Noida, Uttar Pradesh
 `.trim()
       : `
 Hello,
 
-Your 6-digit IndoWings verification code for +91 ${phone} is:
+Your 6-digit IndoFleet verification code for +91 ${phone} is:
 
 ------------------------------------
  ${otp}
@@ -111,28 +132,52 @@ Valid for 10 minutes. Please enter this code in the login portal to verify your 
 
 If you did not request this code, please ignore this email.
 
-IndoWings Flight Operations
+IndoFleet Flight Operations
 Sector 62, Noida, Uttar Pradesh
 `.trim();
 
     delivered = await sendEmail({ to: email, subject, text });
   }
 
-  // 2. Dispatch to SMS Gateway (Fast2SMS / Webhook)
+  // 2. Dispatch to SMS Gateways (Fast2SMS / Supabase Phone Auth)
   if (phone) {
+    const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
+    const fullPhone = `+91${cleanPhone}`;
+
+    // Fast2SMS Gateway
     const fast2smsKey = process.env.FAST2SMS_API_KEY;
-    if (!fast2smsKey || fast2smsKey === 'xxx') return false;
-    try {
-      const url = `https://www.fast2sms.com/dev/bulkV2?authorization=${fast2smsKey}&variables_values=${otp}&route=otp&numbers=${phone}`;
-      const response = await fetch(url);
-      if (response.ok) {
-        delivered = true;
-        console.log(`[Fast2SMS Gateway] SMS OTP dispatched to +91 ${phone}`);
-      } else {
-        console.error(`[sms] OTP provider returned HTTP ${response.status}.`);
+    if (fast2smsKey && fast2smsKey.trim() && fast2smsKey !== 'xxx') {
+      try {
+        const url = `https://www.fast2sms.com/dev/bulkV2?authorization=${encodeURIComponent(fast2smsKey.trim())}&variables_values=${otp}&route=otp&numbers=${cleanPhone}`;
+        const response = await fetch(url);
+        if (response.ok) {
+          delivered = true;
+          console.log(`[Fast2SMS Gateway] Real SMS OTP dispatched to +91 ${cleanPhone}`);
+        } else {
+          console.error(`[Fast2SMS Gateway] Provider returned HTTP ${response.status}.`);
+        }
+      } catch (err: any) {
+        console.warn(`[Fast2SMS Exception]: ${err.message}`);
       }
-    } catch (err: any) {
-      console.warn(` [SMS Gateway Warning]: ${err.message}`);
+    }
+
+    // Supabase Phone Auth Gateway
+    const SH_SB_URL = process.env.SERVICEHUB_SUPABASE_URL || process.env.SUPABASE_URL || '';
+    const SH_SB_KEY = process.env.SERVICEHUB_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+    if (SH_SB_URL && SH_SB_KEY) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const sbClient = createClient(SH_SB_URL, SH_SB_KEY);
+        const { error: sbError } = await sbClient.auth.signInWithOtp({ phone: fullPhone });
+        if (!sbError) {
+          delivered = true;
+          console.log(`[Supabase SMS] Real Phone Auth SMS dispatched to ${fullPhone}`);
+        } else {
+          console.warn(`[Supabase SMS Notice]: ${sbError.message}`);
+        }
+      } catch (err: any) {
+        console.warn(`[Supabase SMS Exception]: ${err.message}`);
+      }
     }
   }
   return delivered;
@@ -140,11 +185,11 @@ Sector 62, Noida, Uttar Pradesh
 
 // ── 1. Welcome / Signup Email ────────────────────────────────────────────────
 export async function sendWelcomeEmail(to: string, name: string, phone?: string) {
-  const subject = `Welcome to IndoWings Drone Delivery - Account Activated`;
+  const subject = `Welcome to IndoFleet Drone Delivery - Account Activated`;
   const text = `
 Hello ${name},
 
-Welcome to IndoWings Autonomous Drone Delivery Network!
+Welcome to IndoFleet Autonomous Drone Delivery Network!
 
 Your customer account has been successfully created and verified via Mobile OTP.
 
@@ -152,10 +197,10 @@ Account Details:
 - Name: ${name}
 - Email: ${to}
 - Registered Mobile: ${phone || 'N/A'}
-- Platform: IndoWings Aerial Logistics (DGCA Certified)
+- Platform: IndoFleet Aerial Logistics (DGCA Certified)
 
 Best regards,
-IndoWings Operations Team
+IndoFleet Operations Team
 Sector 62, Noida, Uttar Pradesh
 `.trim();
 
@@ -190,7 +235,7 @@ function renderCleanEmail({
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
           <tr>
             <td>
-              <span style="font-size: 18px; font-weight: 800; color: #5a00b8; letter-spacing: -0.5px;">INDOWINGS</span>
+              <span style="font-size: 18px; font-weight: 800; color: #5a00b8; letter-spacing: -0.5px;">IndoFleet</span>
               <span style="font-size: 13px; color: #64748b; margin-left: 8px; font-weight: 500;">| Operations</span>
             </td>
           </tr>
@@ -212,8 +257,8 @@ function renderCleanEmail({
     <tr>
       <td style="padding: 20px 28px; background-color: #f8fafc; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8; line-height: 1.5;">
         ${footerNote ? `<p style="margin: 0 0 6px 0; color: #64748b;">${footerNote}</p>` : ''}
-        <p style="margin: 0;">&copy; 2026 IndoWings Aerospace &bull; Sector 62, Noida, Uttar Pradesh</p>
-        <p style="margin: 4px 0 0 0; font-size: 11px;">Helpline: 1800-IND-WINGS &bull; Email: connect@indowings.com</p>
+        <p style="margin: 0;">&copy; 2026 IndoFleet Aerospace &bull; Sector 62, Noida, Uttar Pradesh</p>
+        <p style="margin: 4px 0 0 0; font-size: 11px;">Helpline: 1800-IND-WINGS &bull; Email: connect@IndoFleet.com</p>
       </td>
     </tr>
   </table>
@@ -246,13 +291,13 @@ export async function sendUserProvisionedEmail({
     customer: 'Customer'
   };
   const roleName = roleLabels[role] || role.toUpperCase();
-  const url = loginUrl || `${process.env.FRONTEND_URL || 'https://indowings.com'}/login`;
+  const url = loginUrl || `${process.env.FRONTEND_URL || 'https://IndoFleet.com'}/login`;
 
-  const subject = `IndoWings Account Provisioned: Credentials for ${name}`;
+  const subject = `IndoFleet Account Provisioned: Credentials for ${name}`;
   const text = `
 Hello ${name},
 
-Your official IndoWings operations account has been provisioned.
+Your official IndoFleet operations account has been provisioned.
 
 Account Credentials:
 --------------------------------------------------
@@ -268,14 +313,14 @@ NEXT STEPS TO ACTIVATE:
 2. Enter your email (${to}) and temporary password.
 3. Verify your identity with OTP and set your permanent password.
 
-IndoWings Aerospace Operations
+IndoFleet Aerospace Operations
 Sector 62, Noida, Uttar Pradesh
 `.trim();
 
   const bodyHtml = `
     <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
       Hello <strong>${name}</strong>,<br>
-      Your official IndoWings operations account has been provisioned by the Administrator.
+      Your official IndoFleet operations account has been provisioned by the Administrator.
     </p>
 
     <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
@@ -326,27 +371,27 @@ Sector 62, Noida, Uttar Pradesh
 
 export async function sendAccountStatusEmail(to: string, name: string, status: 'active' | 'restricted') {
   const subject = status === 'restricted'
-    ? 'IndoWings account access restricted'
-    : 'IndoWings account access restored';
+    ? 'IndoFleet account access restricted'
+    : 'IndoFleet account access restored';
   const text = status === 'restricted'
-    ? `Hello ${name},\n\nAn administrator has restricted sign-in access to your IndoWings account. If you believe this is a mistake, contact your administrator or connect@indowings.com.\n\nIndoWings Operations`
-    : `Hello ${name},\n\nAn administrator has restored sign-in access to your IndoWings account. You can sign in using your registered email and the usual verification process.\n\nIndoWings Operations`;
+    ? `Hello ${name},\n\nAn administrator has restricted sign-in access to your IndoFleet account. If you believe this is a mistake, contact your administrator or connect@IndoFleet.com.\n\nIndoFleet Operations`
+    : `Hello ${name},\n\nAn administrator has restored sign-in access to your IndoFleet account. You can sign in using your registered email and the usual verification process.\n\nIndoFleet Operations`;
   return sendEmail({ to, subject, text });
 }
 
 export async function sendAccountRemovedEmail(to: string, name: string) {
   return sendEmail({
     to,
-    subject: 'IndoWings account removed',
-    text: `Hello ${name},\n\nYour IndoWings account has been removed by an administrator. If you believe this is a mistake, contact connect@indowings.com.\n\nIndoWings Operations`
+    subject: 'IndoFleet account removed',
+    text: `Hello ${name},\n\nYour IndoFleet account has been removed by an administrator. If you believe this is a mistake, contact connect@IndoFleet.com.\n\nIndoFleet Operations`
   });
 }
 
 export async function sendPasswordChangedEmail(to: string, name: string) {
   return sendEmail({
     to,
-    subject: 'IndoWings account password updated',
-    text: `Hello ${name},\n\nThe password for your IndoWings account was updated. If you did not make this change, contact your administrator or connect@indowings.com immediately.\n\nIndoWings Operations`
+    subject: 'IndoFleet account password updated',
+    text: `Hello ${name},\n\nThe password for your IndoFleet account was updated. If you did not make this change, contact your administrator or connect@IndoFleet.com immediately.\n\nIndoFleet Operations`
   });
 }
 
@@ -357,7 +402,7 @@ export async function sendLoginAlertEmail(to: string, name: string, role: string
   const text = `
 Hello ${name},
 
-A new login to your IndoWings account was detected.
+A new login to your IndoFleet account was detected.
 
 Login Information:
 - Account: ${to}
@@ -365,9 +410,9 @@ Login Information:
 - Date & Time: ${timestamp} IST
 - Client IP: ${ip || '127.0.0.1 (Local)'}
 
-If this was you, no action is needed. If you did not authorize this session, please contact IndoWings security immediately.
+If this was you, no action is needed. If you did not authorize this session, please contact IndoFleet security immediately.
 
-IndoWings Flight Operations
+IndoFleet Flight Operations
 `.trim();
 
   await sendEmail({ to, subject, text });
@@ -382,7 +427,7 @@ export async function sendOrderPlacedEmail(order: any) {
   const text = `
 Hello ${order.customer_name},
 
-Your IndoWings drone delivery request has been confirmed and placed into active dispatch queue.
+Your IndoFleet drone delivery request has been confirmed and placed into active dispatch queue.
 
 ORDER DETAILS:
 --------------------------------------------------
@@ -401,9 +446,9 @@ Pickup Point: ${order.pickup_address}
 Drop Destination: ${order.drop_address}
 
 View your order and tracking updates:
-${process.env.FRONTEND_URL || 'https://indowings.com'}/profile?tab=orders
+${process.env.FRONTEND_URL || 'https://IndoFleet.com'}/profile?tab=orders
 
-IndoWings Operations
+IndoFleet Operations
 `.trim();
 
   await sendEmail({ to, subject, text });
@@ -411,11 +456,11 @@ IndoWings Operations
 
 export async function sendCustomerBookingEmail(order: any) {
   if (!order.customer_email) return;
-  const storeUrl = `${process.env.FRONTEND_URL || 'https://indowings.com'}/profile?tab=orders`;
+  const storeUrl = `${process.env.FRONTEND_URL || 'https://IndoFleet.com'}/profile?tab=orders`;
   const items = (order.items || []).map((item: any) => `- ${item.model} x ${item.quantity}`).join('\n');
   await sendEmail({
     to: order.customer_email,
-    subject: `IndoWings booking received: ${order.id}`,
+    subject: `IndoFleet booking received: ${order.id}`,
     text: `
 Hello ${order.customer_name},
 
@@ -430,7 +475,7 @@ Current status: ${order.status}
 You can view order history and tracking updates here:
 ${storeUrl}
 
-IndoWings Customer Operations
+IndoFleet Customer Operations
 `.trim()
   });
 }
@@ -444,7 +489,7 @@ export async function sendOrderStatusEmail(order: any, newStatus: string) {
     const items = (order.items || []).map((item: any) => `- ${item.model} x ${item.quantity}`).join('\n');
     await sendEmail({
       to,
-      subject: `IndoWings booking update: ${order.id} - ${newStatus.toUpperCase()}`,
+      subject: `IndoFleet booking update: ${order.id} - ${newStatus.toUpperCase()}`,
       text: `
 Hello ${order.customer_name},
 
@@ -457,9 +502,9 @@ ${items}
 Delivery address: ${order.drop_address}
 
 View your order:
-${process.env.FRONTEND_URL || 'https://indowings.com'}/profile?tab=orders
+${process.env.FRONTEND_URL || 'https://IndoFleet.com'}/profile?tab=orders
 
-IndoWings Customer Operations
+IndoFleet Customer Operations
 `.trim()
     });
     return;
@@ -500,9 +545,9 @@ Pickup: ${order.pickup_address}
 Drop: ${order.drop_address}
 
 View order updates:
-${process.env.FRONTEND_URL || 'https://indowings.com'}/profile?tab=orders
+${process.env.FRONTEND_URL || 'https://IndoFleet.com'}/profile?tab=orders
 
-IndoWings Flight Operations
+IndoFleet Flight Operations
 `.trim();
 
   await sendEmail({ to, subject, text });
@@ -513,11 +558,11 @@ export async function sendExpertRequestCreatedEmail(request: any) {
   const to = request.email;
   if (!to || !to.includes('@')) return;
 
-  const subject = `Consultation Request Confirmed [${request.id}] - IndoWings`;
+  const subject = `Consultation Request Confirmed [${request.id}] - IndoFleet`;
   const text = `
 Hello ${request.name || 'Valued Customer'},
 
-Thank you for contacting IndoWings. Your consultation callback request has been scheduled.
+Thank you for contacting IndoFleet. Your consultation callback request has been scheduled.
 
 CONSULTATION DETAILS:
 --------------------------------------------------
@@ -531,7 +576,7 @@ Status: Pending Callback
 Your Inquiry Notes:
 "${request.message || 'No additional notes provided.'}"
 
-IndoWings Flight Operations
+IndoFleet Flight Operations
 Sector 62, Noida, Uttar Pradesh
 `.trim();
 
@@ -573,10 +618,10 @@ Sector 62, Noida, Uttar Pradesh
     </div>` : ''}
 
     <div style="text-align: center; margin: 24px 0;">
-      <a href="https://wa.me/917669478937?text=${encodeURIComponent(`Hello IndoWings, I have a callback booked with reference ID ${request.id}`)}" style="background-color: #16a34a; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-block; margin-right: 8px;">
+      <a href="https://wa.me/917669478937?text=${encodeURIComponent(`Hello IndoFleet, I have a callback booked with reference ID ${request.id}`)}" style="background-color: #16a34a; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-block; margin-right: 8px;">
         Chat on WhatsApp
       </a>
-      <a href="${process.env.FRONTEND_URL || 'https://indowings.com'}/support" style="background-color: #5a00b8; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-block;">
+      <a href="${process.env.FRONTEND_URL || 'https://IndoFleet.com'}/support" style="background-color: #5a00b8; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-block;">
         Support Desk
       </a>
     </div>
@@ -615,14 +660,14 @@ export async function sendExpertRequestStatusEmail(request: any, newStatus: stri
   const text = `
 Hello ${request.name || 'Valued Customer'},
 
-Your IndoWings consultation request (${request.id}) status has been updated to: ${currentLabel}.
+Your IndoFleet consultation request (${request.id}) status has been updated to: ${currentLabel}.
 
 Reference ID: ${request.id}
 Category: ${request.category}
 Status: ${currentLabel}
 Timestamp: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
 
-IndoWings Flight Operations
+IndoFleet Flight Operations
 `.trim();
 
   const bodyHtml = `
@@ -653,7 +698,7 @@ IndoWings Flight Operations
     </div>
 
     <div style="text-align: center; margin: 20px 0;">
-      <a href="${process.env.FRONTEND_URL || 'https://indowings.com'}/support" style="background-color: #5a00b8; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-block;">
+      <a href="${process.env.FRONTEND_URL || 'https://IndoFleet.com'}/support" style="background-color: #5a00b8; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-block;">
         View Support Desk
       </a>
     </div>
@@ -673,14 +718,14 @@ export async function sendFeedbackInvitationEmail(order: any) {
   const to = order.customer_email;
   if (!to || !to.includes('@')) return;
 
-  const droneModel = order.drone_model || order.drone_id || 'IndoWings Drone Platform';
+  const droneModel = order.drone_model || order.drone_id || 'IndoFleet Drone Platform';
   const subject = `Delivery Complete: Rate Your Experience [Order ${order.id}]`;
-  const feedbackUrl = `${process.env.FRONTEND_URL || 'https://indowings.com'}/feedback?orderId=${order.id}&drone=${encodeURIComponent(droneModel)}&name=${encodeURIComponent(order.customer_name || '')}&email=${encodeURIComponent(to)}`;
+  const feedbackUrl = `${process.env.FRONTEND_URL || 'https://IndoFleet.com'}/feedback?orderId=${order.id}&drone=${encodeURIComponent(droneModel)}&name=${encodeURIComponent(order.customer_name || '')}&email=${encodeURIComponent(to)}`;
 
   const text = `
 Hello ${order.customer_name || 'Valued Customer'},
 
-Your IndoWings drone flight for Order ${order.id} has completed successfully.
+Your IndoFleet drone flight for Order ${order.id} has completed successfully.
 
 Order ID: ${order.id}
 Vehicle: ${droneModel}
@@ -690,7 +735,7 @@ Drop: ${order.drop_address}
 Please take a moment to rate your delivery experience:
 ${feedbackUrl}
 
-IndoWings Flight Operations
+IndoFleet Flight Operations
 `.trim();
 
   const bodyHtml = `
@@ -734,7 +779,7 @@ IndoWings Flight Operations
 
 // ── 8. Support Query: Alert to Support Team ──────────────────────────────────
 export async function sendSupportQueryAlertToTeam(query: any) {
-  const to = 'connect@indowings.com';
+  const to = 'connect@IndoFleet.com';
   const priorityLabel = (query.priority || 'NORMAL').toUpperCase();
   const subject = `[Support Query] [${priorityLabel}] Ticket ${query.id} - ${query.name || 'Customer'}`;
   const text = `
@@ -795,7 +840,7 @@ Time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
     </div>
 
     <div style="text-align: center; margin: 20px 0;">
-      <a href="${process.env.FRONTEND_URL || 'https://indowings.com'}/support-desk" style="background-color: #5a00b8; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-block;">
+      <a href="${process.env.FRONTEND_URL || 'https://IndoFleet.com'}/support-desk" style="background-color: #5a00b8; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-block;">
         Open Support Desk Console &rarr;
       </a>
     </div>
@@ -811,10 +856,10 @@ Time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
 }
 
 // ── 9. Support Query: Resolution Notification to User ────────────────────────
-export async function sendQueryResolutionEmail(query: any, resolutionNotes: string, agentName: string = 'IndoWings Support') {
+export async function sendQueryResolutionEmail(query: any, resolutionNotes: string, agentName: string = 'IndoFleet Support') {
   if (!query.email) return;
   const to = query.email;
-  const subject = `Your Support Query [${query.id}] Has Been Resolved - IndoWings`;
+  const subject = `Your Support Query [${query.id}] Has Been Resolved - IndoFleet`;
   const text = `
 Dear ${query.name || 'Valued Customer'},
 
@@ -828,8 +873,8 @@ ${resolutionNotes}
 Ticket: ${query.id}
 Resolved By: ${agentName}
 
-Helpline: 1800-IND-WINGS | Email: connect@indowings.com
-IndoWings Flight Operations
+Helpline: 1800-IND-WINGS | Email: connect@IndoFleet.com
+IndoFleet Flight Operations
 `.trim();
 
   const bodyHtml = `
@@ -871,7 +916,7 @@ IndoWings Flight Operations
 }
 
 // ── 10. Direct Email Reply from Support Agent ─────────────────────────────────
-export async function sendDirectSupportEmail(to: string, subject: string, message: string, agentName: string = 'IndoWings Support Desk') {
+export async function sendDirectSupportEmail(to: string, subject: string, message: string, agentName: string = 'IndoFleet Support Desk') {
   if (!to || !to.includes('@')) return { success: false, error: 'Customer email address is invalid.' };
   if (!RESEND_KEY) return { success: false, error: 'Resend is not configured for Support Desk email.' };
   if (!SUPPORT_FROM_EMAIL || !SUPPORT_FROM_EMAIL.includes('@')) {
@@ -894,8 +939,8 @@ ${message}
 
 ------------------------------------
 ${agentName}
-IndoWings Aerospace Technologies Ltd.
-Phone: 1800-IND-WINGS | Email: connect@indowings.com
+IndoFleet Aerospace Technologies Ltd.
+Phone: 1800-IND-WINGS | Email: connect@IndoFleet.com
 `.trim();
 
   const bodyHtml = `
@@ -906,7 +951,7 @@ Phone: 1800-IND-WINGS | Email: connect@indowings.com
     <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; font-size: 12px; color: #64748b;">
       <strong style="color: #0f172a; display: block; font-size: 13px;">${safeAgentName}</strong>
       Support &amp; Operations Command Desk<br>
-      IndoWings Aerospace Technologies Ltd.
+      IndoFleet Aerospace Technologies Ltd.
     </div>
   `;
 
@@ -957,7 +1002,7 @@ export async function sendFlightStartedCustomerEmail({
   trackingUrl: string;
   deliveryAddress: string;
 }) {
-  const subject = `Your IndoWings Delivery #${orderNumber} is In-Flight`;
+  const subject = `Your IndoFleet Delivery #${orderNumber} is In-Flight`;
   const text = `
 Hello ${customerName},
 
@@ -967,13 +1012,13 @@ DISPATCH DETAILS:
 • Order Number: ${orderNumber}
 • Flight Pilot: ${pilotName}
 • Pilot Contact: ${pilotPhone || '+91 7669478937'}
-• Vehicle ID: ${vehicleId || 'IndoWings Drone'}
+• Vehicle ID: ${vehicleId || 'IndoFleet Drone'}
 • Destination: ${deliveryAddress}
 
 Live Tracking Link:
 ${trackingUrl}
 
-IndoWings Flight Operations
+IndoFleet Flight Operations
 `.trim();
 
   const bodyHtml = `
@@ -998,7 +1043,7 @@ IndoWings Flight Operations
         </tr>
         <tr style="border-bottom: 1px solid #f1f5f9;">
           <td style="padding: 6px 0; color: #64748b;">Vehicle:</td>
-          <td style="padding: 6px 0; color: #0f172a;">${vehicleId || 'IndoWings Drone'}</td>
+          <td style="padding: 6px 0; color: #0f172a;">${vehicleId || 'IndoFleet Drone'}</td>
         </tr>
         <tr>
           <td style="padding: 6px 0; color: #64748b;">Destination:</td>
@@ -1061,7 +1106,7 @@ Map Link: ${mapsUrl}
 
 ${audioNote ? `Notes: ${audioNote}\n` : ''}
 
-IndoWings Automated Emergency Alert System
+IndoFleet Automated Emergency Alert System
 `.trim();
 
   const bodyHtml = `
@@ -1144,7 +1189,7 @@ Delivery Pilot: ${pilotName}
 Destination: ${deliveryAddress}
 Time: ${new Date().toISOString()}
 
-IndoWings Operations Desk
+IndoFleet Operations Desk
 `.trim();
 
   const bodyHtml = `
@@ -1217,7 +1262,7 @@ export async function sendOrderAcceptedByDeliveryAlert({
   dlId?: string;
   orderId: string;
 }) {
-  const targetEmail = dispatcherEmail || process.env.ADMIN_EMAIL || 'ops@indowings.com';
+  const targetEmail = dispatcherEmail || process.env.ADMIN_EMAIL || 'ops@IndoFleet.com';
   const subject = `Order #${orderNumber} Accepted by ${deliveryPartnerName}`;
   const text = `
 Hello ${dispatcherName || 'Dispatcher'},
@@ -1230,7 +1275,7 @@ Partner Details:
 • Vehicle ID: ${vehicleId || 'N/A'}
 • License ID: ${dlId || 'Verified'}
 
-IndoWings Operations Desk
+IndoFleet Operations Desk
 `.trim();
 
   const bodyHtml = `
@@ -1294,7 +1339,7 @@ Your 6-digit Verification Code is:
 This code is valid for 10 minutes only. Enter it in your profile to complete your password update.
 If you did not make this request, please contact your Administrator immediately.
 
-IndoWings Security
+IndoFleet Security
 `.trim();
 
   const bodyHtml = `
@@ -1353,7 +1398,7 @@ INSTRUCTIONS:
 • Use this temporary password to log in.
 • Immediately update your password in Profile Settings upon signing in.
 
-IndoWings Security
+IndoFleet Security
 `.trim();
 
   const bodyHtml = `
@@ -1388,6 +1433,68 @@ IndoWings Security
 
   return sendEmail({ to: email, subject, text, html });
 }
+
+// ── 16. App Release Notification Email for Delivery Partners ────────────────
+export async function sendAppReleaseEmail({
+  to,
+  name,
+  version,
+  releaseNotes,
+  androidUrl,
+  iosUrl,
+}: {
+  to: string;
+  name: string;
+  version: string;
+  releaseNotes: string;
+  androidUrl?: string;
+  iosUrl?: string;
+}) {
+  const subject = `New IndoFleet Pilot App Update Available (${version}) - Download Now`;
+  const text = `
+Hello ${name},
+
+A new version (${version}) of the IndoFleet Pilot App has been released by IndoFleet Operations.
+
+RELEASE NOTES:
+--------------------------------------------------
+${releaseNotes}
+
+DOWNLOAD LINKS:
+- Android APK: ${androidUrl || 'Available on Web Portal'}
+- iOS App Store / TestFlight: ${iosUrl || 'Available on Web Portal'}
+
+Please download and update your app to access the latest features and flight navigation tools.
+
+IndoFleet Flight Operations
+`.trim();
+
+  const bodyHtml = `
+    <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
+      Hello <strong>${name}</strong>,<br>
+      A new update for the <strong>IndoFleet Pilot App (${version})</strong> is now available for download.
+    </p>
+
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+      <p style="font-size: 12px; font-weight: 700; color: #5a00b8; text-transform: uppercase; margin: 0 0 6px 0;">Release Notes (${version}):</p>
+      <p style="margin: 0; font-size: 13px; color: #334155; white-space: pre-wrap;">${releaseNotes}</p>
+    </div>
+
+    <div style="text-align: center; margin: 24px 0;">
+      ${androidUrl ? `<a href="${androidUrl}" style="background-color: #3b0080; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-block; margin-right: 8px;">Download Android APK</a>` : ''}
+      ${iosUrl ? `<a href="${iosUrl}" style="background-color: #059669; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-block;">Download iOS App</a>` : ''}
+    </div>
+  `;
+
+  const html = renderCleanEmail({
+    title: `IndoFleet Pilot App ${version} Released`,
+    subtitle: 'Download the latest mobile build for Android & iOS',
+    bodyHtml
+  });
+
+  return sendEmail({ to, subject, text, html });
+}
+
 
 
 

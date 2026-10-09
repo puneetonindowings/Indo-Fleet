@@ -104,7 +104,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
         body: JSON.stringify({
           order_id: orderId.trim() || undefined,
           user_name: name.trim() || 'Verified Customer',
-          user_email: email.trim() || currentUser?.email || 'guest@indowings.com',
+          user_email: email.trim() || currentUser?.email || 'guest@indowfleet.com',
           drone_name: droneName,
           rating,
           category,
@@ -251,7 +251,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
                   <CheckCircle2 className="w-8 h-8 stroke-[2.5]" />
                 </div>
                 <h3 className="text-xl font-bold text-[#171222]">Review Published Successfully!</h3>
-                <p className="text-sm text-slate-600 max-w-md mx-auto leading-relaxed">Thank you! Your flight review has been verified and added to the IndoWings public feedback stream.</p>
+                <p className="text-sm text-slate-600 max-w-md mx-auto leading-relaxed">Thank you! Your flight review has been verified and added to the IndoFleet public feedback stream.</p>
                 <button onClick={handleResetForm} className="px-6 py-2.5 bg-[#5a00b8] hover:bg-[#280058] text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer">
                   View My Review
                 </button>
@@ -271,9 +271,11 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
                         onClick={() => setRating(star)}
                         onMouseEnter={() => setHoverRating(star)}
                         onMouseLeave={() => setHoverRating(0)}
-                        className="p-1 transition-transform hover:scale-110 cursor-pointer"
+                        style={{ touchAction: 'manipulation' }}
+                        className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center transition-transform hover:scale-110 active:scale-95 cursor-pointer touch-action-none"
+                        aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
                       >
-                        <Star className={`w-8 h-8 ${(hoverRating || rating) >= star ? 'text-amber-400 fill-amber-400' : 'text-slate-200'} transition-colors`} />
+                        <Star className={`w-7 h-7 sm:w-8 sm:h-8 ${(hoverRating || rating) >= star ? 'text-amber-400 fill-amber-400' : 'text-slate-200'} transition-colors`} />
                       </button>
                     ))}
                     <span className="text-sm font-bold text-slate-700 ml-3">
@@ -434,7 +436,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
             <p className="text-xs text-slate-500 max-w-md mx-auto mt-2 mb-6 leading-relaxed">
               {searchQuery || filterRating !== 'all'
                 ? 'No flight reviews matched your filter or search query. Try clearing the filters.'
-                : 'All reviews on IndoWings are 100% authentic and submitted by real customers upon order delivery. Reviews will stream here live as delivery missions are completed across India.'}
+                : 'All reviews on IndoFleet are 100% authentic and submitted by real customers upon order delivery. Reviews will stream here live as delivery missions are completed across India.'}
             </p>
             <button
               onClick={() => setShowForm(true)}

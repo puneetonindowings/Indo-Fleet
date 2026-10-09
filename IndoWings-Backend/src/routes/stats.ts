@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { dbService, isSupabaseConfigured } from '../supabase.js';
 
 const router = Router();
@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
     const completedMissions = missions.filter(m => m.status === 'COMPLETED').length;
 
     res.json({
-      system: 'IndoWings Enterprise Command Center v3.4.4',
+      system: 'IndoFleet Enterprise Command Center v3.4.4',
       status: 'OPERATIONAL',
       supabase_connected: isSupabaseConfigured,
       stats: {
@@ -34,3 +34,4 @@ router.get('/', async (req, res) => {
 });
 
 export default router;
+

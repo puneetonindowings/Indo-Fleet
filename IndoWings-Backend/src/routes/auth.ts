@@ -1,11 +1,14 @@
-import '../env.js';
+﻿import '../env.js';
 import { Router, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { dbService } from '../supabase.js';
-import { authenticateToken, AuthenticatedRequest } from '../middleware/auth.js';
+import { authenticateToken, AuthenticatedRequest, JWT_SECRET } from '../middleware/auth.js';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'indowings_command_center_secret_2026';
+
+import { createRateLimiter } from '../middleware/rateLimiter.js';
+
+const authLimiter = createRateLimiter(15 * 60 * 1000, 15, 'Too many login attempts. Please wait 15 minutes before retrying.');
 
 // 1. Get all pre-configured demo accounts for quick testing
 router.get('/demo-accounts', async (req, res) => {
@@ -14,7 +17,7 @@ router.get('/demo-accounts', async (req, res) => {
 });
 
 // 2. Login
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   const { email, password } = req.body;
 
   if (!email) {
@@ -24,7 +27,7 @@ router.post('/login', async (req, res) => {
 
   const profile = await dbService.getProfileByEmail(email);
   if (!profile) {
-    res.status(401).json({ error: 'User not found with this email in IndoWings Command Center' });
+    res.status(401).json({ error: 'User not found with this email in IndoFleet Command Center' });
     return;
   }
 
@@ -54,3 +57,4 @@ router.get('/me', authenticateToken, (req: AuthenticatedRequest, res: Response) 
 });
 
 export default router;
+

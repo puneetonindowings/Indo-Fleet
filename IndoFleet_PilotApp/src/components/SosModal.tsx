@@ -144,7 +144,14 @@ export const SosModal: React.FC<SosModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={true}
+      statusBarTranslucent={true}
+      hardwareAccelerated={true}
+      onRequestClose={handleCancelFalseAlarm}
+    >
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
           {/* Header */}

@@ -1,11 +1,11 @@
 # Indo-Fleet
 
-Indo-Fleet is the workspace for the IndoWings frontend and backend applications.
+Indo-Fleet is the workspace for the IndoFleet frontend and backend applications.
 
 ## Project structure
 
-- `IndoWings_Frontend/` — React, TypeScript, and Vite web application.
-- `IndoWings-Backend/` — Express and TypeScript API, Supabase schema, and migrations.
+- `IndoFleet_Frontend/` — React, TypeScript, and Vite web application.
+- `IndoFleet-Backend/` — Express and TypeScript API, Supabase schema, and migrations.
 
 The Delivery Tracking workspace supports searchable order lifecycles, RPAV
 details, Porter references, a per-delivery Mapbox route link entered by an
@@ -22,9 +22,9 @@ Admins can open it from Admin; other authorized delivery operators can use
 Install dependencies in each application:
 
 ```bash
-cd IndoWings-Backend
+cd IndoFleet-Backend
 npm install
-cd ../IndoWings_Frontend
+cd ../IndoFleet_Frontend
 npm install
 ```
 
@@ -33,15 +33,15 @@ npm install
 Copy the example files and fill them in locally:
 
 ```powershell
-Copy-Item IndoWings-Backend\.env.example IndoWings-Backend\.env
-Copy-Item IndoWings_Frontend\.env.example IndoWings_Frontend\.env.local
+Copy-Item IndoFleet-Backend\.env.example IndoFleet-Backend\.env
+Copy-Item IndoFleet_Frontend\.env.example IndoFleet_Frontend\.env.local
 ```
 
 Do not commit real credential values. `.env` and `.env.local` files are
 excluded from Git. Keep the Supabase service-role key, JWT secret, payment
 secret, email credentials, and SMS provider keys on the backend only.
 
-### Backend: `IndoWings-Backend/.env`
+### Backend: `IndoFleet-Backend/.env`
 
 | Variable | Purpose |
 | --- | --- |
@@ -60,17 +60,17 @@ secret, email credentials, and SMS provider keys on the backend only.
 | `FRONTEND_URL` | Public frontend origin used in account and booking emails. |
 
 Set the Supabase project values and private service-role key before starting
-the backend. See `IndoWings-Backend/README.md` and
-`IndoWings-Backend/supabase/` for database setup and migrations.
+the backend. See `IndoFleet-Backend/README.md` and
+`IndoFleet-Backend/supabase/` for database setup and migrations.
 
 Resend can send support replies only after the configured sender domain is
 verified in Resend. Inbound support-email routing is not enabled yet. The
-current `indowings.com` MX points to Microsoft 365; do not replace it without
+current `indowfleet.com` MX points to Microsoft 365; do not replace it without
 planning mail routing, or existing mail delivery may be interrupted.
 
 The Resend webhook receiver is `POST /api/webhooks/resend` (health: `GET` on
 the same path). Before enabling it, run
-`IndoWings-Backend/supabase/migrate_resend_webhook_events.sql` in Supabase,
+`IndoFleet-Backend/supabase/migrate_resend_webhook_events.sql` in Supabase,
 set `RESEND_WEBHOOK_SECRET` and `SUPPORT_EMAIL` in the backend environment, and
 subscribe the Resend webhook to `email.received`, `email.sent`,
 `email.delivered`, `email.delivery_delayed`, `email.failed`, `email.bounced`,
@@ -79,7 +79,7 @@ deduplicates event IDs in Supabase, and does not log or persist raw webhook
 bodies. Inbound processing requires Resend receiving/domain routing; configure
 that only after planning how to preserve existing Microsoft 365 mail delivery.
 
-### Frontend: `IndoWings_Frontend/.env.local`
+### Frontend: `IndoFleet_Frontend/.env.local`
 
 | Variable | Purpose |
 | --- | --- |

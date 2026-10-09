@@ -15,76 +15,76 @@ interface PageMeta {
 
 const PAGE_META_MAP: Record<string, PageMeta> = {
   home: {
-    title: 'IndoFleet | Enterprise UAV Fleet Operations & Aerospace Logistics - IndoWings',
-    description: 'IndoFleet by IndoWings is India\'s leading DGCA-compliant enterprise UAV fleet command platform managing drone manufacturing, pre-flight QC clearance, and air corridor transit.',
-    keywords: 'IndoFleet, IndoWings, UAV fleet management, DGCA NPNT drone software, enterprise UAV logistics, drone corridor telemetry, Make in India drones',
-    canonical: 'https://indowings.com/',
+    title: 'IndoFleet | Enterprise UAV Fleet Operations & Aerospace Logistics - IndoFleet',
+    description: 'IndoFleet by IndoFleet is India\'s leading DGCA-compliant enterprise UAV fleet command platform managing drone manufacturing, pre-flight QC clearance, and air corridor transit.',
+    keywords: 'IndoFleet, IndoFleet, UAV fleet management, DGCA NPNT drone software, enterprise UAV logistics, drone corridor telemetry, Make in India drones',
+    canonical: 'https://indowfleet.com/',
   },
   platform: {
-    title: 'UAV Fleet Management Platform & Architecture | IndoWings IndoFleet',
+    title: 'UAV Fleet Management Platform & Architecture | IndoFleet IndoFleet',
     description: 'Explore the 3-tiered IndoFleet software architecture: Ground Control Station, Command Center Cloud API, and DGCA DigitalSky airspace authorization integration.',
     keywords: 'UAV platform, GCS software architecture, drone fleet telemetry API, DGCA DigitalSky integration, enterprise UAV control',
-    canonical: 'https://indowings.com/platform',
+    canonical: 'https://indowfleet.com/platform',
   },
   'command-center': {
-    title: 'IndoWings Fleet Command Center & Real-Time Airspace Operations',
+    title: 'IndoFleet Fleet Command Center & Real-Time Airspace Operations',
     description: 'Centralized mission control dashboard for enterprise UAV fleets. Monitor live sortie telemetry, geofence compliance, and automated air corridor clearance.',
     keywords: 'drone command center, UAV flight mission control, real-time drone telemetry, airspace geofence monitoring',
-    canonical: 'https://indowings.com/command-center',
+    canonical: 'https://indowfleet.com/command-center',
   },
   gcs: {
-    title: 'IndoWings Ground Control Station (GCS) | Avionics Software & Mission Planner',
-    description: 'Download and inspect IndoWings Ground Control Station (GCS) software with 5.8GHz telemetry uplink, RTK swath planning, and emergency failsafe RTH.',
-    keywords: 'IndoWings GCS, ground control station software, RTK drone route planner, UAV flight control software',
-    canonical: 'https://indowings.com/gcs',
+    title: 'IndoFleet Ground Control Station (GCS) | Avionics Software & Mission Planner',
+    description: 'Download and inspect IndoFleet Ground Control Station (GCS) software with 5.8GHz telemetry uplink, RTK swath planning, and emergency failsafe RTH.',
+    keywords: 'IndoFleet GCS, ground control station software, RTK drone route planner, UAV flight control software',
+    canonical: 'https://indowfleet.com/gcs',
   },
   downloads: {
-    title: 'Download IndoWings GCS Software & Operations Manuals | IndoFleet',
-    description: 'Official download repository for IndoWings GCS Windows/Linux releases, Android APKs, SHA256 checksums, and certified operations documentation.',
-    keywords: 'download IndoWings GCS, UAV operations manual PDF, GCS firmware release, drone operations software',
-    canonical: 'https://indowings.com/downloads',
+    title: 'Download IndoFleet GCS Software & Operations Manuals | IndoFleet',
+    description: 'Official download repository for IndoFleet GCS Windows/Linux releases, Android APKs, SHA256 checksums, and certified operations documentation.',
+    keywords: 'download IndoFleet GCS, UAV operations manual PDF, GCS firmware release, drone operations software',
+    canonical: 'https://indowfleet.com/downloads',
   },
   versions: {
-    title: 'Enterprise UAV Firmware & GCS Release Notes | IndoWings',
-    description: 'Detailed changelog and release history for IndoWings UAV autopilot firmware, GCS telemetry modules, and DigitalSky NPNT cryptographic security updates.',
-    keywords: 'IndoWings release notes, UAV firmware updates, GCS changelog, DGCA NPNT patch notes',
-    canonical: 'https://indowings.com/versions',
+    title: 'Enterprise UAV Firmware & GCS Release Notes | IndoFleet',
+    description: 'Detailed changelog and release history for IndoFleet UAV autopilot firmware, GCS telemetry modules, and DigitalSky NPNT cryptographic security updates.',
+    keywords: 'IndoFleet release notes, UAV firmware updates, GCS changelog, DGCA NPNT patch notes',
+    canonical: 'https://indowfleet.com/versions',
   },
   track: {
     title: 'Real-Time Drone Flight Telemetry & Air Corridor Radar | IndoFleet',
     description: 'Track active commercial drone sorties in real time. Inspect live GPS coordinates, altitude AGL, battery cell health, and signed digital handover challans.',
     keywords: 'live drone tracking, UAV flight radar, air corridor transit tracking, drone handover tracking',
-    canonical: 'https://indowings.com/track',
+    canonical: 'https://indowfleet.com/track',
   },
   docs: {
-    title: 'IndoFleet Enterprise UAV Documentation & Flight SOP Manuals | IndoWings',
+    title: 'IndoFleet Enterprise UAV Documentation & Flight SOP Manuals | IndoFleet',
     description: 'Comprehensive technical SOPs, pre-flight hardware diagnostics checklists, DGCA NPNT clearance workflows, and receiving base handover procedures.',
     keywords: 'drone operating procedure SOP, DGCA NPNT checklist, UAV hardware QC documentation',
-    canonical: 'https://indowings.com/docs',
+    canonical: 'https://indowfleet.com/docs',
   },
   support: {
-    title: 'IndoFleet Operations Helpdesk & 24/7 Technical Support | IndoWings',
-    description: 'Get direct technical support from IndoWings flight operations engineers for avionics troubleshooting, RTK calibration, or corridor logistics.',
-    keywords: 'IndoWings support desk, UAV technical helpline, drone operations engineer callback',
-    canonical: 'https://indowings.com/support',
+    title: 'IndoFleet Operations Helpdesk & 24/7 Technical Support | IndoFleet',
+    description: 'Get direct technical support from IndoFleet flight operations engineers for avionics troubleshooting, RTK calibration, or corridor logistics.',
+    keywords: 'IndoFleet support desk, UAV technical helpline, drone operations engineer callback',
+    canonical: 'https://indowfleet.com/support',
   },
   company: {
-    title: 'About IndoWings | Pioneer of Make in India Enterprise UAV Hardware',
-    description: 'IndoWings is India\'s premier drone manufacturer engineering high-end UAV hardware, custom flight controllers, and autonomous fleet platforms.',
-    keywords: 'IndoWings company, Make in India drone manufacturer, enterprise UAV manufacturing India',
-    canonical: 'https://indowings.com/company',
+    title: 'About IndoFleet | Pioneer of Make in India Enterprise UAV Hardware',
+    description: 'IndoFleet is India\'s premier drone manufacturer engineering high-end UAV hardware, custom flight controllers, and autonomous fleet platforms.',
+    keywords: 'IndoFleet company, Make in India drone manufacturer, enterprise UAV manufacturing India',
+    canonical: 'https://indowfleet.com/company',
   },
   feedback: {
     title: 'Fleet Operations Feedback & Inquiries | IndoFleet',
-    description: 'Submit operational feedback, suggestions, or feature requests directly to the IndoWings engineering and product development teams.',
-    keywords: 'IndoWings feedback, UAV review, drone fleet suggestions',
-    canonical: 'https://indowings.com/feedback',
+    description: 'Submit operational feedback, suggestions, or feature requests directly to the IndoFleet engineering and product development teams.',
+    keywords: 'IndoFleet feedback, UAV review, drone fleet suggestions',
+    canonical: 'https://indowfleet.com/feedback',
   },
   legal: {
-    title: 'Legal Compliance, DGCA Airspace Rules & Privacy Policy | IndoWings',
+    title: 'Legal Compliance, DGCA Airspace Rules & Privacy Policy | IndoFleet',
     description: 'Review legal terms, DGCA airspace regulations, data security standards, and privacy protection protocols governing IndoFleet operations.',
-    keywords: 'DGCA drone regulations, IndoWings privacy policy, UAV airspace compliance legal',
-    canonical: 'https://indowings.com/legal',
+    keywords: 'DGCA drone regulations, IndoFleet privacy policy, UAV airspace compliance legal',
+    canonical: 'https://indowfleet.com/legal',
   },
 };
 
@@ -137,8 +137,8 @@ export const SEOHead: React.FC<SEOHeadProps> = ({ currentPage }) => {
     updateOg('og:description', meta.description);
     updateOg('og:url', meta.canonical);
     updateOg('og:type', 'website');
-    updateOg('og:site_name', 'IndoFleet by IndoWings');
-    updateOg('og:image', 'https://indowings.com/indowings-hero.png');
+    updateOg('og:site_name', 'IndoFleet by IndoFleet');
+    updateOg('og:image', 'https://indowfleet.com/indowfleet-hero.png');
 
     // 6. Update Twitter Card Tags
     const updateTwitter = (name: string, content: string) => {
@@ -154,7 +154,7 @@ export const SEOHead: React.FC<SEOHeadProps> = ({ currentPage }) => {
     updateTwitter('twitter:card', 'summary_large_image');
     updateTwitter('twitter:title', meta.title);
     updateTwitter('twitter:description', meta.description);
-    updateTwitter('twitter:image', 'https://indowings.com/indowings-hero.png');
+    updateTwitter('twitter:image', 'https://indowfleet.com/indowfleet-hero.png');
 
     // 7. Inject Dynamic Breadcrumb JSON-LD
     let scriptElem = document.getElementById('jsonld-breadcrumbs');
@@ -173,7 +173,7 @@ export const SEOHead: React.FC<SEOHeadProps> = ({ currentPage }) => {
           '@type': 'ListItem',
           'position': 1,
           'name': 'Home',
-          'item': 'https://indowings.com/'
+          'item': 'https://indowfleet.com/'
         },
         ...(currentPage !== 'home' ? [{
           '@type': 'ListItem',

@@ -29,13 +29,15 @@ import {
   Copy,
   ExternalLink,
   Menu,
-  MapPin
+  MapPin,
+  Smartphone
 } from 'lucide-react';
 import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
 import { ProfilePage } from './ProfilePage';
 import { DroneDispatchModule } from './DroneDispatchModule';
 import { SupportDeskPage } from './SupportDeskPage';
+import { AppReleaseConsole } from '../components/AppReleaseConsole';
 
 interface FleetManagerPageProps {
   currentUser: DeliveryUser | null;
@@ -51,7 +53,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   onUpdateUser
 }) => {
   // Navigation & View Tabs
-  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'dispatch' | 'support' | 'maintenance' | 'profile'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'dispatch' | 'support' | 'maintenance' | 'profile' | 'app-release'>('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Data State
@@ -430,7 +432,8 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
     { id: 'inventory', label: 'Inventory', icon: Boxes, badge: totalUnits },
     { id: 'dispatch', label: 'Dispatch', icon: Send, badge: dispatchOrders.length > 0 ? dispatchOrders.length : null },
     { id: 'support', label: 'Support', icon: Headphones, badge: supportStats.pending > 0 ? supportStats.pending : null },
-    { id: 'maintenance', label: 'Under Maintenance', icon: Wrench, badge: maintenanceUnits > 0 ? maintenanceUnits : null }
+    { id: 'maintenance', label: 'Under Maintenance', icon: Wrench, badge: maintenanceUnits > 0 ? maintenanceUnits : null },
+    { id: 'app-release', label: 'Mobile App Release', icon: Smartphone, badge: 'APK' }
   ];
 
   return (
@@ -460,7 +463,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                   </div>
                   <div className="min-w-0">
                     <h3 className="text-sm font-black text-slate-900 tracking-tight truncate">Fleet Command Desk</h3>
-                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider truncate">IndoWings Operations</p>
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider truncate">IndoFleet Operations</p>
                   </div>
                 </div>
 
@@ -585,7 +588,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-sm font-black text-slate-900 tracking-tight truncate">Fleet Command Desk</h3>
-                  <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider truncate">IndoWings Operations</p>
+                  <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider truncate">IndoFleet Operations</p>
                 </div>
               </div>
 
@@ -1503,7 +1506,10 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {drones.filter((d) => d.status === 'maintenance').map((drone) => {
+                      {drones
+                        .filter((d) => d.status === 'maintenance')
+                        .sort((a, b) => new Date(b.updated_at || b.date || b.timestamp || 0).getTime() - new Date(a.updated_at || a.date || a.timestamp || 0).getTime())
+                        .map((drone) => {
                         const isVerified = drone.is_verified === true || drone.verification_status === 'verified';
                         return (
                           <div key={drone.id} className="p-5 rounded-3xl bg-amber-50/70 border border-amber-200 flex flex-col justify-between gap-4">
@@ -1574,6 +1580,9 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                 }}
               />
             )}
+
+            {/* TAB: APP RELEASE */}
+            {activeTab === 'app-release' && <AppReleaseConsole />}
           </main>
         </div>
       </div>

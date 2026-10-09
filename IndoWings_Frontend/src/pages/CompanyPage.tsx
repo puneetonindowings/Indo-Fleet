@@ -52,7 +52,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
           </h1>
 
           <p className="text-base sm:text-lg text-slate-200/90 max-w-3xl leading-relaxed">
-            IndoWings (indowings.com) is the official public portal for Indo Wings Private Limited, India's leading aerospace manufacturer of DGCA type-certified UAVs, autonomous cargo transit systems, fleet ground control stations, and anti-drone security technologies.
+            IndoFleet (indowfleet.com) is the official public portal for Indo Wings Private Limited, India's leading aerospace manufacturer of DGCA type-certified UAVs, autonomous cargo transit systems, fleet ground control stations, and anti-drone security technologies.
           </p>
         </div>
       </section>
@@ -68,16 +68,16 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                 Public Identity
               </div>
               <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0f172a] leading-tight mb-6">
-                Clear IndoWings facts without inventing private registration data.
+                Clear IndoFleet facts without inventing private registration data.
               </h2>
               <p className="text-slate-600 text-base leading-relaxed mb-8">
-                This page explains the public IndoWings identity, corporate ownership, leadership attribution, manufacturing footprint, jurisdiction, DGCA certification status, and customer-reference policy. Fields that are not configured are intentionally shown as not yet published.
+                This page explains the public IndoFleet identity, corporate ownership, leadership attribution, manufacturing footprint, jurisdiction, DGCA certification status, and customer-reference policy. Fields that are not configured are intentionally shown as not yet published.
               </p>
 
               <ul className="space-y-4 text-slate-700 text-sm sm:text-base leading-relaxed">
                 <li className="flex items-start gap-3">
                   <div className="w-2 h-2 rounded-full bg-[#191b30] mt-2.5 shrink-0" />
-                  <span>IndoWings designs and manufactures DGCA type-certified UAV platforms and Ground Control Station software for enterprise and logistics operations.</span>
+                  <span>IndoFleet designs and manufactures DGCA type-certified UAV platforms and Ground Control Station software for enterprise and logistics operations.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <div className="w-2 h-2 rounded-full bg-[#191b30] mt-2.5 shrink-0" />
@@ -85,11 +85,11 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                 </li>
                 <li className="flex items-start gap-3">
                   <div className="w-2 h-2 rounded-full bg-[#191b30] mt-2.5 shrink-0" />
-                  <span>IndoWings GCS supports approved operations personnel with aircraft connection, mission planning, encrypted telemetry, payload readiness, and synchronization.</span>
+                  <span>IndoFleet GCS supports approved operations personnel with aircraft connection, mission planning, encrypted telemetry, payload readiness, and synchronization.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <div className="w-2 h-2 rounded-full bg-[#191b30] mt-2.5 shrink-0" />
-                  <span>IndoWings is owned by Indo Wings Private Limited and maintained as the indowings.com public platform.</span>
+                  <span>IndoFleet is owned by Indo Wings Private Limited and maintained as the indowfleet.com public platform.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <div className="w-2 h-2 rounded-full bg-[#191b30] mt-2.5 shrink-0" />
@@ -117,7 +117,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                       Brand
                     </div>
                     <div className="text-sm font-bold text-[#0f172a]">
-                      IndoWings
+                      IndoFleet
                     </div>
                   </div>
 
@@ -127,12 +127,12 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                       Official Website
                     </div>
                     <a 
-                      href="https://indowings.com" 
+                      href="https://indowfleet.com" 
                       target="_blank" 
                       rel="noreferrer"
                       className="text-sm font-bold text-[#191b30] hover:underline flex items-center gap-1"
                     >
-                      <span>indowings.com</span>
+                      <span>indowfleet.com</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                   </div>
@@ -143,7 +143,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                       Owner
                     </div>
                     <a 
-                      href="https://indowings.com/company/about.php" 
+                      href="https://indowfleet.com/company/about.php" 
                       target="_blank" 
                       rel="noreferrer"
                       className="text-sm font-bold text-[#191b30] hover:underline"
@@ -158,7 +158,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                       Founder & CEO
                     </div>
                     <a 
-                      href="https://indowings.com/company/about.php" 
+                      href="https://indowfleet.com/company/about.php" 
                       target="_blank" 
                       rel="noreferrer"
                       className="text-sm font-bold text-[#191b30] hover:underline"
@@ -221,10 +221,10 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
             Ownership and Development
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0f172a] mb-4">
-            indowings.com remains the public IndoWings brand.
+            indowfleet.com remains the public IndoFleet brand.
           </h2>
           <p className="text-slate-600 text-base max-w-3xl leading-relaxed mb-12">
-            Owner and manufacturing details are provided for accountability. The public product brand, autonomous transit network, GCS workstation downloads, documentation, and operational support routes remain under indowings.com.
+            Owner and manufacturing details are provided for accountability. The public product brand, autonomous transit network, GCS workstation downloads, documentation, and operational support routes remain under indowfleet.com.
           </p>
 
           {/* 3-Column Card Layout */}
@@ -243,10 +243,10 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                 </div>
 
                 <h3 className="text-xl font-bold text-[#0f172a] mb-3">
-                  indowings.com
+                  indowfleet.com
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed mb-6">
-                  The website introduces IndoWings UAV platforms, autonomous fleet ecosystem, publishes GCS workstation releases, links documentation, and routes live expert support, orders, security, and feedback inquiries.
+                  The website introduces IndoFleet UAV platforms, autonomous fleet ecosystem, publishes GCS workstation releases, links documentation, and routes live expert support, orders, security, and feedback inquiries.
                 </p>
               </div>
 
@@ -256,7 +256,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                   onClick={handleNav('home', '/')}
                   className="inline-flex items-center gap-1.5 text-sm font-bold text-[#191b30] hover:text-slate-800 transition-colors"
                 >
-                  <span>Visit IndoWings home</span>
+                  <span>Visit IndoFleet home</span>
                   <ArrowRight className="w-4 h-4" />
                 </a>
               </div>
@@ -278,13 +278,13 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                   Indo Wings Private Limited
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed mb-6">
-                  Indo Wings Private Limited is listed as the owner of IndoWings. Public company information, manufacturing facility certifications, and corporate filings can be reviewed through the owner website.
+                  Indo Wings Private Limited is listed as the owner of IndoFleet. Public company information, manufacturing facility certifications, and corporate filings can be reviewed through the owner website.
                 </p>
               </div>
 
               <div>
                 <a 
-                  href="https://indowings.com" 
+                  href="https://indowfleet.com" 
                   target="_blank" 
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm font-bold text-[#191b30] hover:text-slate-800 transition-colors"
@@ -311,13 +311,13 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                   Paras Jain
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed mb-6">
-                  Paras Jain is listed as the founder and managing leadership contact for IndoWings. The public profile link and corporate about pages are included for corporate identity reference only.
+                  Paras Jain is listed as the founder and managing leadership contact for IndoFleet. The public profile link and corporate about pages are included for corporate identity reference only.
                 </p>
               </div>
 
               <div>
                 <a 
-                  href="https://indowings.com/company/about.php" 
+                  href="https://indowfleet.com/company/about.php" 
                   target="_blank" 
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm font-bold text-[#191b30] hover:text-slate-800 transition-colors"
@@ -403,7 +403,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                   onClick={handleNav('support', '/support?tab=expert')}
                   className="inline-flex items-center gap-1.5 text-sm font-bold text-[#191b30] hover:text-slate-800 transition-colors"
                 >
-                  <span>Contact IndoWings</span>
+                  <span>Contact IndoFleet</span>
                   <ArrowRight className="w-4 h-4" />
                 </a>
               </div>

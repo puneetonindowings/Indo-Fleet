@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Plane, MapPin, Navigation, Compass, Radio, Activity, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Navigation, ZoomIn, ZoomOut } from 'lucide-react';
 
 if (typeof (maplibregl as any).setWorkerUrl === 'function') {
   (maplibregl as any).setWorkerUrl('/maplibre-gl-worker.mjs');
@@ -18,16 +18,14 @@ interface CustomerOrderLiveMapProps {
 export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ order, className = 'h-80' }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<MapLibreMap | null>(null);
-  const [mapReady, setMapReady] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(12);
+  const [, setMapReady] = useState(false);
 
   // Derive Coordinates
   const pickupCoords: [number, number] = React.useMemo(() => {
     if (Number.isFinite(order?.pickup_lng) && Number.isFinite(order?.pickup_lat)) {
       return [Number(order.pickup_lng), Number(order.pickup_lat)];
     }
-    // Default Delhi NCR / Noida Base
-    return [77.3718, 28.6280];
+    return [77.3718, 28.6280]; // Default Noida Plant Base
   }, [order?.pickup_lng, order?.pickup_lat]);
 
   const dropCoords: [number, number] = React.useMemo(() => {
@@ -36,11 +34,33 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
     if (Number.isFinite(lng) && Number.isFinite(lat)) {
       return [Number(lng), Number(lat)];
     }
-    // Default relative offset if not set
-    return [77.3910, 28.5355];
+    return [77.3910, 28.5355]; // Default Drop Destination
   }, [order?.drop_lng, order?.drop_lat, order?.destination_lng, order?.destination_lat]);
 
+  const isCancelled = React.useMemo(() => {
+    return ['cancelled', 'failed'].includes(order?.status);
+  }, [order?.status]);
+
+  const isDelivered = React.useMemo(() => {
+    return order?.status === 'delivered';
+  }, [order?.status]);
+
+  const isOnHold = React.useMemo(() => {
+    return ['on-hold', 'rescheduled'].includes(order?.status);
+  }, [order?.status]);
+
+  const isPending = React.useMemo(() => {
+    return order?.status === 'pending';
+  }, [order?.status]);
+
+  const isActiveInFlight = React.useMemo(() => {
+    return ['in-flight', 'in-transit', 'taking-off', 'approaching', 'out-for-delivery', 'assigned'].includes(order?.status);
+  }, [order?.status]);
+
   const currentDroneCoords: [number, number] = React.useMemo(() => {
+    if (isDelivered) return dropCoords;
+    if (isCancelled || isPending) return pickupCoords;
+
     const loc = order?.last_known_location || order?.current_location_coords || order?.live_location;
     if (typeof loc === 'object' && loc !== null && Number.isFinite(loc.lng) && Number.isFinite(loc.lat)) {
       return [Number(loc.lng), Number(loc.lat)];
@@ -51,30 +71,20 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
     if (Number.isFinite(order?.pilot_lng) && Number.isFinite(order?.pilot_lat)) {
       return [Number(order.pilot_lng), Number(order.pilot_lat)];
     }
-    // If in flight or on hold, calculate geographic corridor position based on mission progress
-    if (['in-flight', 'on-hold', 'approaching', 'taking-off', 'out-for-delivery', 'assigned'].includes(order?.status)) {
+
+    if (isActiveInFlight || isOnHold) {
       const progress = order?.status === 'approaching' ? 0.85 : order?.status === 'taking-off' ? 0.15 : 0.55;
       return [
         pickupCoords[0] + (dropCoords[0] - pickupCoords[0]) * progress,
         pickupCoords[1] + (dropCoords[1] - pickupCoords[1]) * progress
       ];
     }
-    if (order?.status === 'delivered') {
-      return dropCoords;
-    }
     return pickupCoords;
-  }, [order?.last_known_location, order?.current_location_coords, order?.live_location, order?.current_lng, order?.current_lat, order?.pilot_lng, order?.pilot_lat, order?.status, pickupCoords, dropCoords]);
-
-  const transitStatusText = React.useMemo(() => {
-    if (order?.status === 'delivered') return 'Delivered & Accepted';
-    if (order?.status === 'on-hold') return 'Delivery Paused';
-    return 'On The Way (Driver Moving)';
-  }, [order?.status]);
+  }, [order?.last_known_location, order?.current_location_coords, order?.live_location, order?.current_lng, order?.current_lat, order?.pilot_lng, order?.pilot_lat, order?.status, isCancelled, isDelivered, isOnHold, isPending, isActiveInFlight, pickupCoords, dropCoords]);
 
   useEffect(() => {
     if (!mapContainer.current) return;
 
-    // Use MapTiler street style if key exists, otherwise OSM raster style
     const mapStyle = MAPTILER_KEY
       ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(MAPTILER_KEY)}`
       : {
@@ -106,7 +116,7 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
       container: mapContainer.current,
       style: mapStyle as any,
       center: currentDroneCoords,
-      zoom: 11
+      zoom: 12
     });
 
     mapInstanceRef.current = map;
@@ -114,7 +124,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
     map.on('load', () => {
       setMapReady(true);
 
-      // Route Path Line
       const routeCoordinates = [pickupCoords, currentDroneCoords, dropCoords];
 
       map.addSource('transit-route', {
@@ -129,6 +138,8 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
         }
       });
 
+      const routeColor = isCancelled ? '#e11d48' : isDelivered ? '#10b981' : isOnHold ? '#f59e0b' : '#5a00b8';
+
       // Route Glow Outline Layer
       map.addLayer({
         id: 'transit-route-glow',
@@ -136,9 +147,9 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
         source: 'transit-route',
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#5a00b8',
+          'line-color': routeColor,
           'line-width': 6,
-          'line-opacity': 0.25
+          'line-opacity': isCancelled ? 0.15 : 0.25
         }
       });
 
@@ -149,9 +160,9 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
         source: 'transit-route',
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#5a00b8',
+          'line-color': routeColor,
           'line-width': 3.5,
-          'line-dasharray': [2, 1.5]
+          'line-dasharray': isCancelled ? [4, 4] : [2, 1.5]
         }
       });
 
@@ -162,29 +173,40 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
         <div style="background: #10b981; color: white; padding: 6px; border-radius: 9999px; box-shadow: 0 4px 12px rgba(16,185,129,0.4); border: 2px solid white;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
         </div>
-        <span style="font-size: 10px; font-weight: 800; background: white; color: #065f46; padding: 2px 6px; border-radius: 6px; margin-top: 2px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; white-space: nowrap;">IndoWings Hub</span>
+        <span style="font-size: 10px; font-weight: 800; background: white; color: #065f46; padding: 2px 6px; border-radius: 6px; margin-top: 2px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; white-space: nowrap;">Dispatch Hub</span>
       `;
       new maplibregl.Marker({ element: pickupEl })
         .setLngLat(pickupCoords)
-        .setPopup(new maplibregl.Popup({ offset: 20 }).setHTML(`<strong>Origin Hub</strong><br/>${order?.pickup_address || 'IndoWings Plant, Sector 62'}`))
+        .setPopup(new maplibregl.Popup({ offset: 20 }).setHTML(`<strong>Dispatch Hub</strong><br/>${order?.pickup_address || 'IndoFleet Plant, Sector 62'}`))
         .addTo(map);
 
-      // 2. Delivery Partner / Driver Marker (Live Active Location)
-      const isDelivered = order?.status === 'delivered';
+      // 2. Delivery Vehicle / Drone Marker
       const droneEl = document.createElement('div');
       droneEl.className = 'relative flex items-center justify-center cursor-pointer';
+
+      const pingHtml = isActiveInFlight
+        ? `<div style="position: absolute; width: 42px; height: 42px; border-radius: 9999px; background: rgba(90,0,184,0.2); animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>`
+        : '';
+
+      const markerBg = isCancelled ? '#e11d48' : isDelivered ? '#10b981' : isOnHold ? '#f59e0b' : isPending ? '#64748b' : '#5a00b8';
+      const markerText = isCancelled ? 'Cancelled' : isDelivered ? 'Delivered' : isOnHold ? 'Paused' : isPending ? 'Pending' : 'In Transit';
+
       droneEl.innerHTML = `
-        <div style="position: absolute; width: 42px; height: 42px; border-radius: 9999px; background: rgba(90,0,184,0.2); animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-        <div style="position: relative; width: 34px; height: 34px; background: #5a00b8; color: white; border-radius: 9999px; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(90,0,184,0.45); border: 2.5px solid white;">
+        ${pingHtml}
+        <div style="position: relative; width: 34px; height: 34px; background: ${markerBg}; color: white; border-radius: 9999px; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(0,0,0,0.3); border: 2.5px solid white;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-1.1 0-2 .9-2 2v7h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
         </div>
-        <span style="position: absolute; bottom: -20px; font-size: 10px; font-weight: 800; background: #1e1b4b; color: #e0e7ff; padding: 2px 7px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.2); white-space: nowrap;">
-          ${isDelivered ? 'Delivered' : order?.pilot_assigned?.split(' ')?.[0] || 'Delivery Partner'}
+        <span style="position: absolute; bottom: -20px; font-size: 10px; font-weight: 800; background: #0f172a; color: #f8fafc; padding: 2px 7px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); white-space: nowrap;">
+          ${markerText}
         </span>
       `;
       new maplibregl.Marker({ element: droneEl })
         .setLngLat(currentDroneCoords)
-        .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<strong>Delivery Partner</strong><br/>Agent: ${order?.pilot_assigned || order?.delivery_partner_name || 'Assigned Driver'}<br/>Consignment: ${order?.drones_shipped || order?.package_type || '700RPAV Unit'}<br/>Status: On The Way`))
+        .setPopup(
+          new maplibregl.Popup({ offset: 25 }).setHTML(
+            `<strong>Order #${order?.order_number || order?.id}</strong><br/>Status: <strong>${markerText}</strong><br/>Partner: ${order?.pilot_assigned || order?.delivery_partner_name || 'Assigned Partner'}`
+          )
+        )
         .addTo(map);
 
       // 3. Drop Marker (Destination)
@@ -208,14 +230,10 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
       map.fitBounds(bounds, { padding: 48, maxZoom: 14 });
     });
 
-    map.on('zoom', () => {
-      setZoomLevel(Math.round(map.getZoom()));
-    });
-
     return () => {
       map.remove();
     };
-  }, [order?.id, pickupCoords, dropCoords, currentDroneCoords]);
+  }, [order?.id, pickupCoords, dropCoords, currentDroneCoords, isCancelled, isDelivered, isOnHold, isPending, isActiveInFlight]);
 
   const handleRecenter = () => {
     if (!mapInstanceRef.current) return;
@@ -237,44 +255,24 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
   };
 
   return (
-    <div className="relative rounded-3xl overflow-hidden border border-slate-200 shadow-sm bg-slate-900 group">
-      {/* Interactive Map Canvas Container */}
-      <div ref={mapContainer} className={`w-full ${className}`} />
+    <div className="relative rounded-3xl overflow-hidden border border-slate-200 shadow-sm bg-slate-900 group h-full w-full min-h-[400px]">
+      {/* Interactive Clean Map Canvas */}
+      <div ref={mapContainer} className={`w-full min-h-[400px] ${className}`} />
 
-      {/* Top Floating Overlay Banner */}
-      <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between gap-2 pointer-events-none">
-        <div className="flex items-center gap-2 bg-slate-900/85 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 text-white shadow-lg pointer-events-auto">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-          </span>
-          <span className="text-xs font-black tracking-wide uppercase text-emerald-300">Live Driver GPS</span>
-          <span className="text-white/40">&bull;</span>
-          <span className="text-xs font-bold text-slate-200">
-            {order?.status === 'delivered' ? 'Delivered' : 'On The Way'}
-          </span>
-        </div>
-
-        <div className="hidden sm:flex items-center gap-2 bg-slate-900/85 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 text-xs text-white shadow-lg pointer-events-auto">
-          <Radio className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
-          <span className="font-mono text-[11px] font-bold text-purple-200">{order?.drone_model || '700RPAV Unit'}</span>
-        </div>
-      </div>
-
-      {/* Map Control Buttons */}
-      <div className="absolute bottom-16 right-3 z-10 flex flex-col gap-1.5 pointer-events-auto">
+      {/* Clean Floating Map Control Buttons */}
+      <div className="absolute bottom-6 right-4 z-10 flex flex-col gap-2 pointer-events-auto">
         <button
           type="button"
           onClick={handleRecenter}
-          className="p-2.5 rounded-xl bg-white/90 hover:bg-white text-slate-700 hover:text-[#5a00b8] shadow-md border border-slate-200 transition-all cursor-pointer"
-          title="Recenter on Delivery Partner"
+          className="p-3 rounded-2xl bg-white/95 hover:bg-white text-slate-700 hover:text-[#5a00b8] shadow-lg border border-slate-200 transition-all cursor-pointer"
+          title="Recenter Map"
         >
           <Navigation className="w-4 h-4" />
         </button>
         <button
           type="button"
           onClick={handleZoomIn}
-          className="p-2.5 rounded-xl bg-white/90 hover:bg-white text-slate-700 shadow-md border border-slate-200 transition-all cursor-pointer"
+          className="p-3 rounded-2xl bg-white/95 hover:bg-white text-slate-700 shadow-lg border border-slate-200 transition-all cursor-pointer"
           title="Zoom In"
         >
           <ZoomIn className="w-4 h-4" />
@@ -282,43 +280,11 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
         <button
           type="button"
           onClick={handleZoomOut}
-          className="p-2.5 rounded-xl bg-white/90 hover:bg-white text-slate-700 shadow-md border border-slate-200 transition-all cursor-pointer"
+          className="p-3 rounded-2xl bg-white/95 hover:bg-white text-slate-700 shadow-lg border border-slate-200 transition-all cursor-pointer"
           title="Zoom Out"
         >
           <ZoomOut className="w-4 h-4" />
         </button>
-      </div>
-
-      {/* Bottom Floating Delivery HUD (Driver & Delivery Partner Live GPS) */}
-      <div className="absolute bottom-3 left-3 right-3 z-10 bg-slate-900/90 backdrop-blur-md rounded-2xl border border-white/15 p-3 text-white shadow-xl flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-4 text-xs font-semibold">
-          <div className="flex items-center gap-1.5">
-            <Compass className="w-4 h-4 text-purple-400" />
-            <div>
-              <span className="text-[10px] text-white/50 block font-normal leading-tight">Delivery Partner</span>
-              <span className="font-bold text-purple-200 truncate max-w-[140px] block">
-                {order?.pilot_assigned || order?.delivery_partner_name || order?.carrier || 'Assigned Delivery Agent'}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 border-l border-white/10 pl-3">
-            <MapPin className="w-4 h-4 text-amber-400" />
-            <div>
-              <span className="text-[10px] text-white/50 block font-normal leading-tight">Destination</span>
-              <span className="font-bold text-amber-200 truncate max-w-[160px] block" title={order?.destination_address || order?.drop_address || 'Delivery Address'}>
-                {order?.destination_address?.split(',')?.[0] || order?.drop_address?.split(',')?.[0] || 'Delivery Address'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="text-right ml-auto">
-          <span className="text-[10px] text-white/50 uppercase tracking-wider block font-bold">Delivery Status</span>
-          <span className="text-xs font-black text-emerald-400">
-            {transitStatusText}
-          </span>
-        </div>
       </div>
     </div>
   );

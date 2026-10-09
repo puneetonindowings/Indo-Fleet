@@ -27,12 +27,12 @@ interface ReleaseNote {
 
 const RELEASES: ReleaseNote[] = [
   {
-    version: 'IndoWings Fleet Command & GCS v3.4.4',
+    version: 'IndoFleet Fleet Command & GCS v3.4.4',
     date: 'SEPTEMBER 19, 2026',
     isLatest: true,
     status: 'Stable',
-    summary: 'IndoWings v3.4.4 delivers enterprise corridor dispatch locks, Dual-IMU redundancy calibration, DGCA DigitalSky NPNT cryptographic clearance integration, and real-time ADS-B radar telemetry streaming.',
-    installerName: 'IndoWings-GCS-v3.4.4-Win64.exe',
+    summary: 'IndoFleet v3.4.4 delivers enterprise corridor dispatch locks, Dual-IMU redundancy calibration, DGCA DigitalSky NPNT cryptographic clearance integration, and real-time ADS-B radar telemetry streaming.',
+    installerName: 'IndoFleet-GCS-v3.4.4-Win64.exe',
     sha256: 'B2AC90D806AFD53E89CB5F288083EAC07CDF8AAB3F5D9112A8A794402AECB69F',
     newFeatures: [
       'DigitalSky NPNT Integration: Cryptographic flight permission artifact validation before motor arming is permitted.',
@@ -59,12 +59,12 @@ const RELEASES: ReleaseNote[] = [
     ]
   },
   {
-    version: 'IndoWings Fleet Command v3.4.0',
+    version: 'IndoFleet Fleet Command v3.4.0',
     date: 'JULY 15, 2026',
     isLatest: false,
     status: 'LTS',
     summary: 'Core enterprise UAV fleet telemetry platform delivering encrypted Ground Control Station (GCS) telemetry, multi-aircraft airspace monitoring, and automated Return-to-Hub (RTH) failsafes.',
-    installerName: 'IndoWings-GCS-v3.4.0-Win64.exe',
+    installerName: 'IndoFleet-GCS-v3.4.0-Win64.exe',
     sha256: 'F92C784198234DBC89021E47983210ABCE891745678912344567891234567890',
     newFeatures: [
       'Multi-UAV Fleet Command: Centralized dispatch board tracking up to 50 active airborne missions across NCR corridors.',
@@ -127,7 +127,7 @@ export const VersionsPage: React.FC<VersionsPageProps> = ({ onNavigate }) => {
           </p>
 
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 tracking-tight leading-[1.1]">
-            What's new in IndoWings Flight & Dispatch Systems
+            What's new in IndoFleet Flight & Dispatch Systems
           </h1>
 
           <p className="text-white/70 text-base sm:text-lg max-w-2xl leading-relaxed">
@@ -216,7 +216,7 @@ export const VersionsPage: React.FC<VersionsPageProps> = ({ onNavigate }) => {
               {release.summary}
             </p>
 
-            {/* 4 Quadrants Grid (IndoWings Specific Content) */}
+            {/* 4 Quadrants Grid (IndoFleet Specific Content) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
               
               {/* Quadrant 1: New */}

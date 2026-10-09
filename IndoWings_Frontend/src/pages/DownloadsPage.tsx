@@ -36,7 +36,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
             <DownloadCloud className="w-7 h-7 text-white" />
           </div>
           <p className="text-xs font-bold tracking-[0.2em] uppercase text-white/70 mb-3">Downloads</p>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight max-w-xl">IndoWings GCS download center</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight max-w-xl">IndoFleet GCS download center</h1>
           <p className="text-white/70 text-base max-w-xl leading-relaxed">Find the latest Windows installer metadata, system requirements, release summary, checksum, archive links, account requirements, and a clear download process.</p>
         </div>
       </section>
@@ -57,9 +57,9 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
             </div>
 
             <div className="p-7">
-            <h2 className="text-2xl font-bold text-[#171222] mb-1">IndoWings GCS v3.4.4</h2>
+            <h2 className="text-2xl font-bold text-[#171222] mb-1">IndoFleet GCS v3.4.4</h2>
             <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-              The latest stable release of IndoWings Ground Control Station. Includes enhanced mission planning, real-time telemetry improvements, and DGCA compliance reporting tools.
+              The latest stable release of IndoFleet Ground Control Station. Includes enhanced mission planning, real-time telemetry improvements, and DGCA compliance reporting tools.
             </p>
 
             {/* Metadata grid */}
@@ -97,7 +97,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
                 </div>
                 <div>
                   <div className="text-xs text-slate-400 font-medium uppercase tracking-wide">Package</div>
-                  <div className="text-sm font-semibold text-[#171222] mt-0.5">IndoWingsGCS_Setup_v3.4.4.msi</div>
+                  <div className="text-sm font-semibold text-[#171222] mt-0.5">IndoFleetGCS_Setup_v3.4.4.msi</div>
                 </div>
               </div>
             </div>
@@ -129,12 +129,12 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
               <div style={{ aspectRatio: '16/9' }}>
                 <img
                   src="/images/gcs-operator-standby.webp"
-                  alt="IndoWings GCS Interface"
+                  alt="IndoFleet GCS Interface"
                   className="w-full h-full object-cover"
                 />
               </div>
               <div className="px-4 py-2.5 border-t border-[#e2e8f0]">
-                <p className="text-xs text-slate-400">IndoWings GCS — Operator view at mission standby</p>
+                <p className="text-xs text-slate-400">IndoFleet GCS — Operator view at mission standby</p>
               </div>
             </div>
 
@@ -167,7 +167,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
                 <User className="w-5 h-5 text-[#5a00b8] shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-semibold text-[#5a00b8] mb-1">Account Required</p>
-                  <p className="text-xs text-slate-500 leading-relaxed">An active IndoWings operator account is required to activate and use GCS. Contact your fleet administrator for access credentials.</p>
+                  <p className="text-xs text-slate-500 leading-relaxed">An active IndoFleet operator account is required to activate and use GCS. Contact your fleet administrator for access credentials.</p>
                 </div>
               </div>
             </div>
@@ -183,7 +183,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
                   'Click "Download .msi Installer" above',
                   'Verify the SHA-256 checksum below',
                   'Run the installer as Administrator',
-                  'Log in with your IndoWings credentials',
+                  'Log in with your IndoFleet credentials',
                   'Complete initial drone pairing setup',
                 ].map((step, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm text-slate-600">
@@ -219,7 +219,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
             className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-[#5a00b8] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to IndoWings Platform
+            Back to IndoFleet Platform
           </button>
         </div>
       </section>

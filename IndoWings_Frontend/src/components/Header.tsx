@@ -37,6 +37,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
         setCartCount(0);
       }
     };
+    updateCart();
     window.addEventListener('storage', updateCart);
     window.addEventListener('iw_cart_updated', updateCart);
     return () => {
@@ -162,9 +163,9 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
             <span>Support Desk</span>
           </a>
 
-          {/* 4. Direct Link: IndoWings */}
+          {/* 4. Direct Link: IndoFleet */}
           <a href="/company" onClick={nav('company', '/company')} className="px-3.5 py-2 rounded-full hover:bg-slate-100/80 hover:text-slate-900 transition-all text-slate-700 font-bold">
-            IndoWings
+            IndoFleet
           </a>
         </nav>
 
@@ -172,15 +173,19 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {/* Cart Quick Access (Desktop & Tablet) */}
           <a
-            href="/store"
-            onClick={nav('shop', '/store')}
-            className="hidden sm:flex relative items-center gap-1 sm:gap-1.5 px-3 py-1.5 rounded-full border border-slate-200/90 hover:border-purple-300 hover:bg-purple-50/80 bg-white/70 backdrop-blur-sm transition-all shadow-xs text-slate-700 hover:text-[#5a00b8] shrink-0"
+            href="/cart"
+            onClick={nav('cart', '/cart')}
+            className={`hidden sm:flex items-center gap-2 pl-3 pr-2.5 py-1.5 rounded-full border transition-all shadow-2xs shrink-0 cursor-pointer ${
+              cartCount > 0
+                ? 'border-purple-200 bg-purple-50/80 text-[#5a00b8] hover:bg-purple-100/80'
+                : 'border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 bg-white text-slate-700 hover:text-[#5a00b8]'
+            }`}
             title="Consignment Cart"
           >
-            <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#5a00b8]" />
+            <ShoppingCart className="w-4 h-4 text-[#5a00b8]" />
             <span className="text-xs font-bold">Cart</span>
             {cartCount > 0 && (
-              <span className="px-1.5 py-0.2 bg-[#5a00b8] text-white text-[10px] font-black rounded-full min-w-[18px] text-center leading-tight">
+              <span className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 bg-[#5a00b8] text-white text-[10px] font-black rounded-full leading-none shadow-xs">
                 {cartCount}
               </span>
             )}
@@ -338,8 +343,8 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
 
           {/* Cart Section in Mobile Drawer */}
           <a
-            href="/store"
-            onClick={nav('shop', '/store')}
+            href="/cart"
+            onClick={nav('cart', '/cart')}
             className="flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-800 bg-purple-50/80 border border-purple-200/80 hover:bg-purple-100/80 transition-all"
           >
             <div className="flex items-center gap-2.5">
@@ -347,7 +352,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
               <span>Consignment Cart</span>
             </div>
             {cartCount > 0 ? (
-              <span className="px-2 py-0.5 rounded-full bg-[#5a00b8] text-white text-[10px] font-black shadow-xs">
+              <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-2 rounded-full bg-[#5a00b8] text-white text-[10px] font-black leading-none shadow-xs">
                 {cartCount} item{cartCount > 1 ? 's' : ''}
               </span>
             ) : (
@@ -385,10 +390,10 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
             <span>Support Desk</span>
           </a>
 
-          {/* IndoWings Link */}
+          {/* IndoFleet Link */}
           <div className="px-3 pt-1.5 pb-0.5">
             <a href="/company" onClick={nav('company', '/company')} className="flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[#5a00b8]">
-              <span>IndoWings</span>
+              <span>IndoFleet</span>
             </a>
           </div>
 

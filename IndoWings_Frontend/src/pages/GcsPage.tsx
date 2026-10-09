@@ -33,7 +33,7 @@ const beforeSignInPills = [
     title: 'Role permissions', 
     icon: ShieldCheck, 
     hasHelp: true, 
-    tooltip: 'Role permissions decide which aircraft, tools, and records an IndoWings account can use.' 
+    tooltip: 'Role permissions decide which aircraft, tools, and records an IndoFleet account can use.' 
   },
   { title: 'Trusted workstation', icon: MonitorCheck },
   { title: 'Aircraft assignments', icon: Plane },
@@ -121,13 +121,13 @@ export const GcsPage: React.FC<GcsPageProps> = ({
                 <MonitorUp className="w-5 h-5 text-purple-300" />
               </span>
               <p className="text-xs font-bold tracking-widest text-[#d8b4fe] uppercase">
-                INDOWINGS GROUND CONTROL STATION
+                INDOFLEET GROUND CONTROL STATION
               </p>
               <h1 className="text-3xl sm:text-4xl lg:text-[50px] font-extrabold text-white tracking-tight leading-[1.08]">
                 Field software for professional UAV operations.
               </h1>
               <p className="text-base sm:text-[17px] text-purple-100/85 leading-relaxed max-w-2xl">
-                IndoWings GCS gives approved operations teams a controlled desktop workspace for aircraft connection, mission planning, telemetry monitoring, vehicle configuration, readiness checks, and Command Center sync.
+                IndoFleet GCS gives approved operations teams a controlled desktop workspace for aircraft connection, mission planning, telemetry monitoring, vehicle configuration, readiness checks, and Command Center sync.
               </p>
 
               {/* Action Buttons */}
@@ -165,8 +165,8 @@ export const GcsPage: React.FC<GcsPageProps> = ({
             {/* Right Visual Hero Shot */}
             <figure className="rounded-2xl overflow-hidden shadow-2xl border border-white/15 bg-[#12051e] group">
               <img 
-                src="/images/indowings-gcs-realtime-planning.webp" 
-                alt="IndoWings GCS real-time mission planning view with route validation and live mission status"
+                src="/images/indowfleet-gcs-realtime-planning.webp" 
+                alt="IndoFleet GCS real-time mission planning view with route validation and live mission status"
                 className="w-full h-auto object-cover block group-hover:scale-[1.01] transition-transform duration-300"
               />
             </figure>
@@ -184,13 +184,13 @@ export const GcsPage: React.FC<GcsPageProps> = ({
                 BEFORE YOU SIGN IN
               </p>
               <h2 className="text-2xl sm:text-3xl lg:text-[38px] font-extrabold text-[#111827] tracking-tight leading-tight mb-4">
-                GCS is for approved IndoWings users and organizations.
+                GCS is for approved IndoFleet users and organizations.
               </h2>
               <p className="text-base text-slate-600 leading-relaxed mb-4 max-w-xl">
-                IndoWings GCS requires an active IndoWings Command Center account. The account determines who the user is, which organization they belong to, which aircraft they can access, which workspaces are visible, and whether trusted-device workflows are required.
+                IndoFleet GCS requires an active IndoFleet Command Center account. The account determines who the user is, which organization they belong to, which aircraft they can access, which workspaces are visible, and whether trusted-device workflows are required.
               </p>
               <p className="text-base text-slate-600 leading-relaxed mb-6 max-w-xl">
-                Administrators provision the supported IndoFleet accounts for fleet managers, dispatchers, support staff, and customers. If your organization is new to IndoWings, contact support to begin onboarding.
+                Administrators provision the supported IndoFleet accounts for fleet managers, dispatchers, support staff, and customers. If your organization is new to IndoFleet, contact support to begin onboarding.
               </p>
               <button 
                 onClick={onOpenDemoBooking}
@@ -248,8 +248,8 @@ export const GcsPage: React.FC<GcsPageProps> = ({
             {/* Left Large Screenshot: Waypoint route planner */}
             <figure className="relative lg:row-span-2 aspect-[16/10] lg:aspect-auto h-full min-h-0 rounded-xl overflow-hidden shadow-[0_20px_54px_rgba(31,18,45,0.16)] border border-[#5a00b8]/15 bg-[#12051e] group">
               <img 
-                src="/images/indowings-route-planner.webp" 
-                alt="IndoWings GCS route planner with waypoint controls and mission execution panel"
+                src="/images/indowfleet-route-planner.webp" 
+                alt="IndoFleet GCS route planner with waypoint controls and mission execution panel"
                 className="w-full h-full object-cover block group-hover:scale-[1.025] transition-all duration-400"
               />
               <figcaption className="absolute bottom-3.5 left-3.5 px-3 py-1.5 rounded-md bg-[#0c0418]/80 backdrop-blur-md text-white text-xs font-bold tracking-wide border border-white/10 pointer-events-none">
@@ -261,7 +261,7 @@ export const GcsPage: React.FC<GcsPageProps> = ({
             <figure className="relative aspect-[16/10] h-full min-h-0 rounded-xl overflow-hidden shadow-[0_20px_54px_rgba(31,18,45,0.16)] border border-[#5a00b8]/15 bg-[#12051e] group">
               <img 
                 src="/images/operator-start-mission.webp" 
-                alt="IndoWings operator start mission screen with flight metrics and mission launch action"
+                alt="IndoFleet operator start mission screen with flight metrics and mission launch action"
                 className="w-full h-full object-cover block group-hover:scale-[1.025] transition-all duration-400"
               />
               <figcaption className="absolute bottom-3.5 left-3.5 px-3 py-1.5 rounded-md bg-[#0c0418]/80 backdrop-blur-md text-white text-xs font-bold tracking-wide border border-white/10 pointer-events-none">
@@ -272,8 +272,8 @@ export const GcsPage: React.FC<GcsPageProps> = ({
             {/* Right Bottom Screenshot: Mission operation center */}
             <figure className="relative aspect-[16/10] h-full min-h-0 rounded-xl overflow-hidden shadow-[0_20px_54px_rgba(31,18,45,0.16)] border border-[#5a00b8]/15 bg-white group">
               <img 
-                src="/images/indowings-mission-operation-center.webp" 
-                alt="IndoWings mission operation center with aircraft readiness and quick actions"
+                src="/images/indowfleet-mission-operation-center.webp" 
+                alt="IndoFleet mission operation center with aircraft readiness and quick actions"
                 className="w-full h-full object-cover block group-hover:scale-[1.025] transition-all duration-400"
               />
               <figcaption className="absolute bottom-3.5 left-3.5 px-3 py-1.5 rounded-md bg-[#0c0418]/80 backdrop-blur-md text-white text-xs font-bold tracking-wide border border-white/10 pointer-events-none">

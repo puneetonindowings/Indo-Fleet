@@ -1,28 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Package,
   Navigation,
   ArrowRight,
   ShieldCheck,
   Wrench,
-  ChevronRight,
   CheckCircle2,
-  Cpu,
-  Clock,
-  Radio,
-  Zap,
-  Compass,
-  Headphones,
   ShoppingCart,
-  Truck,
-  FileText,
-  Plane,
-  Activity,
-  Sparkles,
-  Check
+  Eye,
+  EyeOff
 } from 'lucide-react';
-import { InteractiveDrone } from './InteractiveDrone';
-import { ElevationMeshBackground } from './ElevationMeshBackground';
 import { DeliveryUser } from '../types';
 
 interface HeroProps {
@@ -36,8 +23,7 @@ const PLATFORM_FEATURES = [
   {
     icon: ShoppingCart,
     title: 'Fleet Store & Booking',
-    desc: 'Browse available IndoWings 700RPAV tactical quadcopter units and place consignment orders directly.',
-    color: 'bg-purple-50 text-purple-700 border-purple-200',
+    desc: 'Browse available IndoFleet 700RPAV tactical quadcopter units and place consignment orders directly.',
     link: '/store',
     page: 'store'
   },
@@ -45,7 +31,6 @@ const PLATFORM_FEATURES = [
     icon: ShieldCheck,
     title: 'Pre-Flight QC Diagnostics',
     desc: 'Mandatory airworthiness diagnostics across avionics, battery balance, DGCA compliance, and payload calibration before shipment.',
-    color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     link: '/fleet',
     page: 'fleet'
   },
@@ -53,7 +38,6 @@ const PLATFORM_FEATURES = [
     icon: Package,
     title: 'Order Dispatch & Allocation',
     desc: 'Assign QC-certified aircraft to pending client consignments and manage real-time dispatch authorization records.',
-    color: 'bg-amber-50 text-amber-700 border-amber-200',
     link: '/dispatch',
     page: 'dispatch'
   },
@@ -61,7 +45,6 @@ const PLATFORM_FEATURES = [
     icon: Navigation,
     title: 'Live Transit & GPS Tracking',
     desc: 'Track dispatched drones in real time on interactive terrain maps with live route estimates, ETAs, and road logistics link.',
-    color: 'bg-sky-50 text-sky-700 border-sky-200',
     link: '/track',
     page: 'track'
   }
@@ -73,30 +56,60 @@ const TRANSIT_STAGES = [
     icon: ShoppingCart,
     title: 'Selection & Booking',
     desc: 'Reserve verified 700RPAV aircraft from hangar inventory and set corridor coordinates.',
-    tag: 'Noida Manufacturing Hangar'
+    tag: '1'
   },
   {
     step: '02',
     icon: Wrench,
     title: 'Pre-Delivery Diagnostics',
     desc: 'Mandatory 4-point bench inspection: dual IMU sensors, RTK centimeter fix, and battery impedance testing.',
-    tag: 'Pre-Flight Testing Bay'
+    tag: '2'
   },
   {
     step: '03',
     icon: Navigation,
-    title: 'Air Corridor Transit',
+    title: 'In Transit',
     desc: 'BVLOS corridor dispatch with 5.8 GHz encrypted telemetry broadcasting real-time GPS & altitude.',
-    tag: 'Active Air Corridor'
+    tag: '3'
   },
   {
     step: '04',
     icon: Package,
     title: 'Client Technical Handover',
     desc: 'Physical seal inspection, serial tag audit, telemetry log verification, and digital sign-off.',
-    tag: 'Client Base Acceptance'
+    tag: '4'
   }
 ];
+
+/* Spec sheet — only the values already on the site */
+const SPECS = [
+  { label: 'Flight Endurance', value: '65', unit: 'Mins', note: 'AMSL cruising' },
+  { label: 'Launch Ceiling', value: '18,000', unit: 'ft', note: 'High altitude' },
+  { label: 'Telemetry Range', value: '10', unit: 'KM', note: 'Line of sight' },
+  { label: 'Max MTOW', value: '5.0', unit: 'Kg', note: '2.2 Kg payload' }
+];
+
+const HARDWARE = [
+  'PPK / RTK Centimetric Precision GPS',
+  'Solid-State Slide & Lock Battery System',
+  'IP 53 Weatherproof All-Terrain Rating',
+  'H7 Edge Flight Computer & UART Hub'
+];
+
+const KEYFRAMES = `
+@keyframes hfRise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes hfLine { from { transform: translateY(105%); } to { transform: none; } }
+@keyframes hfFill { from { width: 0%; } to { width: 100%; } }
+.hf-rise { opacity: 0; animation: hfRise .8s cubic-bezier(.2,.7,.2,1) forwards; }
+.hf-swap { animation: hfRise .45s cubic-bezier(.2,.7,.2,1) both; }
+.hf-line { display: block; transform: translateY(105%); animation: hfLine .9s cubic-bezier(.2,.8,.2,1) forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .hf-rise { opacity: 1; animation: none; }
+  .hf-swap { animation: none; }
+  .hf-line { transform: none; animation: none; }
+  .hf-fill { animation: none !important; width: 100% !important; }
+}
+`;
 
 export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
   const go = (page: string, url: string) => {
@@ -105,323 +118,331 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  /* Hero: "view drone" toggle hides the text so the video is fully visible */
+  const [clean, setClean] = useState(false);
+
+  /* Protocol: auto-advancing stepper */
+  const [proto, setProto] = useState(0);
+  useEffect(() => {
+    const id = setTimeout(() => setProto((p) => (p + 1) % TRANSIT_STAGES.length), 5000);
+    return () => clearTimeout(id);
+  }, [proto]);
+  const ProtoIcon = TRANSIT_STAGES[proto].icon;
+
   return (
     <>
-      {/* ══════════════════════════════════════════════════════════════════════
-          HERO — Primary Platform Gateway
-         ══════════════════════════════════════════════════════════════════════ */}
-      <section
-        className="relative overflow-hidden flex items-center"
-        style={{
-          background: 'linear-gradient(135deg, #090314 0%, #130626 50%, #1c0836 100%)'
-        }}
-      >
-        {/* 3D Interactive Elevation Mesh */}
-        <ElevationMeshBackground />
+      <style>{KEYFRAMES}</style>
 
-        {/* Ambient atmospheric glows */}
-        <div
-          className="absolute top-1/4 left-1/3 w-[650px] h-[650px] rounded-full opacity-25 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #9333ea 0%, transparent 70%)' }}
-        />
-        <div
-          className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full opacity-20 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #bc13fe 0%, transparent 70%)' }}
+      {/* ════════════════════════════════════════════════════════════════════
+          HERO — full-screen video, headline, ticker
+         ════════════════════════════════════════════════════════════════════ */}
+      <section className="relative flex min-h-[100svh] w-full flex-col justify-end overflow-hidden bg-black text-white">
+        {/* Full-screen background video (original, untouched) */}
+        <video
+          src="/stick.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         />
 
-        <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 w-full pt-28 pb-16 sm:pt-36 sm:pb-24 pointer-events-none [&_button]:pointer-events-auto [&_a]:pointer-events-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_480px] gap-12 lg:gap-16 items-center">
-            {/* ── Left Column: Operations Banner ── */}
-            <div className="space-y-6">
-              {/* Title */}
-              <h1 className="text-3xl sm:text-5xl lg:text-[54px] font-black leading-[1.15] tracking-tight text-white">
+        {/* Text content */}
+        <div
+          className={`relative z-10 mx-auto w-full max-w-[1280px] px-4 pb-10 pt-32 transition-opacity duration-500 sm:px-6 sm:pt-36 ${
+            clean ? 'pointer-events-none opacity-0' : 'opacity-100'
+          }`}
+        >
+          <h1 className="text-[clamp(2.5rem,7vw,6rem)] font-black leading-[0.95] tracking-tighter drop-shadow-lg">
+            <span className="block overflow-hidden pb-[0.12em]">
+              <span className="hf-line" style={{ animationDelay: '60ms' }}>
                 Enterprise UAV Fleet,
-                <br />
+              </span>
+            </span>
+            <span className="-mt-[0.12em] block overflow-hidden pb-[0.12em]">
+              <span className="hf-line" style={{ animationDelay: '170ms' }}>
                 Booking &amp;
-                <span
-                  className="block mt-1 text-transparent bg-clip-text"
-                  style={{
-                    backgroundImage: 'linear-gradient(90deg, #c084fc, #818cf8)'
-                  }}
-                >
-                  Live Transit Management
-                </span>
-              </h1>
+              </span>
+            </span>
+            <span className="-mt-[0.12em] block overflow-hidden pb-[0.12em]">
+              <span
+                className="hf-line bg-clip-text text-transparent"
+                style={{
+                  animationDelay: '280ms',
+                  backgroundImage: 'linear-gradient(90deg, #c084fc, #818cf8)'
+                }}
+              >
+                Live Transit Management
+              </span>
+            </span>
+          </h1>
 
-              {/* Subtitle */}
-              <p className="text-sm sm:text-base text-white/75 max-w-xl leading-relaxed">
-                Discover IndoWings 700RPAV tactical quadcopters, reserve verified aircraft units for your enterprise operations, and track real-time factory-to-site corridor telemetry.
-              </p>
+          <div className="mt-8 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+            <p
+              className="hf-rise max-w-xl text-sm leading-relaxed text-white/85 drop-shadow sm:text-lg"
+              style={{ animationDelay: '480ms' }}
+            >
+              Discover IndoFleet 700RPAV tactical quadcopters, reserve verified aircraft units for
+              your enterprise operations, and track real-time factory-to-site corridor telemetry.
+            </p>
 
-              {/* CTAs */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <button
-                  onClick={() => go('store', '/store')}
-                  className="flex items-center gap-2.5 px-7 py-3.5 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-[#7c3aed] to-[#6366f1] hover:from-[#6d28d9] hover:to-[#4f46e5] shadow-xl shadow-purple-900/40 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
-                >
-                  <ShoppingCart className="w-4 h-4 text-white" />
-                  <span>Explore Fleet Store</span>
-                  <ArrowRight className="w-4 h-4 text-white ml-0.5" />
-                </button>
+            <div
+              className="hf-rise flex flex-wrap items-center gap-3"
+              style={{ animationDelay: '600ms' }}
+            >
+              <button
+                type="button"
+                onClick={() => go('store', '/store')}
+                className="flex cursor-pointer items-center gap-2.5 rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#6366f1] px-7 py-3.5 text-sm font-bold text-white shadow-xl shadow-purple-900/40 transition-all hover:scale-[1.02] hover:from-[#6d28d9] hover:to-[#4f46e5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-95"
+              >
+                <ShoppingCart className="h-4 w-4" />
+                <span>Explore Fleet Store</span>
+                <ArrowRight className="ml-0.5 h-4 w-4" />
+              </button>
 
-                <button
-                  onClick={() => go('track', '/track')}
-                  className="flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm text-white border border-white/20 bg-white/5 hover:bg-white/10 backdrop-blur-sm transition-all active:scale-95 cursor-pointer"
-                >
-                  <Navigation className="w-4 h-4 text-purple-300" />
-                  <span>Track Drone Transit</span>
-                </button>
-              </div>
-            </div>
-
-            {/* ── Right Column: Floating 3D Drone Mascot ── */}
-            <div className="flex flex-col items-center justify-center">
-              <InteractiveDrone onOrderClick={() => go('store', '/store')} />
+              <button
+                type="button"
+                onClick={() => go('track', '/track')}
+                className="flex cursor-pointer items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-6 py-3.5 text-sm font-bold text-white backdrop-blur-sm transition-all hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-95"
+              >
+                <Navigation className="h-4 w-4 text-purple-300" />
+                <span>Track Drone Transit</span>
+              </button>
             </div>
           </div>
         </div>
+
+
       </section>
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          CORE PLATFORM CAPABILITIES
-         ══════════════════════════════════════════════════════════════════════ */}
-      <section className="py-20 bg-white border-b border-slate-200">
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
+      {/* ════════════════════════════════════════════════════════════════════
+          CAPABILITIES — hover-sweep rows
+         ════════════════════════════════════════════════════════════════════ */}
+      <section className="bg-white py-20 sm:py-28">
+        <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
+          <div className="mb-12 max-w-2xl">
+            <h2 className="text-3xl font-black tracking-tight text-slate-900 sm:text-5xl">
               Enterprise Fleet Operations
             </h2>
-            <p className="text-slate-500 text-sm sm:text-base mt-3 leading-relaxed">
-              An end-to-end platform managing drone manufacturing inventory, pre-delivery bench testing, and live corridor transit tracking.
+            <p className="mt-4 text-base leading-relaxed text-slate-500">
+              An end-to-end platform managing drone manufacturing inventory, pre-delivery bench
+              testing, and live corridor transit tracking.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {PLATFORM_FEATURES.map((feat, idx) => {
+          <div className="divide-y divide-slate-200 border-y border-slate-200">
+            {PLATFORM_FEATURES.map((feat) => {
               const Icon = feat.icon;
               return (
-                <div
-                  key={idx}
+                <button
+                  key={feat.title}
+                  type="button"
                   onClick={() => go(feat.page, feat.link)}
-                  className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between hover:border-purple-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-200 group cursor-pointer"
+                  className="group relative flex w-full cursor-pointer items-center gap-4 overflow-hidden px-4 py-7 text-left focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#5a00b8] sm:gap-6 sm:px-6"
                 >
-                  <div>
-                    <div className="w-11 h-11 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-700 group-hover:text-[#5a00b8] group-hover:bg-purple-50 group-hover:border-purple-200 transition-colors mb-4">
-                      <Icon className="w-5 h-5" />
-                    </div>
+                  {/* purple sweep */}
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-0 origin-left scale-x-0 bg-[#5a00b8] transition-transform duration-500 ease-out group-hover:scale-x-100 group-focus-visible:scale-x-100"
+                  />
 
-                    <h3 className="text-base font-black text-slate-900 leading-snug group-hover:text-[#5a00b8] transition-colors">{feat.title}</h3>
-                    <p className="text-xs text-slate-500 mt-2.5 leading-relaxed">{feat.desc}</p>
-                  </div>
+                  <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-[#5a00b8] transition-colors duration-300 group-hover:border-white/25 group-hover:bg-white/15 group-hover:text-white group-focus-visible:text-white">
+                    <Icon className="h-6 w-6" />
+                  </span>
 
-                  <div className="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-700 group-hover:text-[#5a00b8]">
-                    <span>Learn More</span>
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                  </div>
-                </div>
+                  <span className="relative min-w-0 flex-1">
+                    <span className="block text-xl font-black tracking-tight text-slate-900 transition-colors duration-300 group-hover:text-white group-focus-visible:text-white sm:text-3xl">
+                      {feat.title}
+                    </span>
+                    <span className="mt-2 block max-w-2xl text-sm leading-relaxed text-slate-500 transition-colors duration-300 group-hover:text-white/85 group-focus-visible:text-white/85">
+                      {feat.desc}
+                    </span>
+                  </span>
+
+                  <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-300 text-slate-700 transition-all duration-300 group-hover:border-white group-hover:bg-white group-hover:text-[#5a00b8] group-focus-visible:bg-white group-focus-visible:text-[#5a00b8]">
+                    <ArrowRight className="h-5 w-5 -rotate-45 transition-transform duration-300 group-hover:rotate-0" />
+                  </span>
+                </button>
               );
             })}
           </div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          4-STAGE PROTOCOL — MINIMAL & CLEAN
-         ══════════════════════════════════════════════════════════════════════ */}
-      <section className="py-20 bg-slate-50/70 border-t border-slate-200/80" id="protocol">
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
-          
-          {/* Minimal Section Header */}
-          <div className="max-w-2xl mb-12">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#5a00b8]">Delivery Workflow</p>
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1.5">
+      {/* ════════════════════════════════════════════════════════════════════
+          PROTOCOL — auto-advancing stepper
+         ════════════════════════════════════════════════════════════════════ */}
+      <section
+        id="protocol"
+        className="border-y border-slate-200 bg-slate-50 py-20 sm:py-28"
+      >
+        <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
+          <div className="mb-12 max-w-2xl">
+            <p className="text-sm font-bold text-[#5a00b8]">Delivery Workflow</p>
+            <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-900 sm:text-5xl">
               Factory to Site Transit Protocol
             </h2>
-            <p className="text-slate-500 text-sm mt-2 leading-relaxed">
-              Standard operating procedure from manufacturing hangar assembly to final client acceptance.
+            <p className="mt-4 text-base leading-relaxed text-slate-500">
+              Standard operating procedure from manufacturing hangar assembly to final client
+              acceptance.
             </p>
           </div>
 
-          {/* Minimal 4-Stage Grid with Curvy Connecting Thread */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
-            {TRANSIT_STAGES.map((step, i) => (
-              <div key={step.step} className="relative flex flex-col">
-                <div className="group h-full bg-white rounded-2xl p-6 border border-slate-200/90 shadow-sm hover:border-purple-300 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-5">
-                      <span className="text-2xl font-black tracking-tighter text-slate-300 group-hover:text-[#5a00b8] transition-colors">
-                        {step.step}
+          <div className="grid gap-6 lg:grid-cols-12">
+            {/* Step list */}
+            <div className="space-y-3 lg:col-span-5">
+              {TRANSIT_STAGES.map((s, i) => {
+                const active = proto === i;
+                return (
+                  <button
+                    key={s.step}
+                    type="button"
+                    onClick={() => setProto(i)}
+                    aria-current={active}
+                    className={`relative w-full cursor-pointer overflow-hidden rounded-xl border bg-white px-5 py-4 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#5a00b8] ${
+                      active
+                        ? 'border-[#5a00b8] shadow-sm'
+                        : 'border-slate-200 hover:border-purple-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <span
+                        className={`font-mono text-sm font-bold ${
+                          active ? 'text-[#5a00b8]' : 'text-slate-400'
+                        }`}
+                      >
+                        {s.step}
                       </span>
-                      <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-purple-50 group-hover:text-[#5a00b8] group-hover:border-purple-200 transition-colors">
-                        <step.icon className="w-5 h-5" />
-                      </div>
+                      <span className={`font-bold ${active ? 'text-slate-900' : 'text-slate-500'}`}>
+                        {s.title}
+                      </span>
                     </div>
-
-                    <h3 className="text-base font-bold text-slate-900 group-hover:text-[#5a00b8] transition-colors mb-2">
-                      {step.title}
-                    </h3>
-                    
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      {step.desc}
-                    </p>
-                  </div>
-
-                  <div className="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between text-[11px] font-medium text-slate-400 group-hover:text-slate-600 transition-colors">
-                    <span>{step.tag}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#5a00b8] group-hover:translate-x-0.5 transition-all" />
-                  </div>
-                </div>
-
-                {/* Curvy Thread Connector between cards (Desktop) */}
-                {i < TRANSIT_STAGES.length - 1 && (
-                  <div className="hidden lg:block absolute -right-6 top-1/2 -translate-y-1/2 w-6 h-8 pointer-events-none z-10 text-slate-300">
-                    <svg className="w-full h-full overflow-visible" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M 0 12 C 6 4, 12 20, 18 12 C 20 9, 22 11, 24 12"
-                        stroke="#cbd5e1"
-                        strokeWidth="2"
-                        strokeDasharray="3 3"
-                        strokeLinecap="round"
+                    {active && (
+                      <span
+                        key={proto}
+                        className="hf-fill absolute bottom-0 left-0 h-[3px] bg-[#5a00b8]"
+                        style={{ animation: 'hfFill 5s linear forwards' }}
                       />
-                    </svg>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
+            {/* Detail panel */}
+            <div
+              key={proto}
+              className="hf-swap relative flex min-h-[320px] flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-8 shadow-sm lg:col-span-7"
+            >
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-2 -top-6 select-none text-[160px] font-black leading-none text-slate-900/[0.05]"
+              >
+                {TRANSIT_STAGES[proto].step}
+              </span>
+
+              <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-[#5a00b8] text-white">
+                <ProtoIcon className="h-7 w-7" />
+              </div>
+
+              <div className="relative mt-10">
+                <h3 className="text-3xl font-black tracking-tight text-slate-900">
+                  {TRANSIT_STAGES[proto].title}
+                </h3>
+                <p className="mt-3 max-w-lg text-base leading-relaxed text-slate-600">
+                  {TRANSIT_STAGES[proto].desc}
+                </p>
+                <span className="mt-6 inline-block rounded-full border border-purple-200 bg-purple-50 px-4 py-1.5 text-xs font-medium text-[#5a00b8]">
+                  {TRANSIT_STAGES[proto].tag}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          FEATURED AIRCRAFT: 700RPAV
-         ══════════════════════════════════════════════════════════════════════ */}
-      <section className="py-20 bg-white border-t border-slate-200">
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
-
-          {/* Section Header */}
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
-              IndoWings 700RPAV
+      {/* ════════════════════════════════════════════════════════════════════
+          FEATURED AIRCRAFT: 700RPAV — real footage + spec sheet
+         ════════════════════════════════════════════════════════════════════ */}
+      <section className="bg-white py-20 sm:py-28">
+        <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
+          <div className="mb-12 max-w-2xl">
+            <h2 className="text-3xl font-black tracking-tight text-slate-900 sm:text-5xl">
+              IndoFleet 700RPAV
             </h2>
-            <p className="text-slate-500 text-sm sm:text-base mt-2.5 leading-relaxed">
-              Tactical surveillance, high-precision mapping and extreme high-altitude delivery quadcopter UAV.
+            <p className="mt-4 text-base leading-relaxed text-slate-500">
+              Tactical surveillance, high-precision mapping and extreme high-altitude delivery
+              quadcopter UAV.
             </p>
           </div>
 
-          {/* Main Showcase Card */}
-          <div className="bg-[#fbfafd] rounded-3xl border border-slate-200/90 p-6 sm:p-10 shadow-sm">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+          <div className="grid gap-10 lg:grid-cols-12 lg:items-stretch">
+            {/* Left: the real aircraft */}
+            <div className="relative min-h-[320px] overflow-hidden rounded-3xl bg-black lg:col-span-6">
+              <video
+                src="/rpav.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+              />
+              <div
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3"
+                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)' }}
+              />
+              <p className="absolute bottom-5 left-6 text-lg font-black text-white">
+                IndoFleet 700RPAV
+              </p>
+            </div>
 
-              {/* Left Column: Drone Overview & Specs (7 cols) */}
-              <div className="lg:col-span-7 space-y-6">
-                <div>
-                  <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                    700RPAV
-                  </h3>
-                  <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-                    Engineered for high-altitude BVLOS operations over mountains, near-silent acoustic surveillance, and rapid multi-payload logistics.
-                  </p>
-                </div>
+            {/* Right: spec sheet */}
+            <div className="lg:col-span-6">
+              <p className="max-w-xl text-sm leading-relaxed text-slate-500 sm:text-base">
+                Engineered for high-altitude BVLOS operations over mountains, near-silent acoustic
+                surveillance, and rapid multi-payload logistics.
+              </p>
 
-                {/* 4 Stats Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm text-center">
-                    <p className="text-[11px] font-bold text-slate-400">Flight Endurance</p>
-                    <p className="text-lg font-black text-slate-900 mt-1">65 Mins</p>
-                    <p className="text-[10px] text-[#5a00b8] font-medium mt-0.5">AMSL Cruising</p>
-                  </div>
-                  <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm text-center">
-                    <p className="text-[11px] font-bold text-slate-400">Launch Ceiling</p>
-                    <p className="text-lg font-black text-slate-900 mt-1">18,000 ft</p>
-                    <p className="text-[10px] text-[#5a00b8] font-medium mt-0.5">High Altitude</p>
-                  </div>
-                  <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm text-center">
-                    <p className="text-[11px] font-bold text-slate-400">Telemetry Range</p>
-                    <p className="text-lg font-black text-slate-900 mt-1">10 KM</p>
-                    <p className="text-[10px] text-[#5a00b8] font-medium mt-0.5">Line of Sight</p>
-                  </div>
-                  <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm text-center">
-                    <p className="text-[11px] font-bold text-slate-400">Max MTOW</p>
-                    <p className="text-lg font-black text-slate-900 mt-1">5.0 Kg</p>
-                    <p className="text-[10px] text-[#5a00b8] font-medium mt-0.5">2.2 Kg Payload</p>
-                  </div>
-                </div>
-
-                {/* Features Checklist */}
-                <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-2.5">
-                  <p className="text-xs font-black uppercase tracking-wider text-slate-700">
-                    Avionics &amp; Hardware Standard
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                    {[
-                      'PPK / RTK Centimetric Precision GPS',
-                      'Solid-State Slide & Lock Battery System',
-                      'IP 53 Weatherproof All-Terrain Rating',
-                      'H7 Edge Flight Computer & UART Hub'
-                    ].map((feat) => (
-                      <div key={feat} className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                        <span>{feat}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Action buttons */}
-                <div className="pt-2 flex flex-wrap gap-3">
-                  <button
-                    onClick={() => go('store', '/store')}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-xs text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-sm active:scale-95 cursor-pointer"
+              <dl className="mt-6 divide-y divide-slate-200 border-y border-slate-200">
+                {SPECS.map((s) => (
+                  <div
+                    key={s.label}
+                    className="flex items-center justify-between gap-4 px-2 py-4 transition-colors hover:bg-purple-50"
                   >
-                    <ShoppingCart className="w-3.5 h-3.5" />
-                    <span>Browse Fleet Store</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Right Column: Transit Corridor Status */}
-              <div className="lg:col-span-5 space-y-4">
-                <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-5">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <p className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-2">
-                      <Compass className="w-4 h-4 text-[#5a00b8]" />
-                      Corridor Transit Status
+                    <div>
+                      <dt className="text-sm font-bold text-slate-900">{s.label}</dt>
+                      <dd className="text-xs text-slate-500">{s.note}</dd>
+                    </div>
+                    <p className="text-3xl font-black tabular-nums text-slate-900">
+                      {s.value}
+                      <span className="ml-1.5 text-base font-bold text-[#5a00b8]">{s.unit}</span>
                     </p>
                   </div>
+                ))}
+              </dl>
 
-                  {/* Visual Steps */}
-                  <div className="space-y-4 relative pl-6 before:content-[''] before:absolute before:left-2 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-200">
-                    <div className="relative">
-                      <div className="w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-sm absolute -left-6 top-0.5" />
-                      <p className="text-xs font-bold text-slate-900">Departure Facility</p>
-                      <p className="text-xs text-slate-500">Noida Manufacturing Hangar</p>
-                      <span className="text-[10px] text-emerald-600 font-semibold">&bull; Assembly &amp; Diagnostics Passed</span>
-                    </div>
+              <p className="mt-8 text-sm font-black text-slate-900">Avionics &amp; Hardware Standard</p>
+              <ul className="mt-3 space-y-3">
+                {HARDWARE.map((f) => (
+                  <li key={f} className="flex items-center gap-2.5 text-sm font-medium text-slate-600">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
 
-                    <div className="relative">
-                      <div className="w-4 h-4 rounded-full bg-[#5a00b8] border-2 border-white shadow-sm absolute -left-6 top-0.5 animate-pulse" />
-                      <p className="text-xs font-bold text-slate-900">Transit Air Corridor</p>
-                      <p className="text-xs text-slate-500">Corridor Alpha-4 (Active)</p>
-                      <span className="text-[10px] text-[#5a00b8] font-semibold">&bull; 5.8 GHz Telemetry Linked</span>
-                    </div>
-
-                    <div className="relative">
-                      <div className="w-4 h-4 rounded-full bg-slate-300 border-2 border-white shadow-sm absolute -left-6 top-0.5" />
-                      <p className="text-xs font-bold text-slate-900">Receiving Base Station</p>
-                      <p className="text-xs text-slate-500">Client Delivery Facility</p>
-                      <span className="text-[10px] text-slate-400 font-semibold">&bull; Handover Certificate Ready</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
+              <button
+                type="button"
+                onClick={() => go('store', '/store')}
+                className="mt-8 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#5a00b8] px-6 py-3.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#4a0099] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5a00b8] active:scale-95"
+              >
+                <ShoppingCart className="h-4 w-4" />
+                <span>Browse Fleet Store</span>
+              </button>
             </div>
           </div>
-
         </div>
       </section>
     </>
   );
 };
-

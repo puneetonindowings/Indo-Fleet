@@ -1,4 +1,4 @@
-import './env.js';
+﻿import './env.js';
 import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.js';
@@ -15,15 +15,33 @@ import { seedDefaultAccounts } from './seed.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Enable CORS for frontend Vite development
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : [
+      process.env.FRONTEND_URL || 'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:5000',
+      'http://127.0.0.1:5173',
+      'https://IndoFleet.com',
+      'https://app.IndoFleet.com'
+    ];
+
+// CORS Middleware with origin whitelist restriction
 app.use(cors({
-  origin: '*',
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (process.env.NODE_ENV !== 'production' || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS policy violation: Origin '${origin}' is not authorized.`));
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
 
-app.use('/api/webhooks/resend', express.raw({ type: 'application/json', limit: '1mb' }), resendWebhookRoutes);
-app.use(express.json());
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ limit: '15mb', extended: true }));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -38,7 +56,7 @@ app.use('/api/delivery', deliveryRoutes);
 app.get('/', (req, res) => {
   res.json({
     status: 'online',
-    message: 'IndoWings Drone Operations & Delivery API Gateway',
+    message: 'IndoFleet Drone Operations & Delivery API Gateway',
     version: '3.4.4',
     endpoints: {
       health: '/api/health',
@@ -54,7 +72,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'online',
     version: '3.4.4',
-    service: 'IndoWings Flight Operations API & Command Center Gateway',
+    service: 'IndoFleet Flight Operations API & Command Center Gateway',
     timestamp: new Date().toISOString()
   });
 });
@@ -85,3 +103,4 @@ verifySupabaseConnection()
     console.error('[startup] Supabase is required and must be reachable before starting the API:', error);
     process.exitCode = 1;
   });
+

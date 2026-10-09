@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { dbService } from '../supabase.js';
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth.js';
 
@@ -26,7 +26,7 @@ router.post('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
 
     const mission = await dbService.createMission({
       title,
-      operator_email: req.user?.email || 'dispatch@indowings.com',
+      operator_email: req.user?.email || 'dispatch@IndoFleet.com',
       drone_model,
       status: 'PLANNED',
       location_name: location_name || 'Unassigned Sector',
@@ -39,7 +39,7 @@ router.post('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
     });
 
     await dbService.logAudit({
-      user_email: req.user?.email || 'dispatch@indowings.com',
+      user_email: req.user?.email || 'dispatch@IndoFleet.com',
       role: req.user?.role || 'dispatcher',
       action: 'MISSION_CREATED',
       resource: mission.title,
@@ -66,7 +66,7 @@ router.patch('/:id/status', authenticateToken, async (req: AuthenticatedRequest,
     }
 
     await dbService.logAudit({
-      user_email: req.user?.email || 'dispatch@indowings.com',
+      user_email: req.user?.email || 'dispatch@IndoFleet.com',
       role: req.user?.role || 'dispatcher',
       action: `MISSION_STATUS_${status}`,
       resource: mission.title,
@@ -81,3 +81,4 @@ router.patch('/:id/status', authenticateToken, async (req: AuthenticatedRequest,
 });
 
 export default router;
+

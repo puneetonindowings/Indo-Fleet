@@ -21,7 +21,7 @@ interface Props {
 }
 
 const SectionCard: React.FC<{ title: string; subtitle?: string; right?: React.ReactNode; children: React.ReactNode; className?: string }> = ({ title, subtitle, right, children, className = '' }) => (
-  <div className={`bg-white border border-slate-200 rounded-2xl p-5 shadow-xs ${className}`}>
+  <div className={`bg-white border border-slate-200 rounded-2xl p-5 shadow-xs min-w-0 overflow-hidden ${className}`}>
     <div className="flex items-start justify-between gap-3 mb-4">
       <div className="min-w-0">
         <h3 className="text-sm font-black text-slate-900 tracking-tight">{title}</h3>

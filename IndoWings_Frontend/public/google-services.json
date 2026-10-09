@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "947976549226",
+    "project_id": "chotu-4d1e0",
+    "storage_bucket": "chotu-4d1e0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:947976549226:android:bf8ee7d1e2371a3984eb13",
+        "android_client_info": {
+          "package_name": "com.chotu.chotu_customer_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlaKIqDS15uSbSeRLDCSzuc5KFv2EgUdg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

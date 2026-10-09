@@ -1,9 +1,10 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import {
   getAuth,
   RecaptchaVerifier,
   signInWithPhoneNumber,
-  ConfirmationResult
+  ConfirmationResult,
+  Auth
 } from 'firebase/auth';
 
 const env = (import.meta as any).env || {};
@@ -18,32 +19,59 @@ const firebaseConfig = {
 };
 
 export const isFirebaseConfigured = Boolean(
-  firebaseConfig.apiKey && firebaseConfig.projectId
+  firebaseConfig.apiKey &&
+  firebaseConfig.projectId &&
+  !firebaseConfig.apiKey.includes('BlaKIq')
 );
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-export const auth = getAuth(app);
+let appInstance: FirebaseApp | null = null;
+let authInstance: Auth | null = null;
+
+function getFirebaseAuth(): Auth | null {
+  if (authInstance) return authInstance;
+  try {
+    if (!firebaseConfig.apiKey) return null;
+    appInstance = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    authInstance = getAuth(appInstance);
+    return authInstance;
+  } catch (err) {
+    console.warn('[Firebase] Auth initialization skipped or API Key invalid:', err);
+    return null;
+  }
+}
 
 // Global confirmation result store for phone OTP
 let confirmationResultHolder: ConfirmationResult | null = null;
 let recaptchaVerifierHolder: RecaptchaVerifier | null = null;
 
-export function setupRecaptcha(containerId: string): RecaptchaVerifier {
+export function setupRecaptcha(containerId: string): RecaptchaVerifier | null {
+  const auth = getFirebaseAuth();
+  if (!auth) return null;
+
+  let container = document.getElementById(containerId);
+  if (!container) {
+    container = document.createElement('div');
+    container.id = containerId;
+    document.body.appendChild(container);
+  }
+
   if (recaptchaVerifierHolder) {
     try {
       recaptchaVerifierHolder.clear();
     } catch {}
   }
-  recaptchaVerifierHolder = new RecaptchaVerifier(auth, containerId, {
-    size: 'invisible',
-    callback: () => {
-      // reCAPTCHA solved - will proceed with phone auth
-    },
-    'expired-callback': () => {
-      // Response expired. Ask user to solve reCAPTCHA again.
-    }
-  });
-  return recaptchaVerifierHolder;
+
+  try {
+    recaptchaVerifierHolder = new RecaptchaVerifier(auth, containerId, {
+      size: 'invisible',
+      callback: () => {},
+      'expired-callback': () => {}
+    });
+    return recaptchaVerifierHolder;
+  } catch (err) {
+    console.warn('[Firebase Recaptcha Error]:', err);
+    return null;
+  }
 }
 
 export async function sendFirebasePhoneOtp(
@@ -51,20 +79,30 @@ export async function sendFirebasePhoneOtp(
   containerId: string = 'recaptcha-container'
 ): Promise<{ success: boolean; message?: string }> {
   try {
-    if (!isFirebaseConfigured) {
-      throw new Error('Firebase credentials are not configured in .env.local.');
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      return {
+        success: false,
+        message: 'Firebase Web API Key is invalid or Phone Auth is not enabled in Firebase Console.'
+      };
     }
-    
-    // Ensure international format (e.g. +91XXXXXXXXXX)
+
     const formattedPhone = phoneNumber.startsWith('+')
       ? phoneNumber
       : `+91${phoneNumber.replace(/[^0-9]/g, '').slice(-10)}`;
 
     const verifier = setupRecaptcha(containerId);
+    if (!verifier) {
+      return {
+        success: false,
+        message: 'Could not initialize reCAPTCHA verifier. Check Firebase API key.'
+      };
+    }
+
     confirmationResultHolder = await signInWithPhoneNumber(auth, formattedPhone, verifier);
     return { success: true };
   } catch (error: any) {
-    console.error('[Firebase Phone Auth] Error sending OTP:', error);
+    console.warn('[Firebase Phone Auth] Error sending OTP:', error?.message || error);
     return {
       success: false,
       message: error?.message || 'Failed to dispatch SMS OTP via Firebase.'

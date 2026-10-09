@@ -61,15 +61,15 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   const sparkColor = isDown ? '#e11d48' : '#5a00b8';
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs hover:shadow-sm transition-all flex flex-col justify-between">
-      <div>
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 truncate">{label}</p>
+    <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs hover:shadow-sm transition-all flex flex-col justify-between min-w-0 overflow-hidden">
+      <div className="min-w-0">
+        <div className="flex items-start justify-between gap-2 min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 truncate min-w-0" title={label}>{label}</p>
           <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${tone}`}>
             <Icon className="w-4 h-4" />
           </div>
         </div>
-        <p className="text-2xl font-black text-slate-900 mt-1 tracking-tight leading-tight">{value}</p>
+        <p className="text-2xl font-black text-slate-900 mt-1 tracking-tight leading-tight truncate">{value}</p>
         {subtitle && (
           <p className="text-[10.5px] font-semibold text-slate-500 mt-0.5 truncate" title={subtitle}>{subtitle}</p>
         )}

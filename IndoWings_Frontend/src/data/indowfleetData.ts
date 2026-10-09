@@ -1,25 +1,25 @@
 export const COMPANY_DETAILS = {
-  name: "IndoWings Private Limited",
+  name: "IndoFleet Private Limited",
   tagline: "India's Fastest Growing Drone & Anti Drone Manufacturer",
   eyebrow: "Enterprise UAV Software & Hardware Company",
   description: "Pioneer in providing autonomous drone systems, GIS intelligence, and aerospace technology. Driven by the Make in India initiative with 100% indigenous hardware and DGCA certified platforms.",
   headquarters: "A-21, Sector-60, Noida, Gautam Buddha Nagar (U.P.) 201301, India",
-  bengaluruOffice: "IndoWings Tech Hub, Bengaluru, Karnataka, India",
+  bengaluruOffice: "IndoFleet Tech Hub, Bengaluru, Karnataka, India",
   tollFree: "1800 572 7363",
   phone: "+91 7669478937",
-  email: "contact@indowings.com",
+  email: "contact@indowfleet.com",
   softwareVersion: "IndoFly GCS v3.4.4",
   osSupport: "Windows MSI Installer",
   status: "DGCA Type Certified | Stable"
 };
 
 export const CLIENT_LOGOS = [
-  { name: "Tata", logo: "https://indowings.com/images/home/clients/tata.svg" },
-  { name: "Adani", logo: "https://indowings.com/images/home/clients/adani.svg" },
-  { name: "ONGC", logo: "https://indowings.com/images/home/clients/ongc.svg" },
-  { name: "Coal India", logo: "https://indowings.com/images/home/clients/coal-india.svg" },
-  { name: "Nayara Energy", logo: "https://indowings.com/images/home/clients/nayara.svg" },
-  { name: "ASSAC", logo: "https://indowings.com/images/home/clients/ASSAC.svg" }
+  { name: "Tata", logo: "https://indowfleet.com/images/home/clients/tata.svg" },
+  { name: "Adani", logo: "https://indowfleet.com/images/home/clients/adani.svg" },
+  { name: "ONGC", logo: "https://indowfleet.com/images/home/clients/ongc.svg" },
+  { name: "Coal India", logo: "https://indowfleet.com/images/home/clients/coal-india.svg" },
+  { name: "Nayara Energy", logo: "https://indowfleet.com/images/home/clients/nayara.svg" },
+  { name: "ASSAC", logo: "https://indowfleet.com/images/home/clients/ASSAC.svg" }
 ];
 
 export const DRONE_PRODUCTS = [
@@ -49,7 +49,7 @@ export const DRONE_PRODUCTS = [
     endurance: "75 Mins",
     speed: "80 KM/H",
     payload: "2.5 KG",
-    image: "https://indowings.com/images/home/cyberonepro.webp",
+    image: "https://indowfleet.com/images/home/cyberonepro.webp",
     features: [
       "DGCA Type Certified with NPNT Compliance",
       "Triple-redundant IMU & fail-safe return-to-home",
@@ -66,7 +66,7 @@ export const DRONE_PRODUCTS = [
     endurance: "110 Mins",
     speed: "95 KM/H",
     payload: "4.0 KG",
-    image: "https://indowings.com/images/home/cyberone-max.webp",
+    image: "https://indowfleet.com/images/home/cyberone-max.webp",
     features: [
       "Long-range BVLOS (Beyond Visual Line of Sight) capability",
       "LiDAR point cloud & photogrammetry sensor suite",
@@ -83,7 +83,7 @@ export const DRONE_PRODUCTS = [
     endurance: "50 Mins",
     speed: "65 KM/H",
     payload: "1.2 KG",
-    image: "https://indowings.com/images/cyberone-lite.png",
+    image: "https://indowfleet.com/images/cyberone-lite.png",
     features: [
       "Rapid deployment in under 3 minutes",
       "Whisper-quiet acoustic signature for stealth patrol",
@@ -100,7 +100,7 @@ export const DRONE_PRODUCTS = [
     endurance: "45 Mins",
     speed: "50 KM/H",
     payload: "16.0 KG",
-    image: "https://indowings.com/images/home/s-series-pro.webp",
+    image: "https://indowfleet.com/images/home/s-series-pro.webp",
     features: [
       "16-liter intelligent electrostatic spray tank",
       "Micron-droplet atomizers with zero drift technology",
@@ -117,7 +117,7 @@ export const DRONE_PRODUCTS = [
     endurance: "Continuous 24/7",
     speed: "Instant RF Neutralization",
     payload: "Multi-Band Jammer",
-    image: "https://indowings.com/images/anydrone.png",
+    image: "https://indowfleet.com/images/anydrone.png",
     features: [
       "AI-driven drone detection and classification algorithms",
       "Multi-frequency GNSS and RF command link jamming",
@@ -144,7 +144,7 @@ export const CORE_CAPABILITIES = [
     id: "capability-3",
     title: "Fleet Lifecycle & Hardware Telemetry",
     icon: "network",
-    description: "Coordinate aircraft assignments, battery lifecycle cycles, preventive maintenance schedules, firmware revisions, and immutable flight logs directly through IndoWings Command Center."
+    description: "Coordinate aircraft assignments, battery lifecycle cycles, preventive maintenance schedules, firmware revisions, and immutable flight logs directly through IndoFleet Command Center."
   }
 ];
 

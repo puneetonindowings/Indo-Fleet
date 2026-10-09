@@ -17,18 +17,26 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSignatureChange })
   const [paths, setPaths] = useState<string[]>([]);
   const [currentPath, setCurrentPath] = useState<string>('');
 
+  const getNormalizedPoint = (evt: any) => {
+    const { locationX, locationY } = evt.nativeEvent;
+    const x = Math.max(0, locationX);
+    const y = Math.max(0, locationY);
+    return { x: x.toFixed(1), y: y.toFixed(1) };
+  };
+
   const panResponder = React.useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
       onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
       onPanResponderGrant: (evt) => {
-        const { locationX, locationY } = evt.nativeEvent;
-        const newPath = `M${locationX.toFixed(1)},${locationY.toFixed(1)}`;
-        setCurrentPath(newPath);
+        const { x, y } = getNormalizedPoint(evt);
+        setCurrentPath(`M${x},${y}`);
       },
       onPanResponderMove: (evt) => {
-        const { locationX, locationY } = evt.nativeEvent;
-        setCurrentPath((prev) => `${prev} L${locationX.toFixed(1)},${locationY.toFixed(1)}`);
+        const { x, y } = getNormalizedPoint(evt);
+        setCurrentPath((prev) => `${prev} L${x},${y}`);
       },
       onPanResponderRelease: () => {
         if (currentPath) {

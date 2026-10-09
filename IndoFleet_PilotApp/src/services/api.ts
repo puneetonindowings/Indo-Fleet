@@ -1,6 +1,31 @@
 import { DeliveryOrder, PilotKpis, ChartData, UserProfile, PilotTelemetryPayload } from '../types';
 import { getServerUrl, getAuthToken } from '../config';
 
+export class UnauthorizedError extends Error {
+  constructor(message = 'Session expired. Please log in again.') {
+    super(message);
+    this.name = 'UnauthorizedError';
+  }
+}
+
+export class NetworkError extends Error {
+  constructor(message = 'Network connection unavailable.') {
+    super(message);
+    this.name = 'NetworkError';
+  }
+}
+
+async function handleApiResponse(res: Response): Promise<any> {
+  if (res.status === 401 || res.status === 403) {
+    throw new UnauthorizedError('Session authorization expired. Please log in again.');
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.success === false) {
+    throw new Error(data.error || `HTTP error ${res.status}`);
+  }
+  return data;
+}
+
 async function getHeaders(): Promise<Record<string, string>> {
   const token = await getAuthToken();
   const headers: Record<string, string> = {

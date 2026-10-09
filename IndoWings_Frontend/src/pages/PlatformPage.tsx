@@ -41,7 +41,7 @@ const dataFlowCards = [
   {
     title: 'Identity',
     icon: UserCheck,
-    desc: 'GCS uses the IndoWings account to identify the user and load approved organization scope.'
+    desc: 'GCS uses the IndoFleet account to identify the user and load approved organization scope.'
   },
   {
     title: 'Permission scope',
@@ -81,28 +81,28 @@ const releasePillItems = [
 
 const platformFaqs = [
   {
-    question: 'What is IndoWings?',
-    answer: 'IndoWings is an enterprise UAV software ecosystem that connects organization-level command oversight with field mission execution, aircraft lifecycle workflows, release governance, and audit review.'
+    question: 'What is IndoFleet?',
+    answer: 'IndoFleet is an enterprise UAV software ecosystem that connects organization-level command oversight with field mission execution, aircraft lifecycle workflows, release governance, and audit review.'
   },
   {
-    question: 'Do I need an IndoWings account to use GCS?',
-    answer: 'Yes. IndoWings GCS requires an active IndoWings Command Center account for identity, role permissions, organization scope, aircraft access, trusted-device workflows, and synchronization.'
+    question: 'Do I need an IndoFleet account to use GCS?',
+    answer: 'Yes. IndoFleet GCS requires an active IndoFleet Command Center account for identity, role permissions, organization scope, aircraft access, trusted-device workflows, and synchronization.'
   },
   {
-    question: 'How do I get an IndoWings account?',
-    answer: 'Administrators provision named accounts for fleet managers, dispatchers, support staff, and customers. New organizations should contact IndoWings support to begin onboarding.'
+    question: 'How do I get an IndoFleet account?',
+    answer: 'Administrators provision named accounts for fleet managers, dispatchers, support staff, and customers. New organizations should contact IndoFleet support to begin onboarding.'
   },
   {
-    question: 'What does IndoWings Command Center do?',
+    question: 'What does IndoFleet Command Center do?',
     answer: 'Command Center manages organizations, users, roles, trusted devices, fleet visibility, mission oversight, release records, and audit activity. It is the source of truth for access and operational governance.'
   },
   {
-    question: 'What does IndoWings GCS do?',
-    answer: 'IndoWings GCS is the Windows field application for aircraft connection, mission planning, telemetry monitoring, readiness workflows, vehicle configuration, manufacturer workflows, and Command Center sync.'
+    question: 'What does IndoFleet GCS do?',
+    answer: 'IndoFleet GCS is the Windows field application for aircraft connection, mission planning, telemetry monitoring, readiness workflows, vehicle configuration, manufacturer workflows, and Command Center sync.'
   },
   {
-    question: 'Can users share one IndoWings account?',
-    answer: 'No. IndoWings is designed around named accounts so access decisions, approvals, operational actions, and audit records stay accountable.'
+    question: 'Can users share one IndoFleet account?',
+    answer: 'No. IndoFleet is designed around named accounts so access decisions, approvals, operational actions, and audit records stay accountable.'
   }
 ];
 
@@ -110,7 +110,7 @@ const workflowSteps = [
   {
     step: '01',
     title: 'Organization onboarding',
-    desc: 'An organization is created or approved for IndoWings use, then administrative ownership is assigned.'
+    desc: 'An organization is created or approved for IndoFleet use, then administrative ownership is assigned.'
   },
   {
     step: '02',
@@ -193,13 +193,13 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
                 <Workflow className="w-5 h-5 text-purple-300" />
               </span>
               <p className="text-xs font-bold tracking-widest text-[#d8b4fe] uppercase">
-                HOW INDOWINGS WORKS
+                HOW INDOFLEET WORKS
               </p>
               <h1 className="text-3xl sm:text-4xl lg:text-[50px] font-extrabold text-white tracking-tight leading-[1.08]">
                 A complete UAV operations ecosystem.
               </h1>
               <p className="text-base sm:text-[17px] text-purple-100/85 leading-relaxed max-w-2xl">
-                IndoWings connects organization-level command oversight, field ground control, aircraft lifecycle workflows, release governance, documentation, support, and audit review into one enterprise operating model.
+                IndoFleet connects organization-level command oversight, field ground control, aircraft lifecycle workflows, release governance, documentation, support, and audit review into one enterprise operating model.
               </p>
 
               {/* Action Buttons */}
@@ -226,12 +226,20 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
               </p>
             </div>
 
-            {/* Right Visual Hero Shot */}
-            <figure className="rounded-2xl overflow-hidden shadow-2xl border border-white/15 bg-[#12051e] group">
-              <img 
-                src="/images/indowings-route-planner.webp" 
-                alt="IndoWings GCS waypoint route planning interface showing mission parameters and execution controls"
-                className="w-full h-auto object-cover block group-hover:scale-[1.01] transition-transform duration-300"
+            {/* Right Visual — Drone Hero Video */}
+            <figure className="rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black relative group">
+              <video
+                src="/stick.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover block"
+                style={{ minHeight: '320px', maxHeight: '520px' }}
+              />
+              {/* Subtle gradient overlay at bottom for smooth blend */}
+              <div className="absolute inset-x-0 bottom-0 h-20 pointer-events-none"
+                style={{ background: 'linear-gradient(to top, rgba(36,12,66,0.72), transparent)' }}
               />
             </figure>
           </div>
@@ -268,7 +276,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
                   Layer 01
                 </span>
                 <h3 className="text-xl font-bold text-[#111827] tracking-tight">
-                  IndoWings Command Center
+                  IndoFleet Command Center
                 </h3>
                 <p className="text-sm text-slate-600 leading-relaxed">
                   The command, administration, and governance layer for organizations. Command Center manages users, roles, trusted devices, aircraft scope, fleet visibility, mission oversight, release records, and audit activity.
@@ -298,7 +306,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
                   Layer 02
                 </span>
                 <h3 className="text-xl font-bold text-[#111827] tracking-tight">
-                  IndoWings Ground Control Station
+                  IndoFleet Ground Control Station
                 </h3>
                 <p className="text-sm text-slate-600 leading-relaxed">
                   The Windows field application used by approved operators. GCS supports aircraft connection, mission planning, telemetry monitoring, preflight readiness, vehicle configuration, manufacturer workflows, and Command Center synchronization.
@@ -356,14 +364,14 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
                 ACCOUNT ACCESS
               </p>
               <h2 className="text-3xl sm:text-4xl lg:text-[40px] font-extrabold text-[#111827] tracking-tight leading-[1.15]">
-                IndoWings GCS requires an IndoWings Command Center account.
+                IndoFleet GCS requires an IndoFleet Command Center account.
               </h2>
               <div className="space-y-4 text-sm sm:text-[15px] text-slate-600 leading-relaxed">
                 <p>
-                  A user cannot properly use IndoWings GCS without an approved IndoWings account because GCS depends on Command Center for identity, role permissions, organization scope, aircraft assignments, trusted-device workflows, and synchronization.
+                  A user cannot properly use IndoFleet GCS without an approved IndoFleet account because GCS depends on Command Center for identity, role permissions, organization scope, aircraft assignments, trusted-device workflows, and synchronization.
                 </p>
                 <p>
-                  Accounts are created or approved by an organization administrator. New organizations should contact IndoWings support to request onboarding. Shared accounts are not supported because operational actions must remain accountable to named users.
+                  Accounts are created or approved by an organization administrator. New organizations should contact IndoFleet support to request onboarding. Shared accounts are not supported because operational actions must remain accountable to named users.
                 </p>
               </div>
 
@@ -390,7 +398,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
             <figure className="rounded-xl overflow-hidden shadow-2xl border border-[#5a00b8]/15 bg-[#12051e] group">
               <img 
                 src="/images/operator-start-mission.webp" 
-                alt="IndoWings approved operator start mission view with profile metrics and mission launch action"
+                alt="IndoFleet approved operator start mission view with profile metrics and mission launch action"
                 className="w-full h-auto object-cover block group-hover:scale-[1.02] transition-transform duration-300"
               />
             </figure>
@@ -407,7 +415,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
               VISUAL OPERATING STORY
             </p>
             <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold text-[#111827] tracking-tight leading-tight">
-              Each product surface explains a part of the IndoWings workflow.
+              Each product surface explains a part of the IndoFleet workflow.
             </h2>
           </div>
 
@@ -417,7 +425,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
             <figure className="relative rounded-xl overflow-hidden shadow-lg border border-[#5a00b8]/15 bg-[#12051e] group aspect-[16/10]">
               <img 
                 src="/images/mission-operation-center.webp" 
-                alt="IndoWings mission operation center showing readiness, aircraft assignment, quick actions, and weather status"
+                alt="IndoFleet mission operation center showing readiness, aircraft assignment, quick actions, and weather status"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
               <figcaption className="absolute bottom-3 left-3 px-3 py-1.5 rounded-md bg-[#0c0418]/85 text-white text-xs font-bold backdrop-blur-md border border-white/10">
@@ -429,7 +437,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
             <figure className="relative rounded-xl overflow-hidden shadow-lg border border-[#5a00b8]/15 bg-[#12051e] group aspect-[16/10]">
               <img 
                 src="/images/mission-log-detail.webp" 
-                alt="IndoWings Command Center mission detail view with flight metrics and playback review"
+                alt="IndoFleet Command Center mission detail view with flight metrics and playback review"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
               <figcaption className="absolute bottom-3 left-3 px-3 py-1.5 rounded-md bg-[#0c0418]/85 text-white text-xs font-bold backdrop-blur-md border border-white/10">
@@ -441,7 +449,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
             <figure className="relative rounded-xl overflow-hidden shadow-lg border border-[#5a00b8]/15 bg-[#12051e] group aspect-[16/10]">
               <img 
                 src="/images/command-performance-insights.webp" 
-                alt="IndoWings Command Center performance insights dashboard with mission success and flight-hour analytics"
+                alt="IndoFleet Command Center performance insights dashboard with mission success and flight-hour analytics"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
               <figcaption className="absolute bottom-3 left-3 px-3 py-1.5 rounded-md bg-[#0c0418]/85 text-white text-xs font-bold backdrop-blur-md border border-white/10">
@@ -559,7 +567,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
                 SECURITY AND GOVERNANCE
               </p>
               <h2 className="text-3xl sm:text-4xl lg:text-[40px] font-extrabold text-[#111827] tracking-tight leading-[1.18]">
-                IndoWings is designed around accountability, not anonymous access.
+                IndoFleet is designed around accountability, not anonymous access.
               </h2>
               <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
                 The public operating model emphasizes named users, least privilege, role-based access control, trusted-device review, release integrity, and audit-ready records. Public documentation avoids private endpoints, secrets, tokens, internal hostnames, customer data, and sensitive implementation details.
@@ -586,7 +594,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
                   Named accounts
                 </h3>
                 <p className="text-sm text-slate-600 leading-relaxed">
-                  Every user should sign in with an individual IndoWings account so actions remain accountable.
+                  Every user should sign in with an individual IndoFleet account so actions remain accountable.
                 </p>
               </div>
 
@@ -690,7 +698,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
                 Professional UAV software needs traceable version history.
               </h2>
               <p className="text-base text-slate-600 leading-relaxed mb-8 max-w-xl">
-                The IndoWings website publishes the latest GCS release, release date, file size, platform, checksum, release summary, known limitations, and archived versions. Organizations should review release notes and verify checksums before production rollout.
+                The IndoFleet website publishes the latest GCS release, release date, file size, platform, checksum, release summary, known limitations, and archived versions. Organizations should review release notes and verify checksums before production rollout.
               </p>
               <button 
                 onClick={onOpenCommandCenter}
@@ -730,7 +738,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
               PLATFORM FAQ
             </p>
             <h2 className="text-2xl sm:text-3xl lg:text-[36px] font-extrabold text-[#111827] tracking-tight leading-tight">
-              Answers to the questions users ask before installing IndoWings GCS.
+              Answers to the questions users ask before installing IndoFleet GCS.
             </h2>
           </div>
 

@@ -1,11 +1,11 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProfile } from './types';
 
 import { Platform } from 'react-native';
 
-const STORAGE_KEY_SERVER_URL = '@indowings_server_url';
-const STORAGE_KEY_AUTH_TOKEN = '@indowings_auth_token';
-const STORAGE_KEY_USER_PROFILE = '@indowings_user_profile';
+const STORAGE_KEY_SERVER_URL = '@IndoFleet_server_url';
+const STORAGE_KEY_AUTH_TOKEN = '@IndoFleet_auth_token';
+const STORAGE_KEY_USER_PROFILE = '@IndoFleet_user_profile';
 
 export const getAutoServerUrl = (): string => {
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) {
@@ -99,4 +99,5 @@ export const setPilotName = async (name: string): Promise<void> => {
     console.error('Failed to set pilot name', err);
   }
 };
+
 

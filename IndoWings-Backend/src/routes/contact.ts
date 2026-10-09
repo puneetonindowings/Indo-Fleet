@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { dbService } from '../supabase.js';
 import { fileDB } from '../db.js';
 
@@ -34,7 +34,7 @@ router.post('/demo-request', async (req, res) => {
     });
 
     res.status(201).json({ 
-      message: 'Thank you! Your flight demo inquiry has been registered with IndoWings flight engineers.',
+      message: 'Thank you! Your flight demo inquiry has been registered with IndoFleet flight engineers.',
       request: saved 
     });
   } catch (error) {
@@ -59,7 +59,7 @@ router.post('/contact', async (req, res) => {
       message
     });
 
-    res.status(201).json({ message: 'Message received. IndoWings team will respond shortly.', data: saved });
+    res.status(201).json({ message: 'Message received. IndoFleet team will respond shortly.', data: saved });
   } catch (error) {
     console.error('[contact] Failed to save contact message:', error);
     res.status(500).json({ error: 'Failed to send message' });
@@ -78,7 +78,7 @@ router.post('/feedback', async (req, res) => {
     const savedFb = await fileDB.saveFeedback({
       id: `FB-${Date.now().toString().slice(-6)}`,
       user_name: name || 'Anonymous',
-      user_email: email || 'anonymous@indowings.com',
+      user_email: email || 'anonymous@IndoFleet.com',
       drone_name: req.body?.drone_name || 'Cyberone UAV Platform',
       rating: Number(rating) || 5,
       category: category || 'General',
@@ -90,7 +90,7 @@ router.post('/feedback', async (req, res) => {
 
     res.status(201).json({ 
       success: true,
-      message: 'Thank you! Your feedback has been recorded and submitted to the IndoWings engineering team.',
+      message: 'Thank you! Your feedback has been recorded and submitted to the IndoFleet engineering team.',
       feedback: savedFb 
     });
   } catch (error) {
@@ -100,3 +100,4 @@ router.post('/feedback', async (req, res) => {
 });
 
 export default router;
+

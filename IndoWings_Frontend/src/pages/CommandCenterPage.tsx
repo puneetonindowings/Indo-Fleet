@@ -102,7 +102,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
                 <RadioTower className="w-5 h-5 text-purple-300" />
               </span>
               <p className="text-xs font-bold tracking-widest text-[#d8b4fe] uppercase">
-                INDOWINGS COMMAND CENTER
+                INDOFLEET COMMAND CENTER
               </p>
               <h1 className="text-3xl sm:text-4xl lg:text-[50px] font-extrabold text-white tracking-tight leading-[1.08]">
                 Enterprise control for UAV organizations.
@@ -119,7 +119,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-[#5a00b8] hover:bg-[#4c0099] text-white text-sm font-semibold shadow-md transition-all active:scale-95 border border-purple-400/30"
                 >
                   <Workflow className="w-4 h-4" />
-                  <span>How IndoWings works</span>
+                  <span>How IndoFleet works</span>
                 </a>
                 <button 
                   onClick={onOpenDemoBooking}
@@ -142,7 +142,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
             <figure className="rounded-2xl overflow-hidden shadow-2xl border border-white/15 bg-[#12051e] group">
               <img 
                 src="/images/command-overview.webp" 
-                alt="IndoWings Command Center mission overview dashboard with flight summary and alerts"
+                alt="IndoFleet Command Center mission overview dashboard with flight summary and alerts"
                 className="w-full h-auto object-cover block group-hover:scale-[1.01] transition-transform duration-300"
               />
             </figure>
@@ -160,10 +160,10 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
                 ACCOUNT GOVERNANCE
               </p>
               <h2 className="text-2xl sm:text-3xl lg:text-[38px] font-extrabold text-[#111827] tracking-tight leading-tight mb-4">
-                Command Center is where IndoWings accounts are created, approved, and scoped.
+                Command Center is where IndoFleet accounts are created, approved, and scoped.
               </h2>
               <p className="text-base text-slate-600 leading-relaxed max-w-xl">
-                IndoWings users should have named accounts tied to the correct organization, role, aircraft responsibility, and review permissions. This is why GCS access starts with Command Center instead of anonymous local use.
+                IndoFleet users should have named accounts tied to the correct organization, role, aircraft responsibility, and review permissions. This is why GCS access starts with Command Center instead of anonymous local use.
               </p>
             </div>
 
@@ -201,7 +201,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
                 Command Center is the operational control layer around GCS.
               </h2>
               <p className="text-base text-slate-600 leading-relaxed max-w-xl">
-                Public users can see how IndoWings presents aircraft readiness, telemetry state, mission actions, and system status without exposing private organization data.
+                Public users can see how IndoFleet presents aircraft readiness, telemetry state, mission actions, and system status without exposing private organization data.
               </p>
             </div>
 
@@ -209,7 +209,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
             <figure className="relative rounded-2xl overflow-hidden shadow-xl border border-slate-200/80 bg-[#12051e] group">
               <img 
                 src="/images/mission-log-detail.webp" 
-                alt="IndoWings Command Center mission detail with flight metrics, map playback, and safety events"
+                alt="IndoFleet Command Center mission detail with flight metrics, map playback, and safety events"
                 className="w-full h-auto object-cover block group-hover:scale-[1.01] transition-transform duration-300"
               />
               <figcaption className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-black/75 backdrop-blur-md text-white text-xs font-semibold tracking-wide border border-white/10">
@@ -237,7 +237,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
             <figure className="relative rounded-2xl overflow-hidden shadow-md border border-slate-200/80 bg-white group hover:shadow-xl transition-all">
               <img 
                 src="/images/mission-operation-center.webp" 
-                alt="IndoWings mission operation center with assigned aircraft, readiness checks, weather, and quick actions"
+                alt="IndoFleet mission operation center with assigned aircraft, readiness checks, weather, and quick actions"
                 className="w-full h-auto object-cover block group-hover:scale-[1.02] transition-transform duration-300"
               />
               <figcaption className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-black/75 backdrop-blur-md text-white text-xs font-semibold tracking-wide border border-white/10">
@@ -249,7 +249,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
             <figure className="relative rounded-2xl overflow-hidden shadow-md border border-slate-200/80 bg-white group hover:shadow-xl transition-all">
               <img 
                 src="/images/mission-log-archive.webp" 
-                alt="IndoWings mission log archive with filter controls and completed mission rows"
+                alt="IndoFleet mission log archive with filter controls and completed mission rows"
                 className="w-full h-auto object-cover block group-hover:scale-[1.02] transition-transform duration-300"
               />
               <figcaption className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-black/75 backdrop-blur-md text-white text-xs font-semibold tracking-wide border border-white/10">
@@ -261,7 +261,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
             <figure className="relative rounded-2xl overflow-hidden shadow-md border border-slate-200/80 bg-white group hover:shadow-xl transition-all">
               <img 
                 src="/images/command-performance-insights.webp" 
-                alt="IndoWings performance dashboard with flight-hour chart and aircraft analytics"
+                alt="IndoFleet performance dashboard with flight-hour chart and aircraft analytics"
                 className="w-full h-auto object-cover block group-hover:scale-[1.02] transition-transform duration-300"
               />
               <figcaption className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-black/75 backdrop-blur-md text-white text-xs font-semibold tracking-wide border border-white/10">

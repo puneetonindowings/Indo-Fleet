@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
   View,
   Text,
@@ -70,7 +70,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                     </Text>
                   </View>
                   <Text style={styles.stationText} numberOfLines={1}>
-                    {user?.station || 'IndoWings Base'}
+                    {user?.station || 'IndoFleet Base'}
                   </Text>
                 </View>
               </View>
@@ -370,3 +370,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+

@@ -60,7 +60,7 @@ function resolveRange(fromStr?: string | null, toStr?: string | null): Range {
   const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   return { from, to, prevFrom, prevTo, spanDays, granularity, label: `${fmt(from)} – ${fmt(to)}` };
 }
-
+  
 interface Bucket {
   label: string;
   start: number;

@@ -21,7 +21,7 @@ export const InteractiveDrone: React.FC<InteractiveDroneProps> = ({ onOrderClick
         <div className="relative flex justify-center">
           <img
             src="/images/floating-character.png"
-            alt="IndoWings Flight Operator"
+            alt="IndoFleet Flight Operator"
             loading="eager"
             // @ts-ignore
             fetchpriority="high"

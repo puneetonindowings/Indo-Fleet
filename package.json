@@ -1,10 +1,10 @@
 {
-  "name": "indowings-workspace",
+  "name": "indowfleet-workspace",
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "backend": "npm --prefix IndoWings-Backend run dev",
-    "frontend": "npm --prefix IndoWings_Frontend run dev -- --host 0.0.0.0",
+    "backend": "npm --prefix IndoFleet-Backend run dev",
+    "frontend": "npm --prefix IndoFleet_Frontend run dev -- --host 0.0.0.0",
     "dev": "concurrently \"npm run backend\" \"npm run frontend\""
   },
   "devDependencies": {

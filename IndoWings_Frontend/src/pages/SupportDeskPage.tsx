@@ -71,11 +71,19 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'in_progress' | 'resolved' | 'urgent'>('all');
   const [audioAlerts, setAudioAlerts] = useState(true);
   const [lastTicketCount, setLastTicketCount] = useState<number>(0);
   const [newTicketAlert, setNewTicketAlert] = useState<string | null>(null);
   const [supportError, setSupportError] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // 360° Inspector Search State
   const [inspectorQuery, setInspectorQuery] = useState('');
@@ -505,8 +513,8 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
       if (statusFilter === 'resolved' && !isResolvedStatus(t.status)) return false;
       if (statusFilter === 'urgent' && t.priority !== 'urgent') return false;
 
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase().trim();
+      if (!debouncedSearchQuery.trim()) return true;
+      const q = debouncedSearchQuery.toLowerCase().trim();
       return (
         t.id?.toLowerCase().includes(q) ||
         t.name?.toLowerCase().includes(q) ||
@@ -518,7 +526,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
         t.message?.toLowerCase().includes(q)
       );
     });
-  }, [tickets, statusFilter, searchQuery]);
+  }, [tickets, statusFilter, debouncedSearchQuery]);
 
   // 360° Inspector Selected Record Lookup
   const inspectorRecord = useMemo(() => {
@@ -1580,7 +1588,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                       {/* Sender / Agent Signature */}
                       {!isInbound && (
                         <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-100 flex items-center justify-between">
-                          <span>Dispatched by: <strong className="text-slate-700">{m.agent_name || 'Support Desk'}</strong> via connect@indowings.com</span>
+                          <span>Dispatched by: <strong className="text-slate-700">{m.agent_name || 'Support Desk'}</strong> via connect@indowfleet.com</span>
                           <span className="font-mono text-[10px] text-slate-400 uppercase">Gateway Resend API</span>
                         </div>
                       )}
@@ -2453,7 +2461,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                         <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200/60">
                           <div>
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Logistics Dispatcher (Staff)</span>
-                            <span className="text-slate-800 font-bold">{o?.dispatcher_name || o?.authorized_by || 'IndoWings Dispatch Operations'}</span>
+                            <span className="text-slate-800 font-bold">{o?.dispatcher_name || o?.authorized_by || 'IndoFleet Dispatch Operations'}</span>
                           </div>
                           <div>
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Estimated Delivery Window</span>
@@ -2574,7 +2582,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div className="p-4 rounded-xl bg-white border border-slate-200/80 space-y-1">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Logistics Dispatcher (Staff)</span>
-                        <p className="font-bold text-slate-900 text-sm">{o?.dispatcher_name || o?.authorized_by || 'IndoWings Dispatch Operations'}</p>
+                        <p className="font-bold text-slate-900 text-sm">{o?.dispatcher_name || o?.authorized_by || 'IndoFleet Dispatch Operations'}</p>
                         <span className="text-[10px] text-slate-500">Authorized Consignment Departure</span>
                       </div>
 
@@ -2635,7 +2643,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
                         <div>
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Dispatch Base / Origin</span>
                           <p className="text-slate-800 font-medium text-sm mt-0.5">
-                            {o?.pickup_address || 'IndoWings Central Flight Operations Terminal'}
+                            {o?.pickup_address || 'IndoFleet Central Flight Operations Terminal'}
                           </p>
                         </div>
                       </div>
@@ -3626,8 +3634,8 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({ currentUser, o
 
       {/* ── MODAL 5: FULL TICKET DETAILS DRAWER ──────────────────────── */}
       {selectedTicket && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-[95vw] sm:max-w-2xl w-full p-5 sm:p-8 shadow-2xl border border-slate-200 space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
                 <span className="font-mono text-base font-black text-[#5a00b8] bg-purple-50 px-3 py-1 rounded-xl border border-purple-200">{selectedTicket.id}</span>

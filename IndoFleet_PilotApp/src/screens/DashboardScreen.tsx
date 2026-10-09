@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 110,
   },
   headerArea: {
     marginBottom: 8,
@@ -219,21 +219,20 @@ const styles = StyleSheet.create({
   },
   filterTabs: {
     flexDirection: 'row',
-    gap: 6,
-    backgroundColor: '#F1F5F9',
-    padding: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    gap: 8,
   },
   filterTab: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: 10,
+    borderRadius: 20,
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   filterTabActive: {
     backgroundColor: '#3B0080',
+    borderColor: '#3B0080',
   },
   filterTabText: {
     fontSize: 11,

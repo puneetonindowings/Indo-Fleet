@@ -1,12 +1,12 @@
-import * as TaskManager from 'expo-task-manager';
+﻿import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
 import * as Battery from 'expo-battery';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { updatePilotLocation } from './api';
 import { getPilotName } from '../config';
 
-export const LOCATION_TASK_NAME = 'INDOWINGS_PILOT_BG_LOCATION';
-const STORAGE_ACTIVE_ORDER_ID = '@indowings_active_order_id';
+export const LOCATION_TASK_NAME = 'IndoFleet_PILOT_BG_LOCATION';
+const STORAGE_ACTIVE_ORDER_ID = '@IndoFleet_active_order_id';
 
 let onLocationUpdateListener: ((data: any) => void) | null = null;
 
@@ -125,16 +125,18 @@ export async function startTracking(orderId: string): Promise<boolean> {
 
   try {
     await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
-      accuracy: Location.Accuracy.BestForNavigation,
-      timeInterval: 3000, // Update every 3 seconds
-      distanceInterval: 3, // Or every 3 meters
+      accuracy: Location.Accuracy.Balanced,
+      timeInterval: 5000, // Adaptive 5-second polling interval
+      distanceInterval: 10, // Only trigger on 10m movement to conserve battery
+      deferredUpdatesInterval: 10000,
+      deferredUpdatesDistance: 10,
+      pausesUpdatesAutomatically: true, // Auto-pause location polling when stationary
       foregroundService: {
         notificationTitle: 'IndoFleet Live Delivery Tracking',
         notificationBody: 'Broadcasting live GPS navigation and order tracking...',
         notificationColor: '#3B0080',
       },
       showsBackgroundLocationIndicator: true,
-      pausesUpdatesAutomatically: false,
     });
     return true;
   } catch (err) {
@@ -154,3 +156,4 @@ export async function stopTracking(): Promise<void> {
     console.warn('Error stopping location tracking:', err);
   }
 }
+

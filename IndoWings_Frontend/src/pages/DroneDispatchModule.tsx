@@ -1141,10 +1141,10 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                       <p className="font-bold text-slate-700">
                         Package: <span className="font-semibold text-slate-600">{order.item_name || 'Standard Shipment'}</span>
                       </p>
-                      <div className="flex items-center gap-3 text-slate-500 mt-1">
-                        <span>Status: <strong className="text-purple-900 font-bold">{order.status}</strong></span>
+                      <div className="flex items-center gap-3 text-slate-500 mt-1 min-w-0 flex-wrap">
+                        <span className="truncate">Status: <strong className="text-purple-900 font-bold uppercase">{order.status}</strong></span>
                         <span>•</span>
-                        <span>Amount: <strong className="text-emerald-700 font-black">₹{order.total_amount?.toLocaleString('en-IN') || 0}</strong></span>
+                        <span className="truncate">Amount: <strong className="text-emerald-700 font-black">₹{Number(order.total_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong></span>
                       </div>
                     </div>
                   </div>
@@ -1161,7 +1161,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                         <div>
                           <p className="text-[10px] font-bold text-slate-400 uppercase">Dispatch Origin Location</p>
                           <p className="font-semibold text-slate-800 leading-tight">
-                            {order.pickup_address || 'IndoWings Dispatch Facility 01, Sector 62'}
+                            {order.pickup_address || 'IndoFleet Dispatch Facility 01, Sector 62'}
                           </p>
                         </div>
                       </div>
@@ -1281,7 +1281,9 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
 
                       {!['delivered'].includes(order.status) && (
                         <button
-                          onClick={() => {
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setManagingOrder(order);
                             setManageAction(order.status === 'on-hold' ? 'resume' : 'hold');
                             setManageReason('');
@@ -1416,7 +1418,9 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                             View Details
                           </button>
                           <button
-                            onClick={() => {
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setManagingOrder(order);
                               setManageAction(order.status === 'on-hold' ? 'resume' : 'hold');
                               setManageReason('');
