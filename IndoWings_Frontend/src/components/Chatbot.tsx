@@ -1,5 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, X, Minimize2, Maximize2, RefreshCw, Bot, User, Plane, Radar, Sparkles, Phone, Building2, Package, ArrowRight, Search, ShieldCheck, ChevronRight, HelpCircle, FileText, CheckCircle2, AlertCircle, ShoppingBag, Truck } from 'lucide-react';
+import {
+  Send,
+  X,
+  Minimize2,
+  Maximize2,
+  RefreshCw,
+  Bot,
+  User,
+  Plane,
+  Radar,
+  Sparkles,
+  Phone,
+  Building2,
+  Package,
+  ArrowRight,
+  Search,
+  ShieldCheck,
+  ChevronRight,
+  AlertCircle,
+  ShoppingBag,
+  Truck
+} from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
 interface ChatMessage {
@@ -15,7 +36,7 @@ interface ChatbotProps {
   onNavigate?: (page: string) => void;
 }
 
-// Interactive Starter Suggestions displayed vertically inside the chat
+/* ── Starter topics (shown as tiles under the welcome message) ─────────────── */
 const SUGGESTED_TOPICS = [
   {
     icon: Package,
@@ -30,10 +51,10 @@ const SUGGESTED_TOPICS = [
     desc: '3-step recovery using Name, Phone & Booking Date'
   },
   {
-    icon: Package,
+    icon: Plane,
     label: '700RPAV Hardware Specifications',
     query: '700RPAV specs and performance',
-    desc: 'IndoFleet 700RPAV commercial drone hardware specs'
+    desc: 'IndoWings 700RPAV commercial drone hardware specs'
   },
   {
     icon: ShieldCheck,
@@ -49,11 +70,156 @@ const SUGGESTED_TOPICS = [
   },
   {
     icon: Building2,
-    label: 'About IndoFleet & DGCA Certifications',
-    query: 'About IndoFleet Company & DGCA',
+    label: 'About IndoWings & DGCA Certifications',
+    query: 'About IndoWings Company & DGCA',
     desc: 'Noida HQ, Make in India, Type Certificates'
   }
 ];
+
+/* Small shortcut chips above the input once the chat has started */
+const QUICK_CHIPS = [
+  { label: 'Track order', query: 'Track my delivery order' },
+  { label: '700RPAV specs', query: '700RPAV specs and performance' },
+  { label: 'How to book', query: 'How to book 700RPAV consignment' },
+  { label: 'Support', query: 'Support contact' }
+];
+
+/* ── Guide cards (text kept exactly as before) ─────────────────────────────── */
+type Tone = 'amber' | 'purple' | 'blue' | 'emerald' | 'indigo';
+
+const TONES: Record<Tone, { box: string; title: string; icon: string; text: string }> = {
+  amber: { box: 'bg-amber-50 border-amber-200', title: 'text-amber-900', icon: 'text-amber-600', text: 'text-amber-800' },
+  purple: { box: 'bg-purple-50 border-purple-200', title: 'text-purple-950', icon: 'text-[#5a00b8]', text: 'text-purple-900' },
+  blue: { box: 'bg-blue-50 border-blue-200', title: 'text-blue-950', icon: 'text-blue-600', text: 'text-blue-800' },
+  emerald: { box: 'bg-emerald-50 border-emerald-200', title: 'text-emerald-950', icon: 'text-emerald-600', text: 'text-emerald-800' },
+  indigo: { box: 'bg-indigo-50 border-indigo-200', title: 'text-indigo-950', icon: 'text-indigo-600', text: 'text-indigo-800' }
+};
+
+interface GuideDef {
+  icon: React.ElementType;
+  tone: Tone;
+  title: string;
+  intro?: string;
+  points?: { label: string; text: string }[];
+  numbered?: boolean;
+  cta?: { label: string; page: string; url: string };
+}
+
+const GUIDES: Record<string, GuideDef> = {
+  fix_weather: {
+    icon: AlertCircle,
+    tone: 'amber',
+    title: 'Corridor Weather Hold Protocol',
+    intro: 'Automated DGCA safety threshold triggered when sustained winds exceed 38 km/h or active precipitation is detected.',
+    points: [
+      { label: 'Resumption:', text: 'Sensors poll conditions every 2 mins; cruising resumes automatically upon normalization.' },
+      { label: 'Loiter Safety:', text: 'Aircraft loiters safely at holding ceiling (120m AGL).' }
+    ],
+    cta: { label: 'Check Live Flight Radar', page: 'track', url: '/track' }
+  },
+  fix_gps: {
+    icon: Radar,
+    tone: 'purple',
+    title: 'RTK Centimeter-Fix Precision Guide',
+    numbered: true,
+    points: [
+      { label: 'NTRIP Caster:', text: 'Check base station UHF/cellular correction stream.' },
+      { label: 'Clear Obstacles:', text: 'Ensure launch area is free from heavy metal rebar or powerlines.' },
+      { label: 'Satellite Lock:', text: 'Allow 90s for dual-band GNSS lock (GPS + GLONASS + NavIC > 14 sats).' }
+    ]
+  },
+  fix_npnt: {
+    icon: ShieldCheck,
+    tone: 'blue',
+    title: 'DigitalSky NPNT Permission Token',
+    intro: 'Under DGCA regulations, motors arm only with valid cryptographic flight tokens. If expired, token can be refreshed in <60s from the Dispatch Console.'
+  },
+  fix_telemetry: {
+    icon: Radar,
+    tone: 'emerald',
+    title: 'Tri-Redundant Telemetry Failover',
+    intro: 'Hot-standby secondary cellular SIM switches in <120ms. If cellular drops, direct 900MHz RF ground telemetry engages automatically.'
+  },
+  fix_avionics: {
+    icon: ShieldCheck,
+    tone: 'indigo',
+    title: 'Dual-IMU & Sensor Diagnostics',
+    intro: 'Execute 6-axis accelerometer calibration on a level surface via IndoWings GCS. Keep aircraft away from electromagnetic interference.'
+  },
+  qc_guide: {
+    icon: ShieldCheck,
+    tone: 'indigo',
+    title: 'Pre-Flight Diagnostics & BVLOS',
+    intro: 'Automated sensor calibration, RTK centimeter fix, and DigitalSky green corridor approvals before dispatch.'
+  },
+  store_guide: {
+    icon: Package,
+    tone: 'emerald',
+    title: '700RPAV Consignment Booking',
+    intro: 'Browse available fleet aircraft, add to consignment cart, and schedule instant delivery.',
+    cta: { label: 'Visit Store & Book Drone', page: 'store', url: '/store' }
+  }
+};
+
+/* ── Status helpers ────────────────────────────────────────────────────────── */
+const statusStyle = (status?: string) =>
+  status === 'delivered'
+    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    : status === 'in-flight' || status === 'on-hold'
+      ? 'bg-purple-50 text-[#5a00b8] border-purple-200'
+      : 'bg-amber-50 text-amber-700 border-amber-200';
+
+const statusLabel = (status?: string) => (status === 'on-hold' ? 'On The Way' : status || 'Unknown');
+
+const StatusPill: React.FC<{ status?: string }> = ({ status }) => (
+  <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide ${statusStyle(status)}`}>
+    {statusLabel(status)}
+  </span>
+);
+
+const CardButton: React.FC<{ onClick: () => void; children: React.ReactNode }> = ({ onClick, children }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="mt-2.5 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#5a00b8] py-2.5 text-xs font-bold text-white shadow-sm transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5a00b8] active:scale-[0.98]"
+  >
+    {children}
+  </button>
+);
+
+const GuideCard: React.FC<{ def: GuideDef; onCta: (page: string, url: string) => void }> = ({ def, onCta }) => {
+  const t = TONES[def.tone];
+  const Icon = def.icon;
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className={`rounded-xl border p-3 ${t.box}`}>
+        <p className={`flex items-center gap-2 text-xs font-bold ${t.title}`}>
+          <Icon className={`h-4 w-4 shrink-0 ${t.icon}`} />
+          <span>{def.title}</span>
+        </p>
+        {def.intro && <p className={`mt-1.5 text-[11px] leading-relaxed ${t.text}`}>{def.intro}</p>}
+        {def.points && (
+          <ul className="mt-2 space-y-1.5 text-[11px] leading-relaxed text-slate-700">
+            {def.points.map((p, i) => (
+              <li key={p.label} className="flex gap-2">
+                <span className={`shrink-0 font-bold ${t.icon}`}>{def.numbered ? `${i + 1}.` : '•'}</span>
+                <span>
+                  <strong>{p.label}</strong> {p.text}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {def.cta && (
+        <CardButton onClick={() => onCta(def.cta!.page, def.cta!.url)}>
+          <span>{def.cta.label}</span>
+          <ArrowRight className="h-3.5 w-3.5" />
+        </CardButton>
+      )}
+    </div>
+  );
+};
 
 export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -84,7 +250,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       {
         id: 'msg-welcome-1',
         sender: 'bot',
-        text: 'Hello! I am your IndoFleet Logistics & Consignment Assistant.\n\nHow can I help you today? Choose one of the common topics below, or type your question:',
+        text: 'Hello! I am your IndoWings Logistics & Consignment Assistant.\n\nHow can I help you today? Choose one of the common topics below, or type your question:',
         time: welcomeTime
       }
     ]);
@@ -122,7 +288,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       {
         id: `msg-${Date.now()}`,
         sender: 'bot',
-        text: 'Chat history reset. How can I assist you with your IndoFleet 700RPAV consignments today?',
+        text: 'Chat history reset. How can I assist you with your IndoWings 700RPAV consignments today?',
         time
       }
     ]);
@@ -130,7 +296,8 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
 
   // Helper for formatting markdown-style bold, italic, and clean structure without raw asterisks
   const renderFormattedText = (text: string) => {
-    return text.split('\n').map((line, lIdx) => {
+    const lines = text.split('\n');
+    return lines.map((line, lIdx) => {
       // Process bold (**...**) and italic (*...*) cleanly
       const parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g);
       return (
@@ -138,21 +305,21 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
           {parts.map((part, pIdx) => {
             if (part.startsWith('**') && part.endsWith('**') && part.length >= 4) {
               return (
-                <strong key={pIdx} className="font-bold text-slate-900">
+                <strong key={pIdx} className="font-bold">
                   {part.slice(2, -2)}
                 </strong>
               );
             }
             if (part.startsWith('*') && part.endsWith('*') && part.length >= 2) {
               return (
-                <em key={pIdx} className="italic text-slate-700">
+                <em key={pIdx} className="italic">
                   {part.slice(1, -1)}
                 </em>
               );
             }
             return <span key={pIdx}>{part}</span>;
           })}
-          {lIdx < text.split('\n').length - 1 && <br />}
+          {lIdx < lines.length - 1 && <br />}
         </React.Fragment>
       );
     });
@@ -322,7 +489,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       if (greetingKeywords.some((kw) => lower === kw || lower.startsWith(kw + ' ') || lower.endsWith(' ' + kw))) {
         addMessage({
           sender: 'bot',
-          text: 'Hello! I am your IndoFleet Logistics & Support Assistant.\n\nI can help you track live road deliveries, recover lost order IDs, check 700RPAV specifications, or connect with our support desk. What would you like assistance with?'
+          text: 'Hello! I am your IndoWings Logistics & Support Assistant.\n\nI can help you track live road deliveries, recover lost order IDs, check 700RPAV specifications, or connect with our support desk. What would you like assistance with?'
         });
         setLoading(false);
         return;
@@ -404,7 +571,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       if (fixGeneralKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
           sender: 'bot',
-          text: 'IndoFleet Standard Operating Procedures & Hardware Fix Guides:\n\nSelect a topic below or type your specific issue (e.g. "Weather hold", "RTK GPS drift", "NPNT token error", "5G telemetry lost", "IMU calibration"):\n\n• Weather Hold Meteorological Thresholds\n• RTK Centimeter Lock & Satellite Count\n• DigitalSky NPNT Permission Tokens\n• 5G Cellular Failover & UHF RF Backup\n• Dual-IMU Redundancy & Compass Alignment',
+          text: 'IndoWings Standard Operating Procedures & Hardware Fix Guides:\n\nSelect a topic below or type your specific issue (e.g. "Weather hold", "RTK GPS drift", "NPNT token error", "5G telemetry lost", "IMU calibration"):\n\n• Weather Hold Meteorological Thresholds\n• RTK Centimeter Lock & Satellite Count\n• DigitalSky NPNT Permission Tokens\n• 5G Cellular Failover & UHF RF Backup\n• Dual-IMU Redundancy & Compass Alignment',
           cardType: 'qc_guide'
         });
         setLoading(false);
@@ -427,43 +594,44 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       if (supportKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
           sender: 'bot',
-          text: 'Here are the official IndoFleet Support & Command Center details:',
+          text: 'Here are the official IndoWings Support & Command Center details:',
           cardType: 'support_info'
         });
         setLoading(false);
         return;
       }
 
-      // 17. KNOWLEDGE BASE: 700RPAV DRONE FLEET & SPECS
-      const droneKeywords = ['drone', 'fleet', '700rpav', 'rpav', 'aircraft', 'uav', 'payload', 'specs', 'specification', 'battery', 'range', 'speed', 'endurance', 'camera', 'weight'];
-      if (droneKeywords.some((kw) => lower.includes(kw))) {
-        addMessage({
-          sender: 'bot',
-          text: 'IndoFleet 700RPAV Technical Specifications & Performance:\n\nThe 700RPAV is a DGCA Type-Certified high-altitude tactical quadcopter engineered for extreme BVLOS logistics and precision operations:',
-          cardType: 'drones_info'
-        });
-        setLoading(false);
-        return;
-      }
-
-      // 18. KNOWLEDGE BASE: STORE / HOW TO BOOK DRONES
+      // 17. KNOWLEDGE BASE: STORE / HOW TO BOOK DRONES
+      // (checked before the drone specs so "How to book 700RPAV consignment" opens the booking guide)
       const bookingKeywords = ['book', 'buy', 'purchase', 'store', 'order kaise', 'kaise kharide', 'inventory', 'consignment', 'shop', 'price', 'pricing', 'fare', 'cost'];
       if (bookingKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
           sender: 'bot',
-          text: 'How to Book 700RPAV Drones from IndoFleet Store:\n\n1. Visit the Store page to view available 700RPAV hardware inventory.\n2. Add the required units to your Consignment Cart.\n3. Enter your Delivery Facility Address and schedule road dispatch.\n4. Hardware units undergo diagnostic inspection before handover to delivery partner.',
+          text: 'How to Book 700RPAV Drones from IndoWings Store:\n\n1. Visit the Store page to view available 700RPAV hardware inventory.\n2. Add the required units to your Consignment Cart.\n3. Enter your Delivery Facility Address and schedule road dispatch.\n4. Hardware units undergo diagnostic inspection before handover to delivery partner.',
           cardType: 'store_guide'
         });
         setLoading(false);
         return;
       }
 
+      // 18. KNOWLEDGE BASE: 700RPAV DRONE FLEET & SPECS
+      const droneKeywords = ['drone', 'fleet', '700rpav', 'rpav', 'aircraft', 'uav', 'payload', 'specs', 'specification', 'battery', 'range', 'speed', 'endurance', 'camera', 'weight'];
+      if (droneKeywords.some((kw) => lower.includes(kw))) {
+        addMessage({
+          sender: 'bot',
+          text: 'IndoWings 700RPAV Technical Specifications & Performance:\n\nThe 700RPAV is a DGCA Type-Certified high-altitude tactical quadcopter engineered for extreme BVLOS logistics and precision operations:',
+          cardType: 'drones_info'
+        });
+        setLoading(false);
+        return;
+      }
+
       // 19. KNOWLEDGE BASE: COMPANY & FOUNDER & DGCA
-      const companyKeywords = ['indowfleet', 'company', 'founder', 'ceo', 'paras jain', 'headquarter', 'office', 'dgca', 'cin', 'about', 'make in india', 'location'];
+      const companyKeywords = ['indowings', 'company', 'founder', 'ceo', 'paras jain', 'headquarter', 'office', 'dgca', 'cin', 'about', 'make in india', 'location'];
       if (companyKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
           sender: 'bot',
-          text: 'IndoFleet Corporate Profile & Manufacturing:\n\nIndo Wings Private Limited is an Indian aerospace and autonomous defense UAV manufacturer headquartered in Noida.',
+          text: 'IndoWings Corporate Profile & Manufacturing:\n\nIndo Wings Private Limited is an Indian aerospace and autonomous defense UAV manufacturer headquartered in Noida.',
           cardType: 'company_info'
         });
         setLoading(false);
@@ -475,7 +643,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       if (cancelKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
           sender: 'bot',
-          text: 'IndoFleet Consignment Cancellation Policy:\n\n• Customer Cancellation: You can cancel an order from your Profile / Orders tab at any time prior to physical road dispatch.\n• Operations Cancellation: When cancelled, reserved 700RPAV hardware units are automatically returned to factory inventory.'
+          text: 'IndoWings Consignment Cancellation Policy:\n\n• Customer Cancellation: You can cancel an order from your Profile / Orders tab at any time prior to physical road dispatch.\n• Operations Cancellation: When cancelled, reserved 700RPAV hardware units are automatically returned to factory inventory.'
         });
         setLoading(false);
         return;
@@ -507,6 +675,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
   };
 
   const handleTopicClick = (query: string) => {
+    if (loading) return;
     addMessage({ sender: 'user', text: query });
     processUserQuery(query);
   };
@@ -517,512 +686,448 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const navAndClose = (page: string, url: string) => {
+    setIsOpen(false);
+    nav(page, url);
+  };
+
+  // Track a single order picked from the lookup list
+  const trackFromList = async (ord: any, customerName: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/chatbot/track-by-id`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: ord.id,
+          customer_name: customerName,
+          skip_name_check: true
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.order) {
+        addMessage({
+          sender: 'bot',
+          text: `Telemetry loaded for Order **#${ord.id}**:`,
+          cardType: 'order_detail',
+          cardData: data.order
+        });
+      }
+    } catch (err: any) {
+      addMessage({ sender: 'bot', text: `Connection error: ${err.message}. Please try again.` });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ── Card renderer ───────────────────────────────────────────────────────── */
+  const renderCard = (msg: ChatMessage) => {
+    if (!msg.cardType) return null;
+
+    // Guides (weather, RTK, NPNT, telemetry, avionics, QC, store)
+    const guide = GUIDES[msg.cardType];
+    if (guide) return <GuideCard def={guide} onCta={navAndClose} />;
+
+    // Live order tracking
+    if (msg.cardType === 'order_detail' && msg.cardData) {
+      const d = msg.cardData;
+      const progress: number | null =
+        typeof d.route_progress === 'number'
+          ? Math.min(100, Math.max(0, d.route_progress))
+          : d.status === 'delivered'
+            ? 100
+            : null;
+      const partner = d.pilot_assigned || d.delivery_partner_name || 'Not assigned yet';
+      return (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm animate-in fade-in">
+          <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-purple-50 to-white px-3.5 py-3">
+            <div>
+              <span className="block text-[10px] font-bold text-slate-400">Order ID</span>
+              <span className="font-mono text-sm font-bold text-slate-900">#{d.id}</span>
+            </div>
+            <StatusPill status={d.status} />
+          </div>
+
+          <div className="space-y-3 px-3.5 py-3">
+            {/* Route */}
+            <div>
+              <div className="flex items-center justify-between gap-3 text-[11px] font-semibold text-slate-700">
+                <span className="max-w-[45%] truncate">{d.pickup_address?.split(',')[0] || 'Pickup'}</span>
+                <span className="max-w-[45%] truncate text-right">{d.drop_address?.split(',')[0] || 'Destination'}</span>
+              </div>
+              {progress !== null ? (
+                <div className="relative mt-3 h-1.5 rounded-full bg-slate-200">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#7c3aed] to-[#5a00b8] transition-all duration-500"
+                    style={{ width: `${progress}%` }}
+                  />
+                  <span
+                    className="absolute top-1/2 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-[#5a00b8] text-white shadow"
+                    style={{ left: `${Math.min(94, Math.max(6, progress))}%` }}
+                  >
+                    <Truck className="h-3 w-3" />
+                  </span>
+                </div>
+              ) : (
+                <p className="mt-2 text-[10px] text-slate-400">Route progress is not available yet.</p>
+              )}
+            </div>
+
+            {/* Partner + ETA */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-2 text-center">
+                <span className="block text-[10px] font-medium text-slate-400">Delivery Partner</span>
+                <span className="block truncate text-[11px] font-bold text-slate-800">{partner}</span>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-2 text-center">
+                <span className="block text-[10px] font-medium text-slate-400">Estimated Window</span>
+                <span className="block font-mono text-[11px] font-bold text-[#5a00b8]">
+                  {d.eta_mins ? `${d.eta_mins} mins` : '—'}
+                </span>
+              </div>
+            </div>
+
+            {/* Hardware + recipient */}
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-purple-100 bg-purple-50/60 p-2.5 text-[11px]">
+              <div className="min-w-0">
+                <span className="block text-slate-500">Hardware Model</span>
+                <span className="block truncate font-bold text-[#5a00b8]">
+                  {d.drone_model || '700RPAV'}
+                  {d.drone_id ? ` (${d.drone_id})` : ''}
+                </span>
+              </div>
+              <div className="min-w-0 text-right">
+                <span className="block text-slate-500">Recipient</span>
+                <span className="block truncate font-bold text-slate-800">{d.customer_name}</span>
+              </div>
+            </div>
+
+            <CardButton onClick={() => navAndClose('track', `/track?id=${d.id}`)}>
+              <span>Open Full Live GPS Tracking View</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </CardButton>
+          </div>
+        </div>
+      );
+    }
+
+    // Lookup results
+    if (msg.cardType === 'order_list' && msg.cardData?.orders) {
+      return (
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <p className="mb-2 text-[11px] font-bold text-slate-500">Orders found for {msg.cardData.customerName}</p>
+          <div className="max-h-52 space-y-2 overflow-y-auto pr-1">
+            {msg.cardData.orders.map((ord: any) => (
+              <div
+                key={ord.id}
+                className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 transition-colors hover:border-purple-300 hover:bg-purple-50/50"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-slate-900">#{ord.id}</span>
+                    <StatusPill status={ord.status} />
+                  </div>
+                  <p className="mt-1 truncate text-[10px] text-slate-500">
+                    Booked: {ord.created_at ? new Date(ord.created_at).toLocaleDateString() : 'Recent'} · {ord.drone_model || '700RPAV'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => trackFromList(ord, msg.cardData.customerName)}
+                  className="shrink-0 cursor-pointer rounded-lg bg-[#5a00b8] px-3 py-1.5 text-[11px] font-bold text-white transition-colors hover:bg-[#4a0099] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5a00b8]"
+                >
+                  Track
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // 700RPAV specs
+    if (msg.cardType === 'drones_info') {
+      const specs = [
+        { label: 'Endurance', value: '65 mins flight' },
+        { label: 'Range', value: '10 km operational' },
+        { label: 'Max MTOW', value: '5.0 kg (2.2 kg payload)' },
+        { label: 'Positioning', value: 'PPK / RTK Centimeter' }
+      ];
+      return (
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="rounded-xl border border-purple-100 bg-purple-50/60 p-3">
+            <p className="flex items-center gap-2 text-xs font-bold text-slate-900">
+              <Plane className="h-4 w-4 shrink-0 text-[#5a00b8]" />
+              <span>700RPAV Type-Certified Tactical Quadcopter</span>
+            </p>
+            <div className="mt-2.5 grid grid-cols-2 gap-2">
+              {specs.map((s) => (
+                <div key={s.label} className="rounded-lg border border-purple-100 bg-white p-2">
+                  <span className="block text-[10px] font-medium text-slate-400">{s.label}</span>
+                  <span className="block text-[11px] font-bold text-slate-900">{s.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
+            <p className="text-xs font-bold text-slate-900">Applications & Deployments</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+              High-altitude mountain BVLOS corridors, medical cold-chain logistics, tactical perimeter reconnaissance, and automated pipeline inspection.
+            </p>
+          </div>
+
+          <CardButton onClick={() => navAndClose('store', '/store')}>
+            <span>Browse 700RPAV Fleet Store</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </CardButton>
+        </div>
+      );
+    }
+
+    // Company info
+    if (msg.cardType === 'company_info') {
+      const rows = [
+        { label: 'Legal Name', value: 'Indo Wings Private Limited' },
+        { label: 'Founder & CEO', value: 'Paras Jain' },
+        { label: 'Manufacturing Facility', value: 'Sector 62, Noida, UP - 201309' },
+        { label: 'CIN', value: 'U35999UP2020PTC126589' },
+        { label: 'Certifications', value: 'DGCA Type-Certified, DigitalSky Green Corridors' }
+      ];
+      return (
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <dl className="divide-y divide-slate-100">
+            {rows.map((r) => (
+              <div key={r.label} className="flex items-start justify-between gap-3 py-2 text-[11px] first:pt-0">
+                <dt className="shrink-0 font-bold text-slate-900">{r.label}</dt>
+                <dd className="text-right text-slate-600">{r.value}</dd>
+              </div>
+            ))}
+          </dl>
+          <CardButton onClick={() => navAndClose('company', '/company')}>
+            <span>View Company Profile</span>
+          </CardButton>
+        </div>
+      );
+    }
+
+    // Support
+    if (msg.cardType === 'support_info') {
+      return (
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-purple-100 bg-purple-50/70 p-3">
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-slate-900">24/7 Command Center Helpline</p>
+              <p className="mt-0.5 font-mono text-[11px] font-bold text-[#5a00b8]">+91 98765 43210 / 1800 572 7363</p>
+            </div>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#5a00b8] text-white">
+              <Phone className="h-4 w-4" />
+            </span>
+          </div>
+
+          <div className="mt-2.5 space-y-1.5 px-1 text-[11px] leading-relaxed text-slate-600">
+            <p>
+              <strong className="text-slate-900">Support Email:</strong> connect@indowings.com / support@indowings.com
+            </p>
+            <p>
+              <strong className="text-slate-900">Command Center:</strong> Sector 62, Noida Plant, Uttar Pradesh
+            </p>
+            <p>
+              <strong className="text-slate-900">Operations:</strong> Live Flight Telemetry & Airway Approvals
+            </p>
+          </div>
+
+          <CardButton onClick={() => navAndClose('support', '/support')}>
+            <span>Open Support Desk & Raise Ticket</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </CardButton>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const placeholder =
+    convState.step === 'awaiting_name'
+      ? 'Enter registered customer name...'
+      : convState.step === 'lookup_name'
+        ? 'Enter registered full name...'
+        : convState.step === 'lookup_phone'
+          ? 'Enter 10-digit mobile or email...'
+          : convState.step === 'lookup_date'
+            ? 'Enter booking date (or type "skip")...'
+            : 'Ask anything, enter Order ID, or search...';
+
   return (
     <>
-      {/* ── FLOATING TRIGGER LAUNCHER (Bottom-Right) ─────────────────────────── */}
-      <div className="fixed bottom-3.5 right-3.5 sm:bottom-6 sm:right-6 z-50 flex items-center gap-2 select-none">
-        {/* Interactive Teaser Pill */}
+      {/* ── FLOATING LAUNCHER (bottom-right) ─────────────────────────────────── */}
+      <div className="fixed bottom-4 right-4 z-50 flex select-none items-center gap-3 sm:bottom-6 sm:right-6">
         {!isOpen && showTeaser && (
-          <div className="hidden sm:flex items-center gap-2 bg-white/95 text-slate-800 text-xs font-medium px-3.5 py-2 rounded-full border border-purple-200 shadow-lg shadow-purple-900/10 animate-in fade-in slide-in-from-right-2 duration-200">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span onClick={() => setIsOpen(true)} className="cursor-pointer hover:text-[#5a00b8] transition-colors font-semibold">
-              Track flight or ask AI Copilot
-            </span>
+          <div className="animate-in fade-in slide-in-from-right-2 hidden items-center gap-2 rounded-2xl border border-purple-100 bg-white py-2 pl-4 pr-2 text-xs font-semibold text-slate-800 shadow-[0_8px_30px_rgba(90,0,184,0.18)] duration-300 sm:flex">
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowTeaser(false);
-              }}
-              className="text-slate-400 hover:text-slate-600 ml-1 cursor-pointer"
+              type="button"
+              onClick={() => setIsOpen(true)}
+              className="cursor-pointer transition-colors hover:text-[#5a00b8]"
             >
-              <X className="w-3 h-3" />
+              Track flight or ask AI Copilot
+            </button>
+            <button
+              type="button"
+              aria-label="Dismiss"
+              onClick={() => setShowTeaser(false)}
+              className="cursor-pointer rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+            >
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
         )}
 
-        {/* Floating Launcher Button */}
         <button
+          type="button"
           onClick={() => {
             setIsOpen(!isOpen);
             if (isMinimized) setIsMinimized(false);
           }}
-          className={`relative group w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white shadow-[0_8px_25px_rgba(90,0,184,0.35)] hover:shadow-[0_10px_30px_rgba(90,0,184,0.45)] hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer ${
-            isOpen ? 'bg-slate-900 rotate-90' : 'bg-[#5a00b8] hover:bg-[#4a0099]'
+          title={isOpen ? 'Close Copilot' : 'Open IndoWings Copilot'}
+          aria-label={isOpen ? 'Close Copilot' : 'Open IndoWings Copilot'}
+          className={`flex h-14 w-14 cursor-pointer items-center justify-center rounded-full text-white shadow-[0_10px_30px_rgba(90,0,184,0.45)] transition-all duration-200 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5a00b8] active:scale-95 ${
+            isOpen ? 'bg-slate-900' : 'bg-gradient-to-br from-[#7c3aed] to-[#5a00b8]'
           }`}
-          title={isOpen ? 'Close Copilot' : 'Open IndoFleet Copilot'}
         >
-          {isOpen ? (
-            <X className="w-5 h-5 text-white transition-transform -rotate-90" />
-          ) : (
-            <div className="relative flex items-center justify-center">
-              <Bot className="w-5 h-5 text-white" />
-              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#5a00b8]" />
-            </div>
-          )}
+          {isOpen ? <X className="h-6 w-6" /> : <Bot className="h-6 w-6" />}
         </button>
       </div>
 
-      {/* ── CHAT WINDOW (ELEGANT PURPLE THEME, STREAMLINED UI) ────────────────── */}
+      {/* ── CHAT WINDOW ──────────────────────────────────────────────────────── */}
       {isOpen && (
         <div
-          className={`fixed bottom-20 right-3.5 sm:bottom-20 sm:right-6 z-50 w-[94vw] sm:w-[400px] bg-white border border-slate-200/90 rounded-3xl shadow-[0_16px_48px_-8px_rgba(23,18,34,0.22)] overflow-hidden flex flex-col transition-all duration-200 animate-in fade-in slide-in-from-bottom-3 ${
-            isMinimized ? 'h-[60px]' : 'h-[560px] sm:h-[580px] max-h-[80vh]'
+          role="dialog"
+          aria-label="IndoWings Copilot"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setIsOpen(false);
+          }}
+          className={`animate-in fade-in slide-in-from-bottom-3 fixed bottom-24 right-4 z-50 flex w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_64px_-12px_rgba(60,10,120,0.4)] transition-[height] duration-200 sm:right-6 sm:w-[420px] ${
+            isMinimized ? 'h-[68px]' : 'h-[620px] max-h-[calc(100svh-7.5rem)]'
           }`}
         >
-          {/* ── Window Header ── */}
-          <div className="bg-gradient-to-r from-slate-900 via-[#1c0836] to-[#3b0080] text-white px-4 py-3 flex items-center justify-between shrink-0 shadow-xs">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-white/10 backdrop-blur-md text-purple-200 border border-white/15 flex items-center justify-center shadow-inner">
-                <Plane className="w-4 h-4 text-purple-300" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-white tracking-tight">IndoFleet Copilot</h3>
-              </div>
-            </div>
+          {/* Header */}
+          <div className="relative shrink-0 overflow-hidden bg-gradient-to-br from-[#2a0a5e] via-[#4a0099] to-[#7c3aed] px-4 py-3.5 text-white">
+            <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+            <div className="pointer-events-none absolute -bottom-12 left-1/3 h-28 w-28 rounded-full bg-fuchsia-400/20 blur-2xl" />
 
-            {/* Controls */}
-            <div className="flex items-center gap-1">
-              <button onClick={handleResetChat} title="Reset Chat" className="p-1.5 text-purple-200/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer">
-                <RefreshCw className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setIsMinimized(!isMinimized)}
-                title={isMinimized ? 'Expand' : 'Minimize'}
-                className="p-1.5 text-purple-200/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-              >
-                {isMinimized ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
-              </button>
-              <button onClick={() => setIsOpen(false)} title="Close" className="p-1.5 text-purple-200/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
+            <div className="relative flex items-center justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/15 backdrop-blur-md">
+                  <Plane className="h-5 w-5 text-white" />
+                </span>
+                <div className="min-w-0">
+                  <h3 className="truncate text-sm font-black leading-tight tracking-tight">IndoWings Copilot</h3>
+                  <p className="truncate text-[11px] text-purple-100/80">Logistics & Consignment Assistant</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-0.5">
+                <button
+                  type="button"
+                  onClick={handleResetChat}
+                  title="Reset Chat"
+                  aria-label="Reset chat"
+                  className="cursor-pointer rounded-xl p-2 text-purple-100/80 transition-colors hover:bg-white/15 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsMinimized(!isMinimized)}
+                  title={isMinimized ? 'Expand' : 'Minimize'}
+                  aria-label={isMinimized ? 'Expand' : 'Minimize'}
+                  className="cursor-pointer rounded-xl p-2 text-purple-100/80 transition-colors hover:bg-white/15 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+                >
+                  {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  title="Close"
+                  aria-label="Close"
+                  className="cursor-pointer rounded-xl p-2 text-purple-100/80 transition-colors hover:bg-white/15 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* ── Window Body ── */}
           {!isMinimized && (
             <>
-              {/* Messages Scroll Area */}
-              <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-[#fbfafd] text-xs">
-                {/* Render Messages */}
+              {/* Messages */}
+              <div className="flex-1 space-y-4 overflow-y-auto bg-gradient-to-b from-[#faf8ff] to-white p-4 text-[13px] [scrollbar-color:#d8c8f5_transparent] [scrollbar-width:thin]">
                 {messages.map((msg) => (
-                  <div key={msg.id} className={`flex gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div
+                    key={msg.id}
+                    className={`flex items-start gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
                     {msg.sender === 'bot' && (
-                      <div className="w-6 h-6 rounded-lg bg-purple-50 text-[#5a00b8] border border-purple-200 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                        <Bot className="w-3.5 h-3.5" />
-                      </div>
+                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#5a00b8] text-white shadow-sm">
+                        <Bot className="h-4 w-4" />
+                      </span>
                     )}
 
-                    <div className="max-w-[85%] space-y-1.5">
-                      {/* Message Bubble */}
+                    <div className={`max-w-[86%] space-y-2 ${msg.sender === 'user' ? 'items-end' : ''}`}>
                       <div
-                        className={`p-3 rounded-2xl leading-relaxed text-xs ${
+                        className={`px-3.5 py-2.5 leading-relaxed ${
                           msg.sender === 'user'
-                            ? 'bg-[#5a00b8] text-white rounded-tr-xs shadow-md shadow-purple-950/15 font-medium'
-                            : 'bg-white text-slate-800 border border-slate-200/90 rounded-tl-xs shadow-xs'
+                            ? 'rounded-2xl rounded-tr-md bg-gradient-to-br from-[#7c3aed] to-[#5a00b8] font-medium text-white shadow-md shadow-purple-900/20'
+                            : 'rounded-2xl rounded-tl-md border border-slate-200 bg-white text-slate-800 shadow-sm'
                         }`}
                       >
                         {renderFormattedText(msg.text)}
                       </div>
 
-                      {/* ── CARD: LIVE DELIVERY TRACKING & HUD ── */}
-                      {msg.cardType === 'order_detail' && msg.cardData && (
-                        <div className="bg-white rounded-2xl border border-slate-200 p-3 shadow-xs space-y-2.5 animate-in fade-in">
-                          {/* Order Header */}
-                          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                            <div>
-                              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Order ID</span>
-                              <span className="text-xs font-mono font-bold text-slate-900">#{msg.cardData.id}</span>
-                            </div>
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                                msg.cardData.status === 'delivered'
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : msg.cardData.status === 'in-flight' || msg.cardData.status === 'on-hold'
-                                    ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                                    : 'bg-amber-50 text-amber-700 border border-amber-200'
-                              }`}
-                            >
-                              {msg.cardData.status === 'on-hold' ? 'On The Way' : msg.cardData.status}
-                            </span>
-                          </div>
+                      {renderCard(msg)}
 
-                          {/* Route Progress */}
-                          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1.5">
-                            <div className="flex items-center justify-between text-[10px] text-slate-600 font-semibold">
-                              <span className="truncate max-w-[110px]">{msg.cardData.pickup_address?.split(',')[0] || 'Factory Hub'}</span>
-                              <Truck className="w-3.5 h-3.5 text-[#5a00b8]" />
-                              <span className="truncate max-w-[110px]">{msg.cardData.drop_address?.split(',')[0] || 'Destination'}</span>
-                            </div>
-                            <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                              <div
-                                className="bg-[#5a00b8] h-full transition-all duration-500 rounded-full"
-                                style={{ width: `${Math.min(100, Math.max(10, msg.cardData.route_progress || 45))}%` }}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Delivery Partner & ETA Grid */}
-                          <div className="grid grid-cols-2 gap-1.5 text-center">
-                            <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                              <span className="text-[9px] text-slate-400 block font-medium">Delivery Partner</span>
-                              <span className="text-[11px] font-bold text-slate-800 truncate block">{msg.cardData.pilot_assigned || msg.cardData.delivery_partner_name || 'Assigned Driver'}</span>
-                            </div>
-                            <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                              <span className="text-[9px] text-slate-400 block font-medium">Estimated Window</span>
-                              <span className="text-[11px] font-bold text-[#5a00b8] font-mono">{msg.cardData.eta_mins ? `${msg.cardData.eta_mins} mins` : 'On Schedule'}</span>
-                            </div>
-                          </div>
-
-                          {/* Assigned Drone & Customer */}
-                          <div className="p-2 bg-purple-50/60 rounded-xl border border-purple-100 flex items-center justify-between text-[10px]">
-                            <div>
-                              <span className="text-slate-500 block font-medium">Hardware Model:</span>
-                              <span className="font-bold text-[#5a00b8]">{msg.cardData.drone_model || '700RPAV'} ({msg.cardData.drone_id || '700RPAV-01'})</span>
-                            </div>
-                            <div className="text-right">
-                              <span className="text-slate-500 block font-medium">Recipient:</span>
-                              <span className="font-bold text-slate-800">{msg.cardData.customer_name}</span>
-                            </div>
-                          </div>
-
-                          {/* View Full Tracking button */}
-                          <button
-                            onClick={() => {
-                              setIsOpen(false);
-                              nav('track', `/track?id=${msg.cardData.id}`);
-                            }}
-                            className="w-full py-2 bg-[#5a00b8] hover:bg-[#4a0099] text-white font-bold text-[11px] rounded-xl cursor-pointer transition-all shadow-xs flex items-center justify-center gap-1.5"
-                          >
-                            <span>Open Full Live GPS Tracking View</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
-
-                      {/* ── CARD: ORDER LIST LOOKUP RESULTS ── */}
-                      {msg.cardType === 'order_list' && msg.cardData?.orders && (
-                        <div className="bg-white rounded-2xl border border-slate-200 p-3 shadow-xs space-y-2">
-                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                            Orders found for {msg.cardData.customerName}:
-                          </p>
-                          <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                            {msg.cardData.orders.map((ord: any) => (
-                              <div
-                                key={ord.id}
-                                className="p-2.5 rounded-xl bg-slate-50 hover:bg-purple-50/60 border border-slate-200/80 transition-all flex items-center justify-between gap-2"
-                              >
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="font-mono font-bold text-xs text-slate-900">#{ord.id}</span>
-                                    <span className={`px-1.5 py-0.2 rounded text-[8px] font-black uppercase ${
-                                      ord.status === 'delivered'
-                                        ? 'bg-emerald-100 text-emerald-800'
-                                        : ord.status === 'on-hold' || ord.status === 'in-flight'
-                                          ? 'bg-blue-100 text-blue-800'
-                                          : 'bg-amber-100 text-amber-800'
-                                    }`}>
-                                      {ord.status === 'on-hold' ? 'On The Way' : ord.status}
-                                    </span>
-                                  </div>
-                                  <p className="text-[10px] text-slate-500 mt-0.5 truncate">
-                                    Booked: {ord.created_at ? new Date(ord.created_at).toLocaleDateString() : 'Recent'} · {ord.drone_model || '700RPAV'}
-                                  </p>
-                                </div>
-
-                                <button
-                                  onClick={async () => {
-                                    setLoading(true);
-                                    const res = await fetch(`${API_BASE_URL}/api/delivery/chatbot/track-by-id`, {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({
-                                        order_id: ord.id,
-                                        customer_name: msg.cardData.customerName,
-                                        skip_name_check: true
-                                      })
-                                    });
-                                    const data = await res.json();
-                                    setLoading(false);
-                                    if (data.success && data.order) {
-                                      addMessage({
-                                        sender: 'bot',
-                                        text: `Telemetry loaded for Order **#${ord.id}**:`,
-                                        cardType: 'order_detail',
-                                        cardData: data.order
-                                      });
-                                    }
-                                  }}
-                                  className="px-2.5 py-1 bg-[#5a00b8] hover:bg-[#4a0099] text-white text-[10px] font-bold rounded-lg cursor-pointer shrink-0 transition-colors"
-                                >
-                                  Track
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* ── CARD: 700RPAV DRONE FLEET SPECS ── */}
-                      {msg.cardType === 'drones_info' && (
-                        <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-2 shadow-xs text-xs">
-                          <div className="p-2.5 bg-purple-50/60 rounded-xl border border-purple-100">
-                            <p className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                              <Plane className="w-3.5 h-3.5 text-[#5a00b8]" />
-                              <span>700RPAV Type-Certified Tactical Quadcopter</span>
-                            </p>
-                            <div className="grid grid-cols-2 gap-1.5 mt-2 text-[10px] text-slate-600">
-                              <div>• <strong>Endurance:</strong> 65 mins flight</div>
-                              <div>• <strong>Range:</strong> 10 km operational</div>
-                              <div>• <strong>Payload:</strong> 5.0 kg capacity</div>
-                              <div>• <strong>Positioning:</strong> PPK / RTK Centimeter</div>
-                            </div>
-                          </div>
-
-                          <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                            <p className="font-bold text-slate-900 text-xs">Applications & Deployments</p>
-                            <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
-                              High-altitude mountain BVLOS corridors, medical cold-chain logistics, tactical perimeter reconnaissance, and automated pipeline inspection.
-                            </p>
-                          </div>
-
-                          <button
-                            onClick={() => {
-                              setIsOpen(false);
-                              nav('store', '/store');
-                            }}
-                            className="w-full py-2 bg-[#5a00b8] hover:bg-[#4a0099] text-white font-bold text-[11px] rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-1.5"
-                          >
-                            <span>Browse 700RPAV Fleet Store</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
-
-                      {/* ── CARD: FIX GUIDE: WEATHER HOLD ── */}
-                      {msg.cardType === 'fix_weather' && (
-                        <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-2 shadow-xs text-xs">
-                          <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200">
-                            <p className="font-bold text-amber-900 text-xs flex items-center gap-1.5">
-                              <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-                              <span>Corridor Weather Hold Protocol</span>
-                            </p>
-                            <p className="text-[10px] text-amber-800 mt-1 leading-relaxed">
-                              Automated DGCA safety threshold triggered when sustained winds exceed 38 km/h or active precipitation is detected.
-                            </p>
-                          </div>
-                          <div className="space-y-1 text-[10.5px] text-slate-600">
-                            <p>• <strong>Resumption:</strong> Sensors poll conditions every 2 mins; cruising resumes automatically upon normalization.</p>
-                            <p>• <strong>Loiter Safety:</strong> Aircraft loiters safely at holding ceiling (120m AGL).</p>
-                          </div>
-                          <button
-                            onClick={() => {
-                              setIsOpen(false);
-                              nav('track', '/track');
-                            }}
-                            className="w-full py-1.5 bg-[#5a00b8] hover:bg-[#4a0099] text-white font-bold text-[11px] rounded-xl cursor-pointer transition-colors"
-                          >
-                            Check Live Flight Radar
-                          </button>
-                        </div>
-                      )}
-
-                      {/* ── CARD: FIX GUIDE: RTK / GPS ── */}
-                      {msg.cardType === 'fix_gps' && (
-                        <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-2 shadow-xs text-xs">
-                          <div className="p-2.5 bg-purple-50/70 rounded-xl border border-purple-200">
-                            <p className="font-bold text-purple-950 text-xs flex items-center gap-1.5">
-                              <Radar className="w-3.5 h-3.5 text-[#5a00b8]" />
-                              <span>RTK Centimeter-Fix Precision Guide</span>
-                            </p>
-                            <div className="space-y-1 text-[10.5px] text-slate-700 mt-1.5">
-                              <p>1. <strong>NTRIP Caster:</strong> Check base station UHF/cellular correction stream.</p>
-                              <p>2. <strong>Clear Obstacles:</strong> Ensure launch area is free from heavy metal rebar or powerlines.</p>
-                              <p>3. <strong>Satellite Lock:</strong> Allow 90s for dual-band GNSS lock (GPS + GLONASS + NavIC &gt; 14 sats).</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* ── CARD: FIX GUIDE: NPNT DIGITALSKY ── */}
-                      {msg.cardType === 'fix_npnt' && (
-                        <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-2 shadow-xs text-xs">
-                          <div className="p-2.5 bg-blue-50 rounded-xl border border-blue-200">
-                            <p className="font-bold text-blue-950 text-xs flex items-center gap-1.5">
-                              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                              <span>DigitalSky NPNT Permission Token</span>
-                            </p>
-                            <p className="text-[10px] text-blue-800 mt-1 leading-relaxed">
-                              Under DGCA regulations, motors arm only with valid cryptographic flight tokens. If expired, token can be refreshed in &lt;60s from the Dispatch Console.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* ── CARD: FIX GUIDE: TELEMETRY 5G ── */}
-                      {msg.cardType === 'fix_telemetry' && (
-                        <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-2 shadow-xs text-xs">
-                          <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200">
-                            <p className="font-bold text-emerald-950 text-xs flex items-center gap-1.5">
-                              <Radar className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>Tri-Redundant Telemetry Failover</span>
-                            </p>
-                            <p className="text-[10px] text-emerald-800 mt-1 leading-relaxed">
-                              Hot-standby secondary cellular SIM switches in &lt;120ms. If cellular drops, direct 900MHz RF ground telemetry engages automatically.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* ── CARD: FIX GUIDE: AVIONICS & IMU ── */}
-                      {msg.cardType === 'fix_avionics' && (
-                        <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-2 shadow-xs text-xs">
-                          <div className="p-2.5 bg-indigo-50 rounded-xl border border-indigo-200">
-                            <p className="font-bold text-indigo-950 text-xs flex items-center gap-1.5">
-                              <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                              <span>Dual-IMU & Sensor Diagnostics</span>
-                            </p>
-                            <p className="text-[10px] text-indigo-800 mt-1 leading-relaxed">
-                              Execute 6-axis accelerometer calibration on a level surface via IndoFleet GCS. Keep aircraft away from electromagnetic interference.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* ── CARD: COMPANY & DGCA INFO ── */}
-                      {msg.cardType === 'company_info' && (
-                        <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-2 shadow-xs text-[11px] text-slate-600">
-                          <div className="space-y-1">
-                            <p><strong className="text-slate-900">Legal Name:</strong> Indo Wings Private Limited</p>
-                            <p><strong className="text-slate-900">Founder & CEO:</strong> Paras Jain</p>
-                            <p><strong className="text-slate-900">Manufacturing Facility:</strong> Sector 62, Noida, UP - 201309</p>
-                            <p><strong className="text-slate-900">CIN:</strong> U35999UP2020PTC126589</p>
-                            <p><strong className="text-slate-900">Certifications:</strong> DGCA Type-Certified, DigitalSky Green Corridors</p>
-                          </div>
-
-                          <button
-                            onClick={() => {
-                              setIsOpen(false);
-                              nav('company', '/company');
-                            }}
-                            className="w-full py-1.5 bg-[#5a00b8] hover:bg-[#4a0099] text-white font-bold text-[11px] rounded-xl cursor-pointer transition-colors"
-                          >
-                            View Company Profile
-                          </button>
-                        </div>
-                      )}
-
-                      {/* ── CARD: SUPPORT TEAM & 24/7 HELPLINE (Shown when asked) ── */}
-                      {msg.cardType === 'support_info' && (
-                        <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-2.5 shadow-xs text-xs">
-                          <div className="p-2.5 rounded-xl bg-purple-50/70 border border-purple-100 flex items-center justify-between">
-                            <div>
-                              <p className="font-bold text-slate-900 text-xs">24/7 Command Center Helpline</p>
-                              <p className="text-[11px] text-[#5a00b8] font-bold font-mono mt-0.5">+91 98765 43210 / 1800 572 7363</p>
-                            </div>
-                            <Phone className="w-4 h-4 text-[#5a00b8]" />
-                          </div>
-
-                          <div className="space-y-1 text-[11px] text-slate-600 px-1">
-                            <p><strong className="text-slate-900">Support Email:</strong> connect@indowfleet.com / support@indowfleet.com</p>
-                            <p><strong className="text-slate-900">Command Center:</strong> Sector 62, Noida Plant, Uttar Pradesh</p>
-                            <p><strong className="text-slate-900">Operations:</strong> Live Flight Telemetry & Airway Approvals</p>
-                          </div>
-
-                          <button
-                            onClick={() => {
-                              setIsOpen(false);
-                              nav('support', '/support');
-                            }}
-                            className="w-full py-2 bg-[#5a00b8] hover:bg-[#4a0099] text-white font-bold text-[11px] rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-1.5 shadow-xs"
-                          >
-                            <span>Open Support Desk & Raise Ticket</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
-
-                      {/* ── CARD: STORE BOOKING GUIDE ── */}
-                      {msg.cardType === 'store_guide' && (
-                        <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-2 shadow-xs text-xs">
-                          <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-100">
-                            <p className="font-bold text-emerald-900 text-xs flex items-center gap-1.5">
-                              <Package className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>700RPAV Consignment Booking</span>
-                            </p>
-                            <p className="text-[10px] text-emerald-700 mt-0.5">
-                              Browse available fleet aircraft, add to consignment cart, and schedule instant delivery.
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => {
-                              setIsOpen(false);
-                              nav('store', '/store');
-                            }}
-                            className="w-full py-2 bg-[#5a00b8] hover:bg-[#4a0099] text-white font-bold text-[11px] rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-1.5"
-                          >
-                            <span>Visit Store & Book Drone</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
-
-                      {/* ── CARD: PRE-FLIGHT QC & CORRIDORS GUIDE ── */}
-                      {msg.cardType === 'qc_guide' && (
-                        <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-2 shadow-xs text-xs">
-                          <div className="p-2 rounded-xl bg-indigo-50 border border-indigo-100">
-                            <p className="font-bold text-indigo-900 text-xs flex items-center gap-1.5">
-                              <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                              <span>Pre-Flight Diagnostics & BVLOS</span>
-                            </p>
-                            <p className="text-[10px] text-indigo-700 mt-0.5">
-                              Automated sensor calibration, RTK centimeter fix, and DigitalSky green corridor approvals before dispatch.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      <span className="text-[9px] text-slate-400 block px-1">{msg.time}</span>
+                      <span
+                        className={`block px-1 text-[10px] text-slate-400 ${msg.sender === 'user' ? 'text-right' : ''}`}
+                      >
+                        {msg.time}
+                      </span>
                     </div>
 
                     {msg.sender === 'user' && (
-                      <div className="w-6 h-6 rounded-lg bg-[#5a00b8] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                        <User className="w-3.5 h-3.5" />
-                      </div>
+                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
+                        <User className="h-4 w-4" />
+                      </span>
                     )}
                   </div>
                 ))}
 
-                {/* ── Interactive Starter Suggested Questions List (Floating in chat flow) ── */}
+                {/* Starter topics */}
                 {messages.length <= 1 && (
-                  <div className="mt-2 space-y-1.5 animate-in fade-in duration-200">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-amber-500" />
-                      <span>Suggested Topics:</span>
+                  <div className="animate-in fade-in space-y-2 duration-300">
+                    <p className="flex items-center gap-1.5 px-1 text-[11px] font-bold text-slate-500">
+                      <Sparkles className="h-3.5 w-3.5 text-[#7c3aed]" />
+                      <span>Suggested topics</span>
                     </p>
-                    <div className="space-y-1.5">
-                      {SUGGESTED_TOPICS.map((topic, idx) => {
+                    <div className="grid grid-cols-2 gap-2">
+                      {SUGGESTED_TOPICS.map((topic) => {
                         const Icon = topic.icon;
                         return (
                           <button
-                            key={idx}
+                            key={topic.label}
+                            type="button"
                             onClick={() => handleTopicClick(topic.query)}
                             disabled={loading}
-                            className="w-full p-2.5 rounded-2xl bg-white hover:bg-purple-50/70 border border-slate-200/80 hover:border-purple-300 text-left transition-all group cursor-pointer flex items-center justify-between gap-2.5 shadow-2xs hover:shadow-xs"
+                            title={topic.desc}
+                            className="group flex cursor-pointer flex-col items-start gap-2 rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-sm transition-all hover:border-[#7c3aed] hover:bg-purple-50/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5a00b8] disabled:opacity-50"
                           >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-7 h-7 rounded-xl bg-purple-50 text-[#5a00b8] group-hover:bg-[#5a00b8] group-hover:text-white transition-colors flex items-center justify-center shrink-0">
-                                <Icon className="w-3.5 h-3.5" />
-                              </div>
-                              <div className="min-w-0">
-                                <span className="font-bold text-[11px] text-slate-800 group-hover:text-[#5a00b8] transition-colors block truncate">
-                                  {topic.label}
-                                </span>
-                                <span className="text-[9px] text-slate-400 block truncate">
-                                  {topic.desc}
-                                </span>
-                              </div>
-                            </div>
-                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-[#5a00b8] group-hover:translate-x-0.5 transition-all shrink-0" />
+                            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-50 text-[#5a00b8] transition-colors group-hover:bg-[#5a00b8] group-hover:text-white">
+                              <Icon className="h-4 w-4" />
+                            </span>
+                            <span className="text-[11.5px] font-bold leading-snug text-slate-800 group-hover:text-[#5a00b8]">
+                              {topic.label}
+                            </span>
+                            <span className="line-clamp-2 text-[10px] leading-snug text-slate-400">{topic.desc}</span>
                           </button>
                         );
                       })}
@@ -1030,44 +1135,67 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                   </div>
                 )}
 
+                {/* Typing indicator */}
                 {loading && (
-                  <div className="flex items-center gap-2 text-slate-500 text-[11px] italic p-2 bg-white rounded-xl border border-slate-200 w-fit shadow-xs">
-                    <div className="w-2 h-2 rounded-full bg-[#5a00b8] animate-ping" />
-                    <span>Copilot processing request...</span>
+                  <div className="flex items-start gap-2.5">
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#5a00b8] text-white shadow-sm">
+                      <Bot className="h-4 w-4" />
+                    </span>
+                    <div className="flex items-center gap-1 rounded-2xl rounded-tl-md border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+                      {[0, 150, 300].map((delay) => (
+                        <span
+                          key={delay}
+                          className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#7c3aed] motion-reduce:animate-none"
+                          style={{ animationDelay: `${delay}ms` }}
+                        />
+                      ))}
+                    </div>
                   </div>
                 )}
 
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* ── Input Bar ── */}
-              <form onSubmit={handleSend} className="p-2.5 bg-white border-t border-slate-100 flex items-center gap-2 shrink-0">
-                <div className="flex-1 relative flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 focus-within:bg-white focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-100 transition-all">
+              {/* Quick chips (only once the chat has started and no step-by-step flow is running) */}
+              {messages.length > 1 && convState.step === 'idle' && (
+                <div className="flex shrink-0 gap-2 overflow-x-auto border-t border-slate-100 bg-white px-3 pb-1 pt-2.5 [scrollbar-width:none]">
+                  {QUICK_CHIPS.map((chip) => (
+                    <button
+                      key={chip.label}
+                      type="button"
+                      onClick={() => handleTopicClick(chip.query)}
+                      disabled={loading}
+                      className="shrink-0 cursor-pointer rounded-full border border-purple-200 bg-purple-50 px-3 py-1.5 text-[11px] font-bold text-[#5a00b8] transition-colors hover:bg-[#5a00b8] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5a00b8] disabled:opacity-50"
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Input */}
+              <form
+                onSubmit={handleSend}
+                className="flex shrink-0 items-center gap-2 border-t border-slate-100 bg-white p-3"
+              >
+                <div className="flex flex-1 items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 transition-all focus-within:border-[#7c3aed] focus-within:bg-white focus-within:ring-4 focus-within:ring-purple-100">
                   <input
                     ref={inputRef}
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder={
-                      convState.step === 'awaiting_name'
-                        ? 'Enter registered customer name...'
-                        : convState.step === 'lookup_name'
-                          ? 'Enter registered full name...'
-                          : convState.step === 'lookup_phone'
-                            ? 'Enter 10-digit mobile or email...'
-                            : convState.step === 'lookup_date'
-                              ? 'Enter booking date (or type "skip")...'
-                              : 'Ask anything, enter Order ID, or search...'
-                    }
-                    className="w-full bg-transparent text-slate-800 placeholder-slate-400 text-xs focus:outline-none"
+                    placeholder={placeholder}
+                    aria-label="Type your message"
+                    className="w-full bg-transparent text-[13px] text-slate-800 placeholder-slate-400 focus:outline-none"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={!input.trim() || loading}
-                  className="w-9 h-9 rounded-2xl bg-[#5a00b8] hover:bg-[#4a0099] text-white flex items-center justify-center transition-all disabled:opacity-30 cursor-pointer shrink-0 shadow-md shadow-purple-950/20 active:scale-95"
+                  aria-label="Send message"
+                  className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-2xl bg-gradient-to-br from-[#7c3aed] to-[#5a00b8] text-white shadow-md shadow-purple-900/25 transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5a00b8] active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
                 >
-                  <Send className="w-4 h-4" />
+                  <Send className="h-4 w-4" />
                 </button>
               </form>
             </>
