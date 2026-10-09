@@ -127,7 +127,7 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
           <div className="w-14 h-14 bg-white/15 border border-white/20 rounded-xl flex items-center justify-center mb-5">
             <MapPin className="w-7 h-7 text-white" />
           </div>
-          <p className="text-xs font-bold tracking-[0.2em] uppercase text-white/70 mb-3">IndoWings Order Tracking</p>
+          <p className="text-xs font-bold tracking-[0.2em] uppercase text-white/70 mb-3">IndoFleet Order Tracking</p>
           <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight max-w-xl">Track your drone booking</h1>
           <p className="text-white/70 text-base max-w-xl leading-relaxed mb-8">Enter your booking or consignment ID to see order status and dispatch checkpoints.</p>
           <form onSubmit={handleSearch} className="flex gap-3 max-w-xl">

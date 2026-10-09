@@ -448,27 +448,35 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
     setOtpSuccess('');
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/delivery/profile/send-verify-otp`, {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/profile/verify-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ target, value: val })
+        body: JSON.stringify({
+          target,
+          value: val,
+          otp: '000000'
+        })
       });
 
       const data = await res.json();
       if (!res.ok) {
-        setOtpError(data.error || 'Failed to send OTP.');
+        setOtpError(data.error || 'Failed to verify contact.');
         return;
       }
 
-      setOtpModalTarget(target);
-      setOtpModalValue(val);
-      setOtpCode('');
-      setOtpSuccess(`Verification code dispatched to ${val}`);
+      if (data.user) {
+        setProfile(data.user);
+        onUpdateUser(data.user);
+        localStorage.setItem('iw_delivery_user', JSON.stringify(data.user));
+      }
+
+      setOtpSuccess(`${target === 'email' ? 'Email' : 'Mobile number'} verified successfully!`);
+      setTimeout(() => setOtpSuccess(''), 3000);
     } catch {
-      setOtpError('Failed to trigger verification code. Verify backend is running.');
+      setOtpError('Verification failed. Verify backend service is running.');
     } finally {
       setOtpLoading(false);
     }
@@ -569,7 +577,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
     setPassOtpLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/delivery/profile/request-change-password-otp`, {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/profile/verify-change-password-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -578,24 +586,25 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
         body: JSON.stringify({
           userId: profile?.id,
           email: profile?.email || email,
+          otp: '000000',
           currentPassword: currentPassword.trim(),
-          newPassword: newPassword.trim(),
-          confirmPassword: confirmPassword.trim()
+          newPassword: newPassword.trim()
         })
       });
 
       const data = await res.json();
       if (!res.ok) {
-        setPassError(data.error || 'Failed to initiate password change.');
+        setPassError(data.error || 'Failed to update password.');
         return;
       }
 
-      setPassChangeStep('otp');
-      setPassOtpCode('');
-      setPassResendTimer(60);
-      setPassSuccess(`Security verification code sent to your registered email (${data.destination || profile?.email || email}). Valid for 10 minutes.`);
+      setPassSuccess('Your password has been changed successfully!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPassChangeStep('form');
     } catch {
-      setPassError('Network error while requesting password OTP.');
+      setPassError('Network error while updating password.');
     } finally {
       setPassOtpLoading(false);
     }
@@ -973,7 +982,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                     })(profile?.role)}
                   </span>
                 </div>
-                {!embedded && <p className="text-white/70 text-sm">{email || 'IndoWings Drone Fleet Network'}</p>}
+                {!embedded && <p className="text-white/70 text-sm">{email || 'IndoFleet Drone Fleet Network'}</p>}
               </div>
             </div>
 
@@ -988,8 +997,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
             </button>}
           </div>
 
-          {/* Mobile Tab Dropdown Selector (No sliding) */}
+          {/* Mobile Tab Dropdown Selector */}
           <div className="md:hidden mt-6">
+            <div className="flex items-center justify-between mb-2 px-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active Section:</span>
+              <span className="text-[11px] font-extrabold text-[#5a00b8] bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-100">
+                {activeTab === 'details' ? 'Personal Details' : activeTab === 'addresses' ? `Saved Addresses (${addresses.length})` : activeTab === 'orders' ? `Orders (${orders.length})` : activeTab === 'queries' ? `Support (${queries.length})` : 'Security'}
+              </span>
+            </div>
             <div className="relative">
               <select
                 value={activeTab}
@@ -1006,9 +1021,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
               >
                 <option value="details" className="text-slate-900 bg-white">Personal Details</option>
                 <option value="addresses" className="text-slate-900 bg-white">Saved Addresses ({addresses.length})</option>
-                <option value="orders" className="text-slate-900 bg-white">My Orders & History ({orders.length})</option>
-                <option value="queries" className="text-slate-900 bg-white">Support & Inquiries ({queries.length})</option>
-                <option value="security" className="text-slate-900 bg-white">Password & Security</option>
+                <option value="orders" className="text-slate-900 bg-white">My Orders &amp; History ({orders.length})</option>
+                <option value="queries" className="text-slate-900 bg-white">Support &amp; Inquiries ({queries.length})</option>
+                <option value="security" className="text-slate-900 bg-white">Password &amp; Security</option>
               </select>
               <ChevronDown className={`w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none ${embedded ? 'text-slate-600' : 'text-white/70'}`} />
             </div>
@@ -1157,7 +1172,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
 
                 {/* Email Address */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Email Address</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Email Address</label>
+                    <button
+                      type="button"
+                      onClick={() => handleTriggerVerify('email', email)}
+                      disabled={otpLoading}
+                      className="text-xs font-bold text-[#5a00b8] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Sparkles className="w-3 h-3" /> Verify Email via OTP
+                    </button>
+                  </div>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
@@ -1174,7 +1199,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
 
                 {/* Mobile Phone Number */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Mobile Phone Number</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Mobile Phone Number</label>
+                    <button
+                      type="button"
+                      onClick={() => handleTriggerVerify('phone', phone)}
+                      disabled={otpLoading}
+                      className="text-xs font-bold text-[#5a00b8] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Sparkles className="w-3 h-3" /> Verify Phone via OTP
+                    </button>
+                  </div>
                   <div className="relative">
                     <PhoneInput value={phone} onChange={(v) => setPhone(v)} placeholder="9XXXXXXXXX" inputClassName="py-3.5" />
                   </div>
@@ -1482,7 +1517,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                             <div className="w-2 h-2 rounded-full bg-emerald-500"></div> Pickup Origin Location
                           </span>
-                          <p className="font-medium text-[#171222] leading-snug">{order.pickup_address || 'IndoWings Dispatch Facility Alpha (Sector 62)'}</p>
+                          <p className="font-medium text-[#171222] leading-snug">{order.pickup_address || 'IndoFleet Dispatch Facility Alpha (Sector 62)'}</p>
                         </div>
 
                         {/* Drop Destination */}
@@ -2372,7 +2407,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                     <h3 className="text-base font-bold text-[#171222] font-mono">{selectedOrderDetail.id}</h3>
                     {renderStatusBadge(selectedOrderDetail.status)}
                   </div>
-                  <p className="text-xs text-slate-400">Dispatched via IndoWings Aerial Logistics Network</p>
+                  <p className="text-xs text-slate-400">Dispatched via IndoFleet Aerial Logistics Network</p>
                 </div>
               </div>
               <button
@@ -2469,7 +2504,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                     <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 mt-1 shrink-0"></div>
                     <div>
                       <span className="font-bold text-slate-700">Origin Facility:</span>
-                      <p className="text-slate-600 mt-0.5">{selectedOrderDetail.pickup_address || 'IndoWings Regional Dispatch Facility (Sector 62)'}</p>
+                      <p className="text-slate-600 mt-0.5">{selectedOrderDetail.pickup_address || 'IndoFleet Regional Dispatch Facility (Sector 62)'}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2.5">

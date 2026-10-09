@@ -1,4 +1,4 @@
-# IndoWings Aerial Logistics - Frontend Web Application
+# IndoFleet Aerial Logistics - Frontend Web Application
 
 Modern autonomous drone delivery and logistics command center built with React, TypeScript, Vite, Tailwind CSS, and Lucide Icons.
 

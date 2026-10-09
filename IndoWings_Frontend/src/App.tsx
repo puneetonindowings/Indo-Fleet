@@ -25,10 +25,11 @@ import { DemoBookingModal } from './components/DemoBookingModal';
 import { API_BASE_URL } from './config/api';
 import { SEOHead } from './components/SEOHead';
 import { DeliveryTrackingModule } from './pages/DeliveryTrackingModule';
+import { DeliveryAppPage } from './pages/DeliveryAppPage';
 import { Chatbot } from './components/Chatbot';
 import { UserProfile, DeliveryUser } from './types';
 
-type Page = 'home' | 'platform' | 'command-center' | 'gcs' | 'downloads' | 'versions' | 'track' | 'dispatch' | 'drone-dispatch' | 'delivery-tracking' | 'login' | 'profile' | 'orders' | 'support' | 'docs' | 'company' | 'feedback' | 'legal' | 'admin' | 'fleet' | 'support-desk' | 'shop' | 'store';
+type Page = 'home' | 'platform' | 'command-center' | 'gcs' | 'downloads' | 'versions' | 'track' | 'dispatch' | 'drone-dispatch' | 'delivery-tracking' | 'delivery-app' | 'login' | 'profile' | 'orders' | 'support' | 'docs' | 'company' | 'feedback' | 'legal' | 'admin' | 'fleet' | 'support-desk' | 'shop' | 'store' | 'cart';
 
 const getInitialPage = (): Page => {
   if (typeof window === 'undefined') return 'home';
@@ -38,6 +39,8 @@ const getInitialPage = (): Page => {
   if (p.includes('/support-desk') || p.includes('/support_desk')) return 'support-desk';
   if (p.includes('/drone-dispatch')) return 'drone-dispatch';
   if (p.includes('/delivery-tracking')) return 'delivery-tracking';
+  if (p.includes('/delivery-app') || p.includes('/pilot-app')) return 'delivery-app';
+  if (p.includes('/cart')) return 'cart';
   if (p.includes('/shop') || p.includes('/store')) return 'shop';
   if (p.includes('/command-center')) return 'command-center';
   if (p.includes('/platform')) return 'platform';
@@ -57,6 +60,25 @@ const getInitialPage = (): Page => {
   return 'home';
 };
 
+const isTokenValid = (token: string | null): boolean => {
+  if (!token) return false;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (!payload || typeof payload !== 'object') return false;
+    if (payload.exp && typeof payload.exp === 'number') {
+      const nowInSeconds = Math.floor(Date.now() / 1000);
+      if (payload.exp < nowInSeconds) {
+        return false;
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [deliveryUser, setDeliveryUser] = useState<DeliveryUser | null>(null);
@@ -65,25 +87,38 @@ export const App: React.FC = () => {
   const [selectedDroneForDemo, setSelectedDroneForDemo] = useState<string | undefined>(undefined);
   const [currentPage, setCurrentPage] = useState<Page>(getInitialPage);
 
-  // Restore delivery session on load
+  // Restore delivery session on load with expiration and integrity validation
   useEffect(() => {
     const token = localStorage.getItem('iw_delivery_token');
     const userStr = localStorage.getItem('iw_delivery_user');
     if (token && userStr) {
+      if (!isTokenValid(token)) {
+        console.warn('[auth] Invalid or expired JWT token on application startup. Clearing session.');
+        localStorage.removeItem('iw_delivery_token');
+        localStorage.removeItem('iw_delivery_user');
+        setDeliveryUser(null);
+        return;
+      }
       try {
         const user = JSON.parse(userStr) as DeliveryUser;
         setDeliveryUser(user);
-      } catch {}
+      } catch {
+        localStorage.removeItem('iw_delivery_token');
+        localStorage.removeItem('iw_delivery_user');
+      }
     }
   }, []);
 
   // Route Protection & Role Governance for Enterprise Dashboards & Fleet Store
   useEffect(() => {
-    const protectedPages: Page[] = ['admin', 'fleet', 'support-desk', 'dispatch', 'drone-dispatch', 'delivery-tracking', 'shop', 'store'];
+    const protectedPages: Page[] = ['admin', 'fleet', 'support-desk', 'dispatch', 'drone-dispatch', 'delivery-tracking', 'shop', 'store', 'cart'];
     if (protectedPages.includes(currentPage)) {
       const token = localStorage.getItem('iw_delivery_token');
       const userStr = localStorage.getItem('iw_delivery_user');
-      if (!token || !userStr) {
+      if (!token || !userStr || !isTokenValid(token)) {
+        localStorage.removeItem('iw_delivery_token');
+        localStorage.removeItem('iw_delivery_user');
+        setDeliveryUser(null);
         setCurrentPage('login');
         window.history.pushState({}, '', '/login');
         return;
@@ -97,24 +132,36 @@ export const App: React.FC = () => {
           window.history.pushState({}, '', path);
         };
 
+        const getAuthorizedFallback = (r?: string): { page: Page; path: string } => {
+          switch (r) {
+            case 'admin':
+              return { page: 'admin', path: '/admin' };
+            case 'fleet_manager':
+              return { page: 'fleet', path: '/fleet' };
+            case 'dispatcher':
+              return { page: 'dispatch', path: '/dispatch' };
+            case 'support':
+              return { page: 'support-desk', path: '/support-desk' };
+            case 'delivery_partner':
+            case 'pilot':
+              return { page: 'delivery-app', path: '/delivery-app' };
+            default:
+              return { page: 'shop', path: '/store' };
+          }
+        };
+
+        const fallback = getAuthorizedFallback(role);
+
         if (currentPage === 'admin' && role !== 'admin') {
-          if (role === 'fleet_manager') routeToDesk('fleet', '/fleet');
-          else if (role === 'dispatcher') routeToDesk('dispatch', '/dispatch');
-          else if (role === 'support') routeToDesk('support-desk', '/support-desk');
-          else routeToDesk('login', '/login');
+          routeToDesk(fallback.page, fallback.path);
         } else if (currentPage === 'delivery-tracking' && !['admin', 'dispatcher', 'fleet_manager'].includes(role)) {
-          if (role === 'support') routeToDesk('support-desk', '/support-desk');
-          else routeToDesk('login', '/login');
+          routeToDesk(fallback.page, fallback.path);
         } else if ((currentPage === 'dispatch' || currentPage === 'drone-dispatch') && !['dispatcher', 'admin', 'fleet_manager'].includes(role)) {
-          if (role === 'support') routeToDesk('support-desk', '/support-desk');
-          else routeToDesk('login', '/login');
+          routeToDesk(fallback.page, fallback.path);
         } else if (currentPage === 'fleet' && !['fleet_manager', 'admin'].includes(role)) {
-          if (role === 'dispatcher') routeToDesk('dispatch', '/dispatch');
-          else if (role === 'support') routeToDesk('support-desk', '/support-desk');
-          else routeToDesk('login', '/login');
+          routeToDesk(fallback.page, fallback.path);
         } else if (currentPage === 'support-desk' && !['support', 'admin', 'fleet_manager'].includes(role)) {
-          if (role === 'dispatcher') routeToDesk('dispatch', '/dispatch');
-          else routeToDesk('login', '/login');
+          routeToDesk(fallback.page, fallback.path);
         }
       } catch {
         setCurrentPage('login');
@@ -142,7 +189,7 @@ export const App: React.FC = () => {
   }, []);
 
   const handleNavigate = (page: string) => {
-    if (page === 'store' || page === 'shop') {
+    if (page === 'store' || page === 'shop' || page === 'cart') {
       const token = localStorage.getItem('iw_delivery_token');
       const userStr = localStorage.getItem('iw_delivery_user');
       if (!token || !userStr || !deliveryUser) {
@@ -150,7 +197,7 @@ export const App: React.FC = () => {
         window.history.pushState({}, '', '/login');
         return;
       }
-      setCurrentPage('shop');
+      setCurrentPage(page as Page);
       return;
     }
     setCurrentPage(page as Page);
@@ -213,8 +260,8 @@ export const App: React.FC = () => {
           <FleetManagerPage currentUser={deliveryUser} onNavigate={handleNavigate} onLogout={handleDeliveryLogout} />
         ) : currentPage === 'support-desk' ? (
           <SupportDeskPage currentUser={deliveryUser} onNavigate={handleNavigate} onLogout={handleDeliveryLogout} />
-        ) : currentPage === 'shop' ? (
-          <StorePage currentUser={deliveryUser} onNavigate={handleNavigate} />
+        ) : (currentPage === 'shop' || currentPage === 'store' || currentPage === 'cart') ? (
+          <StorePage key={currentPage + (typeof window !== 'undefined' ? window.location.pathname : '')} currentUser={deliveryUser} onNavigate={handleNavigate} />
         ) : currentPage === 'profile' ? (
           <ProfilePage onNavigate={handleNavigate} currentUser={deliveryUser} onUpdateUser={setDeliveryUser} />
         ) : currentPage === 'orders' ? (
@@ -241,6 +288,12 @@ export const App: React.FC = () => {
           <div className="min-h-screen bg-[#f8fafc] text-slate-900 pt-28 sm:pt-32 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
             <DeliveryTrackingModule currentUser={deliveryUser} onNavigate={handleNavigate} />
           </div>
+        ) : currentPage === 'delivery-app' ? (
+          <DeliveryAppPage
+            user={deliveryUser}
+            onLogout={handleDeliveryLogout}
+            onNavigate={handleNavigate}
+          />
         ) : currentPage === 'support' ? (
           <SupportPage onNavigate={handleNavigate} currentUser={deliveryUser} />
         ) : currentPage === 'docs' ? (

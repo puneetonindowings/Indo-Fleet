@@ -9,7 +9,10 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": ["location", "fetch"],
+        "UIBackgroundModes": [
+          "location",
+          "fetch"
+        ],
         "NSLocationWhenInUseUsageDescription": "IndoFleet Delivery App needs location access to track real-time delivery telemetry.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "IndoFleet Delivery App requires continuous background GPS to sync delivery tracking with Command Center."
       }

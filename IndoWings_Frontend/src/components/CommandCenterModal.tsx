@@ -33,6 +33,17 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
   const [newHectares, setNewHectares] = useState(150);
 
   useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
     if (!isOpen) return;
 
     // Load initial stats
@@ -102,7 +113,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-[#171222] border border-orange-500/40 w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden text-white flex flex-col max-h-[90vh]">
         {/* Modal Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-900/50 bg-black/40">
@@ -112,7 +123,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold">IndoWings Command Center Console</h3>
+                <h3 className="text-lg font-bold">IndoFleet Command Center Console</h3>
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-950 text-purple-300 border border-purple-800">
                   v3.4.4
                 </span>
@@ -184,7 +195,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
                 <span className="p-3 rounded-2xl bg-slate-900/40 text-purple-300 inline-block border border-purple-700/30">
                   <ShieldCheck className="w-8 h-8 text-emerald-400" />
                 </span>
-                <h4 className="text-xl font-bold">Sign In to IndoWings Command Center</h4>
+                <h4 className="text-xl font-bold">Sign In to IndoFleet Command Center</h4>
                 <p className="text-xs text-slate-400">
                   Use the administrator demo account to preview the command center. Operational accounts are created from the admin dashboard.
                 </p>
@@ -194,7 +205,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
               <div className="grid grid-cols-1 gap-3.5 max-w-2xl mx-auto">
                 {/* Admin */}
                 <button 
-                  onClick={() => handleQuickLogin('puneet.kushwaha@indowings.com')}
+                  onClick={() => handleQuickLogin('puneet.kushwaha@indowfleet.com')}
                   disabled={loading}
                   className="p-4 rounded-xl bg-black/40 border border-purple-800/40 hover:border-orange-500 hover:bg-slate-950/40 text-left transition-all group"
                 >
@@ -203,7 +214,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
                     <span className="px-2 py-0.5 rounded text-[10px] bg-slate-900 text-purple-200">Full Access</span>
                   </div>
                   <div className="font-bold text-white group-hover:text-purple-300">Puneet Kushwaha</div>
-                  <div className="text-[11px] text-slate-400">puneet.kushwaha@indowings.com</div>
+                  <div className="text-[11px] text-slate-400">puneet.kushwaha@indowfleet.com</div>
                 </button>
               </div>
             </div>
@@ -213,7 +224,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
           {currentUser && activeView === 'fleet' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h4 className="font-bold text-base text-purple-300">Active IndoWings Fleet Roster</h4>
+                <h4 className="font-bold text-base text-purple-300">Active IndoFleet Fleet Roster</h4>
                 <span className="text-xs text-slate-400 font-mono">DGCA Telemetry Link: 100% OK</span>
               </div>
 

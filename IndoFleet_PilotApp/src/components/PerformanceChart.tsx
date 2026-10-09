@@ -14,12 +14,12 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({ chartData })
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <BarChart3 size={16} color="#8B5CF6" />
-          <Text style={styles.title}>WEEKLY FLIGHT DISPATCH PERFORMANCE</Text>
+          <BarChart3 size={16} color="#3B0080" />
+          <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">WEEKLY DELIVERY PERFORMANCE</Text>
         </View>
         <View style={styles.trendPill}>
           <TrendingUp size={12} color="#10B981" />
-          <Text style={styles.trendText}>+18.4% vs last week</Text>
+          <Text style={styles.trendText}>+18.4%</Text>
         </View>
       </View>
 
@@ -70,33 +70,37 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({ chartData })
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 22,
+    padding: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#EEF2F6',
     marginBottom: 16,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#1E1B4B',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowRadius: 12,
+    elevation: 3,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    gap: 8,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flex: 1,
+    marginRight: 4,
   },
   title: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#3B0080',
     letterSpacing: 0.5,
+    flex: 1,
   },
   trendPill: {
     flexDirection: 'row',
@@ -104,8 +108,8 @@ const styles = StyleSheet.create({
     gap: 4,
     backgroundColor: '#ECFDF5',
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#A7F3D0',
   },

@@ -1,7 +1,7 @@
 {
-  "name": "indowings-server",
+  "name": "IndoFleet-server",
   "version": "1.0.0",
-  "description": "IndoWings Enterprise UAV REST API Server",
+  "description": "IndoFleet Enterprise UAV REST API Server",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

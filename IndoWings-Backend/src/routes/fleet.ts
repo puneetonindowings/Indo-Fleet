@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { dbService } from '../supabase.js';
 import { authenticateToken, requireRoles, AuthenticatedRequest } from '../middleware/auth.js';
 
@@ -46,7 +46,7 @@ router.post('/', authenticateToken, requireRoles('admin'), async (req: Authentic
       endurance_mins: Number(endurance_mins) || 60,
       max_speed_kmh: Number(max_speed_kmh) || 70,
       payload_capacity_kg: Number(payload_capacity_kg) || 2,
-      image_url: image_url || 'https://indowings.com/images/home/cyberonepro.webp'
+      image_url: image_url || 'https://IndoFleet.com/images/home/cyberonepro.webp'
     });
 
     await dbService.logAudit({
@@ -65,3 +65,4 @@ router.post('/', authenticateToken, requireRoles('admin'), async (req: Authentic
 });
 
 export default router;
+

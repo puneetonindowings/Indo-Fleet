@@ -50,6 +50,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
         } else if (u.role === 'customer') {
           onNavigate('shop');
           window.history.pushState({}, '', '/shop');
+        } else if (u.role === 'delivery' || u.role === 'pilot') {
+          onNavigate('delivery-app');
+          window.history.pushState({}, '', '/delivery-app');
         } else {
           onNavigate('profile');
           window.history.pushState({}, '', '/profile');
@@ -224,6 +227,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
   };
 
   useEffect(() => {
+    setOtpStep(false);
+    setResendTimer(60);
+    setCanResend(false);
+    setOtpDigits(['', '', '', '', '', '']);
+    setError('');
+  }, [authMethod]);
+
+  useEffect(() => {
     let interval: any = null;
     if (otpStep && resendTimer > 0) {
       interval = setInterval(() => {
@@ -236,7 +247,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
         });
       }, 1000);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [otpStep, resendTimer]);
 
   const routeByRole = (user: DeliveryUser) => {
@@ -680,7 +693,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
 
         {/* Footer info */}
         <div className="relative z-10 text-[11px] text-white/40">
-          Copyright &copy; 2026 IndoWings. All rights reserved.
+          Copyright &copy; 2026 IndoFleet. All rights reserved.
         </div>
       </div>
 
@@ -944,7 +957,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                           setError('');
                         }}
                         required
-                        placeholder="name@indowings.com"
+                        placeholder="name@indowfleet.com"
                         className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#5a00b8] focus:ring-4 focus:ring-orange-50 transition-all font-medium"
                       />
                     </div>
@@ -959,18 +972,26 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     </div>
                   )}
 
-                  <button
-                    type="submit"
-                    disabled={loading || !email.trim()}
-                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
-                  >
-                    {loading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <ArrowRight className="w-4 h-4" />
-                    )}
-                    <span>{loading ? 'Verifying Account...' : 'Continue to Password'}</span>
-                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={handleSendEmailOtp}
+                      disabled={loading || !email.trim()}
+                      className="py-3 px-4 rounded-xl font-bold text-xs text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer"
+                    >
+                      {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 text-amber-300" />}
+                      <span>Request 6-Digit OTP</span>
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={loading || !email.trim()}
+                      className="py-3 px-4 rounded-xl font-bold text-xs text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer"
+                    >
+                      <span>Continue with Password</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </form>
               ) : !otpStep ? (
                 // Step 2: Account Verified -> Enter Password
@@ -1062,8 +1083,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     ) : (
                       <ArrowRight className="w-4 h-4" />
                     )}
-                    <span>{loading ? 'Authenticating...' : 'Sign In to Portal'}</span>
+                    <span>{loading ? 'Authenticating...' : 'Sign In with Password'}</span>
                   </button>
+
+                  <div className="pt-2 text-center">
+                    <button
+                      type="button"
+                      onClick={handleSendEmailOtp}
+                      disabled={loading}
+                      className="text-xs font-bold text-[#5a00b8] hover:underline inline-flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-amber-500" /> Or Sign In with 6-Digit Email OTP
+                    </button>
+                  </div>
                 </form>
               ) : (
                 // Step 3 (Email OTP Verification)
@@ -1179,18 +1211,26 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     </div>
                   )}
 
-                  <button
-                    type="submit"
-                    disabled={loading || phone.replace(/[^0-9]/g, '').length < 10}
-                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
-                  >
-                    {loading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <ArrowRight className="w-4 h-4" />
-                    )}
-                    <span>{loading ? 'Verifying Number...' : 'Continue to Password'}</span>
-                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={handleSendPhoneOtp}
+                      disabled={loading || phone.replace(/[^0-9]/g, '').length < 10}
+                      className="py-3 px-4 rounded-xl font-bold text-xs text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer"
+                    >
+                      {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 text-amber-300" />}
+                      <span>Request 6-Digit SMS OTP</span>
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={loading || phone.replace(/[^0-9]/g, '').length < 10}
+                      className="py-3 px-4 rounded-xl font-bold text-xs text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer"
+                    >
+                      <span>Continue with Password</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </form>
               ) : !otpStep ? (
                 // Step 2: Account Verified -> Enter Password
@@ -1282,8 +1322,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     ) : (
                       <ArrowRight className="w-4 h-4" />
                     )}
-                    <span>{loading ? 'Authenticating...' : 'Sign In to Portal'}</span>
+                    <span>{loading ? 'Authenticating...' : 'Sign In with Password'}</span>
                   </button>
+
+                  <div className="pt-2 text-center">
+                    <button
+                      type="button"
+                      onClick={handleSendPhoneOtp}
+                      disabled={loading}
+                      className="text-xs font-bold text-[#5a00b8] hover:underline inline-flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-amber-500" /> Or Sign In with 6-Digit SMS OTP
+                    </button>
+                  </div>
                 </form>
               ) : (
                 // Step 3 (Phone OTP Verification)
@@ -1470,7 +1521,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                         }}
                         autoFocus
                         required
-                        placeholder="name@indowings.com or 10-digit mobile"
+                        placeholder="name@indowfleet.com or 10-digit mobile"
                         className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#5a00b8] focus:bg-white focus:ring-2 focus:ring-purple-100 transition-all font-medium"
                       />
                     </div>

@@ -1,9 +1,13 @@
-import '../env.js';
+﻿import '../env.js';
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { UserProfile } from '../types.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'indowings_command_center_secret_2026';
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  throw new Error('FATAL CONFIGURATION ERROR: JWT_SECRET environment variable must be set in production!');
+}
+
+export const JWT_SECRET = process.env.JWT_SECRET || 'IndoFleet_command_center_secret_2026';
 
 export interface AuthenticatedRequest extends Request {
   user?: UserProfile;
@@ -38,3 +42,4 @@ export const requireRoles = (...roles: string[]) => {
     next();
   };
 };
+

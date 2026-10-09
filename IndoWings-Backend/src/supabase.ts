@@ -1,4 +1,4 @@
-import './env.js';
+﻿import './env.js';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { UserProfile, DroneItem, MissionItem, AuditLogItem, DemoRequestItem } from './types.js';
 
@@ -8,7 +8,7 @@ const anonKey = (process.env.SUPABASE_ANON_KEY || '').trim();
 const placeholderPattern = /^(?:YOUR_|PLACEHOLDER|your-|replace-with-)/i;
 
 function getConfigurationError(): string | null {
-  if (!supabaseUrl) return 'SUPABASE_URL is missing from IndoWings-Backend/.env.';
+  if (!supabaseUrl) return 'SUPABASE_URL is missing from IndoFleet-Backend/.env.';
   try {
     const parsedUrl = new URL(supabaseUrl);
     if (parsedUrl.protocol !== 'https:' && parsedUrl.hostname !== 'localhost') {
@@ -19,7 +19,7 @@ function getConfigurationError(): string | null {
   }
 
   if (!supabaseKey || placeholderPattern.test(supabaseKey)) {
-    return 'SUPABASE_SERVICE_ROLE_KEY is missing or still a placeholder in IndoWings-Backend/.env.';
+    return 'SUPABASE_SERVICE_ROLE_KEY is missing or still a placeholder in IndoFleet-Backend/.env.';
   }
 
   const tokenPayload = supabaseKey.split('.')[1];
@@ -61,7 +61,7 @@ function client(): SupabaseClient {
 
 export async function verifySupabaseConnection(): Promise<void> {
   if (!supabaseUrl) {
-    throw new Error(configurationError || 'SUPABASE_URL is missing from IndoWings-Backend/.env.');
+    throw new Error(configurationError || 'SUPABASE_URL is missing from IndoFleet-Backend/.env.');
   }
 
   const healthUrl = `${supabaseUrl}/rest/v1/`;
@@ -195,3 +195,4 @@ export const dbService = {
     return data as DemoRequestItem;
   }
 };
+

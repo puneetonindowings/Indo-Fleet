@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { dbService } from '../supabase.js';
-import { authenticateToken, AuthenticatedRequest } from '../middleware/auth.js';
+import { authenticateToken, requireRoles, AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
 
-// GET audit logs
-router.get('/', async (req, res) => {
+// GET audit logs (Admin only)
+router.get('/', authenticateToken, requireRoles('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const logs = await dbService.getAuditLogs();
     res.json({ logs });

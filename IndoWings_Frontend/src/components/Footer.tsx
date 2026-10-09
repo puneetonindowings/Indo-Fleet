@@ -80,26 +80,26 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
                       currentUser.role === 'admin'
                         ? '/admin'
                         : currentUser.role === 'fleet_manager'
-                        ? '/fleet'
-                        : currentUser.role === 'dispatcher'
-                        ? '/dispatch'
-                        : '/support-desk'
+                          ? '/fleet'
+                          : currentUser.role === 'dispatcher'
+                            ? '/dispatch'
+                            : '/support-desk'
                     }
                     onClick={navTo(
                       currentUser.role === 'admin'
                         ? 'admin'
                         : currentUser.role === 'fleet_manager'
-                        ? 'fleet'
-                        : currentUser.role === 'dispatcher'
-                        ? 'dispatch'
-                        : 'support-desk',
+                          ? 'fleet'
+                          : currentUser.role === 'dispatcher'
+                            ? 'dispatch'
+                            : 'support-desk',
                       currentUser.role === 'admin'
                         ? '/admin'
                         : currentUser.role === 'fleet_manager'
-                        ? '/fleet'
-                        : currentUser.role === 'dispatcher'
-                        ? '/dispatch'
-                        : '/support-desk'
+                          ? '/fleet'
+                          : currentUser.role === 'dispatcher'
+                            ? '/dispatch'
+                            : '/support-desk'
                     )}
                     className="hover:text-white transition-colors flex items-center gap-1.5 text-purple-300 font-semibold"
                   >
@@ -211,7 +211,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
 
         {/* Bottom Bar: Copyright on Left, 24/7 Operations Support on Right */}
         <div className="pt-6 border-t border-white/[0.08] flex flex-col lg:flex-row items-center justify-between text-[13px] text-slate-400 gap-4">
-          <p>Copyright &copy; 2026 IndoWings. All rights reserved.</p>
+          <p>Copyright &copy; 2026 IndoFleet. All rights reserved.</p>
 
           <div className="flex flex-wrap items-center justify-center lg:justify-end gap-2.5 sm:gap-3 text-[12.5px] sm:text-[13px] text-slate-300">
             <span className="text-purple-400 font-bold flex items-center gap-1.5">

@@ -3,8 +3,13 @@ import { fileDB } from './db.js';
 import { supabase } from './supabase.js';
 
 async function seed1000Drones() {
+  if (process.env.NODE_ENV === 'production' && !process.env.FORCE_SEED) {
+    console.error('[seed] BLOCKED: Seeding mock drone data in production environment is disabled for safety. Set FORCE_SEED=true to override.');
+    process.exit(1);
+  }
+
   console.log('[seed] Starting 1,000 Drones provisioning with Model Name: 700RPAV...');
-  
+
   if (!supabase) {
     console.error('[seed] Supabase client is not configured. Check .env file.');
     process.exit(1);

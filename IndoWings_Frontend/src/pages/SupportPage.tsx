@@ -126,7 +126,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
       category: 'weather',
       title: 'Corridor Sortie is showing "Weather Hold" — Meteorological Safety Thresholds',
       summary: 'Automated safety hold triggered by real-time anemometer or precipitation telemetry.',
-      solution: `IndoWings autonomous UAVs enforce DGCA safety limits. If corridor sustained winds exceed 38 km/h or active rainfall is detected, the Command Center immediately initiates Weather Hold.
+      solution: `IndoFleet autonomous UAVs enforce DGCA safety limits. If corridor sustained winds exceed 38 km/h or active rainfall is detected, the Command Center immediately initiates Weather Hold.
 
  • Automatic Resumption: The telemetry engine polls environmental sensors every 2 minutes. Once wind levels normalize, cruising resumes automatically.
  • No Action Required: Technical teams receive real-time telemetry updates. The aircraft maintains safe loiter altitude until corridor clearance is confirmed.
@@ -155,7 +155,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
       solution: `Under DGCA DigitalSky regulations, motors cannot be armed without a valid cryptographic flight permission token:
 
  • Expired Token: Permission tokens are valid for designated corridor flight windows. If launch is delayed, regenerate a clearance token from the Dispatch Board.
- • Cryptographic Checksum Error: Ensure the UAV firmware public key matches your registered IndoWings DigitalSky vendor certificate.
+ • Cryptographic Checksum Error: Ensure the UAV firmware public key matches your registered IndoFleet DigitalSky vendor certificate.
  • Emergency Override: Ground Command Center can re-issue permission tokens within 60 seconds via the DGCA API bridge.`,
       actionLabel: 'Open Dispatch Board',
       actionPage: 'dispatch'
@@ -165,7 +165,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
       category: 'telemetry',
       title: 'Primary 5G Cellular Telemetry Link Lost — Failover & RF Backup Protocol',
       summary: 'Automated dual-SIM APN switching and long-range UHF backup telemetry handshake.',
-      solution: `IndoWings flight controllers feature tri-redundant command links:
+      solution: `IndoFleet flight controllers feature tri-redundant command links:
 
  1. Hot-Standby Cellular Failover: Upon primary carrier signal degradation, the system switches to secondary cellular APN in <120ms.
  2. 900MHz RF Backup: If cellular data drops entirely, the drone automatically switches to direct RF Ground Control telemetry.
@@ -180,7 +180,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
       summary: 'Avionics pre-flight sensor diagnostics and magnetic declination alignment.',
       solution: `If pre-flight health checks flag an IMU inconsistency or compass heading error:
 
- • Accelerometer Calibration: Place UAV on a level surface and execute 6-axis calibration via IndoWings GCS.
+ • Accelerometer Calibration: Place UAV on a level surface and execute 6-axis calibration via IndoFleet GCS.
  • Magnetic Interference: Keep the aircraft away from reinforced concrete slabs containing rebar.
  • Motor ESC Diagnostics: Verify all electronic speed controller telemetry reports uniform RPM and temperature before flight authorization.`,
       actionLabel: 'Open Operations Docs',
@@ -207,7 +207,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
         <div className="relative max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/15 rounded-full text-xs font-bold text-purple-200 mb-4 shadow-sm">
             <Headphones className="w-3.5 h-3.5 text-emerald-400" />
-            <span>IndoWings Flight Operations & Knowledge Center</span>
+            <span>IndoFleet Flight Operations & Knowledge Center</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-4">How can our flight desk help you today?</h1>
@@ -515,8 +515,8 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                   </div>
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-xs text-slate-500">Support Desk Email:</span>
-                    <a href="mailto:connect@indowings.com" className="text-xs font-bold text-[#5a00b8] hover:underline font-mono">
-                      connect@indowings.com
+                    <a href="mailto:connect@indowfleet.com" className="text-xs font-bold text-[#5a00b8] hover:underline font-mono">
+                      connect@indowfleet.com
                     </a>
                   </div>
                 </div>
@@ -546,10 +546,10 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
             {/* Guide Header Banner */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs">
               <div className="max-w-2xl">
-                <span className="text-xs font-bold text-purple-700 bg-purple-100 px-3 py-1 rounded-full uppercase tracking-wider">IndoWings Standard Operating Procedure (SOP)</span>
+                <span className="text-xs font-bold text-purple-700 bg-purple-100 px-3 py-1 rounded-full uppercase tracking-wider">IndoFleet Standard Operating Procedure (SOP)</span>
                 <h2 className="text-2xl sm:text-3xl font-black text-[#171222] mt-3 tracking-tight">Autonomous UAV Delivery: Customer Guide</h2>
                 <p className="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
-                  Learn how IndoWings delivers cargo in under 24 minutes, packaging limits, and how to prepare your terrace for safe, contactless tether drop.
+                  Learn how IndoFleet delivers cargo in under 24 minutes, packaging limits, and how to prepare your terrace for safe, contactless tether drop.
                 </p>
               </div>
             </div>

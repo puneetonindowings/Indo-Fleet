@@ -215,24 +215,33 @@ export function countryByIso(iso?: string | null): Country {
   return COUNTRIES.find(c => c.iso === (iso || '').toUpperCase()) || DEFAULT_COUNTRY;
 }
 
-// Split a stored phone string into { country, national }.
-// Handles values like "+91 98765 43210", "+919876543210" or plain "9876543210".
 export function parsePhone(value?: string | null): { country: Country; national: string } {
   const raw = (value || '').trim();
-  const digits = raw.replace(/[^0-9]/g, '');
-  if (!raw.startsWith('+') && !raw.startsWith('00')) {
-    return { country: DEFAULT_COUNTRY, national: digits.replace(/^0+/, '') };
+  if (!raw) return { country: DEFAULT_COUNTRY, national: '' };
+  
+  const isIntl = raw.startsWith('+') || raw.startsWith('00');
+  const digitsOnly = raw.replace(/[^0-9]/g, '');
+
+  if (!isIntl) {
+    const cleanedLocal = digitsOnly.length > 10 && digitsOnly.startsWith('0') ? digitsOnly.slice(1) : digitsOnly;
+    return { country: DEFAULT_COUNTRY, national: cleanedLocal };
   }
-  const withoutPlus = raw.startsWith('00') ? digits : raw.replace('+', '').replace(/[^0-9]/g, '');
-  // Match the longest known dial code prefix (dial codes are 1-3 digits).
+
+  const withoutPrefix = raw.startsWith('00') ? digitsOnly.slice(2) : digitsOnly;
+
   for (const len of [3, 2, 1]) {
-    const prefix = withoutPlus.slice(0, len);
+    const prefix = withoutPrefix.slice(0, len);
     const match = COUNTRIES.find(c => c.dial === prefix);
     if (match) {
-      return { country: match, national: withoutPlus.slice(len).replace(/^0+/, '') };
+      let national = withoutPrefix.slice(len);
+      if (national.length > 10 && national.startsWith('0')) {
+        national = national.replace(/^0+/, '');
+      }
+      return { country: match, national };
     }
   }
-  return { country: DEFAULT_COUNTRY, national: withoutPlus };
+
+  return { country: DEFAULT_COUNTRY, national: withoutPrefix };
 }
 
 // Combine a country and a national number into the canonical stored value.

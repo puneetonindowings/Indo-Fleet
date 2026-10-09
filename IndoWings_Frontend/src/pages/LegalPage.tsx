@@ -34,7 +34,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
           <h1 className="text-3xl sm:text-4xl font-black text-[#171222]">Legal &amp; Compliance</h1>
           <div className="w-14 h-1 rounded-full bg-gradient-to-r from-orange-500 to-indigo-500 mt-4" />
           <p className="text-slate-500 text-sm mt-4 leading-relaxed max-w-xl">
-            IndoWings Technologies operates enterprise UAV flight corridors, hardware QC, and aerospace fleet operations under DGCA Drone Rules 2021.
+            IndoFleet Technologies operates enterprise UAV flight corridors, hardware QC, and aerospace fleet operations under DGCA Drone Rules 2021.
             These documents govern your use of our platform, data practices, and security standards.
           </p>
           <div className="flex flex-wrap gap-3 mt-6">
@@ -64,7 +64,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
           <div className="bg-white rounded-3xl border border-slate-200 p-7 sm:p-10 space-y-6 text-sm text-slate-600 leading-relaxed">
             <div>
               <h3 className="text-base font-black text-[#171222] mb-2">1. Information We Collect</h3>
-              <p>IndoWings collects information necessary to provide autonomous drone delivery services, including:</p>
+              <p>IndoFleet collects information necessary to provide autonomous drone delivery services, including:</p>
               <ul className="list-disc pl-5 mt-2 space-y-1">
                 <li><strong>Account data:</strong> Name, email address, phone number (for OTP verification)</li>
                 <li><strong>Delivery data:</strong> Pickup address, drop-off address, package type and weight</li>
@@ -94,11 +94,11 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
             </div>
             <div>
               <h3 className="text-base font-black text-[#171222] mb-2">4. Data Retention</h3>
-              <p>Order data is retained for 5 years for DGCA compliance. Account data is retained until deletion request. Email <a href="mailto:support@indowings.com" className="text-purple-600 hover:underline">support@indowings.com</a> for any privacy requests.</p>
+              <p>Order data is retained for 5 years for DGCA compliance. Account data is retained until deletion request. Email <a href="mailto:support@indowfleet.com" className="text-purple-600 hover:underline">support@indowfleet.com</a> for any privacy requests.</p>
             </div>
             <div>
               <h3 className="text-base font-black text-[#171222] mb-2">5. Your Rights</h3>
-              <p>Under India Digital Personal Data Protection Act (DPDPA) 2023, you have the right to access, correct, and erase your personal data. Contact <a href="mailto:support@indowings.com" className="text-purple-600 hover:underline">support@indowings.com</a>.</p>
+              <p>Under India Digital Personal Data Protection Act (DPDPA) 2023, you have the right to access, correct, and erase your personal data. Contact <a href="mailto:support@indowfleet.com" className="text-purple-600 hover:underline">support@indowfleet.com</a>.</p>
             </div>
           </div>
         </section>
@@ -115,7 +115,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
           <div className="bg-white rounded-3xl border border-slate-200 p-7 sm:p-10 space-y-6 text-sm text-slate-600 leading-relaxed">
             <div>
               <h3 className="text-base font-black text-[#171222] mb-2">1. Acceptance of Terms</h3>
-              <p>By using IndoWings delivery services, you agree to these Terms of Use. These terms are governed by the laws of India.</p>
+              <p>By using IndoFleet delivery services, you agree to these Terms of Use. These terms are governed by the laws of India.</p>
             </div>
             <div>
               <h3 className="text-base font-black text-[#171222] mb-2">2. Eligible Use</h3>
@@ -138,7 +138,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
             </div>
             <div>
               <h3 className="text-base font-black text-[#171222] mb-2">4. Liability</h3>
-              <p>IndoWings maximum liability per delivery is limited to the declared value of the package or Rs. 5,000, whichever is lower. We are not liable for delays caused by weather, DGCA airspace restrictions, or events beyond operational control.</p>
+              <p>IndoFleet maximum liability per delivery is limited to the declared value of the package or Rs. 5,000, whichever is lower. We are not liable for delays caused by weather, DGCA airspace restrictions, or events beyond operational control.</p>
             </div>
             <div>
               <h3 className="text-base font-black text-[#171222] mb-2">5. Cancellations &amp; Refunds</h3>
@@ -146,7 +146,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
             </div>
             <div>
               <h3 className="text-base font-black text-[#171222] mb-2">6. Service Availability</h3>
-              <p>Services operate in DGCA-approved air corridors only. IndoWings reserves the right to suspend service in any zone without notice if required by regulatory authorities or safety concerns.</p>
+              <p>Services operate in DGCA-approved air corridors only. IndoFleet reserves the right to suspend service in any zone without notice if required by regulatory authorities or safety concerns.</p>
             </div>
           </div>
         </section>
@@ -184,13 +184,13 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
               <h3 className="text-base font-black text-[#171222] mb-2">3. Responsible Disclosure</h3>
               <p>If you discover a security vulnerability, please report it to:</p>
               <div className="mt-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                <p className="font-bold text-[#171222]">security@indowings.com</p>
+                <p className="font-bold text-[#171222]">security@indowfleet.com</p>
                 <p className="text-xs text-slate-400 mt-1">We respond to all valid security reports within 72 hours and do not pursue legal action against good-faith security researchers.</p>
               </div>
             </div>
             <div>
               <h3 className="text-base font-black text-[#171222] mb-2">4. Incident Response</h3>
-              <p>In the event of a data breach, IndoWings will notify affected users within 72 hours as required by DPDPA 2023, and report to CERT-In within the legally mandated timeframe.</p>
+              <p>In the event of a data breach, IndoFleet will notify affected users within 72 hours as required by DPDPA 2023, and report to CERT-In within the legally mandated timeframe.</p>
             </div>
           </div>
         </section>
@@ -240,8 +240,8 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
             <div>
               <h3 className="text-base font-black text-[#171222] mb-2">5. Contact</h3>
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                <p className="font-bold text-[#171222]">IndoWings Technologies — Data Protection Officer</p>
-                <a href="mailto:support@indowings.com" className="text-purple-600 hover:underline">support@indowings.com</a>
+                <p className="font-bold text-[#171222]">IndoFleet Technologies — Data Protection Officer</p>
+                <a href="mailto:support@indowfleet.com" className="text-purple-600 hover:underline">support@indowfleet.com</a>
                 <p className="text-xs text-slate-400 mt-2">We respond to all data protection requests within 30 days as required by law.</p>
               </div>
             </div>

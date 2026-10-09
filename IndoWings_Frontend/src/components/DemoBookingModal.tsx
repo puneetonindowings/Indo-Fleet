@@ -54,7 +54,7 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-[#171222] border border-orange-500/40 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden text-white flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-900/50 bg-black/40">
@@ -64,7 +64,7 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
             </span>
             <div>
               <h3 className="text-base font-bold">Book a Live UAV Flight Demonstration</h3>
-              <p className="text-[11px] text-slate-400">Direct evaluation with IndoWings Flight Operations Engineers</p>
+              <p className="text-[11px] text-slate-400">Direct evaluation with IndoFleet Flight Operations Engineers</p>
             </div>
           </div>
           <button 
@@ -84,7 +84,7 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
               </span>
               <h4 className="text-xl font-bold">Flight Demo Scheduled!</h4>
               <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-                Your flight demonstration request for <strong>{droneInterest}</strong> has been saved directly to the IndoWings Command Center database. Our technical team from Noida HQ will contact you within 24 hours.
+                Your flight demonstration request for <strong>{droneInterest}</strong> has been saved directly to the IndoFleet Command Center database. Our technical team from Noida HQ will contact you within 24 hours.
               </p>
               <button 
                 onClick={() => { setSubmitted(false); onClose(); }}

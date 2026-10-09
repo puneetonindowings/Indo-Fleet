@@ -7,6 +7,8 @@ import {
   ScrollView,
   Linking,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {
   Gauge,
@@ -81,7 +83,12 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+    >
+      <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       {/* Top Nav Row */}
       <View style={styles.navRow}>
         <TouchableOpacity style={styles.backBtn} onPress={onBackToDashboard}>
@@ -255,6 +262,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
         )}
       </View>
     </ScrollView>
+  </KeyboardAvoidingView>
   );
 };
 
@@ -265,7 +273,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 110,
     gap: 14,
   },
   noOrderContainer: {
@@ -339,15 +347,15 @@ const styles = StyleSheet.create({
   },
   missionBanner: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 24,
+    padding: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    borderColor: '#F1F5F9',
+    shadowColor: '#3B0080',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 4,
   },
   missionHeader: {
     flexDirection: 'row',
@@ -361,13 +369,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   missionLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
     color: '#3B0080',
     letterSpacing: 0.8,
   },
   clientText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
     color: '#0F172A',
   },
@@ -375,7 +383,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   addressText: {
     fontSize: 13,
@@ -389,7 +397,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: 8,
-    paddingTop: 10,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
@@ -397,10 +405,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F5F3FF',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 8,
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#DDD6FE',
   },
@@ -412,11 +420,11 @@ const styles = StyleSheet.create({
   mapsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
     backgroundColor: '#EFF6FF',
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#BFDBFE',
   },
@@ -430,11 +438,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
   },
   beaconLeft: {
     flexDirection: 'row',
@@ -475,16 +488,16 @@ const styles = StyleSheet.create({
   gaugeCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 24,
+    padding: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
     alignItems: 'center',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowColor: '#3B0080',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
   },
   gaugeHeader: {
     flexDirection: 'row',
@@ -493,7 +506,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   gaugeTitle: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
     color: '#64748B',
     letterSpacing: 0.8,
@@ -527,15 +540,15 @@ const styles = StyleSheet.create({
   secondaryCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 20,
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowRadius: 6,
+    elevation: 2,
   },
   secHeader: {
     flexDirection: 'row',
@@ -564,21 +577,21 @@ const styles = StyleSheet.create({
   },
   satelliteCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 24,
+    padding: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    borderColor: '#F1F5F9',
+    shadowColor: '#3B0080',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
   },
   satHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   satTitle: {
     fontSize: 11,
@@ -591,8 +604,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
-    padding: 12,
-    borderRadius: 12,
+    padding: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
@@ -620,35 +633,35 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#64748B',
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 10,
   },
   actionsBox: {
-    gap: 10,
+    gap: 12,
     marginTop: 6,
   },
   completePodBtn: {
     backgroundColor: '#059669',
-    borderRadius: 12,
-    height: 52,
+    borderRadius: 26,
+    height: 54,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 10,
     shadowColor: '#059669',
     shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   completePodBtnText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
   pauseBtn: {
     backgroundColor: '#F1F5F9',
-    borderRadius: 10,
-    height: 40,
+    borderRadius: 20,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,

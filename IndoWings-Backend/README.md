@@ -1,6 +1,6 @@
-# IndoWings Aerial Logistics - Backend Engine
+# IndoFleet Aerial Logistics - Backend Engine
 
-Autonomous drone dispatch, live flight telemetry simulation, and fleet management API engine built with Node.js, Express, and TypeScript for the IndoWings Autonomous Drone Delivery Network (DGCA Green Corridor compliant).
+Autonomous drone dispatch, live flight telemetry simulation, and fleet management API engine built with Node.js, Express, and TypeScript for the IndoFleet Autonomous Drone Delivery Network (DGCA Green Corridor compliant).
 
 ## Environment Variables (.env)
 

@@ -1,6 +1,6 @@
-# IndoWings Pilot Telemetry App (React Native + Expo)
+# IndoFleet Pilot Telemetry App (React Native + Expo)
 
-Dedicated mobile application for IndoWings delivery pilots and dispatch agents. Automatically tracks and broadcasts real-time GPS coordinates, speed, altitude, battery percentage, and heading back to the IndoWings Command Center and Tracking HUD in the foreground and background.
+Dedicated mobile application for IndoFleet delivery pilots and dispatch agents. Automatically tracks and broadcasts real-time GPS coordinates, speed, altitude, battery percentage, and heading back to the IndoFleet Command Center and Tracking HUD in the foreground and background.
 
 ---
 
@@ -18,7 +18,7 @@ Dedicated mobile application for IndoWings delivery pilots and dispatch agents. 
 
 ---
 
-## 📡 Connecting to the IndoWings Backend
+## 📡 Connecting to the IndoFleet Backend
 
 - **Local Wi-Fi / LAN**:
   - The app defaults to your local computer IP `http://192.168.21.152:5000`.

@@ -33,7 +33,7 @@ const SUGGESTED_TOPICS = [
     icon: Package,
     label: '700RPAV Hardware Specifications',
     query: '700RPAV specs and performance',
-    desc: 'IndoWings 700RPAV commercial drone hardware specs'
+    desc: 'IndoFleet 700RPAV commercial drone hardware specs'
   },
   {
     icon: ShieldCheck,
@@ -49,8 +49,8 @@ const SUGGESTED_TOPICS = [
   },
   {
     icon: Building2,
-    label: 'About IndoWings & DGCA Certifications',
-    query: 'About IndoWings Company & DGCA',
+    label: 'About IndoFleet & DGCA Certifications',
+    query: 'About IndoFleet Company & DGCA',
     desc: 'Noida HQ, Make in India, Type Certificates'
   }
 ];
@@ -84,7 +84,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       {
         id: 'msg-welcome-1',
         sender: 'bot',
-        text: 'Hello! I am your IndoWings Logistics & Consignment Assistant.\n\nHow can I help you today? Choose one of the common topics below, or type your question:',
+        text: 'Hello! I am your IndoFleet Logistics & Consignment Assistant.\n\nHow can I help you today? Choose one of the common topics below, or type your question:',
         time: welcomeTime
       }
     ]);
@@ -122,7 +122,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       {
         id: `msg-${Date.now()}`,
         sender: 'bot',
-        text: 'Chat history reset. How can I assist you with your IndoWings 700RPAV consignments today?',
+        text: 'Chat history reset. How can I assist you with your IndoFleet 700RPAV consignments today?',
         time
       }
     ]);
@@ -322,7 +322,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       if (greetingKeywords.some((kw) => lower === kw || lower.startsWith(kw + ' ') || lower.endsWith(' ' + kw))) {
         addMessage({
           sender: 'bot',
-          text: 'Hello! I am your IndoWings Logistics & Support Assistant.\n\nI can help you track live road deliveries, recover lost order IDs, check 700RPAV specifications, or connect with our support desk. What would you like assistance with?'
+          text: 'Hello! I am your IndoFleet Logistics & Support Assistant.\n\nI can help you track live road deliveries, recover lost order IDs, check 700RPAV specifications, or connect with our support desk. What would you like assistance with?'
         });
         setLoading(false);
         return;
@@ -404,7 +404,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       if (fixGeneralKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
           sender: 'bot',
-          text: 'IndoWings Standard Operating Procedures & Hardware Fix Guides:\n\nSelect a topic below or type your specific issue (e.g. "Weather hold", "RTK GPS drift", "NPNT token error", "5G telemetry lost", "IMU calibration"):\n\n• Weather Hold Meteorological Thresholds\n• RTK Centimeter Lock & Satellite Count\n• DigitalSky NPNT Permission Tokens\n• 5G Cellular Failover & UHF RF Backup\n• Dual-IMU Redundancy & Compass Alignment',
+          text: 'IndoFleet Standard Operating Procedures & Hardware Fix Guides:\n\nSelect a topic below or type your specific issue (e.g. "Weather hold", "RTK GPS drift", "NPNT token error", "5G telemetry lost", "IMU calibration"):\n\n• Weather Hold Meteorological Thresholds\n• RTK Centimeter Lock & Satellite Count\n• DigitalSky NPNT Permission Tokens\n• 5G Cellular Failover & UHF RF Backup\n• Dual-IMU Redundancy & Compass Alignment',
           cardType: 'qc_guide'
         });
         setLoading(false);
@@ -427,7 +427,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       if (supportKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
           sender: 'bot',
-          text: 'Here are the official IndoWings Support & Command Center details:',
+          text: 'Here are the official IndoFleet Support & Command Center details:',
           cardType: 'support_info'
         });
         setLoading(false);
@@ -439,7 +439,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       if (droneKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
           sender: 'bot',
-          text: 'IndoWings 700RPAV Technical Specifications & Performance:\n\nThe 700RPAV is a DGCA Type-Certified high-altitude tactical quadcopter engineered for extreme BVLOS logistics and precision operations:',
+          text: 'IndoFleet 700RPAV Technical Specifications & Performance:\n\nThe 700RPAV is a DGCA Type-Certified high-altitude tactical quadcopter engineered for extreme BVLOS logistics and precision operations:',
           cardType: 'drones_info'
         });
         setLoading(false);
@@ -451,7 +451,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       if (bookingKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
           sender: 'bot',
-          text: 'How to Book 700RPAV Drones from IndoWings Store:\n\n1. Visit the Store page to view available 700RPAV hardware inventory.\n2. Add the required units to your Consignment Cart.\n3. Enter your Delivery Facility Address and schedule road dispatch.\n4. Hardware units undergo diagnostic inspection before handover to delivery partner.',
+          text: 'How to Book 700RPAV Drones from IndoFleet Store:\n\n1. Visit the Store page to view available 700RPAV hardware inventory.\n2. Add the required units to your Consignment Cart.\n3. Enter your Delivery Facility Address and schedule road dispatch.\n4. Hardware units undergo diagnostic inspection before handover to delivery partner.',
           cardType: 'store_guide'
         });
         setLoading(false);
@@ -459,11 +459,11 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       }
 
       // 19. KNOWLEDGE BASE: COMPANY & FOUNDER & DGCA
-      const companyKeywords = ['indowings', 'company', 'founder', 'ceo', 'paras jain', 'headquarter', 'office', 'dgca', 'cin', 'about', 'make in india', 'location'];
+      const companyKeywords = ['indowfleet', 'company', 'founder', 'ceo', 'paras jain', 'headquarter', 'office', 'dgca', 'cin', 'about', 'make in india', 'location'];
       if (companyKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
           sender: 'bot',
-          text: 'IndoWings Corporate Profile & Manufacturing:\n\nIndo Wings Private Limited is an Indian aerospace and autonomous defense UAV manufacturer headquartered in Noida.',
+          text: 'IndoFleet Corporate Profile & Manufacturing:\n\nIndo Wings Private Limited is an Indian aerospace and autonomous defense UAV manufacturer headquartered in Noida.',
           cardType: 'company_info'
         });
         setLoading(false);
@@ -475,7 +475,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       if (cancelKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
           sender: 'bot',
-          text: 'IndoWings Consignment Cancellation Policy:\n\n• Customer Cancellation: You can cancel an order from your Profile / Orders tab at any time prior to physical road dispatch.\n• Operations Cancellation: When cancelled, reserved 700RPAV hardware units are automatically returned to factory inventory.'
+          text: 'IndoFleet Consignment Cancellation Policy:\n\n• Customer Cancellation: You can cancel an order from your Profile / Orders tab at any time prior to physical road dispatch.\n• Operations Cancellation: When cancelled, reserved 700RPAV hardware units are automatically returned to factory inventory.'
         });
         setLoading(false);
         return;
@@ -549,7 +549,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
           className={`relative group w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white shadow-[0_8px_25px_rgba(90,0,184,0.35)] hover:shadow-[0_10px_30px_rgba(90,0,184,0.45)] hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer ${
             isOpen ? 'bg-slate-900 rotate-90' : 'bg-[#5a00b8] hover:bg-[#4a0099]'
           }`}
-          title={isOpen ? 'Close Copilot' : 'Open IndoWings Copilot'}
+          title={isOpen ? 'Close Copilot' : 'Open IndoFleet Copilot'}
         >
           {isOpen ? (
             <X className="w-5 h-5 text-white transition-transform -rotate-90" />
@@ -576,7 +576,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                 <Plane className="w-4 h-4 text-purple-300" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white tracking-tight">IndoWings Copilot</h3>
+                <h3 className="text-sm font-bold text-white tracking-tight">IndoFleet Copilot</h3>
               </div>
             </div>
 
@@ -882,7 +882,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                               <span>Dual-IMU & Sensor Diagnostics</span>
                             </p>
                             <p className="text-[10px] text-indigo-800 mt-1 leading-relaxed">
-                              Execute 6-axis accelerometer calibration on a level surface via IndoWings GCS. Keep aircraft away from electromagnetic interference.
+                              Execute 6-axis accelerometer calibration on a level surface via IndoFleet GCS. Keep aircraft away from electromagnetic interference.
                             </p>
                           </div>
                         </div>
@@ -923,7 +923,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                           </div>
 
                           <div className="space-y-1 text-[11px] text-slate-600 px-1">
-                            <p><strong className="text-slate-900">Support Email:</strong> connect@indowings.com / support@indowings.com</p>
+                            <p><strong className="text-slate-900">Support Email:</strong> connect@indowfleet.com / support@indowfleet.com</p>
                             <p><strong className="text-slate-900">Command Center:</strong> Sector 62, Noida Plant, Uttar Pradesh</p>
                             <p><strong className="text-slate-900">Operations:</strong> Live Flight Telemetry & Airway Approvals</p>
                           </div>

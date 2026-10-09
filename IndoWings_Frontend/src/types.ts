@@ -75,12 +75,14 @@ export interface DeliveryUser {
   name: string;
   email: string;
   phone?: string;
-  role: 'admin' | 'fleet_manager' | 'dispatcher' | 'customer' | 'support';
+  role: 'admin' | 'fleet_manager' | 'dispatcher' | 'customer' | 'support' | 'delivery' | 'pilot';
   station?: string;
   organization?: string;
   status?: string;
   is_email_verified?: boolean;
   is_phone_verified?: boolean;
+  dl_id?: string;
+  vehicle_id?: string;
   saved_addresses?: SavedAddress[];
 }
 

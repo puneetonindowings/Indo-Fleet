@@ -1,5 +1,5 @@
 import React from 'react';
-import { CLIENT_LOGOS } from '../data/indowingsData';
+import { CLIENT_LOGOS } from '../data/indowfleetData';
 
 export const ClientMarquee: React.FC = () => {
   return (
@@ -10,7 +10,7 @@ export const ClientMarquee: React.FC = () => {
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-14 opacity-80">
-          {CLIENT_LOGOS.map((client, idx) => (
+          {CLIENT_LOGOS.map((client: { name: string; logo: string }, idx: number) => (
             <div 
               key={idx}
               className="bg-white/90 hover:bg-white px-5 py-2.5 rounded-xl transition-all hover:scale-105 shadow-md flex items-center justify-center min-w-[120px] h-14"

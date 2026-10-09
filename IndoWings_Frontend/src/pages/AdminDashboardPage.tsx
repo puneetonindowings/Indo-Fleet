@@ -3,6 +3,7 @@ import {
   Users,
   Shield,
   ShieldAlert,
+  ShieldCheck,
   Truck,
   Plus,
   Search,
@@ -44,10 +45,12 @@ import {
   Play,
   SlidersHorizontal,
   AlertTriangle,
-  Radio
+  Radio,
+  Smartphone
 } from 'lucide-react';
 import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
+import { sendFirebasePhoneOtp, verifyFirebasePhoneOtp } from '../config/firebase';
 import PhoneInput from '../components/PhoneInput';
 import { parsePhone } from '../data/countries';
 import { DroneImportRow, parseDroneImportFile } from '../utils/droneImport';
@@ -57,6 +60,7 @@ import { SupportDeskPage } from './SupportDeskPage';
 import { DeliveryTrackingModule } from './DeliveryTrackingModule';
 import { AnalyticsDashboard } from '../components/analytics/AnalyticsDashboard';
 import { CustomerOrderLiveMap } from '../components/CustomerOrderLiveMap';
+import { AppReleaseConsole } from '../components/AppReleaseConsole';
 
 interface AdminDashboardProps {
   currentUser: DeliveryUser | null;
@@ -66,7 +70,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser, onUpdateUser, onNavigate, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'personnel' | 'provision' | 'fleet' | 'dispatch' | 'secure-dispatch' | 'delivery' | 'support' | 'profile'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'personnel' | 'provision' | 'fleet' | 'dispatch' | 'secure-dispatch' | 'delivery' | 'support' | 'profile' | 'app-release'>('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Data States
@@ -151,7 +155,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [dispatchAddress, setDispatchAddress] = useState('');
   const [dispatchModel, setDispatchModel] = useState('700RPAV');
   const [dispatchUnits, setDispatchUnits] = useState(5);
-  const [dispatchCarrier, setDispatchCarrier] = useState('IndoWings Secured Fleet Van');
+  const [dispatchCarrier, setDispatchCarrier] = useState('IndoFleet Secured Fleet Van');
   const [dispatchNotes, setDispatchNotes] = useState('Pre-dispatch hardware QC verified');
 
   // Reserved Drone & Customer Booking Inspection
@@ -177,15 +181,56 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
 
   const readDroneImage = (file: File, setImage: (image: string) => void) => {
     if (!file.type.startsWith('image/')) {
-      setAdminOtpError('Choose an image file.');
+      setAdminOtpError('Choose a valid image file.');
       return;
     }
-    if (file.size > 1_500_000) {
-      setAdminOtpError('Image must be smaller than 1.5 MB.');
+    if (file.size > 10_000_000) {
+      setAdminOtpError('Image file must be smaller than 10 MB.');
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => setImage(String(reader.result || ''));
+    reader.onload = () => {
+      const rawResult = String(reader.result || '');
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const MAX_SIZE = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > MAX_SIZE || height > MAX_SIZE) {
+            if (width > height) {
+              height = Math.round((height * MAX_SIZE) / width);
+              width = MAX_SIZE;
+            } else {
+              width = Math.round((width * MAX_SIZE) / height);
+              height = MAX_SIZE;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressed = canvas.toDataURL('image/jpeg', 0.85);
+            setImage(compressed);
+            setAdminOtpError('');
+            return;
+          }
+        } catch {
+          // Fallback to raw if canvas compression fails
+        }
+        setImage(rawResult);
+        setAdminOtpError('');
+      };
+      img.onerror = () => {
+        setImage(rawResult);
+        setAdminOtpError('');
+      };
+      img.src = rawResult;
+    };
     reader.onerror = () => setAdminOtpError('Could not read the selected image.');
     reader.readAsDataURL(file);
   };
@@ -237,6 +282,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     setAdminOtpLoading(true);
     setAdminOtpError('');
     try {
+      if (adminOtpChannel === 'phone' && currentUser?.phone) {
+        sendFirebasePhoneOtp(currentUser.phone, 'recaptcha-container').then((fb) => {
+          if (fb.success) console.log('[Firebase Phone Auth] Real SMS OTP dispatched to', currentUser.phone);
+        });
+      }
+
       const res = await fetch(`${API_BASE_URL}/api/delivery/admin/request-provision-otp`, {
         method: 'POST',
         headers: {
@@ -253,7 +304,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         return;
       }
       setAdminOtpSent(true);
-      showToast(`Security OTP sent to ${adminOtpChannel === 'phone' ? 'Phone' : 'Email'}!`);
+      if (data.dev_otp) {
+        setAdminOtp(data.dev_otp);
+      }
+      showToast(
+        data.dev_otp
+          ? `Security OTP [ ${data.dev_otp} ] sent to ${adminOtpChannel === 'phone' ? 'Phone SMS (Firebase) & Email' : 'Email'}!`
+          : `Security OTP sent to ${adminOtpChannel === 'phone' ? 'Phone' : 'Email'}!`
+      );
     } catch {
       setAdminOtpError('Cannot connect to authorization server.');
     } finally {
@@ -329,6 +387,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     setAdminOtpError('');
     setAdminOtpLoading(true);
     try {
+      if (inventoryOtpChannel === 'phone' && currentUser?.phone) {
+        sendFirebasePhoneOtp(currentUser.phone, 'recaptcha-container').then((fb) => {
+          if (fb.success) console.log('[Firebase Phone Auth] Real SMS OTP dispatched to', currentUser.phone);
+        });
+      }
+
       const res = await fetch(`${API_BASE_URL}/api/delivery/admin/request-inventory-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -340,7 +404,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         return false;
       }
       setInventoryOtpSent(true);
-      showToast(`Inventory OTP sent to your ${inventoryOtpChannel}.`);
+      if (data.dev_otp) {
+        setInventoryOtp(data.dev_otp);
+      }
+      showToast(
+        data.dev_otp
+          ? `Inventory Security OTP [ ${data.dev_otp} ] sent via ${inventoryOtpChannel === 'phone' ? 'Phone SMS (Firebase) & Email' : 'Email'}!`
+          : `Inventory OTP sent to your ${inventoryOtpChannel}.`
+      );
       return true;
     } catch {
       setAdminOtpError('Could not connect to the OTP service.');
@@ -451,6 +522,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
       alert('Please specify at least 1 drone.');
       return;
     }
+    if (!inventoryOtp.trim()) {
+      setAdminOtpError('Please request and enter your 6-digit operator security OTP.');
+      return;
+    }
     setBulkSubmitting(true);
     try {
       let dronesData: DroneImportRow[] | undefined = bulkRows.length ? bulkRows : undefined;
@@ -471,7 +546,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
           category: bulkCategory || 'General UAV',
           prefix: bulkPrefix,
           current_city: bulkCity,
-          is_verified: bulkIsVerified
+          is_verified: bulkIsVerified,
+          otp: inventoryOtp.trim()
         })
       });
       const data = await res.json();
@@ -813,7 +889,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     { id: 'secure-dispatch', label: 'Secure Dispatch', icon: Truck, badge: orders.length },
     { id: 'delivery', label: 'Delivery Tracking', icon: Package, badge: orders.filter(order => !['delivered', 'cancelled'].includes(order.status)).length },
     { id: 'dispatch', label: 'Dispatch History', icon: Package, badge: orders.length },
-    { id: 'support', label: 'Support', icon: Headphones, badge: expertRequests.length }
+    { id: 'support', label: 'Support', icon: Headphones, badge: expertRequests.length },
+    { id: 'app-release', label: 'Mobile App Release', icon: Smartphone, badge: 'APK' }
   ];
 
   return (
@@ -846,7 +923,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   </div>
                   <div className="min-w-0">
                     <h3 className="text-sm font-black text-slate-900 tracking-tight truncate">Super Admin Desk</h3>
-                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider truncate">IndoWings Operations</p>
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider truncate">IndoFleet Operations</p>
                   </div>
                 </div>
 
@@ -946,7 +1023,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-sm font-black text-slate-900 tracking-tight truncate">Super Admin Desk</h3>
-                  <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider truncate">IndoWings Operations</p>
+                  <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider truncate">IndoFleet Operations</p>
                 </div>
               </div>
 
@@ -1095,7 +1172,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                             <td className="py-3 px-4 font-bold text-slate-800">{o.client_name || o.customer_name || 'Enterprise Client'}</td>
                             <td className="py-3 px-4 font-semibold text-slate-900">{o.drones_shipped || o.package_type || 'UAV Hardware Consignment'}</td>
                             <td className="py-3 px-4 text-slate-600 truncate max-w-[200px]">{o.destination_address || o.drop_address || 'Client Facility'}</td>
-                            <td className="py-3 px-4 text-slate-500 font-medium">{o.carrier || 'IndoWings Fleet Van'}</td>
+                            <td className="py-3 px-4 text-slate-500 font-medium">{o.carrier || 'IndoFleet Fleet Van'}</td>
                             <td className="py-3 px-4">
                               <span
                                 className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
@@ -1153,7 +1230,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                 </button>
                                 {!['delivered'].includes(o.status) && (
                                   <button
-                                    onClick={() => {
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       setManagingOrder(o);
                                       setManageAction(o.status === 'on-hold' ? 'resume' : 'hold');
                                       setManageReason('');
@@ -1226,7 +1305,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
 
                 <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
+                    <table className="w-full min-w-[700px] text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
                           <th className="py-3 px-4">User ID &amp; Name</th>
@@ -1382,7 +1461,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                               required
                               value={provEmail}
                               onChange={(e) => setProvEmail(e.target.value)}
-                              placeholder="e.g. puneet.kushwaha@indowings.com"
+                              placeholder="e.g. puneet.kushwaha@indowfleet.com"
                               className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#5a00b8]"
                             />
                           </div>
@@ -1400,7 +1479,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold bg-white focus:outline-none focus:border-[#5a00b8]"
                           >
                             <option value="admin">Admin</option>
-                            <option value="pilot">Flight Pilot / Delivery Agent</option>
+                            <option value="delivery">Delivery Person</option>
                             <option value="dispatcher">Dispatcher</option>
                             <option value="fleet_manager">Fleet Manager</option>
                             <option value="support">Support</option>
@@ -1428,6 +1507,83 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                           </div>
                           <p className="text-[11px] text-slate-400 mt-1">Default temporary password for first login.</p>
                         </div>
+                      </div>
+
+                      {/* Admin 6-Digit Security OTP Challenge */}
+                      <div className="p-4 bg-purple-50/70 rounded-2xl border border-purple-200 space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-[#5a00b8] uppercase tracking-wider flex items-center gap-1.5">
+                            <ShieldCheck className="w-4 h-4 text-[#5a00b8]" /> Administrator Security Verification (6-Digit OTP)
+                          </span>
+                        </div>
+
+                        {/* 2 Delivery Channel Buttons (Email / Phone) */}
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1.5">
+                            Select Delivery Channel for Security OTP:
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAdminOtpChannel('email');
+                                setAdminOtpSent(false);
+                              }}
+                              className={`py-2 px-3 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                                adminOtpChannel === 'email'
+                                  ? 'bg-[#5a00b8] text-white border-[#5a00b8] shadow-xs font-black'
+                                  : 'bg-white border-purple-200 text-slate-700 hover:bg-purple-50'
+                              }`}
+                            >
+                              <Mail className="w-3.5 h-3.5" />
+                              <span>Send via Email OTP</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAdminOtpChannel('phone');
+                                setAdminOtpSent(false);
+                              }}
+                              className={`py-2 px-3 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                                adminOtpChannel === 'phone'
+                                  ? 'bg-[#5a00b8] text-white border-[#5a00b8] shadow-xs font-black'
+                                  : 'bg-white border-purple-200 text-slate-700 hover:bg-purple-50'
+                              }`}
+                            >
+                              <Phone className="w-3.5 h-3.5" />
+                              <span>Send via Mobile SMS OTP</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-[11px] text-slate-500 font-medium">
+                            OTP will be sent to admin's registered {adminOtpChannel === 'email' ? `Email (${currentUser?.email || 'Email'})` : `Phone (${currentUser?.phone || 'SMS'})`}.
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleRequestAdminOtp}
+                            disabled={adminOtpLoading}
+                            className="px-3.5 py-1.5 bg-white hover:bg-purple-100 text-[#5a00b8] border border-purple-300 rounded-xl text-xs font-extrabold transition cursor-pointer shadow-xs shrink-0"
+                          >
+                            {adminOtpSent ? `Resend OTP to ${adminOtpChannel === 'email' ? 'Email' : 'SMS'}` : `Request ${adminOtpChannel === 'email' ? 'Email' : 'SMS'} OTP`}
+                          </button>
+                        </div>
+
+                        {adminOtpSent && (
+                          <div className="pt-1">
+                            <label className="block text-[11px] font-bold text-slate-600 mb-1">Enter 6-Digit Verification Code</label>
+                            <input
+                              type="text"
+                              maxLength={6}
+                              value={adminOtp}
+                              onChange={(e) => setAdminOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                              placeholder="Enter 6-digit OTP code"
+                              className="w-full px-4 py-2.5 rounded-xl border border-purple-300 text-sm font-mono font-bold tracking-widest text-slate-900 bg-white focus:outline-none focus:border-[#5a00b8]"
+                            />
+                          </div>
+                        )}
                       </div>
 
                       {adminOtpError && (
@@ -1851,7 +2007,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                             </td>
                             <td className="py-3 px-4 font-bold text-slate-900">{o.drones_shipped || o.package_type || 'UAV Units'}</td>
                             <td className="py-3 px-4 text-slate-600 truncate max-w-[200px]">{o.destination_address || o.drop_address}</td>
-                            <td className="py-3 px-4 text-slate-500 font-medium">{o.carrier || 'IndoWings Fleet Van'}</td>
+                            <td className="py-3 px-4 text-slate-500 font-medium">{o.carrier || 'IndoFleet Fleet Van'}</td>
                             <td className="py-3 px-4">
                               <span
                                 className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
@@ -1909,6 +2065,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
             {activeTab === 'support' && (
               <SupportDeskPage currentUser={currentUser} onNavigate={onNavigate} onLogout={onLogout} embedded />
             )}
+
+            {activeTab === 'app-release' && <AppReleaseConsole />}
           </main>
         </div>
       </div>
@@ -2185,6 +2343,73 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 )}
               </div>
 
+              {/* Admin Inventory OTP Security Challenge */}
+              <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2 font-sans">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#5a00b8] flex items-center gap-1.5 uppercase tracking-wider">
+                    <ShieldCheck className="w-4 h-4 text-[#5a00b8]" /> Admin Security OTP
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInventoryOtpChannel('email');
+                      setInventoryOtpSent(false);
+                    }}
+                    className={`py-1.5 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                      inventoryOtpChannel === 'email'
+                        ? 'bg-[#5a00b8] text-white border-[#5a00b8]'
+                        : 'bg-white border-purple-200 text-slate-700 hover:bg-purple-50'
+                    }`}
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>Send via Email OTP</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInventoryOtpChannel('phone');
+                      setInventoryOtpSent(false);
+                    }}
+                    className={`py-1.5 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                      inventoryOtpChannel === 'phone'
+                        ? 'bg-[#5a00b8] text-white border-[#5a00b8]'
+                        : 'bg-white border-purple-200 text-slate-700 hover:bg-purple-50'
+                    }`}
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>Send via Mobile SMS OTP</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    Send to: {inventoryOtpChannel === 'email' ? currentUser?.email || 'Email' : currentUser?.phone || 'SMS'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={requestInventoryOtp}
+                    disabled={adminOtpLoading}
+                    className="px-3 py-1.5 bg-white hover:bg-purple-100 text-[#5a00b8] border border-purple-300 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs"
+                  >
+                    {inventoryOtpSent ? `Resend ${inventoryOtpChannel === 'email' ? 'Email' : 'SMS'} OTP` : `Request ${inventoryOtpChannel === 'email' ? 'Email' : 'SMS'} OTP`}
+                  </button>
+                </div>
+
+                {inventoryOtpSent && (
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={inventoryOtp}
+                    onChange={(e) => setInventoryOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="Enter 6-digit OTP code"
+                    className="w-full px-3 py-2 rounded-xl border border-purple-300 text-xs font-mono font-bold tracking-widest text-slate-900 bg-white focus:outline-none focus:border-[#5a00b8]"
+                  />
+                )}
+              </div>
+
               {adminOtpError && <p className="text-xs text-rose-600 bg-red-50 p-2.5 rounded-xl border border-red-200 font-medium">{adminOtpError}</p>}
 
               <div className="pt-2 flex justify-end gap-2">
@@ -2303,6 +2528,73 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </p>
               </div>
 
+              {/* Admin Inventory OTP Security Challenge */}
+              <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2 font-sans">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#5a00b8] flex items-center gap-1.5 uppercase tracking-wider">
+                    <ShieldCheck className="w-4 h-4 text-[#5a00b8]" /> Admin Security OTP
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInventoryOtpChannel('email');
+                      setInventoryOtpSent(false);
+                    }}
+                    className={`py-1.5 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                      inventoryOtpChannel === 'email'
+                        ? 'bg-[#5a00b8] text-white border-[#5a00b8]'
+                        : 'bg-white border-purple-200 text-slate-700 hover:bg-purple-50'
+                    }`}
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>Send via Email OTP</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInventoryOtpChannel('phone');
+                      setInventoryOtpSent(false);
+                    }}
+                    className={`py-1.5 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                      inventoryOtpChannel === 'phone'
+                        ? 'bg-[#5a00b8] text-white border-[#5a00b8]'
+                        : 'bg-white border-purple-200 text-slate-700 hover:bg-purple-50'
+                    }`}
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>Send via Mobile SMS OTP</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    Send to: {inventoryOtpChannel === 'email' ? currentUser?.email || 'Email' : currentUser?.phone || 'SMS'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={requestInventoryOtp}
+                    disabled={adminOtpLoading}
+                    className="px-3 py-1.5 bg-white hover:bg-purple-100 text-[#5a00b8] border border-purple-300 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs"
+                  >
+                    {inventoryOtpSent ? `Resend ${inventoryOtpChannel === 'email' ? 'Email' : 'SMS'} OTP` : `Request ${inventoryOtpChannel === 'email' ? 'Email' : 'SMS'} OTP`}
+                  </button>
+                </div>
+
+                {inventoryOtpSent && (
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={inventoryOtp}
+                    onChange={(e) => setInventoryOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="Enter 6-digit OTP code"
+                    className="w-full px-3 py-2 rounded-xl border border-purple-300 text-xs font-mono font-bold tracking-widest text-slate-900 bg-white focus:outline-none focus:border-[#5a00b8]"
+                  />
+                )}
+              </div>
+
               {adminOtpError && <p className="text-xs text-rose-600 bg-red-50 p-2.5 rounded-xl border border-red-200 font-medium">{adminOtpError}</p>}
 
               <div className="pt-2 flex justify-end gap-2">
@@ -2407,7 +2699,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Logistics Transport Carrier</label>
                 <select value={dispatchCarrier} onChange={(e) => setDispatchCarrier(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold">
-                  <option value="IndoWings Secured Fleet Van">IndoWings Secured Fleet Van (Regional)</option>
+                  <option value="IndoFleet Secured Fleet Van">IndoFleet Secured Fleet Van (Regional)</option>
                   <option value="Dedicated Heavy Freight Cargo Truck">Dedicated Heavy Freight Cargo Truck (Inter-state)</option>
                   <option value="Express Air Cargo Logistics">Express Air Cargo Logistics (National)</option>
                   <option value="Defense Escorted Convoy">Defense Escorted Convoy (Special Clearance)</option>
@@ -2863,7 +3155,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   type="submit"
                   disabled={
                     manageSubmitting ||
-                    (manageAction === 'hold' && (manageReason.trim().length < 5 || manageOtp.trim().length !== 6))
+                    (manageAction === 'hold' && manageReason.trim().length < 5)
                   }
                   className={`px-5 py-2 rounded-xl text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50 ${
                     manageAction === 'cancel'
@@ -2928,7 +3220,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Hardware Consignment</span>
                 <p className="font-semibold text-slate-800 mt-0.5">{adminTrackingOrder.drones_shipped || adminTrackingOrder.package_type || '700RPAV Unit'}</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">Carrier: {adminTrackingOrder.carrier || 'IndoWings Fleet'}</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Carrier: {adminTrackingOrder.carrier || 'IndoFleet Fleet'}</p>
               </div>
             </div>
 
@@ -2938,7 +3230,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shrink-0">
                   Origin Hub
                 </span>
-                <span className="text-slate-700 font-medium">{adminTrackingOrder.pickup_address || 'IndoWings Central Assembly Hub, Sector 62, Noida'}</span>
+                <span className="text-slate-700 font-medium">{adminTrackingOrder.pickup_address || 'IndoFleet Central Assembly Hub, Sector 62, Noida'}</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200 shrink-0">

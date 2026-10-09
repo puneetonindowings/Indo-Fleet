@@ -1,4 +1,4 @@
-import './env.js';
+﻿import './env.js';
 import { deliveryStore } from './deliveryStore.js';
 
 type SeedAccount = {
@@ -22,8 +22,8 @@ function defaultAccounts(): SeedAccount[] {
     name: adminName,
     email: adminEmail,
     role: 'admin',
-    station: 'IndoWings HQ & Plant, Noida',
-    organization: 'IndoWings Corporate',
+    station: 'IndoFleet HQ & Plant, Noida',
+    organization: 'IndoFleet Corporate',
     password: adminPassword
   }];
 }
@@ -72,3 +72,4 @@ if (/\/seed\.(ts|js)$/.test(invokedDirectly)) {
       process.exitCode = 1;
     });
 }
+
