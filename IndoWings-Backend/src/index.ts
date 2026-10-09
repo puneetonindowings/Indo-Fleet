@@ -1,4 +1,4 @@
-﻿import './env.js';
+import './env.js';
 import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.js';
@@ -22,18 +22,30 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
       'http://localhost:3000',
       'http://localhost:5000',
       'http://127.0.0.1:5173',
+      'https://indo-fleet.vercel.app',
+      'https://indowfleet.vercel.app',
       'https://IndoFleet.com',
-      'https://app.IndoFleet.com'
+      'https://indowfleet.com',
+      'https://app.IndoFleet.com',
+      'https://app.indowfleet.com'
     ];
+
+const isAllowedOrigin = (origin: string): boolean => {
+  if (allowedOrigins.includes(origin)) return true;
+  if (/^https:\/\/.*\.vercel\.app$/i.test(origin)) return true;
+  if (/^https:\/\/(?:.*\.)?indowfleet\.com$/i.test(origin)) return true;
+  if (/^https:\/\/(?:.*\.)?indowings\.com$/i.test(origin)) return true;
+  return false;
+};
 
 // CORS Middleware with origin whitelist restriction
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (process.env.NODE_ENV !== 'production' || allowedOrigins.includes(origin)) {
+    if (!origin || isAllowedOrigin(origin) || process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }
-    return callback(new Error(`CORS policy violation: Origin '${origin}' is not authorized.`));
+    console.warn(`[cors] Blocked unauthorized origin: ${origin}`);
+    return callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
