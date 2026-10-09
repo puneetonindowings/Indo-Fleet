@@ -418,6 +418,245 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // RENDER: DEDICATED PRODUCT DETAILS VIEW
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (detailDrone) {
+    const isSelected = Boolean(cart[detailDrone.id]);
+    const droneImg = detailDrone.image_url || '/images/cyberonemax.png';
+
+    return (
+      <div className="min-h-screen bg-[#f8fafc] text-slate-800 pt-24 sm:pt-28 pb-24">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          
+          {/* Top Navigation */}
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <button
+              onClick={handleBackToStore}
+              className="inline-flex items-center gap-2 font-bold text-xs text-[#5a00b8] hover:bg-purple-50 px-3.5 py-2 rounded-xl border border-purple-200 bg-white transition-all cursor-pointer shadow-2xs"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back to Fleet Store
+            </button>
+
+            {/* Prev / Next Navigation */}
+            <div className="flex items-center gap-2">
+              <button
+                disabled={!prevDrone}
+                onClick={() => prevDrone && handleOpenDetail(prevDrone)}
+                className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all"
+                title={prevDrone ? `Previous: ${prevDrone.id}` : 'First Unit'}
+              >
+                <ChevronLeft className="w-4 h-4 text-slate-700" />
+              </button>
+              <span className="text-xs font-mono font-bold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200">{detailDrone.id}</span>
+              <button
+                disabled={!nextDrone}
+                onClick={() => nextDrone && handleOpenDetail(nextDrone)}
+                className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all"
+                title={nextDrone ? `Next: ${nextDrone.id}` : 'Last Unit'}
+              >
+                <ChevronRight className="w-4 h-4 text-slate-700" />
+              </button>
+            </div>
+          </div>
+
+          {/* Main Product Details Card */}
+          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden p-6 sm:p-8">
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              
+              {/* Product Image & Badges */}
+              <div className="bg-slate-50 rounded-2xl border border-slate-100 p-6 flex flex-col items-center justify-center relative min-h-[340px]">
+                <div className="absolute top-4 left-4 flex flex-wrap gap-2 z-10">
+                  <span className="font-mono font-bold text-xs text-[#5a00b8] bg-white px-3 py-1 rounded-xl border border-purple-100 shadow-2xs">
+                    {detailDrone.id}
+                  </span>
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200 flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5" /> Airworthy &amp; QC Passed
+                  </span>
+                </div>
+
+                <img
+                  src={droneImg}
+                  alt={detailDrone.model || '700RPAV'}
+                  className="max-h-72 max-w-full object-contain drop-shadow-xl my-6 hover:scale-105 transition-transform duration-300"
+                />
+
+                <div className="w-full flex items-center justify-between text-[11px] font-semibold text-slate-500 pt-3 border-t border-slate-200/60 mt-auto">
+                  <span>Current Hub: <strong className="text-slate-800">{detailDrone.current_city || 'Noida Sector 62'}</strong></span>
+                  <span>Battery Health: <strong className="text-emerald-600">{detailDrone.battery || 100}%</strong></span>
+                </div>
+              </div>
+
+              {/* Product Info & Purchase Actions */}
+              <div className="space-y-6">
+                <div>
+                  <div className="flex items-center gap-2 text-xs font-bold text-[#5a00b8] uppercase tracking-wider mb-1">
+                    <span>DGCA Type Certified Tactical UAV</span>
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                    {detailDrone.model || '700RPAV Tactical Aircraft'}
+                  </h1>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Surveillance, Mapping &amp; Emergency Payload Delivery UAV. Pre-flight inspected with complete telemetry hardware verification.
+                  </p>
+                </div>
+
+                {/* Key Spec Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <div className="bg-purple-50/60 border border-purple-100 rounded-2xl p-3 text-center">
+                    <p className="text-[10px] font-bold uppercase text-purple-600">Payload</p>
+                    <p className="text-sm font-black text-slate-900 mt-0.5">{detailDrone.payload_kg || 5.0} KG</p>
+                  </div>
+                  <div className="bg-purple-50/60 border border-purple-100 rounded-2xl p-3 text-center">
+                    <p className="text-[10px] font-bold uppercase text-purple-600">Endurance</p>
+                    <p className="text-sm font-black text-slate-900 mt-0.5">90 Mins</p>
+                  </div>
+                  <div className="bg-purple-50/60 border border-purple-100 rounded-2xl p-3 text-center">
+                    <p className="text-[10px] font-bold uppercase text-purple-600">Max Speed</p>
+                    <p className="text-sm font-black text-slate-900 mt-0.5">{detailDrone.speed_kmh || 85} KM/H</p>
+                  </div>
+                  <div className="bg-purple-50/60 border border-purple-100 rounded-2xl p-3 text-center">
+                    <p className="text-[10px] font-bold uppercase text-purple-600">Range</p>
+                    <p className="text-sm font-black text-slate-900 mt-0.5">35 KM</p>
+                  </div>
+                </div>
+
+                {/* Spec Tabs Header */}
+                <div className="pt-2">
+                  <div className="flex border-b border-slate-200">
+                    <button
+                      onClick={() => setProductTab('specs')}
+                      className={`pb-2.5 px-3 text-xs font-bold transition-all cursor-pointer border-b-2 ${
+                        productTab === 'specs' ? 'border-[#5a00b8] text-[#5a00b8]' : 'border-transparent text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Specifications
+                    </button>
+                    <button
+                      onClick={() => setProductTab('inBox')}
+                      className={`pb-2.5 px-3 text-xs font-bold transition-all cursor-pointer border-b-2 ${
+                        productTab === 'inBox' ? 'border-[#5a00b8] text-[#5a00b8]' : 'border-transparent text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      In The Box
+                    </button>
+                    <button
+                      onClick={() => setProductTab('applications')}
+                      className={`pb-2.5 px-3 text-xs font-bold transition-all cursor-pointer border-b-2 ${
+                        productTab === 'applications' ? 'border-[#5a00b8] text-[#5a00b8]' : 'border-transparent text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Use Cases
+                    </button>
+                  </div>
+
+                  {/* Tab Content */}
+                  <div className="py-4 text-xs text-slate-600 space-y-2">
+                    {productTab === 'specs' && (
+                      <ul className="space-y-2">
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>DGCA Type Certified with NPNT Compliance</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>Triple-redundant avionics &amp; fail-safe return-to-home</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>Dual Optical Zoom &amp; High-Resolution Thermal Sensor</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>Encrypted secure military-grade RF command link</span>
+                        </li>
+                      </ul>
+                    )}
+
+                    {productTab === 'inBox' && (
+                      <ul className="space-y-2">
+                        <li className="flex items-center gap-2">
+                          <Package className="w-4 h-4 text-[#5a00b8] shrink-0" />
+                          <span>1x 700RPAV Tactical Aircraft ({detailDrone.id})</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Package className="w-4 h-4 text-[#5a00b8] shrink-0" />
+                          <span>2x High-Capacity Smart Flight Batteries</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Package className="w-4 h-4 text-[#5a00b8] shrink-0" />
+                          <span>1x Handheld GCS Ground Control Station Controller</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Package className="w-4 h-4 text-[#5a00b8] shrink-0" />
+                          <span>1x Dual Charger &amp; Heavy Duty Pelican Transport Case</span>
+                        </li>
+                      </ul>
+                    )}
+
+                    {productTab === 'applications' && (
+                      <ul className="space-y-2">
+                        <li className="flex items-center gap-2">
+                          <Compass className="w-4 h-4 text-sky-600 shrink-0" />
+                          <span>Perimeter Security &amp; Border Surveillance Operations</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Compass className="w-4 h-4 text-sky-600 shrink-0" />
+                          <span>GIS Topographical Mapping &amp; Agricultural Analytics</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Compass className="w-4 h-4 text-sky-600 shrink-0" />
+                          <span>Medical, Emergency &amp; Industrial Consignment Air Transit</span>
+                        </li>
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                {/* Primary Action Buttons */}
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={(e) => toggleCartDrone(detailDrone, e)}
+                    className={`w-full py-3.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs ${
+                      isSelected
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                        : 'bg-white border-2 border-[#5a00b8] text-[#5a00b8] hover:bg-purple-50'
+                    }`}
+                  >
+                    {isSelected ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>In Cart ({detailDrone.id})</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        <span>Add to Cart</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleBookNowDirect(detailDrone)}
+                    className="w-full py-3.5 rounded-2xl text-xs font-bold bg-[#5a00b8] hover:bg-[#4a0099] text-white flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+                  >
+                    <span>Book Now</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // RENDER: DEDICATED CART & BOOKING CHECKOUT PAGE
   // ─────────────────────────────────────────────────────────────────────────────
   if (storeView === 'cart') {
