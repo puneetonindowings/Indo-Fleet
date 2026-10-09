@@ -17,10 +17,6 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({ chartData })
           <BarChart3 size={16} color="#3B0080" />
           <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">WEEKLY DELIVERY PERFORMANCE</Text>
         </View>
-        <View style={styles.trendPill}>
-          <TrendingUp size={12} color="#10B981" />
-          <Text style={styles.trendText}>+18.4%</Text>
-        </View>
       </View>
 
       {/* Bar Chart Visualization */}

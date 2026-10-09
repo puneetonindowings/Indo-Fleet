@@ -69,10 +69,6 @@ export const KpiOverview: React.FC<KpiOverviewProps> = ({ kpis }) => {
             <Calendar size={14} color="#8B5CF6" />
             <Text style={styles.todayTitle}>TODAY'S SORTIE METRICS</Text>
           </View>
-          <View style={styles.completionPill}>
-            <Award size={12} color="#10B981" />
-            <Text style={styles.completionText}>{kpis.completion_rate}% Success</Text>
-          </View>
         </View>
 
         <View style={styles.todayGrid}>
