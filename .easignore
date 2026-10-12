@@ -1,0 +1,8 @@
+# EAS Ignore for Monorepo
+IndoWings_Frontend/
+IndoWings-Backend/
+node_modules/
+.git/
+dist/
+temp_store.tsx
+*.log
