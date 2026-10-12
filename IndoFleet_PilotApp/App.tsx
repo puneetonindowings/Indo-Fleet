@@ -22,6 +22,8 @@ import { DashboardScreen } from './src/screens/DashboardScreen';
 import { FlightRadarScreen } from './src/screens/FlightRadarScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { SupportScreen } from './src/screens/SupportScreen';
+import { OrderHistoryScreen } from './src/screens/OrderHistoryScreen';
+import { NotFoundScreen } from './src/screens/NotFoundScreen';
 
 import {
   UserProfile,
@@ -34,6 +36,7 @@ import {
 import {
   checkServerHealth,
   fetchPilotDashboard,
+  fetchPilotOrderHistory,
   updatePilotLocation,
 } from './src/services/api';
 
@@ -69,6 +72,7 @@ export default function App() {
 
   // Dashboard & Telemetry State
   const [orders, setOrders] = useState<DeliveryOrder[]>([]);
+  const [historyOrders, setHistoryOrders] = useState<DeliveryOrder[]>([]);
   const [kpis, setKpis] = useState<PilotKpis>({
     total_assigned: 0,
     total_delivered: 0,
@@ -184,6 +188,16 @@ export default function App() {
           const updated = data.active_orders.find((o) => o.id === selectedOrder.id);
           if (updated) setSelectedOrder(updated);
         }
+      }
+      if (Array.isArray(data.history_orders)) {
+        setHistoryOrders(data.history_orders);
+      } else {
+        try {
+          const hist = await fetchPilotOrderHistory(pilotId || currentUser?.id);
+          if (Array.isArray(hist.orders)) {
+            setHistoryOrders(hist.orders);
+          }
+        } catch {}
       }
     } catch (err: any) {
       console.log('Dashboard load error:', err.message);
@@ -355,6 +369,8 @@ export default function App() {
         isTracking={isTracking}
         user={currentUser}
         onNavigateProfile={() => setActiveScreen('profile')}
+        onNavigateHistory={() => setActiveScreen('history')}
+        onNavigateSupport={() => setActiveScreen('support')}
         onLogout={handleLogout}
       />
 
@@ -375,6 +391,17 @@ export default function App() {
               setSelectedOrder(order);
               setActiveScreen('radar');
             }}
+            onViewHistory={() => setActiveScreen('history')}
+          />
+        )}
+
+        {activeScreen === 'history' && (
+          <OrderHistoryScreen
+            user={currentUser}
+            historyOrders={historyOrders}
+            refreshing={refreshing}
+            onRefresh={() => loadDashboardData()}
+            onNavigateDashboard={() => setActiveScreen('dashboard')}
           />
         )}
 
@@ -405,6 +432,14 @@ export default function App() {
         )}
 
         {activeScreen === 'support' && <SupportScreen user={currentUser} />}
+
+        {activeScreen === '404' && (
+          <NotFoundScreen onNavigate={(screen) => setActiveScreen(screen)} />
+        )}
+
+        {!['dashboard', 'history', 'radar', 'profile', 'support', 'sos', '404'].includes(activeScreen) && (
+          <NotFoundScreen onNavigate={(screen) => setActiveScreen(screen)} />
+        )}
 
         {activeScreen === 'sos' && (
           <View style={styles.sosScreenWrapper}>

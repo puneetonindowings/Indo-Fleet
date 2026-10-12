@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import {
   Shield,
   Truck,
   CheckCircle2,
+  Clock,
 } from 'lucide-react-native';
 import { UserProfile } from '../types';
 
@@ -42,6 +43,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'radar', label: 'Flight Radar', icon: Navigation },
+    { id: 'history', label: 'Order History', icon: Clock },
     { id: 'profile', label: 'My Profile', icon: User },
     { id: 'sos', label: 'Emergency SOS', icon: AlertOctagon, isDanger: true },
     { id: 'support', label: 'Support Desk', icon: Headphones },

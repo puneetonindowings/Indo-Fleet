@@ -16,6 +16,8 @@ import {
   Truck,
   CheckCircle2,
   ChevronRight,
+  Clock,
+  HelpCircle,
   X,
 } from 'lucide-react-native';
 import { UserProfile } from '../types';
@@ -26,6 +28,8 @@ interface HeaderProps {
   isTracking: boolean;
   user: UserProfile | null;
   onNavigateProfile: () => void;
+  onNavigateHistory?: () => void;
+  onNavigateSupport?: () => void;
   onLogout: () => void;
 }
 
@@ -34,6 +38,8 @@ export const Header: React.FC<HeaderProps> = ({
   isTracking,
   user,
   onNavigateProfile,
+  onNavigateHistory,
+  onNavigateSupport,
   onLogout,
 }) => {
   const [profileMenuVisible, setProfileMenuVisible] = useState<boolean>(false);
@@ -54,8 +60,18 @@ export const Header: React.FC<HeaderProps> = ({
         <IndoFleetLogo size="small" showSubtitle={true} />
       </View>
 
-      {/* Right Container: Profile Avatar Circle */}
+      {/* Right Container: Quick Help & Profile Avatar Circle */}
       <View style={styles.rightContainer}>
+        {onNavigateSupport && (
+          <TouchableOpacity
+            style={styles.helpHeaderBtn}
+            onPress={onNavigateSupport}
+            activeOpacity={0.75}
+          >
+            <HelpCircle size={18} color="#3B0080" />
+          </TouchableOpacity>
+        )}
+
         {/* Circular Profile Avatar Button */}
         <TouchableOpacity
           style={styles.avatarButton}
@@ -146,6 +162,52 @@ export const Header: React.FC<HeaderProps> = ({
                 </View>
                 <ChevronRight size={16} color="#94A3B8" />
               </TouchableOpacity>
+
+              {/* Order History Button */}
+              {onNavigateHistory && (
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => {
+                    setProfileMenuVisible(false);
+                    onNavigateHistory();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.menuItemLeft}>
+                    <View style={[styles.menuItemIconWrap, { backgroundColor: '#F3E8FF' }]}>
+                      <Clock size={16} color="#6B21A8" />
+                    </View>
+                    <View>
+                      <Text style={styles.menuItemTitle}>Order History &amp; Logs</Text>
+                      <Text style={styles.menuItemSubtitle}>Completed deliveries &amp; PODs</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={16} color="#94A3B8" />
+                </TouchableOpacity>
+              )}
+
+              {/* Help & Support Desk Button */}
+              {onNavigateSupport && (
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => {
+                    setProfileMenuVisible(false);
+                    onNavigateSupport();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.menuItemLeft}>
+                    <View style={[styles.menuItemIconWrap, { backgroundColor: '#EFF6FF' }]}>
+                      <HelpCircle size={16} color="#2563EB" />
+                    </View>
+                    <View>
+                      <Text style={styles.menuItemTitle}>Help &amp; Support Desk</Text>
+                      <Text style={styles.menuItemSubtitle}>24/7 Operations &amp; Dispatcher Help</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={16} color="#94A3B8" />
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Logout Button */}
@@ -237,6 +299,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  helpHeaderBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F5F3FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
   },
   avatarButton: {
     width: 38,

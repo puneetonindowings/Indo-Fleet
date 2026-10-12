@@ -4077,6 +4077,37 @@ router.get('/pilot/dashboard', async (req, res) => {
         created_at: o.created_at
       }));
 
+
+    // History orders list (delivered, completed, cancelled, missed)
+    const historyOrders = pilotOrders
+      .filter((o: any) => ['delivered', 'completed', 'cancelled', 'missed'].includes(o.status))
+      .map((o: any) => ({
+        id: o.id,
+        order_number: o.order_number || o.id,
+        customer_name: o.customer_name || o.client_name || 'Customer',
+        customer_phone: o.customer_phone || '',
+        customer_email: o.customer_email || '',
+        recipient_name: o.recipient_name || o.customer_name || 'Recipient',
+        pickup_address: o.pickup_address || '',
+        drop_address: o.drop_address || o.delivery_address || o.destination_address || '',
+        pickup_location: o.pickup_location || null,
+        destination_location: o.destination_location || null,
+        drone_model: o.drone_model || '700RPAV',
+        drone_id: o.drone_id || (o.reserved_inventory_ids || [])[0] || '',
+        status: o.status,
+        units_count: o.units_count || 1,
+        weight_kg: o.weight_kg || 0,
+        fare_inr: o.fare_inr || 0,
+        payment_status: o.payment_status || 'Prepaid',
+        items: o.items || [],
+        delivered_at: o.delivered_at || o.completed_at || o.updated_at,
+        pod_signature: o.pod_signature || null,
+        pod_photo: o.pod_photo || null,
+        delivery_notes: o.delivery_notes || o.notes || '',
+        created_at: o.created_at
+      }))
+      .sort((a: any, b: any) => new Date(b.delivered_at || b.created_at).getTime() - new Date(a.delivered_at || a.created_at).getTime());
+
     // Real Weekly Trend (Past 7 Days computed dynamically)
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const now = new Date();
@@ -4130,12 +4161,61 @@ router.get('/pilot/dashboard', async (req, res) => {
         weekly_trend,
         hourly_active
       },
-      active_orders: activeOrders
+      active_orders: activeOrders,
+      history_orders: historyOrders
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to load pilot dashboard' });
   }
 });
+
+// 3.1 Dedicated Pilot Order History Route
+router.get('/pilot/history', async (req, res) => {
+  try {
+    const pilotId = (req.query.pilotId as string) || '';
+    const orders = await fileDB.getOrders();
+    const pilotOrders = pilotId
+      ? orders.filter((o: any) => o.assigned_pilot_id === pilotId || o.pilot_assigned === pilotId)
+      : orders;
+
+    const historyOrders = pilotOrders
+      .filter((o: any) => ['delivered', 'completed', 'cancelled', 'missed'].includes(o.status))
+      .map((o: any) => ({
+        id: o.id,
+        order_number: o.order_number || o.id,
+        customer_name: o.customer_name || o.client_name || 'Customer',
+        customer_phone: o.customer_phone || '',
+        customer_email: o.customer_email || '',
+        recipient_name: o.recipient_name || o.customer_name || 'Recipient',
+        pickup_address: o.pickup_address || '',
+        drop_address: o.drop_address || o.delivery_address || o.destination_address || '',
+        pickup_location: o.pickup_location || null,
+        destination_location: o.destination_location || null,
+        drone_model: o.drone_model || '700RPAV',
+        drone_id: o.drone_id || (o.reserved_inventory_ids || [])[0] || '',
+        status: o.status,
+        units_count: o.units_count || 1,
+        weight_kg: o.weight_kg || 0,
+        fare_inr: o.fare_inr || 0,
+        payment_status: o.payment_status || 'Prepaid',
+        items: o.items || [],
+        delivered_at: o.delivered_at || o.completed_at || o.updated_at,
+        pod_signature: o.pod_signature || null,
+        pod_photo: o.pod_photo || null,
+        delivery_notes: o.delivery_notes || o.notes || '',
+        created_at: o.created_at
+      }))
+      .sort((a: any, b: any) => new Date(b.delivered_at || b.created_at).getTime() - new Date(a.delivered_at || a.created_at).getTime());
+
+    res.json({
+      success: true,
+      orders: historyOrders
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to load order history' });
+  }
+});
+
 
 // 4. Admin / Dispatcher Order Assignment with OTP Protection
 router.post('/orders/:id/assign-pilot-request-otp', async (req, res) => {
@@ -4447,7 +4527,8 @@ router.post('/pilot/sos-emergency', async (req, res) => {
       vehicle_id: vehicle_id || 'UAV-SYS',
       latitude: Number(latitude || 28.628),
       longitude: Number(longitude || 77.3649),
-      battery_pct: battery_pct || 80,
+      battery_pct: battery_pct != null ? Number(battery_pct) : 80,
+      audio_base64: audio_base64 || null,
       has_audio: Boolean(audio_base64),
       notes: notes || 'EMERGENCY BEACON TRIGGERED BY PILOT',
       timestamp: new Date().toISOString(),
@@ -4473,20 +4554,62 @@ router.post('/pilot/sos-emergency', async (req, res) => {
     res.json({
       success: true,
       message: '🚨 CRITICAL SOS BEACON TRANSMITTED TO COMMAND CENTER & DISPATCH OPS!',
-      sos_id: sosEvent.id
+      sos_id: sosEvent.id,
+      sos_alert: sosEvent
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to trigger SOS' });
   }
 });
 
-// 10. Admin endpoint to view active SOS alerts
+// 10. Admin endpoint to view active and past SOS alerts
 router.get('/admin/sos-alerts', async (req, res) => {
+  const activeCount = activeSosAlerts.filter((a: any) => a.status === 'active').length;
   res.json({
     success: true,
-    count: activeSosAlerts.length,
+    count: activeCount,
+    total: activeSosAlerts.length,
     alerts: activeSosAlerts
   });
+});
+
+// 10b. Admin endpoint to resolve/acknowledge SOS emergency beacon
+router.post('/admin/sos-alerts/:id/resolve', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { resolved_by, notes } = req.body || {};
+    const alert = activeSosAlerts.find((a: any) => a.id === id);
+    if (!alert) {
+      res.status(404).json({ success: false, error: 'SOS alert record not found' });
+      return;
+    }
+    alert.status = 'resolved';
+    alert.resolved_at = new Date().toISOString();
+    alert.resolved_by = resolved_by || 'Operations Admin';
+    if (notes) alert.resolution_notes = notes;
+
+    res.json({
+      success: true,
+      message: 'SOS Emergency beacon marked as resolved.',
+      alert
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to resolve SOS alert' });
+  }
+});
+
+// 10c. Admin endpoint to dismiss/remove SOS emergency beacon
+router.delete('/admin/sos-alerts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const idx = activeSosAlerts.findIndex((a: any) => a.id === id);
+    if (idx !== -1) {
+      activeSosAlerts.splice(idx, 1);
+    }
+    res.json({ success: true, message: 'Alert removed' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 const pilotDeliveryOtps: Record<string, { otp: string; orderId: string; expiresAt: number }> = {};

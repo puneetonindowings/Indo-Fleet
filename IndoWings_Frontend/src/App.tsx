@@ -20,6 +20,7 @@ import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { FleetManagerPage } from './pages/FleetManagerPage';
 import { SupportDeskPage } from './pages/SupportDeskPage';
 import { StorePage } from './pages/StorePage';
+import { NotFoundPage } from './pages/NotFoundPage';
 import { CommandCenterModal } from './components/CommandCenterModal';
 import { DemoBookingModal } from './components/DemoBookingModal';
 import { API_BASE_URL } from './config/api';
@@ -29,7 +30,7 @@ import { DeliveryAppPage } from './pages/DeliveryAppPage';
 import { Chatbot } from './components/Chatbot';
 import { UserProfile, DeliveryUser } from './types';
 
-type Page = 'home' | 'platform' | 'command-center' | 'gcs' | 'downloads' | 'versions' | 'track' | 'dispatch' | 'drone-dispatch' | 'delivery-tracking' | 'delivery-app' | 'login' | 'profile' | 'orders' | 'support' | 'docs' | 'company' | 'feedback' | 'legal' | 'admin' | 'fleet' | 'support-desk' | 'shop' | 'store' | 'cart';
+type Page = 'home' | 'platform' | 'command-center' | 'gcs' | 'downloads' | 'versions' | 'track' | 'dispatch' | 'drone-dispatch' | 'delivery-tracking' | 'delivery-app' | 'login' | 'profile' | 'orders' | 'support' | 'docs' | 'company' | 'feedback' | 'legal' | 'admin' | 'fleet' | 'support-desk' | 'shop' | 'store' | 'cart' | '404';
 
 const getInitialPage = (): Page => {
   if (typeof window === 'undefined') return 'home';
@@ -57,7 +58,9 @@ const getInitialPage = (): Page => {
   if (p.includes('/feedback')) return 'feedback';
   if (p.includes('/legal') || p.includes('/privacy') || p.includes('/terms') || p.includes('/security-disclosure') || p.includes('/data-protection')) return 'legal';
   if (p.includes('/support') || p.includes('/guide') || p.includes('/fix')) return 'support';
-  return 'home';
+  if (p.includes('/404') || p.includes('/not-found')) return '404';
+  if (p === '/' || p === '') return 'home';
+  return '404';
 };
 
 const isTokenValid = (token: string | null): boolean => {
@@ -304,6 +307,8 @@ export const App: React.FC = () => {
           <FeedbackPage onNavigate={handleNavigate} currentUser={deliveryUser} />
         ) : currentPage === 'legal' ? (
           <LegalPage onNavigate={handleNavigate} section={window.location.hash.replace('#', '') || undefined} />
+        ) : currentPage === '404' ? (
+          <NotFoundPage onNavigate={handleNavigate} />
         ) : (
           <>
             <Hero currentUser={deliveryUser} onOpenCommandCenter={() => setIsCommandCenterOpen(true)} onOpenDemoBooking={() => handleOpenDemoBooking()} onNavigate={handleNavigate} />
