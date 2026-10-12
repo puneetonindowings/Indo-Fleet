@@ -6,6 +6,7 @@ import {
   AlertOctagon,
   HelpCircle,
   User,
+  Clock,
 } from 'lucide-react-native';
 
 interface BottomNavProps {
@@ -43,7 +44,43 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         </Text>
       </TouchableOpacity>
 
-      {/* 2. Map Tab */}
+      {/* 2. History Tab */}
+      <TouchableOpacity
+        style={styles.navTab}
+        onPress={() => onNavigate('history')}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.iconWrap, activeScreen === 'history' && styles.iconWrapActive]}>
+          <Clock
+            size={20}
+            color={activeScreen === 'history' ? '#3B0080' : '#64748B'}
+          />
+        </View>
+        <Text
+          style={[
+            styles.tabLabel,
+            activeScreen === 'history' && styles.tabLabelActive,
+          ]}
+        >
+          History
+        </Text>
+      </TouchableOpacity>
+
+      {/* 3. Center Floating SOS Button */}
+      <View style={styles.centerSosContainer}>
+        <TouchableOpacity
+          style={styles.sosButton}
+          onPress={onTriggerSos}
+          activeOpacity={0.85}
+        >
+          <View style={styles.sosInnerGlow}>
+            <AlertOctagon size={24} color="#FFFFFF" />
+            <Text style={styles.sosText}>SOS</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* 4. Map Tab */}
       <TouchableOpacity
         style={styles.navTab}
         onPress={() => onNavigate('radar')}
@@ -62,42 +99,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           ]}
         >
           Map
-        </Text>
-      </TouchableOpacity>
-
-      {/* 3. Center Floating SOS Button */}
-      <View style={styles.centerSosContainer}>
-        <TouchableOpacity
-          style={styles.sosButton}
-          onPress={onTriggerSos}
-          activeOpacity={0.85}
-        >
-          <View style={styles.sosInnerGlow}>
-            <AlertOctagon size={24} color="#FFFFFF" />
-            <Text style={styles.sosText}>SOS</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-
-      {/* 4. Help Tab */}
-      <TouchableOpacity
-        style={styles.navTab}
-        onPress={() => onNavigate('support')}
-        activeOpacity={0.7}
-      >
-        <View style={[styles.iconWrap, activeScreen === 'support' && styles.iconWrapActive]}>
-          <HelpCircle
-            size={20}
-            color={activeScreen === 'support' ? '#3B0080' : '#64748B'}
-          />
-        </View>
-        <Text
-          style={[
-            styles.tabLabel,
-            activeScreen === 'support' && styles.tabLabelActive,
-          ]}
-        >
-          Help
         </Text>
       </TouchableOpacity>
 

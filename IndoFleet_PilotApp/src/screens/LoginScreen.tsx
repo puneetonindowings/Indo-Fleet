@@ -67,7 +67,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     }
   };
 
-  return (
+   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}

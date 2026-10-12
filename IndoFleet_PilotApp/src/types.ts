@@ -60,6 +60,10 @@ export interface DeliveryOrder {
   pilot_acceptance_status?: 'pending_acceptance' | 'accepted';
   pilot_acceptance_otp?: string;
   last_known_location?: string | null;
+  delivered_at?: string;
+  pod_signature?: string;
+  pod_photo?: string;
+  delivery_notes?: string;
   created_at: string;
 }
 

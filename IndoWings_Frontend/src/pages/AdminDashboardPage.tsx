@@ -61,6 +61,8 @@ import { DeliveryTrackingModule } from './DeliveryTrackingModule';
 import { AnalyticsDashboard } from '../components/analytics/AnalyticsDashboard';
 import { CustomerOrderLiveMap } from '../components/CustomerOrderLiveMap';
 import { AppReleaseConsole } from '../components/AppReleaseConsole';
+import { SosAlertBanner } from '../components/SosAlertBanner';
+import { SosAlertsConsole } from '../components/SosAlertsConsole';
 
 interface AdminDashboardProps {
   currentUser: DeliveryUser | null;
@@ -70,8 +72,13 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser, onUpdateUser, onNavigate, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'personnel' | 'provision' | 'fleet' | 'dispatch' | 'secure-dispatch' | 'delivery' | 'support' | 'profile' | 'app-release'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'personnel' | 'provision' | 'fleet' | 'dispatch' | 'secure-dispatch' | 'delivery' | 'support' | 'profile' | 'app-release' | 'sos-alerts'>('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // SOS Emergency Alerts State
+  const [sosAlerts, setSosAlerts] = useState<any[]>([]);
+  const [activeSosCount, setActiveSosCount] = useState<number>(0);
+  const [resolvingSosId, setResolvingSosId] = useState<string | null>(null);
 
   // Data States
   const [users, setUsers] = useState<any[]>([]);
@@ -273,8 +280,71 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     }
   };
 
+  const fetchSosAlerts = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/admin/sos-alerts`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.alerts)) {
+          setSosAlerts(data.alerts);
+          const active = data.alerts.filter((a: any) => a.status === 'active').length;
+          setActiveSosCount(active);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch SOS alerts:', err);
+    }
+  };
+
+  const handleResolveSos = async (id: string, notes?: string) => {
+    try {
+      setResolvingSosId(id);
+      const res = await fetch(`${API_BASE_URL}/api/delivery/admin/sos-alerts/${id}/resolve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('iw_delivery_token') || ''}`
+        },
+        body: JSON.stringify({
+          resolved_by: currentUser?.name || 'Super Admin',
+          notes: notes || 'Emergency acknowledged and pilot contacted by Operations Center.'
+        })
+      });
+      if (res.ok) {
+        showToast('✅ SOS Emergency marked as resolved.');
+        await fetchSosAlerts();
+      } else {
+        showToast('❌ Failed to resolve SOS alert.');
+      }
+    } catch {
+      showToast('❌ Network error while resolving alert.');
+    } finally {
+      setResolvingSosId(null);
+    }
+  };
+
+  const handleDeleteSos = async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/admin/sos-alerts/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('iw_delivery_token') || ''}`
+        }
+      });
+      if (res.ok) {
+        showToast('SOS record removed.');
+        await fetchSosAlerts();
+      }
+    } catch {
+      showToast('Could not delete SOS alert.');
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchSosAlerts();
+    const interval = setInterval(fetchSosAlerts, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   // 1. ADMIN REQUESTS OTP TO AUTHORIZE USER CREATION
@@ -890,7 +960,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     { id: 'delivery', label: 'Delivery Tracking', icon: Package, badge: orders.filter(order => !['delivered', 'cancelled'].includes(order.status)).length },
     { id: 'dispatch', label: 'Dispatch History', icon: Package, badge: orders.length },
     { id: 'support', label: 'Support', icon: Headphones, badge: expertRequests.length },
-    { id: 'app-release', label: 'Mobile App Release', icon: Smartphone, badge: 'APK' }
+    { id: 'app-release', label: 'Mobile App Release', icon: Smartphone, badge: 'APK' },
+    {
+      id: 'sos-alerts',
+      label: 'SOS Emergencies',
+      icon: ShieldAlert,
+      badge: activeSosCount > 0 ? `${activeSosCount} ACTIVE` : sosAlerts.length > 0 ? sosAlerts.length : null
+    }
   ];
 
   return (
@@ -1121,6 +1197,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 <span>Menu</span>
               </button>
             </div>
+
+            {/* 🚨 CRITICAL LIVE SOS EMERGENCY BANNER 🚨 */}
+            <SosAlertBanner
+              alerts={sosAlerts}
+              onResolve={(id) => handleResolveSos(id)}
+              resolvingId={resolvingSosId}
+              onViewDetails={() => setActiveTab('sos-alerts')}
+            />
 
             {/* ANALYTICS DASHBOARD — data-driven business overview */}
             {activeTab === 'overview' && (
@@ -2067,6 +2151,16 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
             )}
 
             {activeTab === 'app-release' && <AppReleaseConsole />}
+
+            {activeTab === 'sos-alerts' && (
+              <SosAlertsConsole
+                alerts={sosAlerts}
+                onResolve={handleResolveSos}
+                onDelete={handleDeleteSos}
+                resolvingId={resolvingSosId}
+                onRefresh={fetchSosAlerts}
+              />
+            )}
           </main>
         </div>
       </div>

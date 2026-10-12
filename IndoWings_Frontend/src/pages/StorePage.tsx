@@ -2,30 +2,25 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
+  Check,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
+  Compass,
+  Eye,
+  LayoutGrid,
+  Link2,
+  List,
   Loader2,
+  Lock,
   MapPin,
-  Package,
   Plus,
   Search,
+  ShieldCheck,
   ShoppingBag,
   ShoppingCart,
-  ShieldCheck,
-  Truck,
   Trash2,
-  Check,
-  Zap,
-  Clock,
-  Radio,
-  Star,
-  Award,
-  Compass,
-  ChevronLeft,
-  Eye,
-  SlidersHorizontal,
-  Lock,
   X
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
@@ -71,17 +66,85 @@ const emptyAddress = (user: DeliveryUser | null): AddressDraft => ({
   pincode: ''
 });
 
+/* ── Product facts: same values as the 700RPAV page, nothing extra ─────────── */
+const DRONE_SPECS = [
+  { label: 'Flight Endurance', value: '65', unit: 'Mins', note: 'AMSL cruising' },
+  { label: 'Launch Ceiling', value: '18,000', unit: 'ft', note: 'High altitude' },
+  { label: 'Telemetry Range', value: '10', unit: 'KM', note: 'Line of sight' },
+  { label: 'Max MTOW', value: '5.0', unit: 'Kg', note: '2.2 Kg payload' }
+];
+
+const HARDWARE = [
+  'PPK / RTK Centimetric Precision GPS',
+  'Solid-State Slide & Lock Battery System',
+  'IP 53 Weatherproof All-Terrain Rating',
+  'H7 Edge Flight Computer & UART Hub'
+];
+
+const USE_CASES = [
+  'Tactical surveillance',
+  'High-precision mapping',
+  'Extreme high-altitude delivery',
+  'High-altitude BVLOS operations over mountains',
+  'Near-silent acoustic surveillance',
+  'Rapid multi-payload logistics'
+];
+
+const DEFAULT_IMG = '/images/cyberonemax.png';
+
+/* Only show unit data the API actually returned */
+const getUnitInfo = (d: StoreDrone) => {
+  const info: { label: string; value: string }[] = [];
+  if (d.serial_number) info.push({ label: 'Serial', value: d.serial_number });
+  if (d.current_city) info.push({ label: 'Current hub', value: d.current_city });
+  if (d.battery !== undefined && d.battery !== null) info.push({ label: 'Battery', value: `${d.battery}%` });
+  if (d.speed_kmh !== undefined && d.speed_kmh !== null) info.push({ label: 'Max speed', value: `${d.speed_kmh} km/h` });
+  return info;
+};
+
+/* 1 … 4 5 6 … 20 style pagination */
+const getPageItems = (page: number, count: number): (number | '…')[] => {
+  if (count <= 7) return Array.from({ length: count }, (_, i) => i + 1);
+  const items: (number | '…')[] = [1];
+  const start = Math.max(2, page - 1);
+  const end = Math.min(count - 1, page + 1);
+  if (start > 2) items.push('…');
+  for (let i = start; i <= end; i++) items.push(i);
+  if (end < count - 1) items.push('…');
+  items.push(count);
+  return items;
+};
+
+const inputCls =
+  'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-medium text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-[#5a00b8] focus:ring-4 focus:ring-purple-100';
+
+const STORE_CSS = `
+@keyframes stIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.st-in { animation: stIn .45s cubic-bezier(.2,.7,.2,1) both; }
+@media (prefers-reduced-motion: reduce) { .st-in { animation: none; } }
+`;
+
 export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, embedded = false }) => {
   const [drones, setDrones] = useState<StoreDrone[]>([]);
   const [search, setSearch] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [hub, setHub] = useState('');
+  const [view, setView] = useState<'grid' | 'list'>(() => {
+    try {
+      return localStorage.getItem('iw_store_view') === 'list' ? 'list' : 'grid';
+    } catch {
+      return 'grid';
+    }
+  });
+  const [bulkQty, setBulkQty] = useState(5);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(embedded ? 12 : 24);
   const [addresses, setAddresses] = useState<SavedAddress[]>(currentUser?.saved_addresses || []);
-  
-  // Selected drone for Dedicated Full-Page Product Detail View
+
+  // Selected drone for the product detail overlay
   const [detailDrone, setDetailDrone] = useState<StoreDrone | null>(null);
-  const [productTab, setProductTab] = useState<'specs' | 'inBox' | 'applications'>('specs');
+  const [productTab, setProductTab] = useState<'specs' | 'applications'>('specs');
+  const [copied, setCopied] = useState(false);
 
   // Cart maps droneId -> StoreDrone
   const [cart, setCart] = useState<Record<string, StoreDrone>>(() => {
@@ -109,7 +172,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
         const rawList = data.drones || data.products || [];
         const loadedDrones = rawList.filter((d: StoreDrone) => (!d.status || d.status === 'idle') && (!d.qc_status || d.qc_status === 'passed'));
         setDrones(loadedDrones);
-        
+
         // Clean out any cart items that are already booked / reserved
         setCart(prev => {
           const availableIds = new Set(loadedDrones.map((d: StoreDrone) => d.id));
@@ -175,12 +238,27 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     window.dispatchEvent(new Event('iw_cart_updated'));
   }, [cart]);
 
-  // Filter and sort drones by Drone ID / search query
+  useEffect(() => {
+    try {
+      localStorage.setItem('iw_store_view', view);
+    } catch {
+      /* ignore */
+    }
+  }, [view]);
+
+  // Hubs that actually exist in the inventory data
+  const hubs = useMemo(
+    () => Array.from(new Set(drones.map(d => d.current_city).filter(Boolean) as string[])).sort(),
+    [drones]
+  );
+
+  // Filter and sort drones by Drone ID / search query / hub
   const filteredDrones = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = drones;
+    if (hub) list = list.filter(d => d.current_city === hub);
     if (q) {
-      list = drones.filter(drone => {
+      list = list.filter(drone => {
         return (
           drone.id.toLowerCase().includes(q) ||
           drone.model.toLowerCase().includes(q) ||
@@ -192,11 +270,12 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
       if (sortOrder === 'asc') return a.id.localeCompare(b.id, undefined, { numeric: true });
       return b.id.localeCompare(a.id, undefined, { numeric: true });
     });
-  }, [drones, search, sortOrder]);
+  }, [drones, search, sortOrder, hub]);
 
   const totalUnits = useMemo(() => Object.keys(cart).length, [cart]);
   const pageCount = Math.max(1, Math.ceil(filteredDrones.length / pageSize));
   const visibleDrones = filteredDrones.slice((page - 1) * pageSize, page * pageSize);
+  const pageAllSelected = visibleDrones.length > 0 && visibleDrones.every(d => cart[d.id]);
 
   useEffect(() => {
     if (page > pageCount) {
@@ -206,7 +285,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
 
   useEffect(() => {
     setPage(1);
-  }, [search, pageSize, sortOrder, filteredDrones.length]);
+  }, [search, pageSize, sortOrder, hub, filteredDrones.length]);
 
   const toggleCartDrone = (drone: StoreDrone, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -230,27 +309,66 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     });
   };
 
-  const selectedAddress = addresses.find(address => address.id === selectedAddressId);
-
-  const navigateToLogin = () => {
-    onNavigate('login');
-    window.history.pushState({}, '', '/login');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Select / deselect every unit on the current page
+  const togglePage = () => {
+    setError('');
+    setCart(prev => {
+      const next = { ...prev };
+      if (pageAllSelected) {
+        visibleDrones.forEach(d => delete next[d.id]);
+      } else {
+        visibleDrones.forEach(d => {
+          next[d.id] = d;
+        });
+      }
+      return next;
+    });
   };
 
-  // Open Full-Page Product View
+  // Add the next N units from the current results that are not in the cart yet
+  const addFirstN = () => {
+    setError('');
+    setCart(prev => {
+      const next = { ...prev };
+      let added = 0;
+      for (const d of filteredDrones) {
+        if (added >= bulkQty) break;
+        if (!next[d.id]) {
+          next[d.id] = d;
+          added++;
+        }
+      }
+      return next;
+    });
+  };
+
+  const selectedAddress = addresses.find(address => address.id === selectedAddressId);
+
+  // Open product detail
   const handleOpenDetail = (drone: StoreDrone) => {
     setDetailDrone(drone);
     setProductTab('specs');
+    setCopied(false);
     window.history.pushState({}, '', `/store?drone=${drone.id}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Back to Main Store Grid
+  // Back to main store grid
   const handleBackToStore = () => {
     setDetailDrone(null);
     window.history.pushState({}, '', '/store');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const copyLink = async () => {
+    if (!detailDrone) return;
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/store?drone=${detailDrone.id}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* clipboard not available */
+    }
   };
 
   // View mode: 'grid' (products list) vs 'cart' (dedicated cart & booking page)
@@ -271,9 +389,8 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
       }
     };
     handleUrlChange();
-    window.addEventListener('popstate', handleUrlUrlStateChange);
-    return () => window.removeEventListener('popstate', handleUrlUrlStateChange);
-    function handleUrlUrlStateChange() { handleUrlChange(); }
+    window.addEventListener('popstate', handleUrlChange);
+    return () => window.removeEventListener('popstate', handleUrlChange);
   }, []);
 
   const openCartPage = () => {
@@ -304,6 +421,24 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     const next = currentIndex < drones.length - 1 ? drones[currentIndex + 1] : null;
     return { prevDrone: prev, nextDrone: next };
   }, [detailDrone, drones]);
+
+  // Detail overlay: Esc closes, arrow keys move between units, page scroll is locked
+  useEffect(() => {
+    if (!detailDrone) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleBackToStore();
+      if (e.key === 'ArrowLeft' && prevDrone) handleOpenDetail(prevDrone);
+      if (e.key === 'ArrowRight' && nextDrone) handleOpenDetail(nextDrone);
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailDrone, prevDrone, nextDrone]);
 
   const placeBooking = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -390,28 +525,29 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
   };
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // RENDER: AUTHENTICATION REQUIRED GATEWAY
+  // RENDER: LOGIN GATE
   // ─────────────────────────────────────────────────────────────────────────────
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-[#f8fafc] text-slate-800 pt-28 sm:pt-36 pb-20 px-4 flex items-center justify-center">
-        <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 p-8 shadow-xs text-center">
-          <div className="w-16 h-16 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center mx-auto mb-4 border border-purple-100 shadow-2xs">
-            <Lock className="w-8 h-8" />
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 pb-20 pt-28 text-slate-800 sm:pt-36">
+        <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-purple-100 bg-purple-50 text-[#5a00b8]">
+            <Lock className="h-8 w-8" />
           </div>
-          <h2 className="text-xl font-black text-slate-900 mb-2 tracking-tight">Login Required for Fleet Store</h2>
-          <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+          <h2 className="mb-2 text-xl font-black tracking-tight text-slate-900">Login Required for Fleet Store</h2>
+          <p className="mb-6 text-sm leading-relaxed text-slate-500">
             Access to IndoFleet 700RPAV Fleet Store and aircraft consignment booking is restricted to verified users. Please sign in to view available inventory units and schedule deliveries.
           </p>
           <button
+            type="button"
             onClick={() => {
               onNavigate('login');
               window.history.pushState({}, '', '/login');
             }}
-            className="w-full py-3 rounded-xl bg-[#5a00b8] hover:bg-[#4a0099] text-white font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#5a00b8] py-3.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#4a0099] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5a00b8]"
           >
             <span>Sign In to Continue</span>
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -419,196 +555,249 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // RENDER: DEDICATED CART & BOOKING CHECKOUT PAGE
+  // RENDER: CART & BOOKING
   // ─────────────────────────────────────────────────────────────────────────────
   if (storeView === 'cart') {
     return (
-      <div className="min-h-screen bg-[#f8fafc] text-slate-800 pt-24 sm:pt-28 pb-24">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 mb-6">
+      <div className="min-h-screen bg-slate-50 pb-24 pt-24 text-slate-800 sm:pt-28">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <button
+            type="button"
             onClick={openGridStorePage}
-            className="inline-flex items-center gap-1.5 font-bold text-xs text-[#5a00b8] hover:underline cursor-pointer mb-4"
+            className="mb-5 inline-flex cursor-pointer items-center gap-1.5 text-sm font-bold text-[#5a00b8] hover:underline"
           >
-            <ArrowLeft className="w-4 h-4" /> Continue Browsing Store
+            <ArrowLeft className="h-4 w-4" /> Continue Browsing Store
           </button>
 
-          <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-200">
+          <div className="mb-8 flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                Consignment Cart &amp; Booking
-              </h1>
-              <p className="text-xs text-slate-500 mt-1">
+              <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">Consignment Cart &amp; Booking</h1>
+              <p className="mt-1.5 max-w-xl text-sm text-slate-500">
                 Review your reserved drone units, enter facility delivery address, and confirm consignment booking.
               </p>
             </div>
-            <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#5a00b8] border border-purple-100 flex items-center justify-center font-bold shrink-0">
-              <ShoppingBag className="w-5 h-5" />
+            <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-purple-100 bg-purple-50 text-[#5a00b8] sm:flex">
+              <ShoppingBag className="h-6 w-6" />
             </div>
           </div>
-        </div>
 
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6">
-          {/* Selected Units Section */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4 text-[#5a00b8]" />
-                Selected Drone Units ({totalUnits})
-              </h2>
-              {totalUnits > 0 && (
-                <button
-                  onClick={() => setCart({})}
-                  className="text-xs font-semibold text-rose-600 hover:underline cursor-pointer"
-                >
-                  Clear All
-                </button>
-              )}
+          {totalUnits === 0 ? (
+            <div className="space-y-3 rounded-3xl border-2 border-dashed border-slate-200 bg-white py-16 text-center">
+              <ShoppingCart className="mx-auto h-10 w-10 text-slate-300" />
+              <h3 className="text-base font-bold text-slate-800">Your consignment cart is empty</h3>
+              <p className="mx-auto max-w-sm text-sm text-slate-500">
+                Browse available 700RPAV tactical units in the store and add them to your cart to proceed with booking.
+              </p>
+              <button
+                type="button"
+                onClick={openGridStorePage}
+                className="mt-2 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#5a00b8] px-6 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#4a0099]"
+              >
+                <span>Explore Fleet Store</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
             </div>
-
-            {totalUnits === 0 ? (
-              <div className="py-12 text-center border-2 border-dashed border-slate-200 rounded-2xl space-y-3">
-                <ShoppingCart className="w-10 h-10 mx-auto text-slate-300" />
-                <h3 className="text-sm font-bold text-slate-800">Your consignment cart is empty</h3>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  Browse available 700RPAV tactical units in the store and add them to your cart to proceed with booking.
-                </p>
-                <button
-                  onClick={openGridStorePage}
-                  className="mt-2 px-5 py-2.5 rounded-xl bg-[#5a00b8] text-white text-xs font-bold hover:bg-[#4a0099] cursor-pointer shadow-xs transition-all inline-flex items-center gap-1.5"
-                >
-                  <span>Explore Fleet Store</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="grid sm:grid-cols-2 gap-3">
-                {Object.values(cart).map(drone => (
-                  <div key={drone.id} className="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 p-1 flex items-center justify-center shrink-0">
-                        <img src={drone.image_url || '/images/cyberonemax.png'} alt={drone.model} className="max-h-full max-w-full object-contain" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-mono font-bold text-slate-900 truncate">{drone.id}</p>
-                        <p className="text-[11px] text-slate-500 truncate">{drone.model || '700RPAV Tactical'}</p>
-                      </div>
-                    </div>
+          ) : (
+            <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
+              {/* Left: units + address */}
+              <div className="space-y-6 lg:col-span-7">
+                {/* Selected units */}
+                <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h2 className="flex items-center gap-2 text-base font-black text-slate-900">
+                      <ShoppingCart className="h-4 w-4 text-[#5a00b8]" />
+                      Selected Drone Units ({totalUnits})
+                    </h2>
                     <button
                       type="button"
-                      onClick={() => removeDroneFromCart(drone.id)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                      title="Remove drone"
+                      onClick={() => setCart({})}
+                      className="cursor-pointer text-xs font-bold text-rose-600 hover:underline"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      Clear All
                     </button>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
 
-          {/* Delivery & Booking Form */}
-          {totalUnits > 0 && (
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-6">
-              <h2 className="text-base font-bold text-slate-900 pb-2 border-b border-slate-100 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-[#5a00b8]" />
-                Delivery Facility Address &amp; Logistics
-              </h2>
-
-              <form onSubmit={placeBooking} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1.5">Destination Facility Address *</label>
-                  {addresses.length > 0 && (
-                    <div className="relative mb-3">
-                      <select
-                        value={selectedAddressId}
-                        onChange={event => setSelectedAddressId(event.target.value)}
-                        className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pl-3.5 pr-8 text-xs font-semibold text-slate-700 outline-none focus:border-[#5a00b8]"
+                  <ul className="max-h-[420px] space-y-2.5 overflow-y-auto pr-1">
+                    {Object.values(cart).map(drone => (
+                      <li
+                        key={drone.id}
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3"
                       >
-                        {addresses.map(address => (
-                          <option key={address.id} value={address.id}>
-                            {address.label} - {address.full_address}
-                          </option>
-                        ))}
-                        <option value="">+ Enter a new destination address</option>
-                      </select>
-                      <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-slate-400" />
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white p-1.5">
+                            <img src={drone.image_url || DEFAULT_IMG} alt={drone.model} className="max-h-full max-w-full object-contain" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate font-mono text-sm font-bold text-slate-900">{drone.id}</p>
+                            <p className="truncate text-xs text-slate-500">{drone.model || '700RPAV Tactical'}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeDroneFromCart(drone.id)}
+                          className="cursor-pointer rounded-lg p-2 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                          title="Remove drone"
+                          aria-label={`Remove ${drone.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+
+                {/* Delivery form */}
+                <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h2 className="mb-5 flex items-center gap-2 border-b border-slate-100 pb-3 text-base font-black text-slate-900">
+                    <MapPin className="h-4 w-4 text-[#5a00b8]" />
+                    Delivery Facility Address &amp; Logistics
+                  </h2>
+
+                  <form id="booking-form" onSubmit={placeBooking} className="space-y-5">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-bold text-slate-800">Destination Facility Address *</label>
+                      {addresses.length > 0 && (
+                        <div className="relative mb-3">
+                          <select
+                            value={selectedAddressId}
+                            onChange={event => setSelectedAddressId(event.target.value)}
+                            className="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white py-3 pl-3.5 pr-9 text-sm font-semibold text-slate-700 outline-none transition-all focus:border-[#5a00b8] focus:ring-4 focus:ring-purple-100"
+                          >
+                            {addresses.map(address => (
+                              <option key={address.id} value={address.id}>
+                                {address.label} - {address.full_address}
+                              </option>
+                            ))}
+                            <option value="">+ Enter a new destination address</option>
+                          </select>
+                          <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        </div>
+                      )}
+                      {!selectedAddress && (
+                        <div className="space-y-3">
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <input
+                              required
+                              value={addressDraft.recipient_name}
+                              onChange={e => setAddressDraft({ ...addressDraft, recipient_name: e.target.value })}
+                              placeholder="Recipient Name"
+                              className={inputCls}
+                            />
+                            <PhoneInput
+                              required
+                              value={addressDraft.recipient_phone}
+                              onChange={v => setAddressDraft({ ...addressDraft, recipient_phone: v })}
+                              placeholder="Recipient Phone"
+                              size="sm"
+                              inputClassName="text-xs rounded-xl"
+                            />
+                          </div>
+                          <textarea
+                            required
+                            value={addressDraft.full_address}
+                            onChange={e => setAddressDraft({ ...addressDraft, full_address: e.target.value })}
+                            placeholder="Facility / Delivery Address"
+                            rows={2}
+                            className={`${inputCls} resize-none`}
+                          />
+                          <div className="grid grid-cols-2 gap-3">
+                            <input
+                              required
+                              value={addressDraft.city}
+                              onChange={e => setAddressDraft({ ...addressDraft, city: e.target.value })}
+                              placeholder="City"
+                              className={`${inputCls} min-w-0`}
+                            />
+                            <input
+                              required
+                              value={addressDraft.pincode}
+                              onChange={e => setAddressDraft({ ...addressDraft, pincode: e.target.value })}
+                              placeholder="PIN Code"
+                              className={`${inputCls} min-w-0`}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {!selectedAddress && (
-                    <div className="space-y-3">
-                      <div className="grid sm:grid-cols-2 gap-3">
-                        <input
-                          required
-                          value={addressDraft.recipient_name}
-                          onChange={e => setAddressDraft({ ...addressDraft, recipient_name: e.target.value })}
-                          placeholder="Recipient Name"
-                          className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs font-medium outline-none focus:border-[#5a00b8]"
-                        />
-                        <PhoneInput
-                          required
-                          value={addressDraft.recipient_phone}
-                          onChange={v => setAddressDraft({ ...addressDraft, recipient_phone: v })}
-                          placeholder="Recipient Phone"
-                          size="sm"
-                          inputClassName="text-xs rounded-xl"
-                        />
-                      </div>
+
+                    <div>
+                      <label className="mb-1.5 block text-xs font-bold text-slate-800">
+                        Carrier Instructions / Logistics Notes (Optional)
+                      </label>
                       <textarea
-                        required
-                        value={addressDraft.full_address}
-                        onChange={e => setAddressDraft({ ...addressDraft, full_address: e.target.value })}
-                        placeholder="Facility / Delivery Address"
+                        value={deliveryNotes}
+                        onChange={e => setDeliveryNotes(e.target.value)}
                         rows={2}
-                        className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs font-medium resize-none outline-none focus:border-[#5a00b8]"
+                        placeholder="Enter site contact details, gate code, or delivery instructions..."
+                        className={`${inputCls} resize-none`}
                       />
-                      <div className="grid grid-cols-2 gap-3">
-                        <input
-                          required
-                          value={addressDraft.city}
-                          onChange={e => setAddressDraft({ ...addressDraft, city: e.target.value })}
-                          placeholder="City"
-                          className="min-w-0 rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs font-medium outline-none focus:border-[#5a00b8]"
-                        />
-                        <input
-                          required
-                          value={addressDraft.pincode}
-                          onChange={e => setAddressDraft({ ...addressDraft, pincode: e.target.value })}
-                          placeholder="PIN Code"
-                          className="min-w-0 rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs font-medium outline-none focus:border-[#5a00b8]"
-                        />
-                      </div>
                     </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1.5">Carrier Instructions / Logistics Notes (Optional)</label>
-                  <textarea
-                    value={deliveryNotes}
-                    onChange={e => setDeliveryNotes(e.target.value)}
-                    rows={2}
-                    placeholder="Enter site contact details, gate code, or delivery instructions..."
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs font-medium resize-none outline-none focus:border-[#5a00b8]"
-                  />
-                </div>
-
-                {error && <p className="rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold p-3">{error}</p>}
-                {notice && <p className="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold p-3">{notice}</p>}
-
-                <button
-                  type="submit"
-                  disabled={submitting || totalUnits === 0}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#5a00b8] hover:bg-[#4a0099] disabled:opacity-50 text-white py-3.5 text-sm font-bold transition-all cursor-pointer shadow-md active:scale-98"
-                >
-                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Confirm Consignment Booking ({totalUnits} {totalUnits === 1 ? 'Unit' : 'Units'}) <ArrowRight className="w-4 h-4" /></>}
-                </button>
-              </form>
-
-              <div className="pt-3 border-t border-slate-100 flex items-center gap-2 text-xs text-slate-500 font-medium">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span>Direct reservation synced with IndoFleet Operations.</span>
+                  </form>
+                </section>
               </div>
+
+              {/* Right: summary */}
+              <aside className="lg:sticky lg:top-28 lg:col-span-5">
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h2 className="text-base font-black text-slate-900">Booking Summary</h2>
+
+                  <dl className="mt-4 divide-y divide-slate-100 text-sm">
+                    <div className="flex items-center justify-between py-3">
+                      <dt className="text-slate-500">Units</dt>
+                      <dd className="font-black text-slate-900">{totalUnits}</dd>
+                    </div>
+                    <div className="flex items-start justify-between gap-4 py-3">
+                      <dt className="shrink-0 text-slate-500">Drone IDs</dt>
+                      <dd className="flex max-h-28 flex-wrap justify-end gap-1.5 overflow-y-auto">
+                        {Object.keys(cart).map(id => (
+                          <span
+                            key={id}
+                            className="rounded-md border border-purple-100 bg-purple-50 px-2 py-0.5 font-mono text-[11px] font-bold text-[#5a00b8]"
+                          >
+                            {id}
+                          </span>
+                        ))}
+                      </dd>
+                    </div>
+                    <div className="flex items-start justify-between gap-4 py-3">
+                      <dt className="shrink-0 text-slate-500">Deliver to</dt>
+                      <dd className="text-right text-xs font-semibold text-slate-800">
+                        {selectedAddress
+                          ? selectedAddress.full_address
+                          : addressDraft.full_address || 'Enter address'}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  {currentUser.role !== 'customer' && (
+                    <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">
+                      Drone bookings are available for customer accounts.
+                    </p>
+                  )}
+                  {error && (
+                    <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-700">{error}</p>
+                  )}
+                  {notice && (
+                    <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-700">{notice}</p>
+                  )}
+
+                  <button
+                    type="submit"
+                    form="booking-form"
+                    disabled={submitting || totalUnits === 0}
+                    className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#5a00b8] py-3.5 text-sm font-bold text-white shadow-md transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5a00b8] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {submitting ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <>
+                        Confirm Consignment Booking ({totalUnits} {totalUnits === 1 ? 'Unit' : 'Units'})
+                        <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </aside>
             </div>
           )}
         </div>
@@ -617,194 +806,400 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // RENDER: CLEAN FULL-WIDTH STORE GRID (NO SIDE PANEL)
+  // RENDER: STORE (grid / list)
   // ─────────────────────────────────────────────────────────────────────────────
-  return (
-    <div id="drone-store" className="min-h-screen bg-[#f8fafc] pt-24 sm:pt-32 pb-24">
-      <section className="max-w-7xl mx-auto px-4 sm:px-6">
-        
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#5a00b8] mb-1.5">
-            <ShieldCheck className="w-4 h-4 text-[#5a00b8]" />
-            <span>IndoFleet Fleet Inventory</span>
+  const detailInfo = detailDrone ? getUnitInfo(detailDrone) : [];
+
+  const renderChips = (drone: StoreDrone) =>
+    drone.qc_status === 'passed' || drone.current_city ? (
+      <div className="flex flex-wrap gap-1.5">
+        {drone.qc_status === 'passed' && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+            <ShieldCheck className="h-3 w-3" /> QC passed
+          </span>
+        )}
+        {drone.current_city && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+            <MapPin className="h-3 w-3" /> {drone.current_city}
+          </span>
+        )}
+      </div>
+    ) : null;
+
+  const renderActions = (drone: StoreDrone) => {
+    const isSelected = Boolean(cart[drone.id]);
+    return (
+      <>
+        <button
+          type="button"
+          onClick={e => {
+            e.stopPropagation();
+            handleOpenDetail(drone);
+          }}
+          className="flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 transition-colors hover:border-purple-300 hover:bg-purple-50 hover:text-[#5a00b8]"
+        >
+          <Eye className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">Details</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={e => toggleCartDrone(drone, e)}
+          aria-pressed={isSelected}
+          className={`flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-bold text-white shadow-sm transition-colors ${
+            isSelected ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#5a00b8] hover:bg-[#4a0099]'
+          }`}
+        >
+          {isSelected ? (
+            <>
+              <Check className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">In Cart</span>
+            </>
+          ) : (
+            <>
+              <Plus className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Add to Cart</span>
+            </>
+          )}
+        </button>
+      </>
+    );
+  };
+
+  const renderCard = (drone: StoreDrone, i: number) => {
+    const isSelected = Boolean(cart[drone.id]);
+    return (
+      <article
+        key={drone.id}
+        tabIndex={0}
+        onClick={() => handleOpenDetail(drone)}
+        onKeyDown={e => {
+          if (e.target === e.currentTarget && e.key === 'Enter') handleOpenDetail(drone);
+        }}
+        style={{ animationDelay: `${Math.min(i, 11) * 35}ms` }}
+        className={`st-in group relative flex cursor-pointer flex-col overflow-hidden rounded-3xl border bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5a00b8] ${
+          isSelected ? 'border-[#5a00b8] ring-2 ring-[#5a00b8]/20' : 'border-slate-200 hover:border-purple-300'
+        }`}
+      >
+        <div className="relative flex h-48 items-center justify-center overflow-hidden bg-gradient-to-br from-purple-50 via-white to-slate-50 p-5">
+          <span
+            className="absolute left-3 top-3 max-w-[70%] truncate rounded-lg border border-purple-100 bg-white/90 px-2.5 py-1 font-mono text-[11px] font-bold text-[#5a00b8]"
+            title={drone.id}
+          >
+            {drone.id}
+          </span>
+          {isSelected && (
+            <span className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-[#5a00b8] text-white shadow">
+              <Check className="h-4 w-4" />
+            </span>
+          )}
+          <img
+            src={drone.image_url || DEFAULT_IMG}
+            alt={drone.model}
+            className="max-h-full max-w-full object-contain drop-shadow-lg transition-transform duration-500 group-hover:scale-110"
+          />
+        </div>
+
+        <div className="flex flex-1 flex-col p-4">
+          <h3 className="truncate text-base font-black leading-snug text-slate-900 transition-colors group-hover:text-[#5a00b8]">
+            {drone.model || '700RPAV'}
+          </h3>
+          <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">Surveillance, Mapping &amp; Delivery UAV</p>
+          <div className="mt-3">{renderChips(drone)}</div>
+          <div className="mt-auto grid grid-cols-2 gap-2 pt-4">{renderActions(drone)}</div>
+        </div>
+      </article>
+    );
+  };
+
+  const renderRow = (drone: StoreDrone, i: number) => {
+    const isSelected = Boolean(cart[drone.id]);
+    return (
+      <article
+        key={drone.id}
+        tabIndex={0}
+        onClick={() => handleOpenDetail(drone)}
+        onKeyDown={e => {
+          if (e.target === e.currentTarget && e.key === 'Enter') handleOpenDetail(drone);
+        }}
+        style={{ animationDelay: `${Math.min(i, 11) * 30}ms` }}
+        className={`st-in group flex cursor-pointer flex-col gap-3 rounded-2xl border bg-white p-3 transition-all hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5a00b8] sm:flex-row sm:items-center sm:gap-4 ${
+          isSelected ? 'border-[#5a00b8] ring-2 ring-[#5a00b8]/15' : 'border-slate-200 hover:border-purple-300'
+        }`}
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-4">
+          <div className="relative flex h-20 w-24 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-50 via-white to-slate-50 p-2">
+            <img src={drone.image_url || DEFAULT_IMG} alt={drone.model} className="max-h-full max-w-full object-contain" />
+            {isSelected && (
+              <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#5a00b8] text-white shadow">
+                <Check className="h-3 w-3" />
+              </span>
+            )}
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="truncate rounded-lg border border-purple-100 bg-purple-50 px-2 py-0.5 font-mono text-[11px] font-bold text-[#5a00b8]">
+                {drone.id}
+              </span>
+              {renderChips(drone)}
+            </div>
+            <h3 className="mt-1 truncate text-sm font-black text-slate-900 group-hover:text-[#5a00b8]">
+              {drone.model || '700RPAV'}
+            </h3>
+            <p className="line-clamp-1 text-xs text-slate-500">Surveillance, Mapping &amp; Delivery UAV</p>
+          </div>
+        </div>
+        <div className="grid shrink-0 grid-cols-2 gap-2 sm:w-64">{renderActions(drone)}</div>
+      </article>
+    );
+  };
+
+  return (
+    <div id="drone-store" className="min-h-screen bg-slate-50 pb-28 pt-24 sm:pt-28">
+      <style>{STORE_CSS}</style>
+
+      <section className="mx-auto max-w-7xl px-4 sm:px-6">
+        {/* Banner */}
+        <div className="relative mb-8 overflow-hidden rounded-3xl bg-black text-white">
+          <video
+            src="/stick.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+          />
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{ background: 'linear-gradient(90deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.45) 60%, rgba(0,0,0,0.2) 100%)' }}
+          />
+          <div className="relative z-10 flex min-h-[220px] flex-col justify-between gap-6 p-6 sm:p-10 md:flex-row md:items-end">
             <div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-                700RPAV Fleet Store
-              </h1>
-              <p className="text-sm text-slate-500 mt-1 max-w-xl">
+              <p className="mb-2 flex items-center gap-2 text-xs font-bold text-purple-300">
+                <ShieldCheck className="h-4 w-4" />
+                <span>IndoFleet Fleet Inventory</span>
+              </p>
+              <h1 className="text-4xl font-black tracking-tight sm:text-5xl">700RPAV Fleet Store</h1>
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/80">
                 Browse available 700RPAV tactical units, inspect technical specifications, and place consignment bookings.
               </p>
+              {!loading && !error && (
+                <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-xs font-bold backdrop-blur-sm">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                  {drones.length} {drones.length === 1 ? 'unit' : 'units'} available
+                </p>
+              )}
             </div>
-            
-            {/* View Cart Button */}
+
             <button
+              type="button"
               onClick={openCartPage}
-              className="flex items-center gap-2.5 text-xs font-bold text-white bg-[#5a00b8] hover:bg-[#4a0099] px-4 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
+              className="flex shrink-0 cursor-pointer items-center gap-2.5 rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#6366f1] px-5 py-3 text-sm font-bold text-white shadow-xl shadow-purple-900/40 transition-all hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-95"
             >
-              <ShoppingCart className="w-4 h-4 text-white" />
-              <span>View Cart ({totalUnits})</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ShoppingCart className="h-4 w-4" />
+              <span>View Cart</span>
+              <span className="min-w-[1.5rem] rounded-full bg-white px-2 py-0.5 text-center text-xs font-black text-[#5a00b8]">
+                {totalUnits}
+              </span>
             </button>
           </div>
         </div>
 
-        {/* Search & Live Sort Bar */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-3 mb-6 shadow-2xs flex flex-col sm:flex-row items-center gap-3">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              value={search}
-              onChange={event => setSearch(event.target.value)}
-              placeholder="Search by Drone ID (e.g. 0001, 0150, 0800)..."
-              className="w-full rounded-xl border-none pl-10 pr-3 py-2 text-xs outline-none bg-slate-50 focus:bg-white focus:ring-2 focus:ring-purple-100 transition-all font-medium"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch('')}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-
-          {/* Live Sort Dropdown */}
-          <div className="relative shrink-0 w-full sm:w-auto">
-            <select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-              className="w-full sm:w-auto appearance-none bg-slate-50 border border-slate-200/80 rounded-xl pl-3.5 pr-8 py-2 text-xs font-bold text-slate-700 outline-none cursor-pointer hover:bg-white focus:bg-white focus:ring-2 focus:ring-purple-100 transition-all"
-            >
-              <option value="asc">Sort: Drone ID (Ascending)</option>
-              <option value="desc">Sort: Drone ID (Descending)</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none text-slate-400" />
-          </div>
-        </div>
-
-        {/* Full-Width Drones Grid Section */}
-        <section className="w-full">
-          {loading ? (
-            <div className="rounded-2xl bg-white border border-slate-200/80 p-16 text-center text-slate-500 shadow-2xs">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-[#5a00b8]" />
-              <p className="text-sm font-semibold text-slate-800">Loading fleet inventory...</p>
+        {/* Toolbar: search, sort, view, hub filter */}
+        <div className="sticky top-20 z-20 mb-5 rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-sm backdrop-blur-md">
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={search}
+                onChange={event => setSearch(event.target.value)}
+                placeholder="Search by Drone ID (e.g. 0001, 0150, 0800)..."
+                aria-label="Search drones"
+                className="w-full rounded-xl border border-transparent bg-slate-50 py-2.5 pl-10 pr-16 text-sm font-medium outline-none transition-all focus:border-[#5a00b8] focus:bg-white focus:ring-4 focus:ring-purple-100"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 cursor-pointer text-xs font-bold text-slate-400 hover:text-slate-700"
+                >
+                  Clear
+                </button>
+              )}
             </div>
-          ) : filteredDrones.length === 0 ? (
-            <div className="rounded-2xl bg-white border border-slate-200/80 p-12 text-center shadow-2xs">
-              <Search className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-              <h3 className="font-bold text-slate-800 text-sm">No matching drone units found</h3>
-              <p className="text-xs text-slate-500 mt-1">Try searching by another Drone ID number (e.g. 0001, 0250).</p>
-              <button
-                onClick={() => setSearch('')}
-                className="mt-4 px-4 py-2 rounded-xl bg-[#5a00b8] text-white text-xs font-bold hover:bg-[#4a0099] cursor-pointer shadow-xs transition-all"
-              >
-                Reset Search
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {visibleDrones.map(drone => {
-                  const isSelected = Boolean(cart[drone.id]);
-                  const droneImg = drone.image_url || '/images/cyberonemax.png';
 
-                  return (
-                    <article
-                      key={drone.id}
-                      onClick={() => handleOpenDetail(drone)}
-                      className={`bg-white rounded-2xl border transition-all duration-300 overflow-hidden shadow-xs hover:shadow-lg flex flex-col justify-between group cursor-pointer ${
-                        isSelected ? 'border-[#5a00b8] ring-1 ring-[#5a00b8]/30 shadow-md' : 'border-slate-200 hover:border-purple-300'
-                      }`}
-                    >
-                      <div>
-                        {/* Card Header: Clean Drone ID Badge */}
-                        <div className="p-3.5 pb-0 flex items-center justify-between min-w-0">
-                          <span className="font-mono font-bold text-[11px] sm:text-xs text-[#5a00b8] bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-100/80 truncate max-w-full" title={drone.id}>
-                            {drone.id}
-                          </span>
-                        </div>
-
-                        {/* Image Box */}
-                        <div className="h-44 flex items-center justify-center p-4 relative overflow-hidden">
-                          <img
-                            src={droneImg}
-                            alt={drone.model}
-                            className="max-h-full max-w-full object-contain drop-shadow-md transition-transform duration-300 group-hover:scale-105"
-                          />
-                        </div>
-
-                        {/* Details Content */}
-                        <div className="px-4 pb-3 min-w-0">
-                          <h3 className="text-sm font-extrabold text-slate-900 group-hover:text-[#5a00b8] transition-colors leading-snug truncate">
-                            {drone.model || '700RPAV'}
-                          </h3>
-                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
-                            Surveillance, Mapping &amp; Delivery UAV
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="p-3.5 pt-0 grid grid-cols-2 gap-1.5 sm:gap-2 min-w-0">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenDetail(drone);
-                          }}
-                          className="w-full rounded-xl py-2 px-1.5 sm:px-2.5 text-xs font-bold border border-slate-200 hover:border-purple-300 bg-white hover:bg-purple-50 text-slate-700 hover:text-[#5a00b8] flex items-center justify-center gap-1 transition-all cursor-pointer min-w-0"
-                        >
-                          <Eye className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#5a00b8] shrink-0" />
-                          <span className="truncate">Details</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => toggleCartDrone(drone, e)}
-                          className={`w-full rounded-xl py-2 px-1.5 sm:px-2.5 text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs min-w-0 ${
-                            isSelected
-                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                              : 'bg-[#5a00b8] hover:bg-[#4a0099] text-white'
-                          }`}
-                        >
-                          {isSelected ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 shrink-0" />
-                              <span className="truncate">In Cart</span>
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="w-3.5 h-3.5 shrink-0" />
-                              <span className="truncate">Add to Cart</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })}
+            <div className="flex items-center gap-2">
+              <div className="relative min-w-0 flex-1 sm:flex-none">
+                <select
+                  value={sortOrder}
+                  onChange={e => setSortOrder(e.target.value as 'asc' | 'desc')}
+                  aria-label="Sort drones"
+                  className="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-3.5 pr-9 text-sm font-bold text-slate-700 outline-none transition-all hover:bg-white focus:border-[#5a00b8] focus:bg-white focus:ring-4 focus:ring-purple-100"
+                >
+                  <option value="asc">Sort: Drone ID (Ascending)</option>
+                  <option value="desc">Sort: Drone ID (Descending)</option>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               </div>
 
-              {/* Pagination Controls */}
+              <div className="flex shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50" role="group" aria-label="View mode">
+                {([
+                  ['grid', LayoutGrid, 'Grid view'],
+                  ['list', List, 'List view']
+                ] as const).map(([key, Icon, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setView(key)}
+                    aria-pressed={view === key}
+                    title={label}
+                    aria-label={label}
+                    className={`cursor-pointer p-2.5 transition-colors ${
+                      view === key ? 'bg-[#5a00b8] text-white' : 'text-slate-500 hover:bg-white hover:text-slate-800'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {hubs.length > 1 && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+              <span className="text-[11px] font-bold text-slate-400">Hub</span>
+              {['', ...hubs].map(h => (
+                <button
+                  key={h || 'all'}
+                  type="button"
+                  onClick={() => setHub(h)}
+                  aria-pressed={hub === h}
+                  className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-bold transition-colors ${
+                    hub === h
+                      ? 'border-[#5a00b8] bg-[#5a00b8] text-white'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-purple-300 hover:text-[#5a00b8]'
+                  }`}
+                >
+                  {h || 'All hubs'}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Results bar: count + bulk tools */}
+        {!loading && filteredDrones.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1">
+            <p className="text-xs font-semibold text-slate-500">
+              {filteredDrones.length} {filteredDrones.length === 1 ? 'unit' : 'units'} in results
+              {search.trim() ? ` for "${search.trim()}"` : ''}
+            </p>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={togglePage}
+                className="cursor-pointer rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:border-purple-300 hover:text-[#5a00b8]"
+              >
+                {pageAllSelected ? 'Deselect this page' : 'Select this page'}
+              </button>
+
+              <div
+                className="flex items-center overflow-hidden rounded-xl border border-slate-200 bg-white"
+                title="Adds the next units from the current results that are not in your cart yet"
+              >
+                <input
+                  type="number"
+                  min={1}
+                  max={filteredDrones.length}
+                  value={bulkQty}
+                  onChange={e => setBulkQty(Math.max(1, Number(e.target.value) || 1))}
+                  aria-label="Number of units to add"
+                  className="w-16 px-3 py-2 text-xs font-bold text-slate-800 outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={addFirstN}
+                  className="cursor-pointer bg-[#5a00b8] px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-[#4a0099]"
+                >
+                  Add {Math.min(bulkQty, filteredDrones.length)} units
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {error && !loading && drones.length === 0 && (
+          <p className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">{error}</p>
+        )}
+
+        {/* Inventory */}
+        <section className="w-full">
+          {loading ? (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="animate-pulse overflow-hidden rounded-3xl border border-slate-200 bg-white">
+                  <div className="h-48 bg-slate-100" />
+                  <div className="space-y-3 p-4">
+                    <div className="h-4 w-2/3 rounded bg-slate-100" />
+                    <div className="h-3 w-full rounded bg-slate-100" />
+                    <div className="grid grid-cols-2 gap-2 pt-3">
+                      <div className="h-9 rounded-xl bg-slate-100" />
+                      <div className="h-9 rounded-xl bg-slate-100" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredDrones.length === 0 ? (
+            !error && (
+              <div className="rounded-3xl border border-slate-200 bg-white p-14 text-center shadow-sm">
+                <Search className="mx-auto mb-3 h-8 w-8 text-slate-300" />
+                <h3 className="text-sm font-bold text-slate-800">No matching drone units found</h3>
+                <p className="mt-1 text-xs text-slate-500">Try searching by another Drone ID number (e.g. 0001, 0250).</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch('');
+                    setHub('');
+                  }}
+                  className="mt-5 cursor-pointer rounded-xl bg-[#5a00b8] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#4a0099]"
+                >
+                  Reset Search
+                </button>
+              </div>
+            )
+          ) : (
+            <>
+              {view === 'grid' ? (
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                  {visibleDrones.map((drone, i) => renderCard(drone, i))}
+                </div>
+              ) : (
+                <div className="space-y-3">{visibleDrones.map((drone, i) => renderRow(drone, i))}</div>
+              )}
+
+              {/* Pagination */}
               {pageCount > 1 && (
-                <nav className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-8 p-3.5 bg-white border border-slate-200/80 rounded-xl shadow-2xs text-xs">
-                  <p className="text-slate-500 font-medium">
+                <nav
+                  aria-label="Pagination"
+                  className="mt-8 flex flex-col items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 text-xs shadow-sm lg:flex-row"
+                >
+                  <p className="font-medium text-slate-500">
                     Showing <span className="font-bold text-slate-900">{(page - 1) * pageSize + 1}</span>–
                     <span className="font-bold text-slate-900">{Math.min(page * pageSize, filteredDrones.length)}</span> of{' '}
                     <span className="font-bold text-slate-900">{filteredDrones.length}</span> units
                   </p>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-center gap-2">
                     <select
                       value={pageSize}
-                      onChange={(e) => {
+                      onChange={e => {
                         setPageSize(Number(e.target.value));
                         setPage(1);
                       }}
-                      className="px-2 py-1 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 bg-white"
+                      aria-label="Units per page"
+                      className="cursor-pointer rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700"
                     >
                       <option value={12}>12 per page</option>
                       <option value={24}>24 per page</option>
@@ -814,21 +1209,45 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
 
                     <div className="flex items-center gap-1">
                       <button
+                        type="button"
                         onClick={() => setPage(current => Math.max(1, current - 1))}
                         disabled={page === 1}
-                        className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                        aria-label="Previous page"
+                        className="cursor-pointer rounded-lg border border-slate-200 bg-white p-2 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
                       >
-                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <ArrowLeft className="h-3.5 w-3.5" />
                       </button>
-                      <span className="px-2 font-bold text-slate-800">
-                        {page} / {pageCount}
-                      </span>
+
+                      {getPageItems(page, pageCount).map((item, idx) =>
+                        item === '…' ? (
+                          <span key={`gap-${idx}`} className="px-1.5 font-bold text-slate-400">
+                            …
+                          </span>
+                        ) : (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => setPage(item)}
+                            aria-current={item === page ? 'page' : undefined}
+                            className={`min-w-[2rem] cursor-pointer rounded-lg px-2 py-1.5 font-bold transition-colors ${
+                              item === page
+                                ? 'bg-[#5a00b8] text-white'
+                                : 'text-slate-700 hover:bg-purple-50 hover:text-[#5a00b8]'
+                            }`}
+                          >
+                            {item}
+                          </button>
+                        )
+                      )}
+
                       <button
+                        type="button"
                         onClick={() => setPage(current => Math.min(pageCount, current + 1))}
                         disabled={page === pageCount}
-                        className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                        aria-label="Next page"
+                        className="cursor-pointer rounded-lg border border-slate-200 bg-white p-2 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
                       >
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <ArrowRight className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>
@@ -838,196 +1257,216 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
           )}
         </section>
 
-        {/* Floating Cart Bar at Bottom when items are selected */}
-        {totalUnits > 0 && (
-          <div className="fixed bottom-6 inset-x-4 sm:inset-x-auto sm:right-8 z-40">
-            <div className="bg-[#18181b] text-white rounded-2xl px-5 py-3.5 shadow-2xl border border-slate-700 flex items-center gap-4">
-              <div className="flex items-center gap-2 text-xs font-bold">
-                <ShoppingBag className="w-4 h-4 text-purple-400" />
-                <span><strong className="text-purple-300 font-mono">{totalUnits}</strong> Units Selected</span>
+        {/* Floating cart bar */}
+        {totalUnits > 0 && !detailDrone && (
+          <div className="fixed inset-x-4 bottom-5 z-40 sm:inset-x-auto sm:bottom-6 sm:right-24">
+            <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-[0_12px_40px_rgba(60,10,120,0.2)]">
+              <div className="flex items-center gap-2.5 text-sm font-bold text-slate-800">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 text-[#5a00b8]">
+                  <ShoppingBag className="h-4 w-4" />
+                </span>
+                <span>
+                  <span className="font-mono text-[#5a00b8]">{totalUnits}</span> {totalUnits === 1 ? 'Unit' : 'Units'} Selected
+                </span>
               </div>
               <button
+                type="button"
+                onClick={() => setCart({})}
+                className="cursor-pointer text-xs font-bold text-slate-400 hover:text-rose-600"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
                 onClick={openCartPage}
-                className="px-4 py-2 rounded-xl bg-[#5a00b8] hover:bg-[#4a0099] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                className="flex cursor-pointer items-center gap-1.5 rounded-xl bg-[#5a00b8] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#4a0099] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5a00b8]"
               >
                 <span>Proceed to Booking</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
         )}
       </section>
 
-      {/* ── DEDICATED PRODUCT DETAILS MODAL OVERLAY ───────────────────────── */}
+      {/* ── PRODUCT DETAIL OVERLAY ──────────────────────────────────────────── */}
       {detailDrone && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm sm:p-6"
           onClick={handleBackToStore}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${detailDrone.model || '700RPAV'} details`}
         >
           <div
-            className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-4xl w-full p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto my-auto"
-            onClick={(e) => e.stopPropagation()}
+            className="relative my-auto max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-slate-100 bg-white p-5 shadow-2xl sm:p-8"
+            onClick={e => e.stopPropagation()}
           >
-            {/* Top Close Button & Prev/Next Navigation */}
-            <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <span className="font-mono font-bold text-xs text-[#5a00b8] bg-purple-50 px-3 py-1 rounded-xl border border-purple-100 shadow-2xs">
+            {/* Top bar */}
+            <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-xl border border-purple-100 bg-purple-50 px-3 py-1 font-mono text-xs font-bold text-[#5a00b8]">
                   {detailDrone.id}
                 </span>
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200 flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Airworthy &amp; QC Passed
-                </span>
+                {detailDrone.qc_status === 'passed' && (
+                  <span className="flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                    <ShieldCheck className="h-3.5 w-3.5" /> QC Passed
+                  </span>
+                )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
+                  type="button"
+                  onClick={copyLink}
+                  className="mr-1 flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:border-purple-300 hover:text-[#5a00b8]"
+                  title="Copy link to this unit"
+                >
+                  {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Link2 className="h-3.5 w-3.5" />}
+                  <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy link'}</span>
+                </button>
+                <button
+                  type="button"
                   disabled={!prevDrone}
                   onClick={() => prevDrone && handleOpenDetail(prevDrone)}
-                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all"
+                  className="cursor-pointer rounded-lg border border-slate-200 bg-white p-2 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
                   title={prevDrone ? `Previous: ${prevDrone.id}` : 'First Unit'}
+                  aria-label="Previous unit"
                 >
-                  <ChevronLeft className="w-4 h-4 text-slate-700" />
+                  <ChevronLeft className="h-4 w-4 text-slate-700" />
                 </button>
                 <button
+                  type="button"
                   disabled={!nextDrone}
                   onClick={() => nextDrone && handleOpenDetail(nextDrone)}
-                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all"
+                  className="cursor-pointer rounded-lg border border-slate-200 bg-white p-2 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
                   title={nextDrone ? `Next: ${nextDrone.id}` : 'Last Unit'}
+                  aria-label="Next unit"
                 >
-                  <ChevronRight className="w-4 h-4 text-slate-700" />
+                  <ChevronRight className="h-4 w-4 text-slate-700" />
                 </button>
                 <button
+                  type="button"
                   onClick={handleBackToStore}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer ml-1"
+                  className="ml-1 cursor-pointer rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
                   title="Close Details"
+                  aria-label="Close details"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="h-5 w-5" />
                 </button>
               </div>
             </div>
 
-            {/* Grid Content */}
-            <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-center">
-              {/* Product Image */}
-              <div className="bg-slate-50 rounded-2xl border border-slate-100 p-6 flex flex-col items-center justify-center min-h-[280px]">
-                <img
-                  src={detailDrone.image_url || '/images/cyberonemax.png'}
-                  alt={detailDrone.model || '700RPAV'}
-                  className="max-h-60 max-w-full object-contain drop-shadow-xl my-4 hover:scale-105 transition-transform duration-300"
-                />
-                <div className="w-full flex items-center justify-between text-[11px] font-semibold text-slate-500 pt-3 border-t border-slate-200/60 mt-auto">
-                  <span>Current Hub: <strong className="text-slate-800">{detailDrone.current_city || 'Noida Sector 62'}</strong></span>
-                  <span>Battery Health: <strong className="text-emerald-600">{detailDrone.battery || 100}%</strong></span>
+            <div className="grid items-start gap-6 sm:gap-8 md:grid-cols-2">
+              {/* Image + unit data */}
+              <div className="flex flex-col rounded-2xl border border-slate-100 bg-gradient-to-br from-purple-50 via-white to-slate-50 p-6">
+                <div className="flex min-h-[240px] flex-1 items-center justify-center">
+                  <img
+                    src={detailDrone.image_url || DEFAULT_IMG}
+                    alt={detailDrone.model || '700RPAV'}
+                    className="max-h-60 max-w-full object-contain drop-shadow-xl transition-transform duration-500 hover:scale-105"
+                  />
                 </div>
+                {detailInfo.length > 0 && (
+                  <dl className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-200/70 pt-4">
+                    {detailInfo.map(i => (
+                      <div key={i.label} className="min-w-0">
+                        <dt className="text-[10px] font-semibold text-slate-400">{i.label}</dt>
+                        <dd className="truncate text-xs font-bold text-slate-800">{i.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
               </div>
 
-              {/* Product Details & Actions */}
+              {/* Details & actions */}
               <div className="space-y-5">
                 <div>
-                  <span className="text-[11px] font-bold text-[#5a00b8] uppercase tracking-wider block mb-1">DGCA Type Certified Tactical UAV</span>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                  <span className="mb-1 block text-[11px] font-bold text-[#5a00b8]">Tactical UAV</span>
+                  <h2 className="text-2xl font-black tracking-tight text-slate-900">
                     {detailDrone.model || '700RPAV Tactical Aircraft'}
                   </h2>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    Surveillance, Mapping &amp; Emergency Payload Delivery UAV. Pre-flight inspected with complete telemetry hardware verification.
+                  <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
+                    Tactical surveillance, high-precision mapping and extreme high-altitude delivery quadcopter UAV.
                   </p>
                 </div>
 
-                {/* Key Spec Cards */}
-                <div className="grid grid-cols-4 gap-2">
-                  <div className="bg-purple-50/60 border border-purple-100 rounded-xl p-2.5 text-center">
-                    <p className="text-[9px] font-bold uppercase text-purple-600">Payload</p>
-                    <p className="text-xs font-black text-slate-900 mt-0.5">{detailDrone.payload_kg || 5.0} KG</p>
-                  </div>
-                  <div className="bg-purple-50/60 border border-purple-100 rounded-xl p-2.5 text-center">
-                    <p className="text-[9px] font-bold uppercase text-purple-600">Endurance</p>
-                    <p className="text-xs font-black text-slate-900 mt-0.5">90 Mins</p>
-                  </div>
-                  <div className="bg-purple-50/60 border border-purple-100 rounded-xl p-2.5 text-center">
-                    <p className="text-[9px] font-bold uppercase text-purple-600">Max Speed</p>
-                    <p className="text-xs font-black text-slate-900 mt-0.5">{detailDrone.speed_kmh || 85} KM/H</p>
-                  </div>
-                  <div className="bg-purple-50/60 border border-purple-100 rounded-xl p-2.5 text-center">
-                    <p className="text-[9px] font-bold uppercase text-purple-600">Range</p>
-                    <p className="text-xs font-black text-slate-900 mt-0.5">35 KM</p>
-                  </div>
+                {/* Spec tiles */}
+                <div className="grid grid-cols-2 gap-2">
+                  {DRONE_SPECS.map(s => (
+                    <div key={s.label} className="rounded-xl border border-purple-100 bg-purple-50/60 p-3">
+                      <p className="text-[10px] font-bold text-purple-700">{s.label}</p>
+                      <p className="mt-0.5 text-lg font-black tabular-nums text-slate-900">
+                        {s.value}
+                        <span className="ml-1 text-xs font-bold text-[#5a00b8]">{s.unit}</span>
+                      </p>
+                      <p className="text-[10px] text-slate-500">{s.note}</p>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Tabs */}
                 <div>
-                  <div className="flex border-b border-slate-200">
-                    <button
-                      onClick={() => setProductTab('specs')}
-                      className={`pb-2 px-2.5 text-xs font-bold transition-all cursor-pointer border-b-2 ${
-                        productTab === 'specs' ? 'border-[#5a00b8] text-[#5a00b8]' : 'border-transparent text-slate-500 hover:text-slate-800'
-                      }`}
-                    >
-                      Specifications
-                    </button>
-                    <button
-                      onClick={() => setProductTab('inBox')}
-                      className={`pb-2 px-2.5 text-xs font-bold transition-all cursor-pointer border-b-2 ${
-                        productTab === 'inBox' ? 'border-[#5a00b8] text-[#5a00b8]' : 'border-transparent text-slate-500 hover:text-slate-800'
-                      }`}
-                    >
-                      In The Box
-                    </button>
-                    <button
-                      onClick={() => setProductTab('applications')}
-                      className={`pb-2 px-2.5 text-xs font-bold transition-all cursor-pointer border-b-2 ${
-                        productTab === 'applications' ? 'border-[#5a00b8] text-[#5a00b8]' : 'border-transparent text-slate-500 hover:text-slate-800'
-                      }`}
-                    >
-                      Use Cases
-                    </button>
+                  <div className="flex border-b border-slate-200" role="tablist">
+                    {([
+                      ['specs', 'Specifications'],
+                      ['applications', 'Use Cases']
+                    ] as const).map(([key, label]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        role="tab"
+                        aria-selected={productTab === key}
+                        onClick={() => setProductTab(key)}
+                        className={`cursor-pointer border-b-2 px-3 pb-2 text-xs font-bold transition-all ${
+                          productTab === key
+                            ? 'border-[#5a00b8] text-[#5a00b8]'
+                            : 'border-transparent text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
 
-                  <div className="py-3 text-xs text-slate-600 space-y-1.5">
-                    {productTab === 'specs' && (
-                      <ul className="space-y-1.5">
-                        <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> DGCA Type Certified with NPNT Compliance</li>
-                        <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Triple-redundant avionics &amp; fail-safe return-to-home</li>
-                        <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Dual Optical Zoom &amp; High-Resolution Thermal Sensor</li>
-                        <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Encrypted secure military-grade RF command link</li>
-                      </ul>
-                    )}
-                    {productTab === 'inBox' && (
-                      <ul className="space-y-1.5">
-                        <li className="flex items-center gap-2"><Package className="w-3.5 h-3.5 text-[#5a00b8] shrink-0" /> 1x 700RPAV Tactical Aircraft ({detailDrone.id})</li>
-                        <li className="flex items-center gap-2"><Package className="w-3.5 h-3.5 text-[#5a00b8] shrink-0" /> 2x High-Capacity Smart Flight Batteries</li>
-                        <li className="flex items-center gap-2"><Package className="w-3.5 h-3.5 text-[#5a00b8] shrink-0" /> 1x Handheld GCS Ground Control Station Controller</li>
-                        <li className="flex items-center gap-2"><Package className="w-3.5 h-3.5 text-[#5a00b8] shrink-0" /> 1x Dual Charger &amp; Heavy Duty Pelican Transport Case</li>
-                      </ul>
-                    )}
-                    {productTab === 'applications' && (
-                      <ul className="space-y-1.5">
-                        <li className="flex items-center gap-2"><Compass className="w-3.5 h-3.5 text-sky-600 shrink-0" /> Perimeter Security &amp; Border Surveillance Operations</li>
-                        <li className="flex items-center gap-2"><Compass className="w-3.5 h-3.5 text-sky-600 shrink-0" /> GIS Topographical Mapping &amp; Agricultural Analytics</li>
-                        <li className="flex items-center gap-2"><Compass className="w-3.5 h-3.5 text-sky-600 shrink-0" /> Medical, Emergency &amp; Industrial Consignment Air Transit</li>
-                      </ul>
-                    )}
-                  </div>
+                  <ul className="space-y-2 py-3 text-sm text-slate-600">
+                    {productTab === 'specs' &&
+                      HARDWARE.map(h => (
+                        <li key={h} className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                          {h}
+                        </li>
+                      ))}
+                    {productTab === 'applications' &&
+                      USE_CASES.map(u => (
+                        <li key={u} className="flex items-center gap-2">
+                          <Compass className="h-4 w-4 shrink-0 text-[#5a00b8]" />
+                          {u}
+                        </li>
+                      ))}
+                  </ul>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="grid grid-cols-2 gap-3 pt-2">
+                {/* Actions */}
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={(e) => toggleCartDrone(detailDrone, e)}
-                    className={`w-full py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs ${
-                      Boolean(cart[detailDrone.id])
-                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                        : 'bg-white border-2 border-[#5a00b8] text-[#5a00b8] hover:bg-purple-50'
+                    onClick={e => toggleCartDrone(detailDrone, e)}
+                    aria-pressed={Boolean(cart[detailDrone.id])}
+                    className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold shadow-sm transition-all ${
+                      cart[detailDrone.id]
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        : 'border-2 border-[#5a00b8] bg-white text-[#5a00b8] hover:bg-purple-50'
                     }`}
                   >
-                    {Boolean(cart[detailDrone.id]) ? (
+                    {cart[detailDrone.id] ? (
                       <>
-                        <Check className="w-4 h-4" />
-                        <span>In Cart ({detailDrone.id})</span>
+                        <Check className="h-4 w-4" />
+                        <span>In Cart</span>
                       </>
                     ) : (
                       <>
-                        <Plus className="w-4 h-4" />
+                        <Plus className="h-4 w-4" />
                         <span>Add to Cart</span>
                       </>
                     )}
@@ -1036,10 +1475,10 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                   <button
                     type="button"
                     onClick={() => handleBookNowDirect(detailDrone)}
-                    className="w-full py-3 rounded-xl text-xs font-bold bg-[#5a00b8] hover:bg-[#4a0099] text-white flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+                    className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#5a00b8] py-3 text-sm font-bold text-white shadow-md transition-all hover:brightness-110 active:scale-[0.98]"
                   >
                     <span>Book Now</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -1049,4 +1488,4 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
       )}
     </div>
   );
-};
+};  

@@ -14,6 +14,7 @@ import { DeliveryUser } from '../types';
 import { DeliveryTrackingModule } from './DeliveryTrackingModule';
 import { ProfilePage } from './ProfilePage';
 import { CustomerOrderLiveMap } from '../components/CustomerOrderLiveMap';
+import { SosAlertBanner } from '../components/SosAlertBanner';
 
 interface DispatchModuleProps {
   currentUser: DeliveryUser | null;
@@ -234,6 +235,10 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
 
   const prevOrderCountRef = useRef<number>(0);
   const token = localStorage.getItem('iw_delivery_token') || '';
+
+  // SOS Emergency Beacon state
+  const [sosAlerts, setSosAlerts] = useState<any[]>([]);
+  const [resolvingSosId, setResolvingSosId] = useState<string | null>(null);
 
   const getLinkedOrderForDrone = (drone: any) => {
     if (!drone) return null;
@@ -470,11 +475,47 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     }
   };
 
+  const fetchSosAlerts = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/admin/sos-alerts`);
+      if (res.ok) {
+        const d = await res.json();
+        if (Array.isArray(d.alerts)) {
+          setSosAlerts(d.alerts);
+        }
+      }
+    } catch {}
+  };
+
+  const handleResolveSos = async (id: string) => {
+    try {
+      setResolvingSosId(id);
+      const res = await fetch(`${API_BASE_URL}/api/delivery/admin/sos-alerts/${id}/resolve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          resolved_by: currentUser?.name || 'Dispatcher',
+          notes: 'Emergency resolved from Dispatch Module.'
+        })
+      });
+      if (res.ok) {
+        await fetchSosAlerts();
+      }
+    } catch {} finally {
+      setResolvingSosId(null);
+    }
+  };
+
   useEffect(() => {
     fetchDashboard();
     fetchFleet();
+    fetchSosAlerts();
     const interval = setInterval(() => {
       fetchDashboard(true);
+      fetchSosAlerts();
     }, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -1915,6 +1956,14 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
   // Standalone Dispatcher Command Portal with Full Sidebar
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] pt-28 sm:pt-32 pb-16">
+      {/* 🚨 SOS Emergency Banner */}
+      <div className="max-w-[1560px] mx-auto px-4 sm:px-6">
+        <SosAlertBanner
+          alerts={sosAlerts}
+          onResolve={handleResolveSos}
+          resolvingId={resolvingSosId}
+        />
+      </div>
       {/* ── MOBILE SLIDE-OVER DRAWER ────────────────────────────────────── */}
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-[120] md:hidden">

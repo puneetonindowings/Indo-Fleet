@@ -108,6 +108,7 @@ export async function fetchPilotDashboard(pilotId?: string): Promise<{
   kpis: PilotKpis;
   chart_data: ChartData;
   active_orders: DeliveryOrder[];
+  history_orders?: DeliveryOrder[];
 }> {
   const baseUrl = await getServerUrl();
   const query = pilotId ? `?pilotId=${encodeURIComponent(pilotId)}` : '';
@@ -119,6 +120,25 @@ export async function fetchPilotDashboard(pilotId?: string): Promise<{
   const data = await res.json();
   if (!res.ok || !data.success) {
     throw new Error(data.error || 'Failed to load dashboard data');
+  }
+  return data;
+}
+
+// 3.1 Fetch Order History (Completed, Delivered, Cancelled)
+export async function fetchPilotOrderHistory(pilotId?: string): Promise<{
+  success: boolean;
+  orders: DeliveryOrder[];
+}> {
+  const baseUrl = await getServerUrl();
+  const query = pilotId ? `?pilotId=${encodeURIComponent(pilotId)}` : '';
+  const res = await fetch(`${baseUrl}/api/delivery/pilot/history${query}`, {
+    method: 'GET',
+    headers: await getHeaders(),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || 'Failed to load order history');
   }
   return data;
 }
