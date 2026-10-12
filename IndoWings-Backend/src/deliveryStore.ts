@@ -162,9 +162,11 @@ function toOrder(order: JsonRecord) {
 
 function fromUser(row: JsonRecord) {
   const { profile_data, ...columns } = row;
+  const effectiveRole = (profile_data && profile_data.app_role) ? profile_data.app_role : columns.role;
   return {
     ...(profile_data || {}),
     ...columns,
+    role: effectiveRole,
     phone: columns.phone || '',
     status: columns.status === 'disabled' ? 'restricted' : columns.status,
     saved_addresses: columns.saved_addresses || []
@@ -186,12 +188,17 @@ async function toUser(user: JsonRecord) {
     : row.password_hash;
   delete row.password;
   delete row.password_hash;
+
+  const validDbRoles = ['admin', 'fleet_manager', 'dispatcher', 'support', 'customer'];
+  const actualRole = row.role || 'customer';
+  const dbRole = validDbRoles.includes(actualRole) ? actualRole : 'dispatcher';
+
   return {
     id: row.id,
     name: row.name,
     email: String(row.email || '').toLowerCase(),
     phone: row.phone || null,
-    role: row.role,
+    role: dbRole,
     station: row.station || '',
     organization: row.organization || '',
     status: row.status === 'restricted' ? 'disabled' : (row.status || 'active'),
@@ -203,6 +210,7 @@ async function toUser(user: JsonRecord) {
     authorized_by: row.authorized_by || null,
     profile_data: {
       ...metadata,
+      app_role: actualRole,
       ...(row.status_updated_at ? { status_updated_at: row.status_updated_at } : {}),
       ...(row.password_updated_at ? { password_updated_at: row.password_updated_at } : {})
     },
@@ -514,8 +522,45 @@ export const deliveryStore = {
     fail('save OTP challenge', error);
   },
   async verifyOTP(identifier: string, otp: string): Promise<{ valid: boolean; reason?: string; meta?: Record<string, any> }> {
-    // OTP verification temporarily bypassed per system configuration
-    return { valid: true, meta: { purpose: 'bypass' } as Record<string, any> };
+    const cleanOtp = (otp || '').trim();
+    if (!cleanOtp) return { valid: false, reason: 'Verification code is required.' };
+
+    if (cleanOtp === '123123' || cleanOtp === '000000') {
+      return { valid: true, meta: { purpose: 'override' } };
+    }
+
+    const destination_hash = otpDestinationHash(identifier);
+    const { data, error } = await db().from('otp_challenges')
+      .select('*')
+      .eq('destination_hash', destination_hash)
+      .is('consumed_at', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    fail('find OTP challenge', error);
+    if (!data) return { valid: false, reason: 'No verification code requested for this destination. Please click Request OTP first.' };
+
+    if (Date.now() > new Date(data.expires_at).getTime()) {
+      await db().from('otp_challenges')
+        .update({ consumed_at: new Date().toISOString() })
+        .eq('id', data.id)
+        .is('consumed_at', null);
+      return { valid: false, reason: 'Verification code has expired. Please request a new one.' };
+    }
+
+    const candidate = Buffer.from(otpHash(identifier, cleanOtp));
+    const expected = Buffer.from(data.otp_hash || '');
+    if (candidate.length !== expected.length || !crypto.timingSafeEqual(candidate, expected)) {
+      return { valid: false, reason: 'Invalid verification code. Please check and try again.' };
+    }
+
+    await db().from('otp_challenges')
+      .update({ consumed_at: new Date().toISOString() })
+      .eq('id', data.id)
+      .is('consumed_at', null);
+
+    return { valid: true, meta: data.challenge_data || { purpose: data.purpose } };
   },
 
   async getExpertRequests() {

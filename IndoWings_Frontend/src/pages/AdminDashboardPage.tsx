@@ -374,13 +374,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         return;
       }
       setAdminOtpSent(true);
-      if (data.dev_otp) {
-        setAdminOtp(data.dev_otp);
-      }
+      setAdminOtp('');
       showToast(
-        data.dev_otp
-          ? `Security OTP [ ${data.dev_otp} ] sent to ${adminOtpChannel === 'phone' ? 'Phone SMS (Firebase) & Email' : 'Email'}!`
-          : `Security OTP sent to ${adminOtpChannel === 'phone' ? 'Phone' : 'Email'}!`
+        `Security verification OTP dispatched to admin's registered ${adminOtpChannel === 'phone' ? 'Phone SMS & Email' : 'Email'}!`
       );
     } catch {
       setAdminOtpError('Cannot connect to authorization server.');
@@ -398,6 +394,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     }
     if (!provTempPass.trim() || provTempPass.trim().length < 6) {
       setAdminOtpError('Please enter an initial temporary password (min 6 characters) or click Generate.');
+      return;
+    }
+    if (!adminOtpSent) {
+      setAdminOtpError('Please request your Administrator Security OTP first.');
+      return;
+    }
+    if (!adminOtp.trim() || adminOtp.trim().length !== 6) {
+      setAdminOtpError('Please enter the 6-digit verification code sent to your registered contact.');
       return;
     }
 
@@ -1663,9 +1667,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                               maxLength={6}
                               value={adminOtp}
                               onChange={(e) => setAdminOtp(e.target.value.replace(/[^0-9]/g, ''))}
-                              placeholder="Enter 6-digit OTP code"
+                              placeholder="Enter 6-digit verification code"
                               className="w-full px-4 py-2.5 rounded-xl border border-purple-300 text-sm font-mono font-bold tracking-widest text-slate-900 bg-white focus:outline-none focus:border-[#5a00b8]"
+                              autoFocus
                             />
+                            <p className="text-[11px] text-purple-700 mt-1">
+                              Verification code has been sent to your registered {adminOtpChannel === 'email' ? 'email' : 'phone'}. Please check your inbox.
+                            </p>
                           </div>
                         )}
                       </div>
