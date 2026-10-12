@@ -3927,7 +3927,7 @@ router.post('/pilot/login', async (req, res) => {
     if (!user && cleanEmail) user = await fileDB.findUserById(cleanEmail.toUpperCase());
 
     if (!user) {
-      res.status(404).json({
+      res.status(401).json({
         success: false,
         error: 'Delivery account not found. Please check your Delivery ID/Email or contact Admin.'
       });
