@@ -1,4 +1,4 @@
-﻿import '../env.js';
+import '../env.js';
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -703,8 +703,7 @@ router.post('/admin/request-provision-otp', async (req, res) => {
   res.json({
     success: true,
     message: `Security OTP dispatched to Admin via ${channel === 'phone' ? 'SMS & Email Backup' : 'Email'} (${target})`,
-    target,
-    dev_otp: otp
+    target
   });
 });
 
@@ -797,7 +796,13 @@ router.post('/admin/provision-user', async (req, res) => {
     authorized_by: adminTarget || 'Super Admin'
   };
 
-  await fileDB.addUser(newUser);
+  try {
+    await fileDB.addUser(newUser);
+  } catch (err: any) {
+    console.error('[admin] Failed to save provisioned user:', err);
+    res.status(500).json({ error: err?.message || 'Database error: could not create personnel account.' });
+    return;
+  }
   console.log(`[admin] User ${newUser.name} provisioned with ID ${newUser.id} (Role: ${newUser.role})`);
 
   let emailSent = false;
