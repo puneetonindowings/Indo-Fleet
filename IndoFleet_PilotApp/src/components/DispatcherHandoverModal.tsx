@@ -21,7 +21,7 @@ interface DispatcherHandoverModalProps {
   vehicleId?: string;
   currentCoords?: { latitude: number; longitude: number } | null;
   onClose: () => void;
-  onFlightStarted: (trackingUrl?: string) => void;
+  onFlightStarted: (trackingUrl?: string) => Promise<void> | void;
 }
 
 export const DispatcherHandoverModal: React.FC<DispatcherHandoverModalProps> = ({
@@ -71,8 +71,12 @@ export const DispatcherHandoverModal: React.FC<DispatcherHandoverModalProps> = (
       });
 
       setOtp('');
-      onFlightStarted(res.tracking_url);
       onClose();
+      try {
+        await onFlightStarted(res.tracking_url);
+      } catch (flightErr: any) {
+        console.warn('Flight tracking launch warning:', flightErr);
+      }
       Alert.alert(
         'Delivery Started',
         `Order is now out for delivery. Live tracking link has been sent to ${order.customer_name}.`
