@@ -19,11 +19,15 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : [
       process.env.FRONTEND_URL || 'http://localhost:5173',
+      'http://localhost:8081',
+      'http://localhost:19006',
       'http://localhost:3000',
       'http://localhost:5000',
+      'http://127.0.0.1:8081',
       'http://127.0.0.1:5173',
       'https://indo-fleet.vercel.app',
       'https://indowfleet.vercel.app',
+      'https://indo-fleet.onrender.com',
       'https://IndoFleet.com',
       'https://indowfleet.com',
       'https://app.IndoFleet.com',
@@ -32,7 +36,11 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 const isAllowedOrigin = (origin: string): boolean => {
   if (allowedOrigins.includes(origin)) return true;
+  if (/^https?:\/\/localhost(?::\d+)?$/i.test(origin)) return true;
+  if (/^https?:\/\/127\.0\.0\.1(?::\d+)?$/i.test(origin)) return true;
+  if (/^https?:\/\/(?:192\.168|10|172\.(?:1[6-9]|2\d|3[01]))\.\d+\.\d+(?::\d+)?$/i.test(origin)) return true;
   if (/^https:\/\/.*\.vercel\.app$/i.test(origin)) return true;
+  if (/^https:\/\/.*\.onrender\.com$/i.test(origin)) return true;
   if (/^https:\/\/(?:.*\.)?indowfleet\.com$/i.test(origin)) return true;
   if (/^https:\/\/(?:.*\.)?indowings\.com$/i.test(origin)) return true;
   return false;
