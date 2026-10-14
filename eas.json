@@ -1,7 +1,6 @@
 {
   "cli": {
-    "version": ">= 12.0.0",
-    "appDir": "IndoFleet_PilotApp"
+    "version": ">= 12.0.0"
   },
   "build": {
     "development": {

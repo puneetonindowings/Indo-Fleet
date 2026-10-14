@@ -1,4 +1,5 @@
-﻿import * as TaskManager from 'expo-task-manager';
+import { Platform } from 'react-native';
+import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
 import * as Battery from 'expo-battery';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,118 +30,140 @@ export function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lo
   return R * c;
 }
 
-// Register background task
-TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: any) => {
-  if (error) {
-    console.error('Background location error:', error.message);
-    return;
-  }
+// Register background task (only on native platforms where TaskManager is supported)
+if (Platform.OS !== 'web') {
+  TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: any) => {
+    if (error) {
+      console.error('Background location error:', error.message);
+      return;
+    }
 
-  if (data) {
-    const { locations } = data;
-    if (locations && locations.length > 0) {
-      const location = locations[locations.length - 1];
-      const activeOrderId = await AsyncStorage.getItem(STORAGE_ACTIVE_ORDER_ID);
+    if (data) {
+      const { locations } = data;
+      if (locations && locations.length > 0) {
+        const location = locations[locations.length - 1];
+        const activeOrderId = await AsyncStorage.getItem(STORAGE_ACTIVE_ORDER_ID);
 
-      if (activeOrderId) {
-        try {
-          let batteryPct = 100;
+        if (activeOrderId) {
           try {
-            const batteryLevel = await Battery.getBatteryLevelAsync();
-            if (batteryLevel >= 0) {
-              batteryPct = Math.round(batteryLevel * 100);
+            let batteryPct = 100;
+            try {
+              const batteryLevel = await Battery.getBatteryLevelAsync();
+              if (batteryLevel >= 0) {
+                batteryPct = Math.round(batteryLevel * 100);
+              }
+            } catch {}
+
+            const pilotName = await getPilotName();
+
+            const payload = {
+              order_id: activeOrderId,
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+              altitude: location.coords.altitude != null ? Math.round(location.coords.altitude) : 45,
+              speed: location.coords.speed != null && location.coords.speed >= 0 ? Math.round(location.coords.speed * 3.6) : 0, // convert m/s to km/h
+              heading: location.coords.heading != null && location.coords.heading >= 0 ? Math.round(location.coords.heading) : 0,
+              accuracy: location.coords.accuracy != null ? Math.round(location.coords.accuracy) : 5,
+              battery_pct: batteryPct,
+              pilot_id: pilotName,
+              timestamp: new Date().toISOString(),
+            };
+
+            await updatePilotLocation(payload);
+
+            if (onLocationUpdateListener) {
+              onLocationUpdateListener({
+                location,
+                payload,
+                success: true,
+              });
             }
-          } catch {}
-
-          const pilotName = await getPilotName();
-
-          const payload = {
-            order_id: activeOrderId,
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-            altitude: location.coords.altitude != null ? Math.round(location.coords.altitude) : 45,
-            speed: location.coords.speed != null && location.coords.speed >= 0 ? Math.round(location.coords.speed * 3.6) : 0, // convert m/s to km/h
-            heading: location.coords.heading != null && location.coords.heading >= 0 ? Math.round(location.coords.heading) : 0,
-            accuracy: location.coords.accuracy != null ? Math.round(location.coords.accuracy) : 5,
-            battery_pct: batteryPct,
-            pilot_id: pilotName,
-            timestamp: new Date().toISOString(),
-          };
-
-          await updatePilotLocation(payload);
-
-          if (onLocationUpdateListener) {
-            onLocationUpdateListener({
-              location,
-              payload,
-              success: true,
-            });
-          }
-        } catch (err: any) {
-          console.warn('Background sync error:', err.message);
-          if (onLocationUpdateListener) {
-            onLocationUpdateListener({
-              location,
-              error: err.message,
-              success: false,
-            });
+          } catch (err: any) {
+            console.warn('Background sync error:', err.message);
+            if (onLocationUpdateListener) {
+              onLocationUpdateListener({
+                location,
+                error: err.message,
+                success: false,
+              });
+            }
           }
         }
       }
     }
-  }
-});
+  });
+}
 
 export async function requestLocationPermissions(): Promise<{ foreground: boolean; background: boolean }> {
-  const { status: fgStatus } = await Location.requestForegroundPermissionsAsync();
-  if (fgStatus !== 'granted') {
-    return { foreground: false, background: false };
-  }
-
   try {
-    const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
-    return { foreground: true, background: bgStatus === 'granted' };
+    const { status: fgStatus } = await Location.requestForegroundPermissionsAsync();
+    if (fgStatus !== 'granted') {
+      return { foreground: false, background: false };
+    }
+
+    if (Platform.OS === 'web') {
+      return { foreground: true, background: false };
+    }
+
+    try {
+      const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+      return { foreground: true, background: bgStatus === 'granted' };
+    } catch (err) {
+      // In Expo Go or some environments background permissions might fallback
+      return { foreground: true, background: false };
+    }
   } catch (err) {
-    // In Expo Go or some environments background permissions might fallback
-    return { foreground: true, background: false };
+    console.warn('Error requesting location permissions:', err);
+    return { foreground: false, background: false };
   }
 }
 
 export async function startTracking(orderId: string): Promise<boolean> {
-  await AsyncStorage.setItem(STORAGE_ACTIVE_ORDER_ID, orderId);
-
-  const permissions = await requestLocationPermissions();
-  if (!permissions.foreground) {
-    throw new Error('Location permission is required for live delivery tracking.');
-  }
-
-  // Check if task is already running
-  const isRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
-
-  if (isRegistered) {
-    try {
-      await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
-    } catch {}
-  }
-
   try {
-    await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
-      accuracy: Location.Accuracy.Balanced,
-      timeInterval: 5000, // Adaptive 5-second polling interval
-      distanceInterval: 10, // Only trigger on 10m movement to conserve battery
-      deferredUpdatesInterval: 10000,
-      deferredUpdatesDistance: 10,
-      pausesUpdatesAutomatically: true, // Auto-pause location polling when stationary
-      foregroundService: {
-        notificationTitle: 'IndoFleet Live Delivery Tracking',
-        notificationBody: 'Broadcasting live GPS navigation and order tracking...',
-        notificationColor: '#3B0080',
-      },
-      showsBackgroundLocationIndicator: true,
-    });
-    return true;
-  } catch (err) {
-    console.warn('Could not start background task, falling back to foreground watcher', err);
+    await AsyncStorage.setItem(STORAGE_ACTIVE_ORDER_ID, orderId);
+
+    const permissions = await requestLocationPermissions();
+    if (!permissions.foreground) {
+      console.warn('Location permission is required for live delivery tracking, but was not granted.');
+      return false;
+    }
+
+    // On web platform, TaskManager background tasks are not supported
+    if (Platform.OS === 'web') {
+      return true;
+    }
+
+    // Check if task is already running
+    const isRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
+
+    if (isRegistered) {
+      try {
+        await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
+      } catch {}
+    }
+
+    try {
+      await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+        accuracy: Location.Accuracy.Balanced,
+        timeInterval: 5000, // Adaptive 5-second polling interval
+        distanceInterval: 10, // Only trigger on 10m movement to conserve battery
+        deferredUpdatesInterval: 10000,
+        deferredUpdatesDistance: 10,
+        pausesUpdatesAutomatically: true, // Auto-pause location polling when stationary
+        foregroundService: {
+          notificationTitle: 'IndoFleet Live Delivery Tracking',
+          notificationBody: 'Broadcasting live GPS navigation and order tracking...',
+          notificationColor: '#3B0080',
+        },
+        showsBackgroundLocationIndicator: true,
+      });
+      return true;
+    } catch (err) {
+      console.warn('Could not start background task, falling back to foreground watcher', err);
+      return false;
+    }
+  } catch (err: any) {
+    console.warn('Failed to start tracking:', err?.message || err);
     return false;
   }
 }
@@ -148,9 +171,11 @@ export async function startTracking(orderId: string): Promise<boolean> {
 export async function stopTracking(): Promise<void> {
   try {
     await AsyncStorage.removeItem(STORAGE_ACTIVE_ORDER_ID);
-    const isRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
-    if (isRegistered) {
-      await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
+    if (Platform.OS !== 'web') {
+      const isRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
+      if (isRegistered) {
+        await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
+      }
     }
   } catch (err) {
     console.warn('Error stopping location tracking:', err);

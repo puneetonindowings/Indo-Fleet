@@ -5,6 +5,7 @@ import {
   SafeAreaView,
   StatusBar,
   Alert,
+  Platform,
 } from 'react-native';
 import * as Location from 'expo-location';
 import * as Battery from 'expo-battery';
@@ -160,6 +161,26 @@ export default function App() {
       await loadDashboardData(profile.id);
     }
     await updateBatteryLevel();
+    await fetchInitialLocation();
+  };
+
+  const fetchInitialLocation = async () => {
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        if (loc?.coords) {
+          setCurrentCoords({
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Initial location fetch error:', err);
+    }
   };
 
   const updateBatteryLevel = async () => {
@@ -243,9 +264,19 @@ export default function App() {
   const startForegroundWatcher = async (orderId: string) => {
     if (foregroundWatcherRef.current) {
       foregroundWatcherRef.current.remove();
+      foregroundWatcherRef.current = null;
     }
 
     try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        const { status: reqStatus } = await Location.requestForegroundPermissionsAsync();
+        if (reqStatus !== 'granted') {
+          console.warn('Foreground location permission not granted for live watcher.');
+          return;
+        }
+      }
+
       const sub = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.BestForNavigation,
@@ -328,11 +359,25 @@ export default function App() {
 
   const handleFlightStarted = async () => {
     if (!selectedOrder) return;
-    await startTracking(selectedOrder.id);
-    await startForegroundWatcher(selectedOrder.id);
-    setIsTracking(true);
-    setActiveScreen('radar');
-    await loadDashboardData();
+    try {
+      const trackingSuccess = await startTracking(selectedOrder.id);
+      await startForegroundWatcher(selectedOrder.id);
+      setIsTracking(true);
+      setActiveScreen('radar');
+      await loadDashboardData();
+
+      if (!trackingSuccess && Platform.OS !== 'web') {
+        Alert.alert(
+          'Location Notice',
+          'GPS location permissions are not enabled. Live telemetry broadcast is paused. Please enable Location in your device settings for live GPS tracking.'
+        );
+      }
+    } catch (err: any) {
+      console.warn('Flight start tracking error:', err);
+      setIsTracking(true);
+      setActiveScreen('radar');
+      await loadDashboardData();
+    }
   };
 
   const handlePodDelivered = async () => {
