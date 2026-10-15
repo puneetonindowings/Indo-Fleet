@@ -104,7 +104,9 @@ interface DispatchOrder {
 
 interface DroneInventoryItem {
   id: string;
+  drone_id?: string;
   model: string;
+  model_name?: string;
   serial_number?: string;
   category?: string;
   image_url?: string;
@@ -227,6 +229,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
 
   // Assignment Modal Form
   const [selectedPartnerId, setSelectedPartnerId] = useState('');
+  const [selectedDroneId, setSelectedDroneId] = useState('');
   const [assignOtpRequired, setAssignOtpRequired] = useState(false);
   const [assignOtp, setAssignOtp] = useState('');
   const [assignOtpSending, setAssignOtpSending] = useState(false);
@@ -253,6 +256,15 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     if (byReservedList) return byReservedList;
     return null;
   };
+
+  const availableFleetDrones = React.useMemo(() => {
+    return fleet.filter((d: any) => {
+      const isMaintenance = d.status === 'maintenance';
+      const linked = getLinkedOrderForDrone(d);
+      const isReserved = !isMaintenance && (d.status === 'reserved' || d.status === 'en-route' || Boolean(linked) || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order));
+      return !isMaintenance && !isReserved;
+    });
+  }, [fleet, data.orders]);
 
   const readDroneImage = (file: File, setImage: (image: string) => void) => {
     if (!file.type.startsWith('image/')) {
@@ -773,6 +785,12 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       return;
     }
 
+    // Resolve Drone ID dynamically from user selection, first available idle UAV, or partner vehicle
+    const chosenDrone = selectedDroneId
+      ? fleet.find((d: any) => (d.drone_id || d.id) === selectedDroneId)
+      : availableFleetDrones[0];
+    const resolvedDroneId = chosenDrone ? (chosenDrone.drone_id || chosenDrone.id) : (partner.vehicle_id || 'UAV-SYS-01');
+
     setAssignSubmitting(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/delivery/orders/${selectedOrder.id}/assign-pilot`, {
@@ -785,7 +803,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
           pilot_id: partner.id,
           pilot_name: partner.name,
           pilot_phone: partner.phone || '',
-          drone_id: partner.vehicle_id || 'Vehicle-01',
+          drone_id: resolvedDroneId,
           otp: assignOtp.trim()
         })
       });
@@ -793,10 +811,11 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to assign delivery partner');
 
-      setNotice(`Order #${selectedOrder.order_number || selectedOrder.id} successfully assigned to ${partner.name}! Acceptance OTP: ${json.pilot_acceptance_otp}`);
+      setNotice(`Order #${selectedOrder.order_number || selectedOrder.id} successfully assigned to ${partner.name}! Assigned UAV: ${resolvedDroneId}. Acceptance OTP: ${json.pilot_acceptance_otp}`);
       setAssignModalOpen(false);
       setSelectedOrder(null);
       setSelectedPartnerId('');
+      setSelectedDroneId('');
       setAssignOtp('');
       setAssignOtpRequired(false);
       await fetchDashboard();
@@ -2291,6 +2310,43 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 )}
               </div>
 
+              {/* UAV Hardware Unit Selection */}
+              <div className="pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">
+                    Assign Fleet Drone Unit:
+                  </label>
+                  <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                    {availableFleetDrones.length} Idle UAV Units Available
+                  </span>
+                </div>
+
+                {availableFleetDrones.length === 0 ? (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs">
+                    <p className="font-bold">No idle UAVs currently available in fleet inventory.</p>
+                    <p className="text-[11px] mt-0.5">Will dynamically assign partner's default vehicle.</p>
+                  </div>
+                ) : (
+                  <select
+                    value={selectedDroneId || (availableFleetDrones[0]?.drone_id || availableFleetDrones[0]?.id || '')}
+                    onChange={(e) => setSelectedDroneId(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:border-[#3B0080]"
+                  >
+                    {availableFleetDrones.map((d: any) => {
+                      const id = d.drone_id || d.id;
+                      const model = d.model || d.model_name || 'UAV Drone';
+                      const batt = d.battery ? ` • ${d.battery}% batt` : '';
+                      const loc = d.current_city ? ` • ${d.current_city}` : '';
+                      return (
+                        <option key={id} value={id}>
+                          {id} — {model}{batt}{loc}
+                        </option>
+                      );
+                    })}
+                  </select>
+                )}
+              </div>
+
               {/* Optional Dispatcher Security OTP */}
               <div className="pt-3 border-t border-slate-100">
                 <div className="flex items-center justify-between mb-2">
@@ -2337,6 +2393,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 onClick={() => {
                   setAssignModalOpen(false);
                   setSelectedOrder(null);
+                  setSelectedDroneId('');
                 }}
                 className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-xl text-xs font-bold transition cursor-pointer"
               >

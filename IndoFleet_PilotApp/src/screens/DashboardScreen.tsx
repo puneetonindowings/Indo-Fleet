@@ -8,7 +8,7 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
-import { Layers, Package, Clock } from 'lucide-react-native';
+import { Layers, Package, Clock, ShieldCheck } from 'lucide-react-native';
 import { DeliveryOrder, PilotKpis, ChartData, UserProfile } from '../types';
 import { KpiOverview } from '../components/KpiOverview';
 import { PerformanceChart } from '../components/PerformanceChart';
@@ -26,6 +26,7 @@ interface DashboardScreenProps {
   onCompletePod: (order: DeliveryOrder) => void;
   onViewRadar: (order: DeliveryOrder) => void;
   onViewHistory?: () => void;
+  onInspectDrone?: (order?: DeliveryOrder) => void;
 }
 
 type FilterTab = 'all' | 'assigned' | 'in-flight' | 'queue';
@@ -72,6 +73,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   onCompletePod,
   onViewRadar,
   onViewHistory,
+  onInspectDrone,
 }) => {
   const [filterTab, setFilterTab] = useState<FilterTab>('all');
 
@@ -102,9 +104,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         onStartFlightPress={onStartFlight}
         onCompletePodPress={onCompletePod}
         onViewRadarPress={onViewRadar}
+        onInspectPress={onInspectDrone}
       />
     ),
-    [onAcceptOrder, onStartFlight, onCompletePod, onViewRadar]
+    [onAcceptOrder, onStartFlight, onCompletePod, onViewRadar, onInspectDrone]
   );
 
   // Passed as an element (not a component function) so the header is not remounted on every render
@@ -158,19 +161,34 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             </View>
             <Text style={styles.sortiesTitle}>Active Orders & Tasks</Text>
           </View>
-          {onViewHistory && (
-            <TouchableOpacity
-              style={styles.historyBtn}
-              onPress={onViewHistory}
-              activeOpacity={0.7}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityRole="button"
-              accessibilityLabel="Open order history"
-            >
-              <Clock size={13} color="#3B0080" />
-              <Text style={styles.historyBtnText}>Order History</Text>
-            </TouchableOpacity>
-          )}
+          <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+            {onInspectDrone && (
+              <TouchableOpacity
+                style={[styles.historyBtn, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}
+                onPress={() => onInspectDrone()}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Post-delivery drone inspection"
+              >
+                <ShieldCheck size={13} color="#059669" />
+                <Text style={[styles.historyBtnText, { color: '#059669' }]}>Inspect Drone</Text>
+              </TouchableOpacity>
+            )}
+            {onViewHistory && (
+              <TouchableOpacity
+                style={styles.historyBtn}
+                onPress={onViewHistory}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Open order history"
+              >
+                <Clock size={13} color="#3B0080" />
+                <Text style={styles.historyBtnText}>History</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         <ScrollView

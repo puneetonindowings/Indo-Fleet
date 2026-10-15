@@ -8,7 +8,7 @@ import auditRoutes from './routes/audit.js';
 import contactRoutes from './routes/contact.js';
 import statsRoutes from './routes/stats.js';
 import deliveryRoutes from './routes/delivery.js';
-import resendWebhookRoutes from './routes/resendWebhook.js';
+import notificationRoutes from './routes/notifications.js';
 import { verifySupabaseConnection } from './supabase.js';
 import { seedDefaultAccounts } from './seed.js';
 
@@ -71,6 +71,7 @@ app.use('/api/audit-logs', auditRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/delivery', deliveryRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Root & Health check endpoints
 app.get('/', (req, res) => {

@@ -41,7 +41,7 @@ export async function checkServerHealth(customUrl?: string): Promise<{ ok: boole
   try {
     const baseUrl = customUrl || (await getServerUrl());
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     const res = await fetch(`${baseUrl}/api/health`, {
       method: 'GET',
@@ -311,10 +311,12 @@ export async function completeDeliveryHandover(payload: {
   pilot_otp: string;
   recipient_name: string;
   digital_signature?: string;
+  pod_photo?: string;
   final_latitude?: number;
   final_longitude?: number;
   delivery_notes?: string;
   pilot_name?: string;
+  inspection_id?: string;
 }): Promise<any> {
   const baseUrl = await getServerUrl();
   const res = await fetch(`${baseUrl}/api/delivery/pilot/complete-delivery`, {
@@ -387,4 +389,35 @@ export async function submitSupportTicket(payload: {
     throw new Error(data.error || 'Failed to submit support ticket');
   }
   return data;
+}
+
+export async function submitPostDeliveryInspection(payload: {
+  drone_id: string;
+  delivery_id?: string;
+  inspection_type?: string;
+  cargo_bay_condition?: string;
+  landing_surface?: string;
+  propeller_debris_check?: string;
+  field_battery_level?: number | null;
+  zero_defect_certified?: boolean;
+  delivery_handover_notes?: string;
+  body_condition?: string;
+  propeller_condition?: string;
+  battery_condition?: string;
+  landing_gear_condition?: string;
+  overall_inspection: string;
+  remarks?: string;
+}): Promise<any> {
+  const baseUrl = await getServerUrl();
+  const res = await fetch(`${baseUrl}/api/delivery/inspections`, {
+    method: 'POST',
+    headers: await getHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || 'Failed to submit inspection');
+  }
+  return data.inspection;
 }

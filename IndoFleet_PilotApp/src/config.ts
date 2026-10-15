@@ -1,4 +1,4 @@
-﻿import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProfile } from './types';
 
 import { Platform } from 'react-native';
@@ -8,25 +8,26 @@ const STORAGE_KEY_AUTH_TOKEN = '@IndoFleet_auth_token';
 const STORAGE_KEY_USER_PROFILE = '@IndoFleet_user_profile';
 
 export const getAutoServerUrl = (): string => {
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (envUrl && envUrl.trim()) {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
+
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) {
     const hostname = window.location.hostname || 'localhost';
-    return `http://${hostname}:5000`;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return `http://${hostname}:5000`;
+    }
+    return 'https://indo-fleet.onrender.com';
   }
-  return 'http://192.168.21.152:5000';
+  // On mobile device APK / Expo Go, default to live cloud API so it works across any network
+  return 'https://indo-fleet.onrender.com';
 };
 
 export const DEFAULT_SERVER_URL = getAutoServerUrl();
 
 export const getServerUrl = async (): Promise<string> => {
-  try {
-    const saved = await AsyncStorage.getItem(STORAGE_KEY_SERVER_URL);
-    if (saved && saved.trim()) {
-      return saved.trim();
-    }
-    return getAutoServerUrl();
-  } catch {
-    return getAutoServerUrl();
-  }
+  return getAutoServerUrl();
 };
 
 export const setServerUrl = async (url: string): Promise<void> => {

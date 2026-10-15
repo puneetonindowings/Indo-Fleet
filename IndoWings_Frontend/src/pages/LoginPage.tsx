@@ -309,7 +309,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     }
   };
 
-  // 2. STEP 2: VERIFY EMAIL PASSWORD & DIRECT LOGIN (NO OTP REQUIRED)
+  // 2. STEP 2: VERIFY EMAIL PASSWORD & DISPATCH OTP
   const handleEmailPasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
@@ -324,34 +324,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     setError('');
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/delivery/auth/login`, {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/auth/verify-password-and-send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: cleanEmail, password: cleanPass }),
       });
 
       const data = await res.json();
-      if (!res.ok || !data.user || !data.token) {
+      if (!res.ok) {
         setError(data.error || 'Access Denied: Invalid account password.');
         return;
       }
 
-      const finalUser = data.user;
-      const finalToken = data.token;
-
-      if (data.must_change_password) {
-        setPendingUser(finalUser);
-        setPendingToken(finalToken);
-        setShowFirstTimeModal(true);
-        setFtChannel('email');
-        return;
-      }
-
-      localStorage.setItem('iw_delivery_token', finalToken);
-      localStorage.setItem('iw_delivery_user', JSON.stringify(finalUser));
-
-      onSuccess(finalUser, finalToken);
-      routeByRole(finalUser);
+      setOtpDestination(data.destination || cleanEmail);
+      setOtpStep(true);
+      setResendTimer(60);
+      setCanResend(false);
+      setOtpDigits(['', '', '', '', '', '']);
+      setTimeout(() => otpInputsRef.current[0]?.focus(), 150);
     } catch {
       setError('Cannot connect to authentication server. Please ensure backend service is running.');
     } finally {
@@ -395,7 +385,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     }
   };
 
-  // 4. STEP 2 FOR PHONE: VERIFY PHONE PASSWORD & DIRECT LOGIN (NO OTP REQUIRED)
+  // 4. STEP 2 FOR PHONE: VERIFY PHONE PASSWORD & DISPATCH OTP
   const handlePhonePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
@@ -410,36 +400,26 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     setError('');
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/delivery/auth/login`, {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/auth/verify-password-and-send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: cleanPhone, password: cleanPass }),
       });
 
       const data = await res.json();
-      if (!res.ok || !data.user || !data.token) {
+      if (!res.ok) {
         setError(data.error || 'Access Denied: Invalid credentials or password.');
         return;
       }
 
-      const finalUser = data.user;
-      const finalToken = data.token;
-
-      if (data.must_change_password) {
-        setPendingUser(finalUser);
-        setPendingToken(finalToken);
-        setShowFirstTimeModal(true);
-        setFtChannel('phone');
-        return;
-      }
-
-      localStorage.setItem('iw_delivery_token', finalToken);
-      localStorage.setItem('iw_delivery_user', JSON.stringify(finalUser));
-
-      onSuccess(finalUser, finalToken);
-      routeByRole(finalUser);
+      setOtpDestination(data.destination || `+91 ${cleanPhone}`);
+      setOtpStep(true);
+      setResendTimer(60);
+      setCanResend(false);
+      setOtpDigits(['', '', '', '', '', '']);
+      setTimeout(() => otpInputsRef.current[0]?.focus(), 150);
     } catch {
-      setError('Cannot connect to authentication server.');
+      setError('Cannot connect to authentication server. Please check backend service.');
     } finally {
       setLoading(false);
     }
@@ -972,26 +952,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                    <button
-                      type="button"
-                      onClick={handleSendEmailOtp}
-                      disabled={loading || !email.trim()}
-                      className="py-3 px-4 rounded-xl font-bold text-xs text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer"
-                    >
-                      {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 text-amber-300" />}
-                      <span>Request 6-Digit OTP</span>
-                    </button>
-
-                    <button
-                      type="submit"
-                      disabled={loading || !email.trim()}
-                      className="py-3 px-4 rounded-xl font-bold text-xs text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer"
-                    >
-                      <span>Continue with Password</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading || !email.trim()}
+                    className="w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-md shadow-purple-900/10 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer mt-2"
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                    <span>{loading ? 'Verifying Account...' : 'Continue'}</span>
+                  </button>
                 </form>
               ) : !otpStep ? (
                 // Step 2: Account Verified -> Enter Password
@@ -1065,6 +1033,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
+                    <p className="text-[11px] text-slate-400 mt-1.5">
+                      Enter your password. A 6-digit verification code will be sent to confirm your identity.
+                    </p>
                   </div>
 
                   {error && (
@@ -1076,26 +1047,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   <button
                     type="submit"
                     disabled={loading || !password.trim()}
-                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
+                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-md shadow-purple-900/10 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2 cursor-pointer"
                   >
                     {loading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      <ArrowRight className="w-4 h-4" />
+                      <Lock className="w-4 h-4" />
                     )}
-                    <span>{loading ? 'Authenticating...' : 'Sign In with Password'}</span>
+                    <span>{loading ? 'Verifying Password...' : 'Verify Password & Request OTP'}</span>
                   </button>
-
-                  <div className="pt-2 text-center">
-                    <button
-                      type="button"
-                      onClick={handleSendEmailOtp}
-                      disabled={loading}
-                      className="text-xs font-bold text-[#5a00b8] hover:underline inline-flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Zap className="w-3.5 h-3.5 text-amber-500" /> Or Sign In with 6-Digit Email OTP
-                    </button>
-                  </div>
                 </form>
               ) : (
                 // Step 3 (Email OTP Verification)
@@ -1114,9 +1074,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   <h3 className="text-lg font-black text-slate-900 tracking-tight">
                     Enter Verification Code
                   </h3>
-                  <p className="text-slate-500 text-xs mt-1 mb-5">
-                    Password verified. We sent a 6-digit security code to{' '}
-                    <span className="font-bold text-slate-900">{otpDestination}</span>
+                  <p className="text-slate-500 text-xs mt-1 mb-2">
+                    Password verified. We sent a 6-digit security passkey to{' '}
+                    <span className="font-bold text-slate-900">{otpDestination}</span>.
+                  </p>
+                  <p className="text-[11px] text-purple-700 bg-purple-50 border border-purple-200/60 rounded-lg px-2.5 py-1.5 mb-5 font-semibold">
+                    💡 Tip: You can enter the OTP received on either your Email or Mobile SMS.
                   </p>
 
                   <form onSubmit={handleVerifyOtp} className="space-y-5">
@@ -1211,26 +1174,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                    <button
-                      type="button"
-                      onClick={handleSendPhoneOtp}
-                      disabled={loading || phone.replace(/[^0-9]/g, '').length < 10}
-                      className="py-3 px-4 rounded-xl font-bold text-xs text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer"
-                    >
-                      {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 text-amber-300" />}
-                      <span>Request 6-Digit SMS OTP</span>
-                    </button>
-
-                    <button
-                      type="submit"
-                      disabled={loading || phone.replace(/[^0-9]/g, '').length < 10}
-                      className="py-3 px-4 rounded-xl font-bold text-xs text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer"
-                    >
-                      <span>Continue with Password</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading || phone.replace(/[^0-9]/g, '').length < 10}
+                    className="w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-md shadow-purple-900/10 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer mt-2"
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                    <span>{loading ? 'Verifying Mobile...' : 'Continue'}</span>
+                  </button>
                 </form>
               ) : !otpStep ? (
                 // Step 2: Account Verified -> Enter Password
@@ -1304,6 +1255,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
+                    <p className="text-[11px] text-slate-400 mt-1.5">
+                      Enter your password. A 6-digit verification code will be sent to confirm your identity.
+                    </p>
                   </div>
 
                   {error && (
@@ -1315,26 +1269,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   <button
                     type="submit"
                     disabled={loading || !password.trim()}
-                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2"
+                    className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#5a00b8] hover:bg-[#4a0099] transition-all shadow-md shadow-purple-900/10 flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] mt-2 cursor-pointer"
                   >
                     {loading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      <ArrowRight className="w-4 h-4" />
+                      <Lock className="w-4 h-4" />
                     )}
-                    <span>{loading ? 'Authenticating...' : 'Sign In with Password'}</span>
+                    <span>{loading ? 'Verifying Password...' : 'Verify Password & Request OTP'}</span>
                   </button>
-
-                  <div className="pt-2 text-center">
-                    <button
-                      type="button"
-                      onClick={handleSendPhoneOtp}
-                      disabled={loading}
-                      className="text-xs font-bold text-[#5a00b8] hover:underline inline-flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Zap className="w-3.5 h-3.5 text-amber-500" /> Or Sign In with 6-Digit SMS OTP
-                    </button>
-                  </div>
                 </form>
               ) : (
                 // Step 3 (Phone OTP Verification)
@@ -1353,9 +1296,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   <h3 className="text-lg font-black text-slate-900 tracking-tight">
                     Enter Verification Code
                   </h3>
-                  <p className="text-slate-500 text-xs mt-1 mb-5">
-                    Password verified. We sent a 6-digit SMS OTP to{' '}
-                    <span className="font-bold text-slate-900">{otpDestination}</span>
+                  <p className="text-slate-500 text-xs mt-1 mb-2">
+                    Password verified. We sent a 6-digit security passkey to{' '}
+                    <span className="font-bold text-slate-900">{otpDestination}</span>.
+                  </p>
+                  <p className="text-[11px] text-purple-700 bg-purple-50 border border-purple-200/60 rounded-lg px-2.5 py-1.5 mb-5 font-semibold">
+                    💡 Tip: You can enter the OTP received on either your Mobile SMS or Email.
                   </p>
 
                   <form onSubmit={handleVerifyOtp} className="space-y-5">

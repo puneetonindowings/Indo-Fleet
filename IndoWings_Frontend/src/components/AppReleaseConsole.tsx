@@ -19,7 +19,7 @@ export const AppReleaseConsole: React.FC = () => {
     'Enhanced live GPS map tracking, instant POD handover verification, and performance optimizations.'
   );
   const [androidUrl, setAndroidUrl] = useState(
-    'https://indofleet.com/downloads/IndoFleet_DeliveryApp.apk'
+    'https://expo.dev/artifacts/eas/dVb6f5zm7RUVya2q6Alzvk1ApXfj6XFYmE4VXSJNHJU.apk'
   );
   const [iosUrl, setIosUrl] = useState(
     'https://indofleet.com/downloads/IndoFleet_DeliveryApp.ipa'

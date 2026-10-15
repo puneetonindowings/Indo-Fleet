@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { AlertOctagon, X, MapPin, Mic, Radio, Send, CheckCircle2, Volume2 } from 'lucide-react-native';
+import { Audio } from 'expo-av';
 import { triggerSosEmergency } from '../services/api';
 
 interface SosModalProps {
@@ -39,6 +40,7 @@ export const SosModal: React.FC<SosModalProps> = ({
   const timerRef = useRef<any>(null);
   const mediaRecorderRef = useRef<any>(null);
   const audioChunksRef = useRef<any[]>([]);
+  const nativeRecordingRef = useRef<Audio.Recording | null>(null);
 
   // Automatically start recording & countdown as soon as SOS modal opens
   useEffect(() => {
@@ -90,20 +92,42 @@ export const SosModal: React.FC<SosModalProps> = ({
       } catch (err) {
         console.log('Microphone permission or capture note:', err);
       }
+    } else {
+      try {
+        const perm = await Audio.requestPermissionsAsync();
+        if (perm.granted) {
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: true,
+            playsInSilentModeIOS: true,
+          });
+          const { recording } = await Audio.Recording.createAsync(
+            Audio.RecordingOptionsPresets.HIGH_QUALITY
+          );
+          nativeRecordingRef.current = recording;
+        }
+      } catch (err) {
+        console.log('Mobile audio recording error:', err);
+      }
     }
   };
 
-  const stopAudioRecording = () => {
+  const stopAudioRecording = async () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       try {
         mediaRecorderRef.current.stop();
         mediaRecorderRef.current.stream?.getTracks().forEach((track: any) => track.stop());
       } catch {}
     }
+    if (nativeRecordingRef.current) {
+      try {
+        await nativeRecordingRef.current.stopAndUnloadAsync();
+        nativeRecordingRef.current = null;
+      } catch {}
+    }
   };
 
   const handleAutoDispatch = async () => {
-    stopAudioRecording();
+    await stopAudioRecording();
     setIsRecording(false);
     setSending(true);
 
@@ -112,9 +136,9 @@ export const SosModal: React.FC<SosModalProps> = ({
         pilot_name: pilotName,
         pilot_phone: pilotPhone,
         vehicle_id: vehicleId,
-        latitude: currentCoords?.latitude || 28.6289,
-        longitude: currentCoords?.longitude || 77.3649,
-        battery_pct: batteryPct || 85,
+        latitude: currentCoords?.latitude || 0,
+        longitude: currentCoords?.longitude || 0,
+        battery_pct: batteryPct || 100,
         notes: `EMERGENCY ALERT: 1-Minute Mic Recording & GPS location automatically sent by ${pilotName}`,
       });
 

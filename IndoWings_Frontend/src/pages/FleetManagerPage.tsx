@@ -26,11 +26,18 @@ import {
   ShoppingBag,
   Truck,
   AlertCircle,
+  ShieldAlert,
+  ShieldCheck,
   Copy,
   ExternalLink,
   Menu,
   MapPin,
-  Smartphone
+  Smartphone,
+  Zap,
+  Mail,
+  Phone,
+  QrCode,
+  Edit2
 } from 'lucide-react';
 import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
@@ -38,6 +45,10 @@ import { ProfilePage } from './ProfilePage';
 import { DroneDispatchModule } from './DroneDispatchModule';
 import { SupportDeskPage } from './SupportDeskPage';
 import { AppReleaseConsole } from '../components/AppReleaseConsole';
+import { PostDeliveryInspectionModal } from '../components/PostDeliveryInspectionModal';
+import { DroneQRCodeModal } from '../components/DroneQRCodeModal';
+import { DroneQRScannerModal } from '../components/DroneQRScannerModal';
+import { DroneAuditLogConsole } from '../components/DroneAuditLogConsole';
 
 interface FleetManagerPageProps {
   currentUser: DeliveryUser | null;
@@ -53,8 +64,22 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   onUpdateUser
 }) => {
   // Navigation & View Tabs
-  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'dispatch' | 'support' | 'maintenance' | 'profile' | 'app-release'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'audits' | 'dispatch' | 'support' | 'maintenance' | 'profile' | 'app-release'>('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // 700 RPAV Quality & Inspection State
+  const [inspectionStats, setInspectionStats] = useState<{
+    passedCount: number;
+    failedOrPendingCount: number;
+    totalCount: number;
+    deliveryPersonChecks?: { total: number; passed: number; defectReported: number; zeroDefectCertifiedCount: number };
+    depotMaintenanceChecks?: { total: number; passed: number; maintenanceRequired: number };
+  }>({ passedCount: 0, failedOrPendingCount: 0, totalCount: 0 });
+  const [showInspectionModal, setShowInspectionModal] = useState(false);
+  const [selectedInspectionDroneId, setSelectedInspectionDroneId] = useState('');
+  const [selectedInspectionDeliveryId, setSelectedInspectionDeliveryId] = useState('');
+  const [selectedQrDrone, setSelectedQrDrone] = useState<any | null>(null);
+  const [showQrScanner, setShowQrScanner] = useState(false);
 
   // Data State
   const [drones, setDrones] = useState<any[]>([]);
@@ -83,6 +108,13 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   const [addDroneError, setAddDroneError] = useState('');
   const [addingDrone, setAddingDrone] = useState(false);
 
+  // Inventory Security OTP State for Add & Bulk Add Drones
+  const [inventoryOtpChannel, setInventoryOtpChannel] = useState<'both' | 'email' | 'phone'>('both');
+  const [inventoryOtpSent, setInventoryOtpSent] = useState(false);
+  const [inventoryOtp, setInventoryOtp] = useState('');
+  const [inventoryOtpLoading, setInventoryOtpLoading] = useState(false);
+  const [inventoryOtpInfo, setInventoryOtpInfo] = useState('');
+
   // Edit Drone Modal State
   const [editingDrone, setEditingDrone] = useState<any | null>(null);
   const [editingDroneModel, setEditingDroneModel] = useState('700RPAV');
@@ -103,9 +135,14 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
   const [bulkImportError, setBulkImportError] = useState('');
 
-  // Delete Drone Modal State
+  // Delete / Decommission Drone Modal State with Security OTP
   const [deletingDrone, setDeletingDrone] = useState<any | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [decommissionOtp, setDecommissionOtp] = useState('');
+  const [decommissionOtpSent, setDecommissionOtpSent] = useState(false);
+  const [decommissionLoading, setDecommissionLoading] = useState(false);
+  const [decommissionError, setDecommissionError] = useState('');
+  const [decommissionInfo, setDecommissionInfo] = useState('');
 
   // Reserved Drone Order View Modal
   const [selectedReservedDrone, setSelectedReservedDrone] = useState<any | null>(null);
@@ -140,11 +177,12 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   const fetchFleet = async () => {
     try {
       setRefreshing(true);
-      const [dronesRes, pilotsRes, ordersRes, ticketsRes] = await Promise.all([
+      const [dronesRes, pilotsRes, ordersRes, ticketsRes, inspectionsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/delivery/drones`),
         fetch(`${API_BASE_URL}/api/delivery/delivery-agents`, { headers: getHeaders() }).catch(() => null),
         fetch(`${API_BASE_URL}/api/delivery/orders`, { headers: getHeaders() }).catch(() => null),
-        fetch(`${API_BASE_URL}/api/delivery/support-tickets`, { headers: getHeaders() }).catch(() => null)
+        fetch(`${API_BASE_URL}/api/delivery/support-tickets`, { headers: getHeaders() }).catch(() => null),
+        fetch(`${API_BASE_URL}/api/delivery/inspections/stats`, { headers: getHeaders() }).catch(() => null)
       ]);
 
       if (dronesRes.ok) {
@@ -169,6 +207,13 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
           total: tList.length,
           pending: tList.filter((t: any) => t.status !== 'resolved' && t.status !== 'closed').length
         });
+      }
+
+      if (inspectionsRes && inspectionsRes.ok) {
+        const insData = await inspectionsRes.json();
+        if (insData?.stats) {
+          setInspectionStats(insData.stats);
+        }
       }
     } catch (err) {
       console.error('Error fetching fleet command data:', err);
@@ -197,11 +242,45 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
     return null;
   };
 
+  // Request Inventory Security OTP (Single Add or Bulk)
+  const handleRequestInventoryOtp = async () => {
+    setInventoryOtpLoading(true);
+    setInventoryOtpInfo('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/admin/request-inventory-otp`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ channel: inventoryOtpChannel })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Failed to request security OTP');
+        return;
+      }
+      setInventoryOtpSent(true);
+      if (data.dev_otp) setInventoryOtp(data.dev_otp);
+      setInventoryOtpInfo(data.message || 'Security OTP dispatched successfully.');
+      showToast(data.message || 'Security OTP dispatched!');
+    } catch {
+      showToast('Connection error requesting OTP.');
+    } finally {
+      setInventoryOtpLoading(false);
+    }
+  };
+
   // Add Single Drone
   const handleAddSingleDrone = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDroneId.trim()) {
       setAddDroneError('Drone ID is required.');
+      return;
+    }
+    if (!inventoryOtpSent) {
+      setAddDroneError('Please request your Security OTP first.');
+      return;
+    }
+    if (!inventoryOtp.trim() || inventoryOtp.trim().length !== 6) {
+      setAddDroneError('Please enter the 6-digit Security OTP code.');
       return;
     }
     setAddingDrone(true);
@@ -220,7 +299,9 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
           verification_status: newDroneIsVerified ? 'verified' : 'unverified',
           current_city: 'Noida Sector 62 Facility',
           status: 'idle',
-          qc_status: 'passed'
+          qc_status: 'passed',
+          adminTarget: inventoryOtpChannel === 'phone' ? currentUser?.phone : inventoryOtpChannel === 'email' ? currentUser?.email : 'both',
+          otp: inventoryOtp.trim()
         })
       });
       const data = await res.json();
@@ -231,6 +312,8 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
         setNewDroneCategory('General UAV');
         setNewDroneImage('');
         setNewDroneIsVerified(false);
+        setInventoryOtp('');
+        setInventoryOtpSent(false);
         showToast(`Drone ${data.drone?.id || newDroneId} added to inventory!`);
         await fetchFleet();
       } else {
@@ -295,6 +378,14 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
       setBulkImportError('Please specify at least 1 unit.');
       return;
     }
+    if (!inventoryOtpSent) {
+      setBulkImportError('Please request your Security OTP first.');
+      return;
+    }
+    if (!inventoryOtp.trim() || inventoryOtp.trim().length !== 6) {
+      setBulkImportError('Please enter the 6-digit Security OTP code.');
+      return;
+    }
     setBulkSubmitting(true);
     setBulkImportError('');
     try {
@@ -307,12 +398,16 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
           category: bulkCategory || 'General UAV',
           prefix: bulkPrefix || 'INW-700RPAV',
           current_city: 'Noida Sector 62 Facility',
-          is_verified: bulkIsVerified
+          is_verified: bulkIsVerified,
+          adminTarget: inventoryOtpChannel === 'phone' ? currentUser?.phone : inventoryOtpChannel === 'email' ? currentUser?.email : 'both',
+          otp: inventoryOtp.trim()
         })
       });
       const data = await res.json();
       if (res.ok) {
         setShowBulkDroneModal(false);
+        setInventoryOtp('');
+        setInventoryOtpSent(false);
         showToast(`Successfully provisioned batch of ${data.count || bulkCount} drones!`);
         await fetchFleet();
       } else {
@@ -360,25 +455,71 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
     }
   };
 
-  // Delete Drone
+  // Request Decommission OTP
+  const handleRequestDecommissionOtp = async () => {
+    if (!deletingDrone) return;
+    setDecommissionLoading(true);
+    setDecommissionError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/admin/request-decommission-otp`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ drone_id: deletingDrone.id })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setDecommissionOtpSent(true);
+        setDecommissionInfo(data.message || '6-digit OTP code dispatched to your registered contact.');
+        if (data.dev_otp) {
+          console.log('[DEV] Decommission OTP:', data.dev_otp);
+        }
+      } else {
+        setDecommissionError(data.error || 'Failed to dispatch decommission security code.');
+      }
+    } catch {
+      setDecommissionError('Network error connecting to decommission security service.');
+    } finally {
+      setDecommissionLoading(false);
+    }
+  };
+
+  // Delete Drone with Security OTP
   const handleDeleteDrone = async () => {
     if (!deletingDrone) return;
+    if (!decommissionOtp.trim()) {
+      setDecommissionError('Please enter the 6-digit decommission authorization OTP code.');
+      return;
+    }
     setDeleting(true);
+    setDecommissionError('');
     try {
+      const adminTarget = currentUser?.email || currentUser?.phone || '';
       const res = await fetch(`${API_BASE_URL}/api/delivery/drones/${encodeURIComponent(deletingDrone.id)}`, {
         method: 'DELETE',
-        headers: getHeaders()
+        headers: {
+          ...getHeaders(),
+          'x-admin-otp': decommissionOtp.trim(),
+          'x-admin-target': adminTarget
+        },
+        body: JSON.stringify({
+          otp: decommissionOtp.trim(),
+          adminTarget
+        })
       });
 
+      const data = await res.json();
       if (res.ok) {
         setDrones((prev) => prev.filter((d) => d.id !== deletingDrone.id));
         setDeletingDrone(null);
-        showToast(`Drone ${deletingDrone.id} decommissioned and removed.`);
+        setDecommissionOtp('');
+        setDecommissionOtpSent(false);
+        setDecommissionInfo('');
+        showToast(data.message || `Drone ${deletingDrone.id} decommissioned and removed.`);
       } else {
-        const d = await res.json();
-        showToast(d.error || 'Could not delete drone');
+        setDecommissionError(data.error || 'Failed to authorize drone decommissioning.');
       }
     } catch (err) {
+      setDecommissionError('Error connecting to fleet decommission service.');
       console.error('Delete drone error:', err);
     } finally {
       setDeleting(false);
@@ -426,11 +567,13 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   const inFlightUnits = drones.filter((d) => d.status === 'in-flight' || d.status === 'dispatched').length;
   const idleUnits = drones.filter((d) => (d.status === 'idle' || !d.status) && d.status !== 'maintenance').length;
   const readinessRate = totalUnits > 0 ? Math.round(((totalUnits - maintenanceUnits) / totalUnits) * 100) : 0;
+  const pendingDispatchUnits = dispatchOrders.filter((o) => ['pending', 'assigned', 'ready'].includes(o.status)).length;
 
   const fleetNavItems = [
     { id: 'overview', label: 'Overview', icon: Gauge, badge: null },
-    { id: 'inventory', label: 'Inventory', icon: Boxes, badge: totalUnits },
-    { id: 'dispatch', label: 'Dispatch', icon: Send, badge: dispatchOrders.length > 0 ? dispatchOrders.length : null },
+    { id: 'inventory', label: 'Inventory', icon: Boxes, badge: idleUnits },
+    { id: 'audits', label: 'QR Scans & Audits', icon: QrCode, badge: null },
+    { id: 'dispatch', label: 'Dispatch', icon: Send, badge: pendingDispatchUnits > 0 ? pendingDispatchUnits : null },
     { id: 'support', label: 'Support', icon: Headphones, badge: supportStats.pending > 0 ? supportStats.pending : null },
     { id: 'maintenance', label: 'Under Maintenance', icon: Wrench, badge: maintenanceUnits > 0 ? maintenanceUnits : null },
     { id: 'app-release', label: 'Mobile App Release', icon: Smartphone, badge: 'APK' }
@@ -723,8 +866,8 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
             {/* TAB: OVERVIEW */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
-                {/* ── SECTION 1: HARDWARE & ORDER KPI METRICS ── */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+                {/* ── SECTION 1: HARDWARE, ORDER & 700 RPAV QUALITY KPI METRICS ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3.5">
                   <div
                     onClick={() => setActiveTab('inventory')}
                     className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer hover:border-purple-300 transition-all group"
@@ -732,10 +875,10 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     <div>
                       <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Inventory</p>
                       <h4 className="text-2xl font-black text-slate-900 mt-1">{totalUnits}</h4>
-                      <p className="text-[10px] text-purple-700 font-semibold mt-0.5">Central Hardware Units</p>
+                      <p className="text-[10px] text-purple-700 font-semibold mt-0.5">Central Fleet</p>
                     </div>
-                    <div className="w-11 h-11 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black group-hover:scale-105 transition-transform">
-                      <Boxes className="w-6 h-6" />
+                    <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black group-hover:scale-105 transition-transform">
+                      <Boxes className="w-5 h-5" />
                     </div>
                   </div>
 
@@ -744,12 +887,12 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     className="bg-white border border-emerald-200 hover:border-emerald-300 bg-emerald-50/20 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
                   >
                     <div>
-                      <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Available In-Stock</p>
+                      <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Available</p>
                       <h4 className="text-2xl font-black text-emerald-800 mt-1">{idleUnits}</h4>
-                      <p className="text-[10px] text-emerald-600 font-medium mt-0.5">Ready for Dispatch &amp; Sale</p>
+                      <p className="text-[10px] text-emerald-600 font-medium mt-0.5">Ready for Sorties</p>
                     </div>
-                    <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform">
-                      <CheckCircle2 className="w-6 h-6" />
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform">
+                      <CheckCircle2 className="w-5 h-5" />
                     </div>
                   </div>
 
@@ -760,10 +903,10 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     <div>
                       <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Out for Delivery</p>
                       <h4 className="text-2xl font-black text-blue-800 mt-1">{inFlightUnits}</h4>
-                      <p className="text-[10px] text-blue-600 font-medium mt-0.5">In Transit by Road</p>
+                      <p className="text-[10px] text-blue-600 font-medium mt-0.5">In Transit</p>
                     </div>
-                    <div className="w-11 h-11 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform">
-                      <Truck className="w-6 h-6" />
+                    <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform">
+                      <Truck className="w-5 h-5" />
                     </div>
                   </div>
 
@@ -775,11 +918,11 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                       <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">Total Orders</p>
                       <h4 className="text-2xl font-black text-indigo-900 mt-1">{dispatchOrders.length}</h4>
                       <p className="text-[10px] text-indigo-600 font-medium mt-0.5">
-                        {dispatchOrders.filter((o) => !['delivered', 'cancelled'].includes(o.status)).length} Active Consignments
+                        {dispatchOrders.filter((o) => !['delivered', 'cancelled'].includes(o.status)).length} Active
                       </p>
                     </div>
-                    <div className="w-11 h-11 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform">
-                      <ShoppingBag className="w-6 h-6" />
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform">
+                      <ShoppingBag className="w-5 h-5" />
                     </div>
                   </div>
 
@@ -788,12 +931,58 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     className="bg-white border border-amber-200 hover:border-amber-300 bg-amber-50/20 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
                   >
                     <div>
-                      <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Under Maintenance</p>
+                      <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Maintenance</p>
                       <h4 className="text-2xl font-black text-amber-800 mt-1">{maintenanceUnits}</h4>
-                      <p className="text-[10px] text-amber-600 font-medium mt-0.5">Excluded from Store</p>
+                      <p className="text-[10px] text-amber-600 font-medium mt-0.5">Grounded Units</p>
                     </div>
-                    <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform">
-                      <Wrench className="w-6 h-6" />
+                    <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform">
+                      <Wrench className="w-5 h-5" />
+                    </div>
+                  </div>
+
+                  {/* ── CARD 6: Inspections Passed ── */}
+                  <div
+                    onClick={() => {
+                      setSelectedInspectionDroneId('');
+                      setShowInspectionModal(true);
+                    }}
+                    className="bg-white border border-emerald-300 hover:border-emerald-400 bg-emerald-50/30 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
+                    title="Click to Record New Airframe Inspection"
+                  >
+                    <div>
+                      <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Inspections Passed</p>
+                      <h4 className="text-2xl font-black text-emerald-900 mt-1">{inspectionStats.passedCount}</h4>
+                      <p className="text-[10px] text-emerald-600 font-medium mt-0.5">
+                        {inspectionStats.deliveryPersonChecks?.zeroDefectCertifiedCount != null
+                          ? `${inspectionStats.deliveryPersonChecks.zeroDefectCertifiedCount} Field Zero-Defect`
+                          : 'Quality Approved'}
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-black group-hover:scale-105 transition-transform shadow-xs">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                  </div>
+
+                  {/* ── CARD 7: Inspections Failed or Pending ── */}
+                  <div
+                    onClick={() => {
+                      setSelectedInspectionDroneId('');
+                      setShowInspectionModal(true);
+                    }}
+                    className="bg-white border border-rose-300 hover:border-rose-400 bg-rose-50/30 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
+                    title="Click to Record or Update Airframe Inspection"
+                  >
+                    <div>
+                      <p className="text-[11px] font-bold text-rose-800 uppercase tracking-wider">Inspections Failed / Pending</p>
+                      <h4 className="text-2xl font-black text-rose-900 mt-1">{inspectionStats.failedOrPendingCount}</h4>
+                      <p className="text-[10px] text-rose-600 font-medium mt-0.5">
+                        {inspectionStats.deliveryPersonChecks?.defectReported
+                          ? `${inspectionStats.deliveryPersonChecks.defectReported} Field Defect Flagged`
+                          : 'Needs Review'}
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 rounded-2xl bg-rose-500 text-white flex items-center justify-center font-black group-hover:scale-105 transition-transform shadow-xs">
+                      <AlertTriangle className="w-5 h-5" />
                     </div>
                   </div>
                 </div>
@@ -1218,6 +1407,16 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowQrScanner(true)}
+                      className="px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-[#5a00b8] border border-purple-200 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs"
+                      title="Scan Drone QR Code or Airframe ID"
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
+                      <span>Scan Drone QR</span>
+                    </button>
+
                     <select
                       value={statusFilter}
                       onChange={(e) => {
@@ -1258,6 +1457,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                           <th className="py-3 px-4">Model Name</th>
                           <th className="py-3 px-4">Category</th>
                           <th className="py-3 px-4">Status &amp; Reservation</th>
+                          <th className="py-3 px-4">Condition &amp; QC</th>
                           <th className="py-3 px-4">ID Verification</th>
                           <th className="py-3 px-4 text-right">Actions</th>
                         </tr>
@@ -1285,15 +1485,15 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                                 <p className="font-mono font-bold text-slate-900">{d.id}</p>
                                 <p className="text-[10px] text-slate-400 font-mono">{d.serial_number || d.id}</p>
                               </td>
-                              <td className="py-3 px-4 font-bold text-[#5a00b8]">{d.model}</td>
-                              <td className="py-3 px-4">
-                                <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[11px]">
+                              <td className="py-3 px-4 font-bold text-[#5a00b8] whitespace-nowrap">{d.model}</td>
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                <span className="inline-block px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[11px] whitespace-nowrap">
                                   {d.category || 'General UAV'}
                                 </span>
                               </td>
-                              <td className="py-3 px-4">
+                              <td className="py-3 px-4 whitespace-nowrap">
                                 {d.status === 'maintenance' ? (
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-300 whitespace-nowrap">
                                     <Wrench className="w-3 h-3 text-amber-600 shrink-0" />
                                     <span>Under Maintenance</span>
                                   </span>
@@ -1301,53 +1501,96 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => setSelectedReservedDrone(d)}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer shadow-2xs group"
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer shadow-2xs group whitespace-nowrap"
                                   >
                                     <ShoppingBag className="w-3 h-3 text-purple-600 shrink-0" />
                                     <span>Reserved: <strong className="font-mono">{linked?.id || d.assigned_order || 'Booking'}</strong></span>
                                     <Eye className="w-3 h-3 text-purple-400 group-hover:text-purple-700 shrink-0" />
                                   </button>
                                 ) : d.status === 'en-route' || d.status === 'in-flight' || d.status === 'dispatched' ? (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
-                                    <Truck className="w-3 h-3 text-blue-600" />
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">
+                                    <Truck className="w-3 h-3 text-blue-600 shrink-0" />
                                     Dispatched
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    <Check className="w-3 h-3 text-emerald-600" />
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                                    <Check className="w-3 h-3 text-emerald-600 shrink-0" />
                                     In Stock (Idle)
                                   </span>
                                 )}
                               </td>
-                              <td className="py-3 px-4">
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                <div className="flex flex-col gap-1 items-start">
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap ${
+                                      (d.current_condition || '').toUpperCase() === 'DAMAGED'
+                                        ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                        : (d.current_condition || '').toUpperCase() === 'NEEDS_REVIEW'
+                                        ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                        : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                    }`}
+                                  >
+                                    <ShieldCheck className="w-3 h-3 shrink-0" />
+                                    {d.current_condition ? d.current_condition.toUpperCase() : 'GOOD'}
+                                  </span>
+                                  {d.last_inspection_result && (
+                                    <span className="text-[10px] text-slate-500 font-medium whitespace-nowrap">
+                                      QC: <strong className="uppercase">{d.last_inspection_result}</strong>
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 whitespace-nowrap">
                                 {isVerified ? (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                     Verified ID
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-amber-50 text-amber-700 border border-amber-200">
-                                    <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+                                    <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                     Unverified ID
                                   </span>
                                 )}
                               </td>
-                              <td className="py-3 px-4 text-right">
-                                <div className="flex items-center justify-end gap-1.5">
+                              <td className="py-3 px-4 text-right whitespace-nowrap">
+                                <div className="inline-flex items-center justify-end gap-1.5 flex-nowrap">
                                   {isReserved && (
                                     <button
                                       type="button"
                                       onClick={() => setSelectedReservedDrone(d)}
-                                      className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
                                     >
                                       <Eye className="w-3.5 h-3.5" />
-                                      <span>View Order</span>
+                                      <span>Order</span>
                                     </button>
                                   )}
                                   <button
                                     type="button"
+                                    onClick={() => setSelectedQrDrone(d)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-[#5a00b8] hover:text-white text-slate-700 border border-slate-200 transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
+                                    title="View & Print 25mm Permanent QR Code Label"
+                                  >
+                                    <QrCode className="w-3.5 h-3.5" />
+                                    <span>QR Label</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedInspectionDroneId(d.id);
+                                      setSelectedInspectionDeliveryId(d.assigned_order || d.delivery_data?.assigned_order || '');
+                                      setShowInspectionModal(true);
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-50 hover:bg-[#5a00b8] text-[#5a00b8] hover:text-white border border-purple-200 hover:border-[#5a00b8] transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
+                                    title="Record Post-Delivery Condition Inspection"
+                                  >
+                                    <ShieldCheck className="w-3.5 h-3.5" />
+                                    <span>Inspect</span>
+                                  </button>
+                                  <button
+                                    type="button"
                                     onClick={() => handleToggleDroneMaintenance(d)}
-                                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer flex items-center gap-1 ${
+                                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer shadow-2xs whitespace-nowrap ${
                                       d.status === 'maintenance'
                                         ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
                                         : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
@@ -1358,14 +1601,17 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                                     <span>{d.status === 'maintenance' ? 'Clear Maint.' : 'Set Maint.'}</span>
                                   </button>
                                   <button
+                                    type="button"
                                     onClick={() => openEditDroneModal(d)}
-                                    className="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 hover:bg-purple-50 hover:text-[#5a00b8] hover:border-purple-200 transition-colors cursor-pointer"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-purple-50 hover:text-[#5a00b8] hover:border-purple-200 transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
                                   >
-                                    Edit Details
+                                    <Edit2 className="w-3 h-3" />
+                                    <span>Edit</span>
                                   </button>
                                   <button
+                                    type="button"
                                     onClick={() => setDeletingDrone(d)}
-                                    className="p-1.5 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer shrink-0"
                                     title="Decommission Drone"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
@@ -1377,7 +1623,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                         })}
                         {filteredDrones.length === 0 && (
                           <tr>
-                            <td colSpan={7} className="py-12 text-center text-slate-400">
+                            <td colSpan={8} className="py-12 text-center text-slate-400">
                               <Boxes className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                               <p className="text-sm font-semibold">No drones match your search or filter.</p>
                               <p className="text-xs text-slate-400 mt-0.5">Click "+1 Single Drone" or "Bulk Batch Add" to populate inventory.</p>
@@ -1438,6 +1684,19 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                   )}
                 </div>
               </div>
+            )}
+
+            {/* TAB: DRONE AUDITS & QR SCAN LOGS */}
+            {activeTab === 'audits' && (
+              <DroneAuditLogConsole
+                currentUser={currentUser}
+                onOpenQRModal={(drone) => setSelectedQrDrone(drone)}
+                onOpenInspectionModal={(droneId, deliveryId) => {
+                  setSelectedInspectionDroneId(droneId);
+                  setSelectedInspectionDeliveryId(deliveryId || '');
+                  setShowInspectionModal(true);
+                }}
+              />
             )}
 
             {/* TAB: DISPATCH (Live Fleet Dispatch Module) */}
@@ -1690,6 +1949,48 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                 )}
               </div>
 
+              {/* Inventory Security OTP Challenge */}
+              <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2 font-sans">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#5a00b8] flex items-center gap-1.5 uppercase tracking-wider">
+                    <ShieldCheck className="w-4 h-4 text-[#5a00b8]" /> Authorization Security OTP
+                  </span>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+                  <span className="text-xs text-slate-600 font-medium flex items-center gap-1.5">
+                    <Mail className="w-4 h-4 text-[#5a00b8]" />
+                    Send to: <strong className="text-slate-800">{currentUser?.email || 'fleet@indofleet.com'}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleRequestInventoryOtp}
+                    disabled={inventoryOtpLoading}
+                    className="px-3.5 py-1.5 bg-white hover:bg-purple-100 text-[#5a00b8] border border-purple-300 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs"
+                  >
+                    {inventoryOtpLoading ? 'Sending...' : inventoryOtpSent ? 'Resend OTP' : 'Request Email OTP'}
+                  </button>
+                </div>
+
+                {inventoryOtpSent && (
+                  <div className="space-y-1">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={inventoryOtp}
+                      onChange={(e) => setInventoryOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="Enter 6-digit OTP code"
+                      className="w-full px-3 py-2 rounded-xl border border-purple-300 text-xs font-mono font-bold tracking-widest text-slate-900 bg-white focus:outline-none focus:border-[#5a00b8]"
+                    />
+                    <p className="text-[11px] text-purple-700 font-medium">
+                      💡 Tip: {inventoryOtpChannel === 'both'
+                        ? 'You can enter the OTP received on either your Email or Mobile SMS.'
+                        : `Enter the 6-digit OTP sent to your registered ${inventoryOtpChannel}.`}
+                    </p>
+                  </div>
+                )}
+              </div>
+
               {addDroneError && <p className="text-xs text-rose-600 bg-red-50 p-2.5 rounded-xl border border-red-200 font-medium">{addDroneError}</p>}
 
               <div className="pt-2 flex justify-end gap-2">
@@ -1807,6 +2108,48 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                 <p className="text-[11px] text-slate-500 pl-6">
                   Check if IDs are finalized, or leave unchecked if hardware serials will be verified later.
                 </p>
+              </div>
+
+              {/* Inventory Security OTP Challenge */}
+              <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2 font-sans">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#5a00b8] flex items-center gap-1.5 uppercase tracking-wider">
+                    <ShieldCheck className="w-4 h-4 text-[#5a00b8]" /> Authorization Security OTP
+                  </span>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+                  <span className="text-xs text-slate-600 font-medium flex items-center gap-1.5">
+                    <Mail className="w-4 h-4 text-[#5a00b8]" />
+                    Send to: <strong className="text-slate-800">{currentUser?.email || 'fleet@indofleet.com'}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleRequestInventoryOtp}
+                    disabled={inventoryOtpLoading}
+                    className="px-3.5 py-1.5 bg-white hover:bg-purple-100 text-[#5a00b8] border border-purple-300 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs"
+                  >
+                    {inventoryOtpLoading ? 'Sending...' : inventoryOtpSent ? 'Resend OTP' : 'Request Email OTP'}
+                  </button>
+                </div>
+
+                {inventoryOtpSent && (
+                  <div className="space-y-1">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={inventoryOtp}
+                      onChange={(e) => setInventoryOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="Enter 6-digit OTP code"
+                      className="w-full px-3 py-2 rounded-xl border border-purple-300 text-xs font-mono font-bold tracking-widest text-slate-900 bg-white focus:outline-none focus:border-[#5a00b8]"
+                    />
+                    <p className="text-[11px] text-purple-700 font-medium">
+                      💡 Tip: {inventoryOtpChannel === 'both'
+                        ? 'You can enter the OTP received on either your Email or Mobile SMS.'
+                        : `Enter the 6-digit OTP sent to your registered ${inventoryOtpChannel}.`}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {bulkImportError && <p className="text-xs text-rose-600 bg-red-50 p-2.5 rounded-xl border border-red-200 font-medium">{bulkImportError}</p>}
@@ -1941,36 +2284,144 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
         </div>
       )}
 
-      {/* ── MODAL 4: DELETE DRONE CONFIRMATION ──────────────────────────── */}
+      {/* ── MODAL 4: DELETE DRONE CONFIRMATION WITH SECURITY OTP ────────── */}
       {deletingDrone && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-900">Decommission Drone</h3>
-              <button onClick={() => setDeletingDrone(null)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2 text-rose-600">
+                <AlertTriangle className="w-5 h-5 shrink-0" />
+                <h3 className="text-base font-bold text-slate-900">Decommission Drone</h3>
+              </div>
+              <button
+                onClick={() => {
+                  setDeletingDrone(null);
+                  setDecommissionOtp('');
+                  setDecommissionOtpSent(false);
+                  setDecommissionError('');
+                  setDecommissionInfo('');
+                }}
+                className="text-slate-400 hover:text-slate-700 cursor-pointer p-1 rounded-lg hover:bg-slate-100"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-xs text-slate-600">
-              Are you sure you want to permanently remove <strong className="font-mono text-slate-900">{deletingDrone.id}</strong> ({deletingDrone.model}) from active inventory?
-            </p>
-            <div className="flex justify-end gap-2 pt-2">
+
+            <div className="p-3.5 bg-rose-50/80 border border-rose-200/80 rounded-2xl">
+              <p className="text-xs text-rose-900 leading-relaxed font-medium">
+                ⚠️ <strong>High-Security Action:</strong> Are you sure you want to permanently decommission{' '}
+                <strong className="font-mono text-slate-900 font-bold">{deletingDrone.id}</strong> ({deletingDrone.model})?
+                This unit will be permanently erased from fleet rosters and digital QR passports.
+              </p>
+            </div>
+
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Authorized Operator</p>
+              <p className="text-xs font-semibold text-slate-800">
+                {currentUser?.name || 'Administrator'} ({currentUser?.role?.replace('_', ' ') || 'Staff'})
+              </p>
+              <p className="text-[11px] text-slate-500">
+                Contact: {currentUser?.email || 'Registered Email'}{currentUser?.phone ? ` & +91 ${currentUser.phone}` : ''}
+              </p>
+            </div>
+
+            {!decommissionOtpSent ? (
+              <div className="space-y-3 pt-1">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  To protect fleet assets from accidental deletion, an authorized 6-digit OTP code will be sent to your registered Email & Phone SMS.
+                </p>
+
+                {decommissionError && (
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600 font-medium">
+                    {decommissionError}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleRequestDecommissionOtp}
+                  disabled={decommissionLoading}
+                  className="w-full py-3 rounded-xl bg-[#5a00b8] hover:bg-[#4a0099] text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                >
+                  {decommissionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldAlert className="w-4 h-4" />}
+                  <span>{decommissionLoading ? 'Sending Security Code...' : 'Request Decommission OTP (Email & SMS)'}</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3 pt-1 animate-in fade-in slide-in-from-right-2 duration-150">
+                {decommissionInfo && (
+                  <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-medium leading-relaxed">
+                    ✅ {decommissionInfo}
+                  </div>
+                )}
+
+                <div className="p-2 rounded-xl bg-purple-50 border border-purple-200/60 text-[11px] text-purple-700 font-semibold">
+                  💡 Tip: You can enter the OTP received on either your Email or Mobile SMS.
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Enter 6-Digit Decommission Code
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={decommissionOtp}
+                    onChange={(e) => {
+                      setDecommissionOtp(e.target.value.replace(/[^0-9]/g, ''));
+                      setDecommissionError('');
+                    }}
+                    placeholder="• • • • • •"
+                    className="w-full py-3 px-4 rounded-xl border border-slate-200 text-center font-mono tracking-[0.4em] text-lg font-bold text-slate-900 focus:outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-50"
+                    autoFocus
+                  />
+                </div>
+
+                {decommissionError && (
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600 font-medium text-center">
+                    {decommissionError}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <button
+                    type="button"
+                    onClick={handleRequestDecommissionOtp}
+                    disabled={decommissionLoading}
+                    className="text-xs font-bold text-[#5a00b8] hover:underline cursor-pointer"
+                  >
+                    {decommissionLoading ? 'Resending...' : 'Resend Code'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
               <button
                 type="button"
-                onClick={() => setDeletingDrone(null)}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold cursor-pointer"
+                onClick={() => {
+                  setDeletingDrone(null);
+                  setDecommissionOtp('');
+                  setDecommissionOtpSent(false);
+                  setDecommissionError('');
+                  setDecommissionInfo('');
+                }}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold cursor-pointer text-slate-600 hover:bg-slate-50"
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                onClick={handleDeleteDrone}
-                disabled={deleting}
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer flex items-center gap-2 disabled:opacity-60"
-              >
-                {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                <span>{deleting ? 'Removing...' : 'Confirm Remove'}</span>
-              </button>
+              {decommissionOtpSent && (
+                <button
+                  type="button"
+                  onClick={handleDeleteDrone}
+                  disabled={deleting || decommissionOtp.length !== 6}
+                  className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer flex items-center gap-2 disabled:opacity-50 shadow-md shadow-rose-900/10"
+                >
+                  {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  <span>{deleting ? 'Decommissioning...' : 'Verify OTP & Remove Drone'}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -2055,6 +2506,50 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
           </div>
         );
       })()}
+
+      {/* ── 700 RPAV QR CODE LABEL MODAL ──── */}
+      <DroneQRCodeModal
+        isOpen={Boolean(selectedQrDrone)}
+        onClose={() => setSelectedQrDrone(null)}
+        drone={selectedQrDrone}
+        onOpenInspection={(droneId) => {
+          setSelectedQrDrone(null);
+          setSelectedInspectionDroneId(droneId);
+          setSelectedInspectionDeliveryId('');
+          setShowInspectionModal(true);
+        }}
+        onNavigate={onNavigate}
+      />
+
+      {/* ── 700 RPAV DRONE QR SCANNER MODAL ──── */}
+      <DroneQRScannerModal
+        isOpen={showQrScanner}
+        onClose={() => setShowQrScanner(false)}
+        availableDrones={drones}
+        onSelectDroneForInspection={(droneId) => {
+          setShowQrScanner(false);
+          setSelectedInspectionDroneId(droneId);
+          setSelectedInspectionDeliveryId('');
+          setShowInspectionModal(true);
+        }}
+        onSelectDroneForQRLabel={(drone) => {
+          setShowQrScanner(false);
+          setSelectedQrDrone(drone);
+        }}
+      />
+
+      {/* ── 700 RPAV POST-DELIVERY CONDITION INSPECTION MODAL ──── */}
+      <PostDeliveryInspectionModal
+        isOpen={showInspectionModal}
+        onClose={() => setShowInspectionModal(false)}
+        droneId={selectedInspectionDroneId}
+        deliveryId={selectedInspectionDeliveryId}
+        availableDrones={drones}
+        onSuccess={() => {
+          fetchFleet();
+          showToast('Airframe inspection successfully recorded!');
+        }}
+      />
     </div>
   );
 };

@@ -150,7 +150,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                       Official Website
                     </div>
                     <a 
-                      href="https://indowfleet.com" 
+                      href="https://indowings.com/" 
                       target="_blank" 
                       rel="noreferrer"
                       className="flex items-center gap-1 break-all text-sm font-bold text-[#191b30] transition-colors hover:underline"
@@ -166,7 +166,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                       Owner
                     </div>
                     <a 
-                      href="https://indowfleet.com/company/about.php" 
+                      href="https://indowings.com/company/about.php" 
                       target="_blank" 
                       rel="noreferrer"
                       className="break-words text-sm font-bold leading-5 text-[#191b30] transition-colors hover:underline"
@@ -181,7 +181,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                       Founder & CEO
                     </div>
                     <a 
-                      href="https://indowfleet.com/company/about.php" 
+                      href="https://indowings.com/company/about.php" 
                       target="_blank" 
                       rel="noreferrer"
                       className="break-words text-sm font-bold leading-5 text-[#191b30] transition-colors hover:underline"
@@ -307,7 +307,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
 
               <div>
                 <a 
-                  href="https://indowfleet.com" 
+                  href="https://indowings.com/" 
                   target="_blank" 
                   rel="noreferrer"
                   className="group/link inline-flex items-center gap-2 border-b border-slate-200 pb-1.5 text-sm font-bold text-[#191b30] transition-all duration-200 hover:border-[#191b30] hover:text-slate-800"
@@ -340,7 +340,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
 
               <div>
                 <a 
-                  href="https://indowfleet.com/company/about.php" 
+                  href="https://indowings.com/company/about.php" 
                   target="_blank" 
                   rel="noreferrer"
                   className="group/link inline-flex items-center gap-2 border-b border-slate-200 pb-1.5 text-sm font-bold text-[#191b30] transition-all duration-200 hover:border-[#191b30] hover:text-slate-800"
