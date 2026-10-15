@@ -43,8 +43,16 @@ export const DispatcherHandoverModal: React.FC<DispatcherHandoverModalProps> = (
   const handleRequestOtp = async () => {
     setRequestingOtp(true);
     try {
-      await requestDispatcherHandoverOtp(order.id, pilotName);
-      Alert.alert('Dispatcher OTP Requested', 'Dispatcher Handover OTP has been generated and sent to the Operations Dispatcher.');
+      const res = await requestDispatcherHandoverOtp(order.id, pilotName);
+      if (res.handover_otp) {
+        setOtp(res.handover_otp);
+        Alert.alert(
+          'Dispatcher Handover OTP Generated',
+          `OTP: ${res.handover_otp}\n\n(Auto-filled for departure authorization)`
+        );
+      } else {
+        Alert.alert('Dispatcher OTP Requested', 'Dispatcher Handover OTP has been generated and sent to the Operations Dispatcher.');
+      }
     } catch (err: any) {
       Alert.alert('Request Failed', err.message || 'Could not reach dispatcher.');
     } finally {

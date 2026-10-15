@@ -1,5 +1,40 @@
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 import { supabase } from './supabase.js';
+
+const INSPECTIONS_FILE = path.resolve(process.cwd(), 'data/inspections.json');
+
+function ensureDataDir() {
+  const dir = path.dirname(INSPECTIONS_FILE);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  if (!fs.existsSync(INSPECTIONS_FILE)) {
+    fs.writeFileSync(INSPECTIONS_FILE, JSON.stringify([], null, 2), 'utf-8');
+  }
+}
+
+function loadInspectionsFromFile(): JsonRecord[] {
+  try {
+    ensureDataDir();
+    const raw = fs.readFileSync(INSPECTIONS_FILE, 'utf-8');
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function appendInspectionToFile(inspection: JsonRecord) {
+  try {
+    ensureDataDir();
+    const existing = loadInspectionsFromFile();
+    existing.push(inspection);
+    fs.writeFileSync(INSPECTIONS_FILE, JSON.stringify(existing, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[Inspections] Failed to append inspection:', err);
+  }
+}
 
 type JsonRecord = Record<string, any>;
 
@@ -87,13 +122,21 @@ function toDrone(drone: JsonRecord) {
     'id', 'serial_number', 'model', 'category', 'status', 'battery', 'speed_kmh',
     'payload_kg', 'payload_capacity_kg', 'image_url', 'created_at', 'updated_at'
   ]);
+  const rawStatus = String(row.status || '').toLowerCase().trim();
+  let dbStatus = 'idle';
+  if (['reserved', 'maintenance', 'ready', 'idle'].includes(rawStatus)) {
+    dbStatus = rawStatus;
+  } else if (['available', 'active', 'online', 'operational'].includes(rawStatus)) {
+    dbStatus = 'ready';
+  }
   const isVerified = drone.is_verified === true || drone.verification_status === 'verified';
+
   return {
     id: row.id,
     model_name: row.model || 'Cyberone Pro',
     category: row.category || metadata.category || 'General UAV',
     serial_number: row.serial_number || row.id,
-    status: row.status || 'idle',
+    status: dbStatus,
     battery_pct: Number(row.battery ?? 100),
     flight_hours: Number(metadata.flight_hours || 0),
     max_range_km: Number(metadata.max_range_km || 0),
@@ -121,7 +164,8 @@ const orderColumns = [
   'aerial_distance_km', 'flight_duration_mins', 'status', 'drone_id',
   'scheduled_time', 'estimated_delivery', 'items', 'reserved_inventory_ids',
   'timeline', 'handover_details', 'feedback_submitted', 'cancelled_at',
-  'cancellation_reason', 'delivered_at', 'created_at', 'updated_at'
+  'cancellation_reason', 'delivered_at', 'inspection_id', 'inspection_status',
+  'created_at', 'updated_at'
 ];
 
 function fromOrder(row: JsonRecord) {
@@ -438,6 +482,11 @@ export const deliveryStore = {
     fail('update delivery order', error);
     return data ? fromOrder(data) : null;
   },
+  async deleteOrder(id: string) {
+    const { error } = await db().from('delivery_orders').delete().eq('id', id);
+    fail('delete delivery order', error);
+    return true;
+  },
   async createBooking(order: JsonRecord) {
     const { data, error } = await db().rpc('create_delivery_booking', {
       p_order: toOrder(order),
@@ -666,5 +715,200 @@ export const deliveryStore = {
     const { data, error } = await db().from('feedbacks').delete().eq('id', id).select('id').maybeSingle();
     fail('delete feedback', error);
     return Boolean(data);
+  },
+
+  // --- 700 RPAV Quality & Post-Delivery Inspection System ---
+  async getInspections(filter?: { drone_id?: string; delivery_id?: string; inspection_type?: string }) {
+    try {
+      let query = db().from('inspections').select('*');
+      if (filter?.drone_id) {
+        query = query.ilike('drone_id', filter.drone_id.trim());
+      }
+      if (filter?.delivery_id) {
+        query = query.ilike('delivery_id', filter.delivery_id.trim());
+      }
+      if (filter?.inspection_type) {
+        query = query.eq('inspection_type', filter.inspection_type.trim().toUpperCase());
+      }
+      const { data, error } = await query.order('inspected_at', { ascending: false });
+      if (!error && Array.isArray(data)) {
+        return data;
+      }
+    } catch {
+      // Fallback to file storage if database table is not yet migrated
+    }
+
+    const all = loadInspectionsFromFile();
+    let filtered = all;
+    if (filter?.drone_id) {
+      const targetDrone = String(filter.drone_id).toLowerCase().trim();
+      filtered = filtered.filter(i => String(i.drone_id || '').toLowerCase().trim() === targetDrone);
+    }
+    if (filter?.delivery_id) {
+      const targetDelivery = String(filter.delivery_id).toLowerCase().trim();
+      filtered = filtered.filter(i => String(i.delivery_id || '').toLowerCase().trim() === targetDelivery);
+    }
+    if (filter?.inspection_type) {
+      const targetType = String(filter.inspection_type).toUpperCase().trim();
+      filtered = filtered.filter(i => String(i.inspection_type || '').toUpperCase().trim() === targetType);
+    }
+    return filtered.sort((a, b) => new Date(b.inspected_at).getTime() - new Date(a.inspected_at).getTime());
+  },
+
+  async saveInspection(inspection: JsonRecord) {
+    const id = inspection.inspection_id || `INS-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+    const now = new Date().toISOString();
+    const role = String(inspection.inspector_role || 'dispatcher').toLowerCase();
+    const isDeliveryPerson = role === 'delivery' || role === 'pilot';
+    const inspectionType = inspection.inspection_type || (isDeliveryPerson ? 'DELIVERY_PERSON_CHECK' : 'DEPOT_MAINTENANCE');
+
+    const record = {
+      inspection_id: id,
+      inspection_type: inspectionType, // 'DELIVERY_PERSON_CHECK' vs 'DEPOT_MAINTENANCE'
+      drone_id: String(inspection.drone_id || '').trim(),
+      delivery_id: String(inspection.delivery_id || '').trim() || null,
+
+      // === Delivery Person Specific Field Verification Details ===
+      cargo_bay_condition: inspection.cargo_bay_condition || (isDeliveryPerson ? 'CLEAN_RELEASE' : 'NOT_INSPECTED'),
+      landing_surface: inspection.landing_surface || (isDeliveryPerson ? 'SAFE_FLAT' : 'NOT_INSPECTED'),
+      propeller_debris_check: inspection.propeller_debris_check || (isDeliveryPerson ? 'SPINS_FREE_NO_DEBRIS' : 'NOT_INSPECTED'),
+      field_battery_level: typeof inspection.field_battery_level === 'number' ? inspection.field_battery_level : null,
+      zero_defect_certified: typeof inspection.zero_defect_certified === 'boolean' ? inspection.zero_defect_certified : (isDeliveryPerson ? true : false),
+      delivery_handover_notes: inspection.delivery_handover_notes || inspection.remarks || '',
+
+      // === Dispatcher & Fleet Manager Depot Technical Inspection Details ===
+      body_condition: inspection.body_condition || (isDeliveryPerson ? 'GOOD' : 'NOT_INSPECTED'),
+      propeller_condition: inspection.propeller_condition || (isDeliveryPerson ? 'GOOD' : 'NOT_INSPECTED'),
+      battery_condition: inspection.battery_condition || (isDeliveryPerson ? 'NORMAL' : 'NOT_INSPECTED'),
+      landing_gear_condition: inspection.landing_gear_condition || (isDeliveryPerson ? 'GOOD' : 'NOT_INSPECTED'),
+      depot_avionics_cleared: typeof inspection.depot_avionics_cleared === 'boolean' ? inspection.depot_avionics_cleared : true,
+      ready_for_next_sortie: typeof inspection.ready_for_next_sortie === 'boolean' ? inspection.ready_for_next_sortie : true,
+
+      overall_inspection: inspection.overall_inspection || 'PASSED',
+      remarks: inspection.remarks || '',
+      photo_references: Array.isArray(inspection.photo_references) ? inspection.photo_references : [],
+      inspected_at: inspection.inspected_at || now,
+      inspected_by: inspection.inspected_by || 'system',
+      inspector_name: inspection.inspector_name || (isDeliveryPerson ? 'Delivery Partner' : 'Operations Inspector'),
+      inspector_role: role
+    };
+
+    // 1. Save to append-only persistent storage (File)
+    appendInspectionToFile(record);
+
+    // 2. Persist to Supabase public.inspections table
+    try {
+      await db().from('inspections').upsert({
+        inspection_id: record.inspection_id,
+        inspection_type: record.inspection_type,
+        drone_id: record.drone_id,
+        delivery_id: record.delivery_id,
+        cargo_bay_condition: record.cargo_bay_condition,
+        landing_surface: record.landing_surface,
+        propeller_debris_check: record.propeller_debris_check,
+        field_battery_level: record.field_battery_level,
+        zero_defect_certified: record.zero_defect_certified,
+        delivery_handover_notes: record.delivery_handover_notes,
+        body_condition: record.body_condition,
+        propeller_condition: record.propeller_condition,
+        battery_condition: record.battery_condition,
+        landing_gear_condition: record.landing_gear_condition,
+        depot_avionics_cleared: record.depot_avionics_cleared,
+        ready_for_next_sortie: record.ready_for_next_sortie,
+        overall_inspection: record.overall_inspection,
+        remarks: record.remarks,
+        photo_references: record.photo_references,
+        inspected_by: record.inspected_by,
+        inspector_name: record.inspector_name,
+        inspector_role: record.inspector_role,
+        inspected_at: record.inspected_at
+      });
+    } catch (insTableErr: any) {
+      console.warn('[InspectionsDB] Non-blocking DB upsert notice:', insTableErr?.message);
+    }
+
+    // 3. Log to Supabase audit_logs (append-only compliance)
+    try {
+      await db().from('audit_logs').insert({
+        user_email: record.inspected_by,
+        role: record.inspector_role,
+        action: isDeliveryPerson ? 'DELIVERY_FIELD_INSPECTION' : 'DEPOT_MAINTENANCE_INSPECTION',
+        resource: `${record.drone_id} (${record.inspection_type})`,
+        severity: record.overall_inspection === 'PASSED' ? 'INFO' : 'WARN',
+        timestamp: now
+      });
+    } catch (auditErr: any) {
+      console.warn('[AuditLog] Non-blocking audit log warning:', auditErr?.message);
+    }
+
+    // 3. State Transition for Drone Master:
+    // If PASSED -> status: 'ready' (AVAILABLE), current_condition: 'GOOD'
+    // If FAILED -> status: 'maintenance', current_condition: 'NEEDS_REVIEW'
+    // If PENDING -> status: 'maintenance', current_condition: 'NEEDS_REVIEW'
+    try {
+      const droneStatus = record.overall_inspection === 'PASSED' ? 'ready' : 'maintenance';
+      const currentCondition = record.overall_inspection === 'PASSED' ? 'GOOD' : 'NEEDS_REVIEW';
+      await this.updateDrone(record.drone_id, {
+        status: droneStatus,
+        current_condition: currentCondition,
+        last_inspection_id: id,
+        last_inspection_type: record.inspection_type,
+        last_inspection_result: record.overall_inspection,
+        last_inspected_at: now
+      });
+    } catch (droneErr: any) {
+      console.warn('[DroneUpdate] Non-blocking drone update warning:', droneErr?.message);
+    }
+
+    // 4. Update order if delivery_id is linked
+    if (record.delivery_id) {
+      try {
+        const order = await this.findOrderById(record.delivery_id);
+        if (order) {
+          const existingData = order.delivery_data || {};
+          await this.updateOrder(record.delivery_id, {
+            inspection_id: id,
+            inspection_status: record.overall_inspection,
+            delivery_data: {
+              ...existingData,
+              ...(isDeliveryPerson
+                ? { delivery_person_inspection: record }
+                : { depot_inspection: record }),
+              post_delivery_inspection: record
+            }
+          });
+        }
+      } catch (orderErr: any) {
+        console.warn('[OrderUpdate] Non-blocking order inspection warning:', orderErr?.message);
+      }
+    }
+
+    return record;
+  },
+
+  async getInspectionStats() {
+    const all = await this.getInspections();
+    const passedCount = all.filter(i => i.overall_inspection === 'PASSED').length;
+    const failedOrPendingCount = all.filter(i => i.overall_inspection !== 'PASSED').length;
+
+    const deliveryChecks = all.filter(i => i.inspection_type === 'DELIVERY_PERSON_CHECK');
+    const depotChecks = all.filter(i => i.inspection_type === 'DEPOT_MAINTENANCE' || !i.inspection_type);
+
+    return {
+      passedCount,
+      failedOrPendingCount,
+      totalCount: all.length,
+      deliveryPersonChecks: {
+        total: deliveryChecks.length,
+        passed: deliveryChecks.filter(i => i.overall_inspection === 'PASSED').length,
+        defectReported: deliveryChecks.filter(i => i.overall_inspection !== 'PASSED').length,
+        zeroDefectCertifiedCount: deliveryChecks.filter(i => i.zero_defect_certified === true).length
+      },
+      depotMaintenanceChecks: {
+        total: depotChecks.length,
+        passed: depotChecks.filter(i => i.overall_inspection === 'PASSED').length,
+        maintenanceRequired: depotChecks.filter(i => i.overall_inspection !== 'PASSED').length
+      }
+    };
   }
 };

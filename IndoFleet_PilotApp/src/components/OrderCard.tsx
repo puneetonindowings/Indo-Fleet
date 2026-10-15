@@ -27,6 +27,7 @@ interface OrderCardProps {
   onStartFlightPress: (order: DeliveryOrder) => void;
   onCompletePodPress: (order: DeliveryOrder) => void;
   onViewRadarPress: (order: DeliveryOrder) => void;
+  onInspectPress?: (order: DeliveryOrder) => void;
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({
@@ -35,6 +36,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   onStartFlightPress,
   onCompletePodPress,
   onViewRadarPress,
+  onInspectPress,
 }) => {
   const isPendingAcceptance = order.pilot_acceptance_status === 'pending_acceptance' && order.status !== 'in-flight' && order.status !== 'delivered';
   const isAccepted = order.pilot_acceptance_status === 'accepted' && order.status !== 'in-flight' && order.status !== 'delivered';
@@ -205,6 +207,17 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               <Text style={styles.podBtnText}>Complete Delivery (POD)</Text>
             </TouchableOpacity>
           </View>
+        )}
+
+        {isDelivered && onInspectPress && (
+          <TouchableOpacity
+            style={[styles.acceptBtn, { backgroundColor: '#059669', height: 44, marginTop: 4 }]}
+            onPress={() => onInspectPress(order)}
+            activeOpacity={0.8}
+          >
+            <ShieldCheck size={16} color="#FFFFFF" />
+            <Text style={styles.acceptBtnText}>Post-Delivery Inspection</Text>
+          </TouchableOpacity>
         )}
       </View>
     </View>

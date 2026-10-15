@@ -46,7 +46,10 @@ import {
   SlidersHorizontal,
   AlertTriangle,
   Radio,
-  Smartphone
+  Smartphone,
+  Zap,
+  QrCode,
+  Edit2
 } from 'lucide-react';
 import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
@@ -63,6 +66,10 @@ import { CustomerOrderLiveMap } from '../components/CustomerOrderLiveMap';
 import { AppReleaseConsole } from '../components/AppReleaseConsole';
 import { SosAlertBanner } from '../components/SosAlertBanner';
 import { SosAlertsConsole } from '../components/SosAlertsConsole';
+import { DroneQRCodeModal } from '../components/DroneQRCodeModal';
+import { DroneQRScannerModal } from '../components/DroneQRScannerModal';
+import { PostDeliveryInspectionModal } from '../components/PostDeliveryInspectionModal';
+import { DroneAuditLogConsole } from '../components/DroneAuditLogConsole';
 
 interface AdminDashboardProps {
   currentUser: DeliveryUser | null;
@@ -72,7 +79,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser, onUpdateUser, onNavigate, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'personnel' | 'provision' | 'fleet' | 'dispatch' | 'secure-dispatch' | 'delivery' | 'support' | 'profile' | 'app-release' | 'sos-alerts'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'personnel' | 'provision' | 'fleet' | 'audits' | 'dispatch' | 'secure-dispatch' | 'delivery' | 'support' | 'profile' | 'app-release' | 'sos-alerts'>('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // SOS Emergency Alerts State
@@ -87,6 +94,20 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [expertRequests, setExpertRequests] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [adminTrackingOrder, setAdminTrackingOrder] = useState<any | null>(null);
+
+  // 700 RPAV Quality, Inspection & QR State
+  const [inspectionStats, setInspectionStats] = useState<{
+    passedCount: number;
+    failedOrPendingCount: number;
+    totalCount: number;
+    deliveryPersonChecks?: { total: number; passed: number; defectReported: number; zeroDefectCertifiedCount: number };
+    depotMaintenanceChecks?: { total: number; passed: number; maintenanceRequired: number };
+  }>({ passedCount: 0, failedOrPendingCount: 0, totalCount: 0 });
+  const [selectedQrDrone, setSelectedQrDrone] = useState<any | null>(null);
+  const [showQrScanner, setShowQrScanner] = useState(false);
+  const [selectedInspectionDroneId, setSelectedInspectionDroneId] = useState('');
+  const [selectedInspectionDeliveryId, setSelectedInspectionDeliveryId] = useState('');
+  const [showInspectionModal, setShowInspectionModal] = useState(false);
   
   // Single Drone Form State
   const [showAddSingleDrone, setShowAddSingleDrone] = useState(false);
@@ -124,7 +145,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   // Admin Security OTP for Fleet & Provisioning
   const [inventoryOtpSent, setInventoryOtpSent] = useState(false);
   const [inventoryOtp, setInventoryOtp] = useState('');
-  const [inventoryOtpChannel, setInventoryOtpChannel] = useState<'email' | 'phone'>('email');
+  const [inventoryOtpChannel, setInventoryOtpChannel] = useState<'email' | 'phone' | 'both'>('both');
 
   // Simple Team Member Provisioning State
   const [provName, setProvName] = useState('');
@@ -134,7 +155,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [provTempPass, setProvTempPass] = useState('');
 
   // Admin Security OTP State for Provisioning
-  const [adminOtpChannel, setAdminOtpChannel] = useState<'email' | 'phone'>('email');
+  const [adminOtpChannel, setAdminOtpChannel] = useState<'email' | 'phone' | 'both'>('both');
   const [adminOtpSent, setAdminOtpSent] = useState(false);
   const [adminOtp, setAdminOtp] = useState('');
   const [adminOtpLoading, setAdminOtpLoading] = useState(false);
@@ -246,11 +267,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     try {
       setRefreshing(true);
       const authHeaders = { Authorization: `Bearer ${localStorage.getItem('iw_delivery_token') || ''}` };
-      const [uRes, dRes, oRes, sRes] = await Promise.all([
+      const [uRes, dRes, oRes, sRes, insRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/delivery/users`, { headers: authHeaders }),
         fetch(`${API_BASE_URL}/api/delivery/drones`),
         fetch(`${API_BASE_URL}/api/delivery/orders`),
-        fetch(`${API_BASE_URL}/api/delivery/support/expert-requests`, { headers: authHeaders }).catch(() => null)
+        fetch(`${API_BASE_URL}/api/delivery/support/expert-requests`, { headers: authHeaders }).catch(() => null),
+        fetch(`${API_BASE_URL}/api/delivery/inspections/stats`, { headers: authHeaders }).catch(() => null)
       ]);
 
       if (uRes.ok) {
@@ -271,6 +293,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
       if (sRes && sRes.ok) {
         const sData = await sRes.json();
         setExpertRequests(sData.requests || []);
+      }
+      if (insRes && insRes.ok) {
+        const insData = await insRes.json();
+        if (insData?.stats) {
+          setInspectionStats(insData.stats);
+        }
       }
     } catch (err) {
       console.error('Admin data fetch error:', err);
@@ -352,7 +380,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     setAdminOtpLoading(true);
     setAdminOtpError('');
     try {
-      if (adminOtpChannel === 'phone' && currentUser?.phone) {
+      if ((adminOtpChannel === 'phone' || adminOtpChannel === 'both') && currentUser?.phone) {
         sendFirebasePhoneOtp(currentUser.phone, 'recaptcha-container').then((fb) => {
           if (fb.success) console.log('[Firebase Phone Auth] Real SMS OTP dispatched to', currentUser.phone);
         });
@@ -376,7 +404,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
       setAdminOtpSent(true);
       setAdminOtp('');
       showToast(
-        `Security verification OTP dispatched to admin's registered ${adminOtpChannel === 'phone' ? 'Phone SMS & Email' : 'Email'}!`
+        data.message || `Security verification OTP dispatched!`
       );
     } catch {
       setAdminOtpError('Cannot connect to authorization server.');
@@ -388,20 +416,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   // 2. ADMIN PROVISIONS NEW USER DIRECTLY (NO OTP REQUIRED)
   const handleProvisionUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!provName.trim() || !provEmail.trim() || parsePhone(provPhone).national.length < 6 || !provRole) {
-      setAdminOtpError('Full Name, valid Email, valid Phone number, and Role are mandatory.');
+    if (!provName.trim() || !provEmail.trim() || !provTempPass.trim()) {
+      setAdminOtpError('Full Name, valid Email address, and temporary password are required.');
       return;
     }
-    if (!provTempPass.trim() || provTempPass.trim().length < 6) {
-      setAdminOtpError('Please enter an initial temporary password (min 6 characters) or click Generate.');
-      return;
-    }
-    if (!adminOtpSent) {
-      setAdminOtpError('Please request your Administrator Security OTP first.');
-      return;
-    }
-    if (!adminOtp.trim() || adminOtp.trim().length !== 6) {
-      setAdminOtpError('Please enter the 6-digit verification code sent to your registered contact.');
+    if (provTempPass.trim().length < 6) {
+      setAdminOtpError('Temporary password must be at least 6 characters long.');
       return;
     }
 
@@ -409,8 +429,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     setAdminOtpError('');
 
     try {
-      const adminTarget = adminOtpChannel === 'phone' ? currentUser?.phone || '' : currentUser?.email || '';
-
       const res = await fetch(`${API_BASE_URL}/api/delivery/admin/provision-user`, {
         method: 'POST',
         headers: {
@@ -418,24 +436,23 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
           Authorization: `Bearer ${localStorage.getItem('iw_delivery_token') || ''}`
         },
         body: JSON.stringify({
-          adminTarget,
-          otp: adminOtp.trim(),
           name: provName.trim(),
           email: provEmail.trim(),
           phone: provPhone.trim(),
           role: provRole,
-          temporaryPassword: provTempPass.trim()
+          temporaryPassword: provTempPass.trim(),
+          loginUrl: `${window.location.origin}/login`
         })
       });
 
       const data = await res.json();
       if (!res.ok) {
-        setAdminOtpError(data.error || 'Authorization failed. Please check OTP code.');
+        setAdminOtpError(data.error || 'Failed to create member account.');
         return;
       }
 
       setProvisioningSuccess({ ...data.user, emailSent: data.emailSent });
-      showToast(data.emailSent ? `Account created for ${data.user?.name}; credentials email sent.` : `Account created, but credentials email failed. Copy and share them securely.`);
+      showToast(data.emailSent ? `Account created! Credentials emailed to ${provEmail.trim()}.` : `Account created! Please share credentials securely.`);
       await fetchData();
     } catch {
       setAdminOtpError('Connection error during user provisioning.');
@@ -461,7 +478,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     setAdminOtpError('');
     setAdminOtpLoading(true);
     try {
-      if (inventoryOtpChannel === 'phone' && currentUser?.phone) {
+      if ((inventoryOtpChannel === 'phone' || inventoryOtpChannel === 'both') && currentUser?.phone) {
         sendFirebasePhoneOtp(currentUser.phone, 'recaptcha-container').then((fb) => {
           if (fb.success) console.log('[Firebase Phone Auth] Real SMS OTP dispatched to', currentUser.phone);
         });
@@ -483,8 +500,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
       }
       showToast(
         data.dev_otp
-          ? `Inventory Security OTP [ ${data.dev_otp} ] sent via ${inventoryOtpChannel === 'phone' ? 'Phone SMS (Firebase) & Email' : 'Email'}!`
-          : `Inventory OTP sent to your ${inventoryOtpChannel}.`
+          ? `Inventory Security OTP [ ${data.dev_otp} ] sent!`
+          : data.message || `Inventory OTP sent successfully.`
       );
       return true;
     } catch {
@@ -496,7 +513,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   };
 
   const inventoryOtpFields = () => ({
-    adminTarget: inventoryOtpChannel === 'phone' ? currentUser?.phone : currentUser?.email,
+    adminTarget: inventoryOtpChannel === 'phone' ? currentUser?.phone : inventoryOtpChannel === 'email' ? currentUser?.email : 'both',
     otp: inventoryOtp.trim()
   });
 
@@ -944,7 +961,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     return s.status === supportFilter;
   });
 
-  const activeShipmentsCount = orders.filter((o) => o.status !== 'delivered').length;
+  const activeShipmentsCount = orders.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled').length;
   const completedHandoversCount = orders.filter((o) => o.status === 'delivered').length;
   const qcCertifiedCount = drones.filter((d) => d.qc_status === 'passed').length;
   const verifiedDronesCount = drones.filter((d) => d.is_verified === true || d.verification_status === 'verified').length;
@@ -955,15 +972,22 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const idleDronesCount = drones.filter((d) => d.status !== 'maintenance' && (d.status === 'idle' || !d.status) && !d.assigned_order && !d.delivery_data?.assigned_order).length;
   const activeAccountsCount = users.filter((user) => user.status === 'active').length;
 
+  // Actionable Operational Counts for Sidebar Badges
+  const pendingDispatchCount = orders.filter((o) => ['pending', 'assigned', 'ready'].includes(o.status)).length;
+  const inFlightCount = orders.filter((o) => ['in-flight', 'in-transit', 'dispatched'].includes(o.status)).length;
+  const dispatchHistoryCount = orders.filter((o) => ['delivered', 'cancelled'].includes(o.status)).length;
+  const openSupportCount = expertRequests.filter((s) => s.status !== 'resolved' && s.status !== 'closed').length;
+
   const adminNavItems = [
     { id: 'overview', label: 'Dashboard', icon: Layers, badge: null },
-    { id: 'personnel', label: 'Users', icon: Users, badge: users.length },
+    { id: 'personnel', label: 'Users', icon: Users, badge: activeAccountsCount },
     { id: 'provision', label: 'Add User', icon: UserPlus, badge: null },
-    { id: 'fleet', label: 'Inventory', icon: Truck, badge: drones.length },
-    { id: 'secure-dispatch', label: 'Secure Dispatch', icon: Truck, badge: orders.length },
-    { id: 'delivery', label: 'Delivery Tracking', icon: Package, badge: orders.filter(order => !['delivered', 'cancelled'].includes(order.status)).length },
-    { id: 'dispatch', label: 'Dispatch History', icon: Package, badge: orders.length },
-    { id: 'support', label: 'Support', icon: Headphones, badge: expertRequests.length },
+    { id: 'fleet', label: 'Inventory', icon: Truck, badge: idleDronesCount },
+    { id: 'audits', label: 'QR Scans & Audits', icon: QrCode, badge: null },
+    { id: 'secure-dispatch', label: 'Secure Dispatch', icon: Truck, badge: pendingDispatchCount > 0 ? pendingDispatchCount : null },
+    { id: 'delivery', label: 'Delivery Tracking', icon: Package, badge: inFlightCount > 0 ? inFlightCount : null },
+    { id: 'dispatch', label: 'Dispatch History', icon: Package, badge: dispatchHistoryCount > 0 ? dispatchHistoryCount : null },
+    { id: 'support', label: 'Support', icon: Headphones, badge: openSupportCount > 0 ? openSupportCount : null },
     { id: 'app-release', label: 'Mobile App Release', icon: Smartphone, badge: 'APK' },
     {
       id: 'sos-alerts',
@@ -1597,85 +1621,18 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         </div>
                       </div>
 
-                      {/* Admin 6-Digit Security OTP Challenge */}
-                      <div className="p-4 bg-purple-50/70 rounded-2xl border border-purple-200 space-y-3">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-[#5a00b8] uppercase tracking-wider flex items-center gap-1.5">
-                            <ShieldCheck className="w-4 h-4 text-[#5a00b8]" /> Administrator Security Verification (6-Digit OTP)
-                          </span>
+                      {/* Direct Account Activation Notice */}
+                      <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                        <div className="text-xs text-slate-700 space-y-1">
+                          <p className="font-bold text-emerald-950">Direct Account Provisioning &amp; Activation Email</p>
+                          <p className="text-slate-600">
+                            Account credentials (User ID, Assigned Role, Login Portal Link &amp; Temporary Password) will be emailed directly to <strong className="text-slate-900">{provEmail || 'the member’s registered email'}</strong>.
+                          </p>
+                          <p className="text-slate-500 text-[11px]">
+                            Upon first login, the user will be prompted to verify via 6-digit OTP sent to their email and set their permanent password.
+                          </p>
                         </div>
-
-                        {/* 2 Delivery Channel Buttons (Email / Phone) */}
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 mb-1.5">
-                            Select Delivery Channel for Security OTP:
-                          </label>
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setAdminOtpChannel('email');
-                                setAdminOtpSent(false);
-                              }}
-                              className={`py-2 px-3 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                                adminOtpChannel === 'email'
-                                  ? 'bg-[#5a00b8] text-white border-[#5a00b8] shadow-xs font-black'
-                                  : 'bg-white border-purple-200 text-slate-700 hover:bg-purple-50'
-                              }`}
-                            >
-                              <Mail className="w-3.5 h-3.5" />
-                              <span>Send via Email OTP</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setAdminOtpChannel('phone');
-                                setAdminOtpSent(false);
-                              }}
-                              className={`py-2 px-3 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                                adminOtpChannel === 'phone'
-                                  ? 'bg-[#5a00b8] text-white border-[#5a00b8] shadow-xs font-black'
-                                  : 'bg-white border-purple-200 text-slate-700 hover:bg-purple-50'
-                              }`}
-                            >
-                              <Phone className="w-3.5 h-3.5" />
-                              <span>Send via Mobile SMS OTP</span>
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-1">
-                          <span className="text-[11px] text-slate-500 font-medium">
-                            OTP will be sent to admin's registered {adminOtpChannel === 'email' ? `Email (${currentUser?.email || 'Email'})` : `Phone (${currentUser?.phone || 'SMS'})`}.
-                          </span>
-                          <button
-                            type="button"
-                            onClick={handleRequestAdminOtp}
-                            disabled={adminOtpLoading}
-                            className="px-3.5 py-1.5 bg-white hover:bg-purple-100 text-[#5a00b8] border border-purple-300 rounded-xl text-xs font-extrabold transition cursor-pointer shadow-xs shrink-0"
-                          >
-                            {adminOtpSent ? `Resend OTP to ${adminOtpChannel === 'email' ? 'Email' : 'SMS'}` : `Request ${adminOtpChannel === 'email' ? 'Email' : 'SMS'} OTP`}
-                          </button>
-                        </div>
-
-                        {adminOtpSent && (
-                          <div className="pt-1">
-                            <label className="block text-[11px] font-bold text-slate-600 mb-1">Enter 6-Digit Verification Code</label>
-                            <input
-                              type="text"
-                              maxLength={6}
-                              value={adminOtp}
-                              onChange={(e) => setAdminOtp(e.target.value.replace(/[^0-9]/g, ''))}
-                              placeholder="Enter 6-digit verification code"
-                              className="w-full px-4 py-2.5 rounded-xl border border-purple-300 text-sm font-mono font-bold tracking-widest text-slate-900 bg-white focus:outline-none focus:border-[#5a00b8]"
-                              autoFocus
-                            />
-                            <p className="text-[11px] text-purple-700 mt-1">
-                              Verification code has been sent to your registered {adminOtpChannel === 'email' ? 'email' : 'phone'}. Please check your inbox.
-                            </p>
-                          </div>
-                        )}
                       </div>
 
                       {adminOtpError && (
@@ -1709,15 +1666,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
             {activeTab === 'fleet' && (
               <div className="space-y-5">
                 {/* Top Fleet KPI Metrics Bar */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3.5">
                   <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center justify-between">
                     <div>
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Fleet UAVs</p>
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Fleet</p>
                       <h4 className="text-2xl font-black text-slate-900 mt-1">{drones.length}</h4>
                       <p className="text-[10px] text-purple-700 font-semibold mt-0.5">Central Inventory</p>
                     </div>
-                    <div className="w-11 h-11 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black">
-                      <Truck className="w-6 h-6" />
+                    <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black shrink-0">
+                      <Truck className="w-5 h-5" />
                     </div>
                   </div>
 
@@ -1735,17 +1692,17 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   >
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <p className="text-[11px] font-bold text-purple-700 uppercase tracking-wider">Reserved Drones</p>
+                        <p className="text-[11px] font-bold text-purple-700 uppercase tracking-wider">Reserved</p>
                         <span className="px-1.5 py-0.2 text-[9px] font-extrabold bg-purple-200 text-purple-800 rounded-md">LIVE</span>
                       </div>
                       <h4 className="text-2xl font-black text-purple-900 mt-1">{reservedDronesCount}</h4>
                       <p className="text-[10px] text-purple-600 font-semibold mt-0.5 flex items-center gap-1">
-                        <span>{droneFilter === 'reserved' ? 'Filtered: Reserved Only' : 'Click to inspect bookings'}</span>
+                        <span>{droneFilter === 'reserved' ? 'Filtered' : 'Bookings'}</span>
                         <ChevronRight className="w-3 h-3" />
                       </p>
                     </div>
-                    <div className="w-11 h-11 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-black">
-                      <ShoppingBag className="w-6 h-6" />
+                    <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-black shrink-0">
+                      <ShoppingBag className="w-5 h-5" />
                     </div>
                   </div>
 
@@ -1762,12 +1719,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     }`}
                   >
                     <div>
-                      <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Available In-Stock</p>
+                      <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">In-Stock</p>
                       <h4 className="text-2xl font-black text-emerald-800 mt-1">{idleDronesCount}</h4>
-                      <p className="text-[10px] text-emerald-600 font-medium mt-0.5">Ready for instant booking</p>
+                      <p className="text-[10px] text-emerald-600 font-medium mt-0.5">Ready for booking</p>
                     </div>
-                    <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black">
-                      <CheckCircle2 className="w-6 h-6" />
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black shrink-0">
+                      <CheckCircle2 className="w-5 h-5" />
                     </div>
                   </div>
 
@@ -1784,12 +1741,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     }`}
                   >
                     <div>
-                      <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Under Maintenance</p>
+                      <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Maintenance</p>
                       <h4 className="text-2xl font-black text-amber-800 mt-1">{maintenanceDronesCount}</h4>
-                      <p className="text-[10px] text-amber-600 font-medium mt-0.5">Excluded from customer store</p>
+                      <p className="text-[10px] text-amber-600 font-medium mt-0.5">Excluded from store</p>
                     </div>
-                    <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-black">
-                      <Wrench className="w-6 h-6" />
+                    <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-black shrink-0">
+                      <Wrench className="w-5 h-5" />
                     </div>
                   </div>
 
@@ -1798,10 +1755,58 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     <div>
                       <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Verified IDs</p>
                       <h4 className="text-2xl font-black text-slate-900 mt-1">{verifiedDronesCount} <span className="text-xs font-semibold text-slate-400">/ {drones.length}</span></h4>
-                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">{unverifiedDronesCount} unverified placeholder IDs</p>
+                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">{unverifiedDronesCount} unverified</p>
                     </div>
-                    <div className="w-11 h-11 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center font-black">
-                      <Shield className="w-6 h-6" />
+                    <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center font-black shrink-0">
+                      <Shield className="w-5 h-5" />
+                    </div>
+                  </div>
+
+                  {/* Inspections Passed */}
+                  <div
+                    onClick={() => {
+                      setSelectedInspectionDroneId('');
+                      setSelectedInspectionDeliveryId('');
+                      setShowInspectionModal(true);
+                    }}
+                    className="bg-white border border-emerald-300 hover:border-emerald-400 bg-emerald-50/30 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
+                    title="Click to Record New Airframe Inspection"
+                  >
+                    <div>
+                      <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Inspections Passed</p>
+                      <h4 className="text-2xl font-black text-emerald-900 mt-1">{inspectionStats.passedCount}</h4>
+                      <p className="text-[10px] text-emerald-600 font-medium mt-0.5">
+                        {inspectionStats.deliveryPersonChecks?.zeroDefectCertifiedCount != null
+                          ? `${inspectionStats.deliveryPersonChecks.zeroDefectCertifiedCount} Zero-Defect`
+                          : 'Quality Approved'}
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform shrink-0">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                  </div>
+
+                  {/* Inspections Failed or Pending */}
+                  <div
+                    onClick={() => {
+                      setSelectedInspectionDroneId('');
+                      setSelectedInspectionDeliveryId('');
+                      setShowInspectionModal(true);
+                    }}
+                    className="bg-white border border-rose-300 hover:border-rose-400 bg-rose-50/30 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
+                    title="Click to Record or Update Airframe Inspection"
+                  >
+                    <div>
+                      <p className="text-[11px] font-bold text-rose-800 uppercase tracking-wider">Failed / Pending</p>
+                      <h4 className="text-2xl font-black text-rose-900 mt-1">{inspectionStats.failedOrPendingCount}</h4>
+                      <p className="text-[10px] text-rose-600 font-medium mt-0.5">
+                        {inspectionStats.deliveryPersonChecks?.defectReported
+                          ? `${inspectionStats.deliveryPersonChecks.defectReported} Flagged`
+                          : 'Needs Review'}
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform shrink-0">
+                      <AlertTriangle className="w-5 h-5" />
                     </div>
                   </div>
                 </div>
@@ -1841,6 +1846,16 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   </div>
 
                   <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowQrScanner(true)}
+                      className="px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#5a00b8] border border-purple-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs"
+                      title="Scan Drone QR Code or Airframe ID"
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
+                      <span>Scan Drone QR</span>
+                    </button>
+
                     <button
                       onClick={() => {
                         setShowAddSingleDrone(true);
@@ -1891,6 +1906,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                           <th className="py-3 px-4">Model Name</th>
                           <th className="py-3 px-4">Category</th>
                           <th className="py-3 px-4">Status &amp; Reservation</th>
+                          <th className="py-3 px-4">Condition &amp; QC</th>
                           <th className="py-3 px-4">ID Verification</th>
                           <th className="py-3 px-4 text-right">Actions</th>
                         </tr>
@@ -1916,15 +1932,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                 <p className="font-mono font-bold text-slate-900">{d.id}</p>
                                 <p className="text-[10px] text-slate-400 font-mono">{d.serial_number || d.id}</p>
                               </td>
-                              <td className="py-3 px-4 font-bold text-[#5a00b8]">{d.model}</td>
-                              <td className="py-3 px-4">
-                                <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[11px]">
+                              <td className="py-3 px-4 font-bold text-[#5a00b8] whitespace-nowrap">{d.model}</td>
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                <span className="inline-block px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[11px] whitespace-nowrap">
                                   {d.category || 'General UAV'}
                                 </span>
                               </td>
-                              <td className="py-3 px-4">
+                              <td className="py-3 px-4 whitespace-nowrap">
                                 {d.status === 'maintenance' ? (
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-300 whitespace-nowrap">
                                     <Wrench className="w-3 h-3 text-amber-600 shrink-0" />
                                     <span>Under Maintenance</span>
                                   </span>
@@ -1932,53 +1948,96 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                   <button
                                     type="button"
                                     onClick={() => setSelectedReservedDrone(d)}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer shadow-2xs group"
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer shadow-2xs group whitespace-nowrap"
                                   >
                                     <ShoppingBag className="w-3 h-3 text-purple-600 shrink-0" />
                                     <span>Reserved: <strong className="font-mono">{linked?.id || d.assigned_order || 'Booking'}</strong></span>
                                     <Eye className="w-3 h-3 text-purple-400 group-hover:text-purple-700 shrink-0" />
                                   </button>
                                 ) : d.status === 'en-route' || d.status === 'in-flight' || d.status === 'dispatched' ? (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
-                                    <Truck className="w-3 h-3 text-blue-600" />
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">
+                                    <Truck className="w-3 h-3 text-blue-600 shrink-0" />
                                     Dispatched
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    <Check className="w-3 h-3 text-emerald-600" />
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                                    <Check className="w-3 h-3 text-emerald-600 shrink-0" />
                                     In Stock (Idle)
                                   </span>
                                 )}
                               </td>
-                              <td className="py-3 px-4">
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                <div className="flex flex-col gap-1 items-start">
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap ${
+                                      (d.current_condition || '').toUpperCase() === 'DAMAGED'
+                                        ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                        : (d.current_condition || '').toUpperCase() === 'NEEDS_REVIEW'
+                                        ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                        : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                    }`}
+                                  >
+                                    <ShieldCheck className="w-3 h-3 shrink-0" />
+                                    {d.current_condition ? d.current_condition.toUpperCase() : 'GOOD'}
+                                  </span>
+                                  {d.last_inspection_result && (
+                                    <span className="text-[10px] text-slate-500 font-medium whitespace-nowrap">
+                                      QC: <strong className="uppercase">{d.last_inspection_result}</strong>
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 whitespace-nowrap">
                                 {isVerified ? (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                     Verified ID
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-amber-50 text-amber-700 border border-amber-200">
-                                    <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+                                    <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                     Unverified ID
                                   </span>
                                 )}
                               </td>
-                              <td className="py-3 px-4 text-right">
-                                <div className="flex items-center justify-end gap-1.5">
+                              <td className="py-3 px-4 text-right whitespace-nowrap">
+                                <div className="inline-flex items-center justify-end gap-1.5 flex-nowrap">
                                   {isReserved && (
                                     <button
                                       type="button"
                                       onClick={() => setSelectedReservedDrone(d)}
-                                      className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
                                     >
                                       <Eye className="w-3.5 h-3.5" />
-                                      <span>View Order</span>
+                                      <span>Order</span>
                                     </button>
                                   )}
                                   <button
                                     type="button"
+                                    onClick={() => setSelectedQrDrone(d)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-[#5a00b8] hover:text-white text-slate-700 border border-slate-200 transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
+                                    title="View & Print 25mm Permanent QR Code Label"
+                                  >
+                                    <QrCode className="w-3.5 h-3.5" />
+                                    <span>QR Label</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedInspectionDroneId(d.id);
+                                      setSelectedInspectionDeliveryId(d.assigned_order || d.delivery_data?.assigned_order || '');
+                                      setShowInspectionModal(true);
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-50 hover:bg-[#5a00b8] text-[#5a00b8] hover:text-white border border-purple-200 hover:border-[#5a00b8] transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
+                                    title="Record Post-Delivery Condition Inspection"
+                                  >
+                                    <ShieldCheck className="w-3.5 h-3.5" />
+                                    <span>Inspect</span>
+                                  </button>
+                                  <button
+                                    type="button"
                                     onClick={() => handleToggleDroneMaintenance(d)}
-                                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer flex items-center gap-1 ${
+                                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer shadow-2xs whitespace-nowrap ${
                                       d.status === 'maintenance'
                                         ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
                                         : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
@@ -1989,10 +2048,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                     <span>{d.status === 'maintenance' ? 'Clear Maint.' : 'Set Maint.'}</span>
                                   </button>
                                   <button
+                                    type="button"
                                     onClick={() => openEditDroneModal(d)}
-                                    className="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 hover:bg-purple-50 hover:text-[#5a00b8] hover:border-purple-200 transition-colors cursor-pointer"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-purple-50 hover:text-[#5a00b8] hover:border-purple-200 transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
                                   >
-                                    Edit Details
+                                    <Edit2 className="w-3 h-3" />
+                                    <span>Edit</span>
                                   </button>
                                 </div>
                               </td>
@@ -2001,7 +2062,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         })}
                         {filteredDrones.length === 0 && (
                           <tr>
-                            <td colSpan={6} className="py-12 text-center text-slate-400">
+                            <td colSpan={8} className="py-12 text-center text-slate-400">
                               <Truck className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                               <p className="text-sm font-semibold">No drones match your search or filter.</p>
                               <p className="text-xs text-slate-400 mt-0.5">Click "+1 Single Drone" or "Bulk Batch Add" to populate inventory.</p>
@@ -2060,6 +2121,19 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   )}
                 </div>
               </div>
+            )}
+
+            {/* ── TAB: DRONE AUDITS & QR SCAN LOGS ──────────────────────────── */}
+            {activeTab === 'audits' && (
+              <DroneAuditLogConsole
+                currentUser={currentUser}
+                onOpenQRModal={(drone) => setSelectedQrDrone(drone)}
+                onOpenInspectionModal={(droneId, deliveryId) => {
+                  setSelectedInspectionDroneId(droneId);
+                  setSelectedInspectionDeliveryId(deliveryId || '');
+                  setShowInspectionModal(true);
+                }}
+              />
             )}
 
             {/* ── TAB 5: CLIENT DRONE DISPATCHES & SHIPMENTS ───────────────── */}
@@ -2453,62 +2527,37 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInventoryOtpChannel('email');
-                      setInventoryOtpSent(false);
-                    }}
-                    className={`py-1.5 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                      inventoryOtpChannel === 'email'
-                        ? 'bg-[#5a00b8] text-white border-[#5a00b8]'
-                        : 'bg-white border-purple-200 text-slate-700 hover:bg-purple-50'
-                    }`}
-                  >
-                    <Mail className="w-3.5 h-3.5" />
-                    <span>Send via Email OTP</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInventoryOtpChannel('phone');
-                      setInventoryOtpSent(false);
-                    }}
-                    className={`py-1.5 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                      inventoryOtpChannel === 'phone'
-                        ? 'bg-[#5a00b8] text-white border-[#5a00b8]'
-                        : 'bg-white border-purple-200 text-slate-700 hover:bg-purple-50'
-                    }`}
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                    <span>Send via Mobile SMS OTP</span>
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-[11px] text-slate-500 font-medium">
-                    Send to: {inventoryOtpChannel === 'email' ? currentUser?.email || 'Email' : currentUser?.phone || 'SMS'}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+                  <span className="text-xs text-slate-600 font-medium flex items-center gap-1.5">
+                    <Mail className="w-4 h-4 text-[#5a00b8]" />
+                    Send to: <strong className="text-slate-800">{currentUser?.email || 'admin@indofleet.com'}</strong>
                   </span>
                   <button
                     type="button"
                     onClick={requestInventoryOtp}
                     disabled={adminOtpLoading}
-                    className="px-3 py-1.5 bg-white hover:bg-purple-100 text-[#5a00b8] border border-purple-300 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs"
+                    className="px-3.5 py-1.5 bg-white hover:bg-purple-100 text-[#5a00b8] border border-purple-300 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs"
                   >
-                    {inventoryOtpSent ? `Resend ${inventoryOtpChannel === 'email' ? 'Email' : 'SMS'} OTP` : `Request ${inventoryOtpChannel === 'email' ? 'Email' : 'SMS'} OTP`}
+                    {adminOtpLoading ? 'Sending...' : inventoryOtpSent ? 'Resend OTP' : 'Request Email OTP'}
                   </button>
                 </div>
 
                 {inventoryOtpSent && (
-                  <input
-                    type="text"
-                    maxLength={6}
-                    value={inventoryOtp}
-                    onChange={(e) => setInventoryOtp(e.target.value.replace(/[^0-9]/g, ''))}
-                    placeholder="Enter 6-digit OTP code"
-                    className="w-full px-3 py-2 rounded-xl border border-purple-300 text-xs font-mono font-bold tracking-widest text-slate-900 bg-white focus:outline-none focus:border-[#5a00b8]"
-                  />
+                  <div className="space-y-1">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={inventoryOtp}
+                      onChange={(e) => setInventoryOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="Enter 6-digit OTP code"
+                      className="w-full px-3 py-2 rounded-xl border border-purple-300 text-xs font-mono font-bold tracking-widest text-slate-900 bg-white focus:outline-none focus:border-[#5a00b8]"
+                    />
+                    <p className="text-[11px] text-purple-700 font-medium">
+                      💡 Tip: {inventoryOtpChannel === 'both'
+                        ? 'You can enter the OTP received on either your Email or Mobile SMS.'
+                        : `Enter the 6-digit OTP sent to your registered ${inventoryOtpChannel}.`}
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -2638,62 +2687,37 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInventoryOtpChannel('email');
-                      setInventoryOtpSent(false);
-                    }}
-                    className={`py-1.5 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                      inventoryOtpChannel === 'email'
-                        ? 'bg-[#5a00b8] text-white border-[#5a00b8]'
-                        : 'bg-white border-purple-200 text-slate-700 hover:bg-purple-50'
-                    }`}
-                  >
-                    <Mail className="w-3.5 h-3.5" />
-                    <span>Send via Email OTP</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInventoryOtpChannel('phone');
-                      setInventoryOtpSent(false);
-                    }}
-                    className={`py-1.5 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                      inventoryOtpChannel === 'phone'
-                        ? 'bg-[#5a00b8] text-white border-[#5a00b8]'
-                        : 'bg-white border-purple-200 text-slate-700 hover:bg-purple-50'
-                    }`}
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                    <span>Send via Mobile SMS OTP</span>
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-[11px] text-slate-500 font-medium">
-                    Send to: {inventoryOtpChannel === 'email' ? currentUser?.email || 'Email' : currentUser?.phone || 'SMS'}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+                  <span className="text-xs text-slate-600 font-medium flex items-center gap-1.5">
+                    <Mail className="w-4 h-4 text-[#5a00b8]" />
+                    Send to: <strong className="text-slate-800">{currentUser?.email || 'admin@indofleet.com'}</strong>
                   </span>
                   <button
                     type="button"
                     onClick={requestInventoryOtp}
                     disabled={adminOtpLoading}
-                    className="px-3 py-1.5 bg-white hover:bg-purple-100 text-[#5a00b8] border border-purple-300 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs"
+                    className="px-3.5 py-1.5 bg-white hover:bg-purple-100 text-[#5a00b8] border border-purple-300 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs"
                   >
-                    {inventoryOtpSent ? `Resend ${inventoryOtpChannel === 'email' ? 'Email' : 'SMS'} OTP` : `Request ${inventoryOtpChannel === 'email' ? 'Email' : 'SMS'} OTP`}
+                    {adminOtpLoading ? 'Sending...' : inventoryOtpSent ? 'Resend OTP' : 'Request Email OTP'}
                   </button>
                 </div>
 
                 {inventoryOtpSent && (
-                  <input
-                    type="text"
-                    maxLength={6}
-                    value={inventoryOtp}
-                    onChange={(e) => setInventoryOtp(e.target.value.replace(/[^0-9]/g, ''))}
-                    placeholder="Enter 6-digit OTP code"
-                    className="w-full px-3 py-2 rounded-xl border border-purple-300 text-xs font-mono font-bold tracking-widest text-slate-900 bg-white focus:outline-none focus:border-[#5a00b8]"
-                  />
+                  <div className="space-y-1">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={inventoryOtp}
+                      onChange={(e) => setInventoryOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="Enter 6-digit OTP code"
+                      className="w-full px-3 py-2 rounded-xl border border-purple-300 text-xs font-mono font-bold tracking-widest text-slate-900 bg-white focus:outline-none focus:border-[#5a00b8]"
+                    />
+                    <p className="text-[11px] text-purple-700 font-medium">
+                      💡 Tip: {inventoryOtpChannel === 'both'
+                        ? 'You can enter the OTP received on either your Email or Mobile SMS.'
+                        : `Enter the 6-digit OTP sent to your registered ${inventoryOtpChannel}.`}
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -3367,6 +3391,51 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
           </div>
         </div>
       )}
+
+      {/* ── 700 RPAV QR CODE LABEL MODAL ──── */}
+      <DroneQRCodeModal
+        isOpen={Boolean(selectedQrDrone)}
+        onClose={() => setSelectedQrDrone(null)}
+        drone={selectedQrDrone}
+        onOpenInspection={(droneId) => {
+          setSelectedQrDrone(null);
+          setSelectedInspectionDroneId(droneId);
+          setSelectedInspectionDeliveryId('');
+          setShowInspectionModal(true);
+        }}
+        onNavigate={onNavigate}
+      />
+
+      {/* ── 700 RPAV DRONE QR SCANNER MODAL ──── */}
+      <DroneQRScannerModal
+        isOpen={showQrScanner}
+        onClose={() => setShowQrScanner(false)}
+        availableDrones={drones}
+        onSelectDroneForInspection={(droneId) => {
+          setShowQrScanner(false);
+          setSelectedInspectionDroneId(droneId);
+          setSelectedInspectionDeliveryId('');
+          setShowInspectionModal(true);
+        }}
+        onSelectDroneForQRLabel={(drone) => {
+          setShowQrScanner(false);
+          setSelectedQrDrone(drone);
+        }}
+      />
+
+      {/* ── 700 RPAV POST-DELIVERY CONDITION INSPECTION MODAL ──── */}
+      <PostDeliveryInspectionModal
+        isOpen={showInspectionModal}
+        onClose={() => setShowInspectionModal(false)}
+        droneId={selectedInspectionDroneId}
+        deliveryId={selectedInspectionDeliveryId}
+        availableDrones={drones}
+        onSuccess={() => {
+          fetchData();
+          setToastMessage('Airframe condition inspection successfully recorded!');
+          setTimeout(() => setToastMessage(''), 4000);
+        }}
+      />
     </div>
   );
 };

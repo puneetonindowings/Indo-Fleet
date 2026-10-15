@@ -27,14 +27,16 @@ import { API_BASE_URL } from './config/api';
 import { SEOHead } from './components/SEOHead';
 import { DeliveryTrackingModule } from './pages/DeliveryTrackingModule';
 import { DeliveryAppPage } from './pages/DeliveryAppPage';
+import { PublicDroneQRPage } from './pages/PublicDroneQRPage';
 import { Chatbot } from './components/Chatbot';
 import { UserProfile, DeliveryUser } from './types';
 
-type Page = 'home' | 'platform' | 'command-center' | 'gcs' | 'downloads' | 'versions' | 'track' | 'dispatch' | 'drone-dispatch' | 'delivery-tracking' | 'delivery-app' | 'login' | 'profile' | 'orders' | 'support' | 'docs' | 'company' | 'feedback' | 'legal' | 'admin' | 'fleet' | 'support-desk' | 'shop' | 'store' | 'cart' | '404';
+type Page = 'home' | 'platform' | 'command-center' | 'gcs' | 'downloads' | 'versions' | 'track' | 'dispatch' | 'drone-dispatch' | 'delivery-tracking' | 'delivery-app' | 'drone' | 'login' | 'profile' | 'orders' | 'support' | 'docs' | 'company' | 'feedback' | 'legal' | 'admin' | 'fleet' | 'support-desk' | 'shop' | 'store' | 'cart' | '404';
 
 const getInitialPage = (): Page => {
   if (typeof window === 'undefined') return 'home';
   const p = window.location.pathname;
+  if (p.includes('/drone')) return 'drone';
   if (p.includes('/admin')) return 'admin';
   if (p.includes('/fleet')) return 'fleet';
   if (p.includes('/support-desk') || p.includes('/support_desk')) return 'support-desk';
@@ -146,6 +148,7 @@ export const App: React.FC = () => {
             case 'support':
               return { page: 'support-desk', path: '/support-desk' };
             case 'delivery_partner':
+            case 'delivery':
             case 'pilot':
               return { page: 'delivery-app', path: '/delivery-app' };
             default:
@@ -255,7 +258,9 @@ export const App: React.FC = () => {
       )}
 
       <main className="flex-1 w-full max-w-full min-w-0">
-        {currentPage === 'login' ? (
+        {currentPage === 'drone' ? (
+          <PublicDroneQRPage onNavigate={handleNavigate} />
+        ) : currentPage === 'login' ? (
           <LoginPage onNavigate={handleNavigate} onSuccess={handleDeliveryLogin} />
         ) : currentPage === 'admin' ? (
           <AdminDashboardPage currentUser={deliveryUser} onUpdateUser={setDeliveryUser} onNavigate={handleNavigate} onLogout={handleDeliveryLogout} />

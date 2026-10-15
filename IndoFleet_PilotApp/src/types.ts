@@ -46,8 +46,13 @@ export interface DeliveryOrder {
   };
   delivery_lat?: number;
   delivery_lng?: number;
+  pickup_lat?: number;
+  pickup_lng?: number;
+  drop_lat?: number;
+  drop_lng?: number;
   drone_model?: string;
   drone_id?: string;
+  assigned_drone_id?: string;
   status: 'pending' | 'assigned' | 'taking-off' | 'in-flight' | 'out-for-delivery' | 'delivered' | 'cancelled' | string;
   units_count?: number;
   weight_kg?: number;
@@ -61,9 +66,10 @@ export interface DeliveryOrder {
   pilot_acceptance_otp?: string;
   last_known_location?: string | null;
   delivered_at?: string;
-  pod_signature?: string;
   pod_photo?: string;
   delivery_notes?: string;
+  inspection_id?: string;
+  delivery_data?: Record<string, any>;
   created_at: string;
 }
 

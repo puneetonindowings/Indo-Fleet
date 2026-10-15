@@ -6,7 +6,8 @@ import {
 import {
   Package, IndianRupee, Truck, CheckCircle2, Clock3, Plane, Boxes, Headphones, Users,
   RefreshCw, Search, ArrowUpRight, ArrowDownRight, Zap, Activity, Lightbulb, Trophy,
-  MapPin, AlertTriangle, Plus, UserPlus, ListChecks, PhoneCall, BarChart3, TrendingUp, Timer, XCircle
+  MapPin, AlertTriangle, Plus, UserPlus, ListChecks, PhoneCall, BarChart3, TrendingUp, Timer, XCircle,
+  ShieldCheck
 } from 'lucide-react';
 import { API_BASE_URL } from '../../config/api';
 import { DeliveryUser } from '../../types';
@@ -43,6 +44,13 @@ const DEFAULT_RANGE: DateRange = { key: 'today', label: 'Today', ...presetRange(
 export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction }) => {
   const [range, setRange] = useState<DateRange>(DEFAULT_RANGE);
   const [data, setData] = useState<AnalyticsPayload | null>(null);
+  const [inspectionStats, setInspectionStats] = useState<{
+    passedCount: number;
+    failedOrPendingCount: number;
+    totalCount: number;
+    deliveryPersonChecks?: { total: number; passed: number; defectReported: number; zeroDefectCertifiedCount: number };
+    depotMaintenanceChecks?: { total: number; passed: number; maintenanceRequired: number };
+  }>({ passedCount: 0, failedOrPendingCount: 0, totalCount: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -61,10 +69,20 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_BASE_URL}/api/delivery/analytics?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`);
+      const [res, insRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/delivery/analytics?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`),
+        fetch(`${API_BASE_URL}/api/delivery/inspections/stats`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('iw_delivery_token') || ''}` }
+        }).catch(() => null)
+      ]);
       if (!res.ok) throw new Error(`Analytics request failed (${res.status})`);
       const json = await res.json();
       setData(json);
+
+      if (insRes && insRes.ok) {
+        const insJson = await insRes.json();
+        if (insJson?.stats) setInspectionStats(insJson.stats);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load analytics.');
     } finally {
@@ -214,14 +232,16 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
         />
       </div>
 
-      {/* secondary KPI strip: Operations & Fleet Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+      {/* secondary KPI strip: Operations, Quality & Fleet Metrics */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3.5">
         {[
           { label: "Today's Deliveries", value: k.todaysDeliveries.value, icon: Truck, tone: 'text-emerald-700 bg-emerald-50' },
           { label: 'In Transit Units', value: k.inTransit.value, icon: Plane, tone: 'text-sky-700 bg-sky-50' },
           { label: 'Pending Dispatch', value: k.pendingDispatches.value, icon: Boxes, tone: 'text-amber-700 bg-amber-50' },
           { label: 'Dispatched Fleet', value: k.dispatchedDrones.value, icon: Plane, tone: 'text-purple-700 bg-purple-50' },
-          { label: 'Open Support Tickets', value: k.activeSupportTickets.value, icon: Headphones, tone: 'text-rose-700 bg-rose-50' }
+          { label: 'Open Support Tickets', value: k.activeSupportTickets.value, icon: Headphones, tone: 'text-rose-700 bg-rose-50' },
+          { label: 'Inspections passed', value: inspectionStats.passedCount, icon: ShieldCheck, tone: 'text-emerald-800 bg-emerald-50 border border-emerald-300' },
+          { label: 'Inspections failed or pending', value: inspectionStats.failedOrPendingCount, icon: AlertTriangle, tone: 'text-rose-800 bg-rose-50 border border-rose-300' }
         ].map((s) => (
           <div key={s.label} className="bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-xs flex items-center gap-3">
             <div className={`p-2 rounded-lg shrink-0 ${s.tone}`}>

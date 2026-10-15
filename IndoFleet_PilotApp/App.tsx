@@ -16,6 +16,7 @@ import { FirstTimePasswordModal } from './src/components/FirstTimePasswordModal'
 import { AcceptOrderModal } from './src/components/AcceptOrderModal';
 import { DispatcherHandoverModal } from './src/components/DispatcherHandoverModal';
 import { CustomerDeliveryPodModal } from './src/components/CustomerDeliveryPodModal';
+import { PilotInspectionModal } from './src/components/PilotInspectionModal';
 import { SosModal } from './src/components/SosModal';
 
 import { LoginScreen } from './src/screens/LoginScreen';
@@ -70,6 +71,8 @@ export default function App() {
   const [acceptModalOpen, setAcceptModalOpen] = useState<boolean>(false);
   const [handoverModalOpen, setHandoverModalOpen] = useState<boolean>(false);
   const [podModalOpen, setPodModalOpen] = useState<boolean>(false);
+  const [inspectionModalOpen, setInspectionModalOpen] = useState<boolean>(false);
+  const [inspectionOrder, setInspectionOrder] = useState<DeliveryOrder | null>(null);
 
   // Dashboard & Telemetry State
   const [orders, setOrders] = useState<DeliveryOrder[]>([]);
@@ -380,7 +383,8 @@ export default function App() {
     }
   };
 
-  const handlePodDelivered = async () => {
+  const handlePodDelivered = async (finishedOrder?: DeliveryOrder) => {
+    const targetOrder = finishedOrder || selectedOrder;
     await stopTracking();
     if (foregroundWatcherRef.current) {
       foregroundWatcherRef.current.remove();
@@ -390,6 +394,17 @@ export default function App() {
     setSelectedOrder(null);
     setActiveScreen('dashboard');
     await loadDashboardData();
+
+    // Prompt for Post-Delivery Airframe Inspection (700 RPAV Quality Standard)
+    if (targetOrder) {
+      setInspectionOrder(targetOrder);
+      setInspectionModalOpen(true);
+    }
+  };
+
+  const handleOpenInspection = (order?: DeliveryOrder) => {
+    setInspectionOrder(order || selectedOrder || (orders.length > 0 ? orders[0] : null));
+    setInspectionModalOpen(true);
   };
 
   // If not logged in, render Login Screen
@@ -416,6 +431,7 @@ export default function App() {
         onNavigateProfile={() => setActiveScreen('profile')}
         onNavigateHistory={() => setActiveScreen('history')}
         onNavigateSupport={() => setActiveScreen('support')}
+        onInspectDrone={() => handleOpenInspection()}
         onLogout={handleLogout}
       />
 
@@ -437,6 +453,7 @@ export default function App() {
               setActiveScreen('radar');
             }}
             onViewHistory={() => setActiveScreen('history')}
+            onInspectDrone={handleOpenInspection}
           />
         )}
 
@@ -453,6 +470,8 @@ export default function App() {
         {activeScreen === 'radar' && (
           <FlightRadarScreen
             order={selectedOrder}
+            allOrders={orders}
+            onSelectOrder={(ord) => setSelectedOrder(ord)}
             isTracking={isTracking}
             telemetry={telemetry}
             currentCoords={currentCoords}
@@ -555,6 +574,17 @@ export default function App() {
         vehicleId={currentUser.vehicle_id}
         currentCoords={currentCoords}
         batteryPct={telemetry.batteryPct}
+      />
+
+      {/* Post-Delivery Airframe Inspection Modal (700 RPAV Standard) */}
+      <PilotInspectionModal
+        visible={inspectionModalOpen}
+        order={inspectionOrder}
+        pilotUser={currentUser}
+        onClose={() => setInspectionModalOpen(false)}
+        onSuccess={() => {
+          loadDashboardData();
+        }}
       />
     </SafeAreaView>
   );

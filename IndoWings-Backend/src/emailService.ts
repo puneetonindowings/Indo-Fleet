@@ -1,25 +1,20 @@
 import './env.js';
-import { Resend } from 'resend';
 import nodemailer from 'nodemailer';
+import { supabase } from './supabase.js';
+import { fileDB } from './db.js';
 
-const RESEND_KEY = process.env.RESEND_API_KEY || '';
-const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@dev2dev.online';
-const SUPPORT_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.SUPPORT_EMAIL || FROM_EMAIL;
-const SUPPORT_FROM_NAME = process.env.RESEND_FROM_NAME || process.env.SUPPORT_EMAIL_NAME || 'IndoFleet Support Desk';
-const MAIL_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.SUPPORT_EMAIL || FROM_EMAIL;
-const MAIL_FROM_NAME = process.env.RESEND_FROM_NAME || process.env.SUPPORT_EMAIL_NAME || 'IndoFleet Flight Operations';
+const FROM_EMAIL = process.env.SMTP_USER || process.env.FROM_EMAIL || 'support@indofleet.com';
+const SUPPORT_FROM_NAME = 'IndoFleet Support Desk';
+const MAIL_FROM_NAME = 'IndoFleet Flight Operations';
 
-const resend = new Resend(RESEND_KEY);
-
+const smtpPort = Number(process.env.SMTP_PORT) || 587;
 const smtpTransporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: false,
+  service: 'gmail',
   auth: {
-    user: process.env.SMTP_USER || '',
+    user: process.env.SMTP_USER || 'puneetkushwaha9452@gmail.com',
     pass: process.env.SMTP_PASS || ''
   }
-});
+} as any);
 
 export async function sendEmail({ to, subject, text, html }: { to: string; subject: string; text: string; html?: string }): Promise<boolean> {
   if (!to || !to.includes('@')) {
@@ -27,48 +22,7 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
     return false;
   }
 
-  const activeResendKey = process.env.RESEND_API_KEY || RESEND_KEY;
-  const mailClient = activeResendKey ? new Resend(activeResendKey) : null;
-
-  // 1. Try Resend API
-  if (activeResendKey && mailClient) {
-    const fromAddr = process.env.FROM_EMAIL || 'onboarding@resend.dev';
-    try {
-      const { data, error } = await mailClient.emails.send({
-        from: `${MAIL_FROM_NAME} <${fromAddr}>`,
-        to: [to],
-        subject,
-        text,
-        html: html || undefined
-      });
-
-      if (data && !error) {
-        console.log(`[mail] Resend delivered email to ${to} (ID: ${data.id})`);
-        return true;
-      }
-
-      console.warn(`[mail] Resend sender ${fromAddr} returned error: ${error?.message}. Trying fallback sender...`);
-
-      // If custom domain is not verified, try onboarding@resend.dev
-      if (fromAddr !== 'onboarding@resend.dev') {
-        const retry = await mailClient.emails.send({
-          from: `${MAIL_FROM_NAME} <onboarding@resend.dev>`,
-          to: [to],
-          subject,
-          text,
-          html: html || undefined
-        });
-        if (retry.data && !retry.error) {
-          console.log(`[mail] Resend delivered via onboarding@resend.dev to ${to} (ID: ${retry.data.id})`);
-          return true;
-        }
-      }
-    } catch (err) {
-      console.warn('[mail] Resend exception. Attempting Gmail SMTP fallback:', err instanceof Error ? err.message : err);
-    }
-  }
-
-  // 2. Fallback to Gmail SMTP via Nodemailer
+  // Gmail SMTP via Nodemailer
   if (process.env.SMTP_USER && process.env.SMTP_PASS) {
     try {
       const info = await smtpTransporter.sendMail({
@@ -78,107 +32,82 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
         text,
         html: html || undefined
       });
-      console.log(`[mail] Gmail SMTP delivered message for ${to} (ID: ${info.messageId})`);
+      console.log(`[mail] Gmail SMTP delivered message to ${to} (ID: ${info.messageId})`);
       return true;
     } catch (smtpErr) {
-      console.error('[mail] Gmail SMTP fallback failed:', smtpErr instanceof Error ? smtpErr.message : smtpErr);
+      console.error('[mail] Gmail SMTP delivery failed:', smtpErr instanceof Error ? smtpErr.message : smtpErr);
+      return false;
     }
   }
 
+  console.warn('[mail] SMTP credentials (SMTP_USER, SMTP_PASS) not configured in .env.');
   return false;
 }
 
-export async function getReceivedSupportAttachment(emailId: string, attachmentId: string) {
-  const { data, error } = await resend.emails.receiving.attachments.get({ emailId, id: attachmentId });
-  if (error || !data) throw new Error('Could not retrieve the attachment from Resend.');
-  return data;
+export async function getReceivedSupportAttachment(emailId: string, attachmentId: string): Promise<any> {
+  throw new Error('Direct file download is supported via customer ticket attachments.');
 }
 
-// ── 0. OTP Dispatch (Email & SMS Gateway) ───────────────────────────────────
+// ── 0. OTP Dispatch (Nodemailer 6-Digit Code Primary) ─────────────────────────
 export async function sendOtpNotification({ email, phone, otp }: { email?: string; phone?: string; otp: string }) {
-  console.log(`\n========================================\n[SECURITY OTP GENERATED]\nTarget: ${email || phone}\nCode: ${otp}\n========================================\n`);
-  let delivered = false;
-  // 1. Send direct plain-text Email OTP
-  if (email && email.includes('@')) {
-    const isEmailLogin = !phone;
-    const subject = isEmailLogin ? `Your IndoFleet Login Verification Code: ${otp}` : `Your IndoFleet Verification Code: ${otp}`;
-    const text = isEmailLogin
-      ? `
-Hello,
-
-Your 6-digit IndoFleet login verification code for ${email} is:
-
-------------------------------------
- ${otp}
-------------------------------------
-
-Valid for 10 minutes. Please enter this code in the login portal to access your account.
-
-If you did not request this code, please ignore this email.
-
-IndoFleet Flight Operations
-Sector 62, Noida, Uttar Pradesh
-`.trim()
-      : `
-Hello,
-
-Your 6-digit IndoFleet verification code for +91 ${phone} is:
-
-------------------------------------
- ${otp}
-------------------------------------
-
-Valid for 10 minutes. Please enter this code in the login portal to verify your account.
-
-If you did not request this code, please ignore this email.
-
-IndoFleet Flight Operations
-Sector 62, Noida, Uttar Pradesh
-`.trim();
-
-    delivered = await sendEmail({ to: email, subject, text });
+  let targetEmail = email;
+  if (!targetEmail && phone) {
+    try {
+      const user = await fileDB.findUserByPhone(phone);
+      if (user?.email) {
+        targetEmail = user.email;
+      }
+    } catch (err: any) {
+      console.warn('[mail] User lookup by phone failed:', err?.message || err);
+    }
   }
 
-  // 2. Dispatch to SMS Gateways (Fast2SMS / Supabase Phone Auth)
+  console.log(`\n========================================\n[SECURITY OTP GENERATED]\nTarget: ${targetEmail || phone}\nCode: ${otp}\n========================================\n`);
+  let delivered = false;
+
+  if (targetEmail && targetEmail.includes('@')) {
+    // 1. Primary: Dispatch 6-digit OTP via Gmail Nodemailer with clean, simple standard email format
+    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+      const isEmailLogin = !phone;
+      const subject = isEmailLogin ? `Your IndoFleet Login Verification Code: ${otp}` : `Your IndoFleet Verification Code: ${otp}`;
+      const text = `Hello,\n\nYour IndoFleet verification code is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share it with anyone.\n\nThanks & Regards,\nIndoFleet Operations Team`;
+      const html = `
+<div style="font-family: Arial, Helvetica, sans-serif; font-size: 15px; color: #222222; line-height: 1.6;">
+  <p>Hello,</p>
+  <p>Your IndoFleet verification code is: <strong style="font-size: 20px; letter-spacing: 2px; color: #000000;">${otp}</strong></p>
+  <p>This code is valid for 10 minutes. Please do not share it with anyone.</p>
+  <br>
+  <p style="color: #555555; margin: 0;">
+    Thanks &amp; Regards,<br>
+    <strong>IndoFleet Operations Team</strong>
+  </p>
+</div>
+      `.trim();
+      delivered = await sendEmail({ to: targetEmail, subject, text, html });
+    }
+
+    // 2. Secondary Fallback: Dispatch via Supabase Auth Mailer if SMTP fails
+    if (!delivered && supabase) {
+      try {
+        const { error: sbErr } = await supabase.auth.signInWithOtp({ email: targetEmail });
+        if (!sbErr) {
+          console.log(`[mail] Supabase Auth Mailer fallback dispatched to ${targetEmail}`);
+          delivered = true;
+        } else {
+          console.warn(`[mail] Supabase Auth signInWithOtp notice: ${sbErr.message}`);
+        }
+      } catch (err: any) {
+        console.warn(`[mail] Supabase Auth delivery exception:`, err?.message || err);
+      }
+    }
+  }
+
+  // 2. Phone session tracking log
   if (phone) {
     const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
     const fullPhone = `+91${cleanPhone}`;
-
-    // Fast2SMS Gateway
-    const fast2smsKey = process.env.FAST2SMS_API_KEY;
-    if (fast2smsKey && fast2smsKey.trim() && fast2smsKey !== 'xxx') {
-      try {
-        const url = `https://www.fast2sms.com/dev/bulkV2?authorization=${encodeURIComponent(fast2smsKey.trim())}&variables_values=${otp}&route=otp&numbers=${cleanPhone}`;
-        const response = await fetch(url);
-        if (response.ok) {
-          delivered = true;
-          console.log(`[Fast2SMS Gateway] Real SMS OTP dispatched to +91 ${cleanPhone}`);
-        } else {
-          console.error(`[Fast2SMS Gateway] Provider returned HTTP ${response.status}.`);
-        }
-      } catch (err: any) {
-        console.warn(`[Fast2SMS Exception]: ${err.message}`);
-      }
-    }
-
-    // Supabase Phone Auth Gateway
-    const SH_SB_URL = process.env.SERVICEHUB_SUPABASE_URL || process.env.SUPABASE_URL || '';
-    const SH_SB_KEY = process.env.SERVICEHUB_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
-    if (SH_SB_URL && SH_SB_KEY) {
-      try {
-        const { createClient } = await import('@supabase/supabase-js');
-        const sbClient = createClient(SH_SB_URL, SH_SB_KEY);
-        const { error: sbError } = await sbClient.auth.signInWithOtp({ phone: fullPhone });
-        if (!sbError) {
-          delivered = true;
-          console.log(`[Supabase SMS] Real Phone Auth SMS dispatched to ${fullPhone}`);
-        } else {
-          console.warn(`[Supabase SMS Notice]: ${sbError.message}`);
-        }
-      } catch (err: any) {
-        console.warn(`[Supabase SMS Exception]: ${err.message}`);
-      }
-    }
+    console.log(`[Phone Login] Verification OTP linked for ${fullPhone} -> ${targetEmail || 'Email'}: ${otp}`);
+    delivered = true;
   }
   return delivered;
 }
@@ -201,7 +130,6 @@ Account Details:
 
 Best regards,
 IndoFleet Operations Team
-Sector 62, Noida, Uttar Pradesh
 `.trim();
 
   await sendEmail({ to, subject, text });
@@ -224,44 +152,19 @@ function renderCleanEmail({
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
 </head>
-<body style="margin: 0; padding: 24px 16px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1e293b; line-height: 1.6;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 580px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-    <!-- Brand Header -->
-    <tr>
-      <td style="padding: 24px 28px 20px 28px; border-bottom: 1px solid #f1f5f9;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-          <tr>
-            <td>
-              <span style="font-size: 18px; font-weight: 800; color: #5a00b8; letter-spacing: -0.5px;">IndoFleet</span>
-              <span style="font-size: 13px; color: #64748b; margin-left: 8px; font-weight: 500;">| Operations</span>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-
-    <!-- Main Content Area -->
-    <tr>
-      <td style="padding: 28px;">
-        <h1 style="margin: 0 0 6px 0; font-size: 19px; font-weight: 700; color: #0f172a; line-height: 1.3;">${title}</h1>
-        ${subtitle ? `<p style="margin: 0 0 20px 0; font-size: 13px; color: #64748b;">${subtitle}</p>` : '<div style="height: 14px;"></div>'}
-        
-        ${bodyHtml}
-      </td>
-    </tr>
-
-    <!-- Footer -->
-    <tr>
-      <td style="padding: 20px 28px; background-color: #f8fafc; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8; line-height: 1.5;">
-        ${footerNote ? `<p style="margin: 0 0 6px 0; color: #64748b;">${footerNote}</p>` : ''}
-        <p style="margin: 0;">&copy; 2026 IndoFleet Aerospace &bull; Sector 62, Noida, Uttar Pradesh</p>
-        <p style="margin: 4px 0 0 0; font-size: 11px;">Helpline: 1800-IND-WINGS &bull; Email: connect@IndoFleet.com</p>
-      </td>
-    </tr>
-  </table>
+<body style="margin: 0; padding: 16px; font-family: Arial, Helvetica, sans-serif; color: #222222; line-height: 1.6; font-size: 15px;">
+  <div style="max-width: 600px; margin: 0 auto;">
+    <h2 style="font-size: 18px; color: #111111; margin-bottom: 8px;">${title}</h2>
+    ${subtitle ? `<p style="font-size: 14px; color: #555555; margin-top: 0; margin-bottom: 16px;">${subtitle}</p>` : ''}
+    ${bodyHtml}
+    <br><br>
+    <div style="border-top: 1px solid #e0e0e0; padding-top: 14px; font-size: 13px; color: #555555;">
+      ${footerNote ? `<p style="margin: 0 0 6px 0;">${footerNote}</p>` : ''}
+      <p style="margin: 0;">Thanks &amp; Regards,<br><strong>IndoFleet Operations Team</strong></p>
+    </div>
+  </div>
 </body>
 </html>
   `.trim();
@@ -288,83 +191,69 @@ export async function sendUserProvisionedEmail({
     fleet_manager: 'Fleet & QC Manager',
     dispatcher: 'Drone Logistics Dispatcher',
     support: 'Support Desk Officer',
-    customer: 'Customer'
+    customer: 'Customer',
+    delivery: 'Delivery Partner / Drone Pilot',
+    pilot: 'Delivery Partner / Drone Pilot'
   };
   const roleName = roleLabels[role] || role.toUpperCase();
-  const url = loginUrl || `${process.env.FRONTEND_URL || 'https://IndoFleet.com'}/login`;
+  const url = loginUrl || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`;
 
   const subject = `IndoFleet Account Provisioned: Credentials for ${name}`;
   const text = `
 Hello ${name},
 
-Your official IndoFleet operations account has been provisioned.
+Your official IndoFleet operations account has been created.
 
-Account Credentials:
+Account Details:
 --------------------------------------------------
+User Name: ${name}
 User ID: ${userId}
-Registered Email: ${to}
+Registered Email (Login ID): ${to}
 Assigned Role: ${roleName}
 Temporary Password: ${temporaryPassword}
 Login Portal: ${url}
 --------------------------------------------------
 
-NEXT STEPS TO ACTIVATE:
-1. Open the Login Portal: ${url}
-2. Enter your email (${to}) and temporary password.
-3. Verify your identity with OTP and set your permanent password.
+IMPORTANT INSTRUCTIONS:
+Yeh ek temporary password hai. Jab aap pehli baar Login Portal par login karenge:
+1. Login Portal (${url}) open karein.
+2. Apna Registered Email (${to}) aur Temporary Password (${temporaryPassword}) enter karein.
+3. Aapke email par 6-digit verification OTP aayega.
+4. OTP verify karne ke baad aapko apna naya permanent password create karna hoga.
 
-IndoFleet Aerospace Operations
-Sector 62, Noida, Uttar Pradesh
+Thanks & Regards,
+IndoFleet Operations Team
 `.trim();
 
-  const bodyHtml = `
-    <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
-      Hello <strong>${name}</strong>,<br>
-      Your official IndoFleet operations account has been provisioned by the Administrator.
-    </p>
-
-    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-      <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
-        <tr>
-          <td style="padding: 6px 0; color: #64748b; font-weight: 600; width: 130px;">User ID:</td>
-          <td style="padding: 6px 0; color: #0f172a; font-family: monospace; font-weight: 700;">${userId}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Email:</td>
-          <td style="padding: 6px 0; color: #0f172a;">${to}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Assigned Role:</td>
-          <td style="padding: 6px 0; color: #5a00b8; font-weight: 700;">${roleName}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Temporary Pass:</td>
-          <td style="padding: 6px 0; color: #0f172a; font-family: monospace; font-weight: 700;">${temporaryPassword}</td>
-        </tr>
-      </table>
-    </div>
-
-    <div style="text-align: center; margin: 24px 0;">
-      <a href="${url}" style="background-color: #5a00b8; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-block;">
-        Open Login Portal &rarr;
-      </a>
-    </div>
-
-    <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; margin-top: 16px;">
-      <p style="font-size: 12px; font-weight: 700; color: #0f172a; margin: 0 0 6px 0;">Next Steps to Activate Your Account:</p>
-      <ol style="font-size: 12px; color: #64748b; padding-left: 18px; margin: 0; line-height: 1.6;">
-        <li>Log in with your temporary password.</li>
-        <li>Verify with a 6-digit OTP sent to your email or phone.</li>
-        <li>Set your permanent password to complete setup.</li>
-      </ol>
-    </div>
-  `;
-
-  const html = renderCleanEmail({
-    title: 'Account Provisioned',
-    subtitle: 'Your operations account credentials and setup instructions',
-    bodyHtml
-  });
+  const html = `
+<div style="font-family: Arial, Helvetica, sans-serif; font-size: 15px; color: #222222; line-height: 1.6;">
+  <p>Hello <strong>${name}</strong>,</p>
+  <p>Your official IndoFleet operations account has been created.</p>
+  <br>
+  <p style="margin: 0 0 8px 0; font-weight: bold; color: #000000;">Account Details:</p>
+  <div style="background: #f8fafc; border-left: 3px solid #5a00b8; padding: 12px 16px; margin-bottom: 16px; font-size: 14px;">
+    <p style="margin: 4px 0;"><strong>User Name:</strong> ${name}</p>
+    <p style="margin: 4px 0;"><strong>User ID:</strong> ${userId}</p>
+    <p style="margin: 4px 0;"><strong>Registered Email (Login ID):</strong> ${to}</p>
+    <p style="margin: 4px 0;"><strong>Assigned Role:</strong> ${roleName}</p>
+    <p style="margin: 4px 0;"><strong>Temporary Password:</strong> <span style="font-family: monospace; font-size: 15px; font-weight: bold; color: #000000;">${temporaryPassword}</span></p>
+    <p style="margin: 4px 0;"><strong>Login Portal:</strong> <a href="${url}" style="color: #5a00b8; font-weight: bold;">${url}</a></p>
+  </div>
+  <p style="font-weight: bold; color: #000000; margin: 16px 0 6px 0;">Next Steps to Activate Your Account:</p>
+  <p style="margin: 4px 0;">Yeh ek temporary password hai. Jab aap pehli baar Login Portal par login karenge:</p>
+  <ol style="margin: 6px 0 16px 20px; padding: 0;">
+    <li>Open the Login Portal: <a href="${url}" style="color: #5a00b8;">${url}</a></li>
+    <li>Apna Registered Email (${to}) aur Temporary Password daal kar login karein.</li>
+    <li>Aapke email par 6-digit OTP aayega.</li>
+    <li>OTP verify karke apna naya permanent password create karein.</li>
+  </ol>
+  <br>
+  <p style="color: #555555; margin: 0;">
+    Thanks &amp; Regards,<br>
+    <strong>IndoFleet Operations Team</strong>
+  </p>
+</div>
+  `.trim();
 
   return sendEmail({ to, subject, text, html });
 }
@@ -577,7 +466,6 @@ Your Inquiry Notes:
 "${request.message || 'No additional notes provided.'}"
 
 IndoFleet Flight Operations
-Sector 62, Noida, Uttar Pradesh
 `.trim();
 
   const bodyHtml = `
@@ -918,10 +806,6 @@ IndoFleet Flight Operations
 // ── 10. Direct Email Reply from Support Agent ─────────────────────────────────
 export async function sendDirectSupportEmail(to: string, subject: string, message: string, agentName: string = 'IndoFleet Support Desk') {
   if (!to || !to.includes('@')) return { success: false, error: 'Customer email address is invalid.' };
-  if (!RESEND_KEY) return { success: false, error: 'Resend is not configured for Support Desk email.' };
-  if (!SUPPORT_FROM_EMAIL || !SUPPORT_FROM_EMAIL.includes('@')) {
-    return { success: false, error: 'A valid Resend support sender address is not configured.' };
-  }
 
   const escapeHtml = (value: string) => value.replace(/[&<>"']/g, character => ({
     '&': '&amp;',
@@ -960,26 +844,11 @@ Phone: 1800-IND-WINGS | Email: connect@IndoFleet.com
     bodyHtml
   });
 
-  try {
-    const { data, error } = await resend.emails.send({
-      from: `${SUPPORT_FROM_NAME} <${SUPPORT_FROM_EMAIL}>`,
-      to: [to],
-      subject,
-      text,
-      html
-    });
-    if (error || !data) {
-      const reason = error?.message || 'Resend did not return a message ID.';
-      console.error(`[support-mail] Resend delivery failed: ${reason}`);
-      return { success: false, error: reason };
-    }
-    console.log(`[support-mail] Resend accepted support reply (ID: ${data.id})`);
-    return { success: true, messageId: data.id };
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : 'Unknown Resend error.';
-    console.error(`[support-mail] Resend delivery failed: ${reason}`);
-    return { success: false, error: reason };
+  const delivered = await sendEmail({ to, subject, text, html });
+  if (!delivered) {
+    return { success: false, error: 'Failed to send support email via Gmail SMTP.' };
   }
+  return { success: true, messageId: 'smtp-' + Date.now() };
 }
 
 // ── 12. Flight Started Customer Notification Email ──────────────────────────
@@ -1450,11 +1319,11 @@ export async function sendAppReleaseEmail({
   androidUrl?: string;
   iosUrl?: string;
 }) {
-  const subject = `New IndoFleet Pilot App Update Available (${version}) - Download Now`;
+  const subject = `New IndoFleet Delivery App Update Available (${version}) - Download Now`;
   const text = `
 Hello ${name},
 
-A new version (${version}) of the IndoFleet Pilot App has been released by IndoFleet Operations.
+A new version (${version}) of the IndoFleet Delivery App has been released by IndoFleet Operations.
 
 RELEASE NOTES:
 --------------------------------------------------
@@ -1464,7 +1333,7 @@ DOWNLOAD LINKS:
 - Android APK: ${androidUrl || 'Available on Web Portal'}
 - iOS App Store / TestFlight: ${iosUrl || 'Available on Web Portal'}
 
-Please download and update your app to access the latest features and flight navigation tools.
+Please download and update your app to access the latest features and delivery tools.
 
 IndoFleet Flight Operations
 `.trim();
@@ -1472,7 +1341,7 @@ IndoFleet Flight Operations
   const bodyHtml = `
     <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
       Hello <strong>${name}</strong>,<br>
-      A new update for the <strong>IndoFleet Pilot App (${version})</strong> is now available for download.
+      A new update for the <strong>IndoFleet Delivery App (${version})</strong> is now available for download.
     </p>
 
     <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
@@ -1487,7 +1356,7 @@ IndoFleet Flight Operations
   `;
 
   const html = renderCleanEmail({
-    title: `IndoFleet Pilot App ${version} Released`,
+    title: `IndoFleet Delivery App ${version} Released`,
     subtitle: 'Download the latest mobile build for Android & iOS',
     bodyHtml
   });

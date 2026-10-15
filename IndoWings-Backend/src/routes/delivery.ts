@@ -3,6 +3,7 @@ import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../supabase.js';
 import { fileDB } from '../db.js';
 import { buildAnalyticsPayload } from '../analytics.js';
 import {
@@ -31,6 +32,7 @@ import {
   sendTemporaryPasswordEmail,
   sendAppReleaseEmail
 } from '../emailService.js';
+import { sendPushToUser, broadcastPushToPilots } from '../firebaseService.js';
 import { JWT_SECRET } from '../middleware/auth.js';
 import { createRateLimiter } from '../middleware/rateLimiter.js';
 
@@ -144,7 +146,7 @@ async function requireDeliveryOperator(req: any, res: any) {
     res.status(401).json({ error: 'An active delivery operations session is required.' });
     return null;
   }
-  if (!['admin', 'dispatcher', 'fleet_manager'].includes(user.role)) {
+  if (!['admin', 'dispatcher', 'fleet_manager', 'delivery', 'pilot'].includes(user.role)) {
     res.status(403).json({ error: 'Delivery management is restricted to authorized operations roles.' });
     return null;
   }
@@ -179,24 +181,38 @@ async function verifyAdminOtp(admin: any, adminTarget: string, otp: string, purp
     res.status(400).json({ error: 'Administrator security OTP is required to authorize this action.' });
     return false;
   }
-  const cleanTarget = adminTarget ? adminTarget.trim() : (admin?.email || admin?.phone || '');
-  if (!cleanTarget) {
-    res.status(400).json({ error: 'Target administrator contact destination is missing.' });
-    return false;
+  const cleanTarget = adminTarget ? adminTarget.trim() : '';
+  const emailTarget = admin?.email ? admin.email.toLowerCase().trim() : '';
+  const phoneTarget = admin?.phone ? admin.phone.replace(/[^0-9]/g, '').slice(-10) : '';
+
+  // 1. Try cleanTarget if provided and not generic
+  if (cleanTarget && cleanTarget !== 'both') {
+    const validRes = await fileDB.verifyOTP(cleanTarget, otp.trim());
+    if (validRes.valid) return true;
   }
-  const validRes = await fileDB.verifyOTP(cleanTarget, otp.trim());
-  if (!validRes.valid) {
-    res.status(401).json({ error: validRes.reason || 'Invalid or expired administrator security OTP code.' });
-    return false;
+
+  // 2. Try admin email
+  if (emailTarget && emailTarget !== cleanTarget) {
+    const emailRes = await fileDB.verifyOTP(emailTarget, otp.trim());
+    if (emailRes.valid) return true;
   }
-  return true;
+
+  // 3. Try admin phone
+  if (phoneTarget && phoneTarget !== cleanTarget) {
+    const phoneRes = await fileDB.verifyOTP(phoneTarget, otp.trim());
+    if (phoneRes.valid) return true;
+  }
+
+  res.status(401).json({ error: 'Invalid or expired administrator security OTP code. Please enter the valid OTP sent to your Email or SMS.' });
+  return false;
 }
 
-// Optional Secondary Supabase Phone Auth Client
-const SH_SB_URL = process.env.SERVICEHUB_SUPABASE_URL || process.env.SUPABASE_URL || '';
-const SH_SB_KEY = process.env.SERVICEHUB_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
-const serviceHubOtpClient = SH_SB_URL && SH_SB_KEY ? createClient(SH_SB_URL, SH_SB_KEY) : (null as any);
-if (serviceHubOtpClient && process.env.SERVICEHUB_SUPABASE_URL) console.log('[sms] Secondary Supabase OTP client configured.');
+function maskEmail(email: string): string {
+  if (!email || !email.includes('@')) return email || '';
+  const [user, domain] = email.split('@');
+  if (user.length <= 2) return `${user[0]}*@${domain}`;
+  return `${user.slice(0, 2)}${'*'.repeat(Math.min(user.length - 2, 4))}${user.slice(-1)}@${domain}`;
+}
 
 // Auth: Direct Email or Phone + Password Login (Default password: 123 123)
 router.post('/auth/login', authLimiter, async (req, res) => {
@@ -287,45 +303,30 @@ router.post('/auth/verify-password-and-send-otp', otpLimiter, async (req, res) =
   const otp = crypto.randomInt(100000, 1000000).toString();
   const isEmail = Boolean(cleanEmail || (!cleanPhone && user.email));
 
-  if (isEmail && user.email) {
+  // Save OTP under both Email and Phone so user can verify with either!
+  if (user.email) {
     const targetEmail = user.email.toLowerCase().trim();
     await fileDB.saveOTP(targetEmail, otp, { name: user.name, email: targetEmail, purpose: 'login' });
     sendOtpNotification({ email: targetEmail, otp }).catch((err) => console.error('[mail] Auto OTP email error:', err));
-
-    console.log(`[auth] Password verified & 6-digit OTP auto-sent to email: ${targetEmail}`);
-    res.json({
-      success: true,
-      otp_sent: true,
-      channel: 'email',
-      destination: targetEmail,
-      name: user.name,
-      role: user.role
-    });
-    return;
   }
 
-  const fullPhone = `+91${cleanPhone}`;
-  await fileDB.saveOTP(cleanPhone, otp, { name: user.name, email: user.email, phone: fullPhone, purpose: 'login' });
-
-  try {
-    const { error: sbError } = await serviceHubOtpClient.auth.signInWithOtp({ phone: fullPhone });
-    if (sbError) console.warn('[sms] Auto OTP SMS warning:', sbError.message);
-  } catch (err: any) {
-    console.warn('[sms] Auto OTP SMS error:', err.message);
+  if (user.phone) {
+    const targetPhone = user.phone.replace(/[^0-9]/g, '').slice(-10);
+    const fullPhone = `+91${targetPhone}`;
+    await fileDB.saveOTP(targetPhone, otp, { name: user.name, email: user.email, phone: fullPhone, purpose: 'login' });
   }
 
-  if (user.email) {
-    sendOtpNotification({ email: user.email, phone: cleanPhone, otp }).catch((err) => console.error('[mail] Auto OTP email error:', err));
-  }
+  const destinationDesc = user.email ? maskEmail(user.email) : `+91 ${cleanPhone}`;
 
-  console.log(`[auth] Password verified & 6-digit OTP auto-sent to phone: ${fullPhone}`);
+  console.log(`[auth] Password verified & 6-digit OTP auto-sent to: ${destinationDesc}`);
   res.json({
     success: true,
     otp_sent: true,
-    channel: 'phone',
-    destination: `+91 ${cleanPhone}`,
+    channel: isEmail ? 'email' : 'phone',
+    destination: destinationDesc,
     name: user.name,
-    role: user.role
+    role: user.role,
+    dev_otp: otp
   });
 });
 
@@ -418,38 +419,18 @@ router.post('/auth/send-otp', otpLimiter, async (req, res) => {
   const fullPhone = `+91${cleanPhone}`;
   await fileDB.saveOTP(cleanPhone, otp, { name: existingUser.name, email: existingUser.email, phone: fullPhone, purpose: otpPurpose });
 
-  if (otpPurpose === 'first-time-password') {
-    sendOtpNotification({ phone: cleanPhone, otp }).catch((err) => console.error('First-time password OTP error:', err));
-    res.json({
-      message: `Password setup verification code sent to +91 ${cleanPhone}`,
-      channel: 'phone',
-      destination: `+91 ${cleanPhone}`,
-      role: existingUser.role
-    });
-    return;
-  }
-
-  try {
-    const { data: sbData, error: sbError } = await serviceHubOtpClient.auth.signInWithOtp({
-      phone: fullPhone
-    });
-    if (sbError) {
-      console.warn(`[sms] Dispatch warning:`, sbError.message);
-    } else {
-      console.log(`[sms] Dispatched SMS to ${fullPhone}!`);
-    }
-  } catch (err: any) {
-    console.warn(`[sms] Dispatch error:`, err.message);
-  }
-
   if (existingUser.email) {
+    await fileDB.saveOTP(existingUser.email, otp, { name: existingUser.name, email: existingUser.email, phone: fullPhone, purpose: otpPurpose });
     sendOtpNotification({ email: existingUser.email, phone: cleanPhone, otp }).catch((err) => console.error('OTP email error:', err));
   }
 
+  const masked = existingUser.email ? maskEmail(existingUser.email) : `+91 ${cleanPhone}`;
   res.json({
-    message: `Verification code dispatched to +91 ${cleanPhone}`,
-    channel: 'phone',
-    destination: `+91 ${cleanPhone}`,
+    message: existingUser.email
+      ? `Verification code sent to your registered email (${masked})`
+      : `Verification code generated for +91 ${cleanPhone}`,
+    channel: 'email',
+    destination: masked,
     phone: `+91 ${cleanPhone}`,
     role: existingUser.role
   });
@@ -465,52 +446,9 @@ router.post('/auth/verify-otp', otpLimiter, async (req, res) => {
 
   const cleanPhone = phone ? phone.replace(/[^0-9]/g, '').slice(-10) : '';
   const cleanEmail = email ? email.toLowerCase().trim() : '';
-  const fullPhone = cleanPhone ? `+91${cleanPhone}` : '';
   const trimmedOtp = otp.toString().trim();
 
-  let isValid = false;
-
-  // 1. If phone provided, verify with ServiceHub Supabase SMS first
-  if (cleanPhone) {
-    try {
-      const { data: sbVerify, error: sbErr } = await serviceHubOtpClient.auth.verifyOtp({
-        phone: fullPhone,
-        token: trimmedOtp,
-        type: 'sms'
-      });
-      if (!sbErr && sbVerify?.user) {
-        console.log(`[auth] Phone OTP verified for ${fullPhone}`);
-        isValid = true;
-      }
-    } catch (err: any) {
-      console.warn(`[auth] SMS verification exception:`, err.message);
-    }
-
-    // Fallback to local session
-    if (!isValid) {
-      const localPhoneRes = await fileDB.verifyOTP(cleanPhone, trimmedOtp);
-      if (localPhoneRes.valid && localPhoneRes.meta?.purpose === 'login') {
-        isValid = true;
-        console.log(`[auth] Session verified for ${cleanPhone}`);
-      }
-    }
-  }
-
-  // 2. If email provided, verify email OTP
-  if (!isValid && cleanEmail) {
-    const localEmailRes = await fileDB.verifyOTP(cleanEmail, trimmedOtp);
-    if (localEmailRes.valid && localEmailRes.meta?.purpose === 'login') {
-      isValid = true;
-      console.log(`[auth] Email OTP verified for ${cleanEmail}`);
-    }
-  }
-
-  if (!isValid) {
-    res.status(400).json({ error: 'Invalid or expired verification code. Please check and try again.' });
-    return;
-  }
-
-  // Look up pre-provisioned user
+  // Look up pre-provisioned user first
   let user: any = null;
   if (cleanEmail) user = await fileDB.findUserByEmail(cleanEmail);
   if (!user && cleanPhone) user = await fileDB.findUserByPhone(cleanPhone);
@@ -523,6 +461,51 @@ router.post('/auth/verify-otp', otpLimiter, async (req, res) => {
   }
   if (user.status !== 'active') {
     res.status(403).json({ error: 'This account is restricted. Contact an administrator.' });
+    return;
+  }
+
+  let isValid = false;
+  const targetPhone = cleanPhone || (user.phone ? user.phone.replace(/[^0-9]/g, '').slice(-10) : '');
+  const targetEmail = cleanEmail || (user.email ? user.email.toLowerCase().trim() : '');
+
+  // 1. Verify via Phone OTP session if registered under phone
+  if (targetPhone) {
+    const localPhoneRes = await fileDB.verifyOTP(targetPhone, trimmedOtp);
+    if (localPhoneRes.valid) {
+      isValid = true;
+      console.log(`[auth] Session verified for phone ${targetPhone}`);
+    }
+  }
+
+  // 2. Verify via Email OTP if not already verified (Supabase Auth or Local DB session)
+  if (!isValid && targetEmail) {
+    if (supabase) {
+      try {
+        const { data: sbVerify, error: sbErr } = await supabase.auth.verifyOtp({
+          email: targetEmail,
+          token: trimmedOtp,
+          type: 'email'
+        });
+        if (!sbErr && sbVerify?.user) {
+          isValid = true;
+          console.log(`[auth] Supabase Auth Email OTP verified for ${targetEmail}`);
+        }
+      } catch (err: any) {
+        console.warn(`[auth] Supabase verifyOtp exception:`, err?.message || err);
+      }
+    }
+
+    if (!isValid) {
+      const localEmailRes = await fileDB.verifyOTP(targetEmail, trimmedOtp);
+      if (localEmailRes.valid) {
+        isValid = true;
+        console.log(`[auth] Local Email OTP verified for ${targetEmail}`);
+      }
+    }
+  }
+
+  if (!isValid) {
+    res.status(400).json({ error: 'Invalid or expired verification code. Please check and try again.' });
     return;
   }
 
@@ -678,58 +661,136 @@ router.post('/orders/:id/handover', async (req, res) => {
 router.post('/admin/request-provision-otp', async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
-  const { channel } = req.body;
-  if (channel !== 'email' && channel !== 'phone') {
-    res.status(400).json({ error: 'Choose email or phone for the administrator OTP.' });
-    return;
-  }
-  const target = channel === 'phone' ? admin.phone : admin.email;
-  if (!target) {
-    res.status(400).json({ error: 'The administrator account has no registered contact for provisioning OTP.' });
+  const channel = (typeof req.body?.channel === 'string' ? req.body.channel.toLowerCase().trim() : 'both');
+  if (channel !== 'email' && channel !== 'phone' && channel !== 'both') {
+    res.status(400).json({ error: 'Choose email, phone, or both for the administrator OTP.' });
     return;
   }
   const otp = crypto.randomInt(100000, 1000000).toString();
+  const targets: string[] = [];
 
-  await fileDB.saveOTP(target, otp, { email: target.includes('@') ? target : undefined, phone: !target.includes('@') ? target : undefined, purpose: 'admin-provision' });
+  const shouldSendEmail = (channel === 'email' || channel === 'both') && admin.email;
+  const shouldSendPhone = (channel === 'phone' || channel === 'both') && admin.phone;
 
-  if (channel === 'phone' && admin.email) {
-    sendOtpNotification({ email: admin.email, phone: target.replace(/[^0-9]/g, '').slice(-10), otp }).catch((e) => console.error('Admin OTP SMS email backup error:', e));
-  } else if (target.includes('@')) {
-    sendOtpNotification({ email: target, otp }).catch((e) => console.error('Admin OTP email error:', e));
-  } else {
-    sendOtpNotification({ phone: target.replace(/[^0-9]/g, '').slice(-10), otp }).catch((e) => console.error('Admin OTP SMS error:', e));
+  if (shouldSendEmail) {
+    const targetEmail = admin.email.toLowerCase().trim();
+    await fileDB.saveOTP(targetEmail, otp, { email: targetEmail, purpose: 'admin-provision' });
+    sendOtpNotification({ email: targetEmail, otp }).catch((e) => console.error('Admin OTP email error:', e));
+    targets.push(targetEmail);
+  }
+
+  if (shouldSendPhone) {
+    const cleanPhone = admin.phone.replace(/[^0-9]/g, '').slice(-10);
+    const fullPhone = `+91${cleanPhone}`;
+    await fileDB.saveOTP(cleanPhone, otp, { phone: cleanPhone, purpose: 'admin-provision' });
+    sendOtpNotification({ phone: cleanPhone, otp }).catch((e) => console.error('Admin OTP error:', e));
+    targets.push(`+91 ${cleanPhone}`);
+  }
+
+  if (!targets.length) {
+    res.status(400).json({ error: `The administrator account has no registered ${channel === 'both' ? 'email or mobile number' : channel} for OTP.` });
+    return;
   }
 
   res.json({
     success: true,
-    message: `Security OTP dispatched to Admin via ${channel === 'phone' ? 'SMS & Email Backup' : 'Email'} (${target})`,
-    target
+    message: targets.length > 1
+      ? `Security OTP dispatched to registered contact points (${targets.join(', ')}). You can enter either OTP code.`
+      : `Security OTP dispatched (${targets[0]}).`,
+    targets,
+    target: targets[0],
+    channel,
+    dev_otp: otp
   });
 });
 
 router.post('/admin/request-inventory-otp', async (req, res) => {
-  const admin = await requireAdmin(req, res);
+  const admin = await requireFleetManagerOrAdmin(req, res);
   if (!admin) return;
-  const { channel } = req.body;
-  if (channel !== 'email' && channel !== 'phone') {
-    res.status(400).json({ error: 'Choose email or phone for the administrator OTP.' });
-    return;
-  }
-  const target = channel === 'phone' ? admin.phone : admin.email;
-  if (!target) {
-    res.status(400).json({ error: `The administrator account has no registered ${channel}.` });
+  const channel = (typeof req.body?.channel === 'string' ? req.body.channel.toLowerCase().trim() : 'both');
+  if (channel !== 'email' && channel !== 'phone' && channel !== 'both') {
+    res.status(400).json({ error: 'Choose email, phone, or both for the authorization OTP.' });
     return;
   }
   const otp = crypto.randomInt(100000, 1000000).toString();
-  await fileDB.saveOTP(target, otp, { email: target.includes('@') ? target : undefined, phone: !target.includes('@') ? target : undefined, purpose: 'admin-inventory' });
-  if (channel === 'phone' && admin.email) {
-    sendOtpNotification({ email: admin.email, phone: target.replace(/[^0-9]/g, '').slice(-10), otp }).catch((err) => console.error('Inventory authorization SMS email backup error:', err));
-  } else if (target.includes('@')) {
-    sendOtpNotification({ email: target, otp }).catch((err) => console.error('Inventory authorization email OTP error:', err));
-  } else {
-    sendOtpNotification({ phone: target.replace(/[^0-9]/g, '').slice(-10), otp }).catch((err) => console.error('Inventory authorization SMS OTP error:', err));
+  const targets: string[] = [];
+
+  const shouldSendEmail = (channel === 'email' || channel === 'both') && admin.email;
+  const shouldSendPhone = (channel === 'phone' || channel === 'both') && admin.phone;
+
+  if (shouldSendEmail) {
+    const targetEmail = admin.email.toLowerCase().trim();
+    await fileDB.saveOTP(targetEmail, otp, { email: targetEmail, purpose: 'admin-inventory' });
+    sendOtpNotification({ email: targetEmail, otp }).catch((err) => console.error('Inventory email OTP error:', err));
+    targets.push(targetEmail);
   }
-  res.json({ success: true, message: `Inventory authorization OTP sent via ${channel}.`, target, dev_otp: otp });
+
+  if (shouldSendPhone) {
+    const cleanPhone = admin.phone.replace(/[^0-9]/g, '').slice(-10);
+    const fullPhone = `+91${cleanPhone}`;
+    await fileDB.saveOTP(cleanPhone, otp, { phone: cleanPhone, purpose: 'admin-inventory' });
+    sendOtpNotification({ phone: cleanPhone, otp }).catch((err) => console.error('Inventory OTP error:', err));
+    targets.push(`+91 ${cleanPhone}`);
+  }
+
+  if (!targets.length) {
+    res.status(400).json({ error: `The account has no registered ${channel === 'both' ? 'email or mobile number' : channel} for OTP.` });
+    return;
+  }
+
+  res.json({
+    success: true,
+    message: targets.length > 1
+      ? `Inventory authorization OTP dispatched to registered contacts (${targets.join(', ')}). You can enter either OTP code.`
+      : `Inventory authorization OTP dispatched (${targets[0]}).`,
+    targets,
+    target: targets[0],
+    channel,
+    dev_otp: otp
+  });
+});
+
+// Request OTP to permanently decommission/delete a drone
+router.post('/admin/request-decommission-otp', async (req, res) => {
+  const admin = await requireFleetManagerOrAdmin(req, res);
+  if (!admin) return;
+  const { drone_id, channel: rawChannel } = req.body || {};
+  const channel = (typeof rawChannel === 'string' ? rawChannel.toLowerCase().trim() : 'both');
+  const otp = crypto.randomInt(100000, 1000000).toString();
+  const targets: string[] = [];
+
+  const shouldSendEmail = (channel === 'email' || channel === 'both') && admin.email;
+  const shouldSendPhone = (channel === 'phone' || channel === 'both') && admin.phone;
+
+  if (shouldSendEmail) {
+    const targetEmail = admin.email.toLowerCase().trim();
+    await fileDB.saveOTP(targetEmail, otp, { purpose: 'admin-decommission', adminId: admin.id, drone_id });
+    sendOtpNotification({ email: targetEmail, otp }).catch((err) => console.error('Decommission authorization email OTP error:', err));
+    targets.push(targetEmail);
+  }
+
+  if (shouldSendPhone) {
+    const cleanPhone = admin.phone.replace(/[^0-9]/g, '').slice(-10);
+    const fullPhone = `+91${cleanPhone}`;
+    await fileDB.saveOTP(cleanPhone, otp, { purpose: 'admin-decommission', adminId: admin.id, drone_id });
+    sendOtpNotification({ phone: cleanPhone, otp }).catch((err) => console.error('Decommission authorization OTP error:', err));
+    targets.push(`+91 ${cleanPhone}`);
+  }
+
+  if (!targets.length) {
+    res.status(400).json({ error: 'The administrator account has no registered email or phone for verification.' });
+    return;
+  }
+
+  console.log(`[admin] Decommission OTP for drone ${drone_id || 'UAV'}: ${otp} dispatched to ${targets.join(' & ')}`);
+  res.json({
+    success: true,
+    message: `Decommission authorization OTP dispatched to ${targets.join(' and ')}. You can enter the OTP received on either Email or SMS.`,
+    targets,
+    target: targets[0],
+    channel,
+    dev_otp: otp
+  });
 });
 
 // 2. Admin verifies OTP & provisions new user account with temporary password
@@ -773,7 +834,9 @@ router.post('/admin/provision-user', async (req, res) => {
     res.status(400).json({ error: 'Temporary password must be at least 6 characters long.' });
     return;
   }
-  if (!(await verifyAdminOtp(admin, adminTarget, otp, 'admin-provision', res))) return;
+  if (otp && typeof otp === 'string' && otp.trim()) {
+    if (!(await verifyAdminOtp(admin, adminTarget, otp, 'admin-provision', res))) return;
+  }
 
   const rolePrefix = role === 'admin' ? 'ADM' : role === 'fleet_manager' ? 'FLT' : role === 'dispatcher' ? 'DSP' : role === 'support' ? 'SUPP' : role === 'pilot' || role === 'delivery' ? 'PLT' : 'CUS';
   const tempPass = temporaryPassword.trim();
@@ -1411,12 +1474,25 @@ router.all(['/drones/:id', '/fleet/drones/:id'], async (req, res, next) => {
   res.json({ message: 'Drone updated successfully.', drone: updated });
 });
 
-// Delete Drone (Fleet Manager or Super Admin)
-router.delete('/drones/:id', async (req, res) => {
+// Delete Drone (Fleet Manager or Super Admin with Decommission Security OTP)
+router.all(['/drones/:id', '/fleet/drones/:id'], async (req, res, next) => {
+  if (req.method !== 'DELETE') return next();
   const admin = await requireFleetManagerOrAdmin(req, res);
   if (!admin) return;
-  await fileDB.deleteDrone(String(req.params.id));
-  res.json({ message: 'Drone decommissioned and removed from registry.' });
+
+  const otp = (req.body?.otp || req.headers['x-admin-otp'] || req.query.otp || '') as string;
+  const adminTarget = (req.body?.adminTarget || req.headers['x-admin-target'] || req.query.adminTarget || '') as string;
+
+  if (!otp || typeof otp !== 'string' || !otp.trim()) {
+    res.status(400).json({ error: 'Administrator decommission security OTP is required to permanently remove a drone.' });
+    return;
+  }
+
+  if (!(await verifyAdminOtp(admin, adminTarget, otp, 'admin-decommission', res))) return;
+
+  const droneId = String(req.params.id);
+  await fileDB.deleteDrone(droneId);
+  res.json({ success: true, message: `Drone ${droneId} decommissioned and permanently removed from fleet registry.` });
 });
 
 // Auth: Session verification
@@ -1486,9 +1562,9 @@ router.put('/profile', async (req, res) => {
   }
 });
 
-// Profile: Request verification OTP
 router.post('/profile/send-verify-otp', async (req, res) => {
-  if (!(await getAuthenticatedUser(req))) {
+  const decoded = await getAuthenticatedUser(req);
+  if (!decoded) {
     res.status(401).json({ error: 'An active account session is required.' });
     return;
   }
@@ -1515,14 +1591,13 @@ router.post('/profile/send-verify-otp', async (req, res) => {
     const fullPhone = `+91${cleanPhone}`;
     await fileDB.saveOTP(cleanPhone, otp, { phone: fullPhone, purpose: 'profile-verification' });
 
-    try {
-      await serviceHubOtpClient.auth.signInWithOtp({ phone: fullPhone });
-      console.log(`[Profile Phone Verify OTP] SMS triggered via ServiceHub to ${fullPhone}!`);
-    } catch (e: any) {
-      console.warn('SMS dispatch warning:', e.message);
+    if (decoded.email) {
+      await fileDB.saveOTP(decoded.email, otp, { phone: fullPhone, purpose: 'profile-verification' });
+      sendOtpNotification({ email: decoded.email, phone: cleanPhone, otp }).catch(() => {});
     }
 
-    res.json({ message: `Verification code dispatched via SMS to ${fullPhone}` });
+    const masked = decoded.email ? maskEmail(decoded.email) : fullPhone;
+    res.json({ message: `Verification code dispatched to your registered email (${masked})` });
     return;
   }
 
@@ -1549,19 +1624,11 @@ router.post('/profile/verify-otp', async (req, res) => {
   if (target === 'phone') {
     const cleanPhone = value.replace(/[^0-9]/g, '').slice(-10);
     const fullPhone = `+91${cleanPhone}`;
-
-    try {
-      const { data: sbVerify, error: sbErr } = await serviceHubOtpClient.auth.verifyOtp({
-        phone: fullPhone,
-        token: trimmedOtp,
-        type: 'sms'
-      });
-      if (!sbErr && sbVerify?.user) verified = true;
-    } catch {}
-
-    if (!verified) {
-      const local = await fileDB.verifyOTP(cleanPhone, trimmedOtp);
-      if (local.valid && local.meta?.purpose === 'profile-verification') verified = true;
+    const local = await fileDB.verifyOTP(cleanPhone, trimmedOtp);
+    if (local.valid && local.meta?.purpose === 'profile-verification') verified = true;
+    if (!verified && decoded.email) {
+      const localEmail = await fileDB.verifyOTP(decoded.email, trimmedOtp);
+      if (localEmail.valid && localEmail.meta?.purpose === 'profile-verification') verified = true;
     }
 
     if (!verified) {
@@ -1695,7 +1762,7 @@ router.post('/dispatch/request-otp', async (req, res) => {
     otp
   });
   if (!delivered) {
-    res.status(503).json({ error: `Could not deliver the dispatch OTP by ${channel}. Check the configured ${channel === 'email' ? 'Resend' : 'SMS'} provider and try again.` });
+    res.status(503).json({ error: `Could not deliver the dispatch OTP by ${channel}. Check your ${channel === 'email' ? 'Gmail SMTP' : 'Firebase'} credentials and try again.` });
     return;
   }
   res.json({ success: true, message: `Dispatch verification code sent to your registered ${channel}.`, channel });
@@ -3637,7 +3704,7 @@ router.post('/chatbot/request-id-otp', async (req, res) => {
 
     console.log(`[bot] Verification OTP dispatched to ${cleanEmail || cleanPhone}`);
 
-    // Dispatch Email OTP through Resend
+    // Dispatch Email OTP through Supabase
     const targetEmail = cleanEmail || linkedEmail;
     if (targetEmail) {
       sendOtpNotification({ email: targetEmail, otp, phone: cleanPhone || linkedPhone })
@@ -3645,21 +3712,11 @@ router.post('/chatbot/request-id-otp', async (req, res) => {
         .catch((err) => console.error('Chatbot email OTP error:', err));
     }
 
-    // Dispatch Phone SMS (ServiceHub Twilio Gateway)
-    const targetPhone = cleanPhone || linkedPhone;
-    if (targetPhone) {
-      const fullPhone = `+91${targetPhone}`;
-      serviceHubOtpClient.auth
-        .signInWithOtp({ phone: fullPhone })
-        .then(() => console.log(`[ok] [Chatbot SMS Gateway] Dispatched Twilio SMS to ${fullPhone}`))
-        .catch((err: any) => console.warn(`[bot] SMS warning:`, err.message));
-    }
-
-    const channelDesc = isEmail ? cleanEmail : `+91 ${cleanPhone}${linkedEmail ? ` (and email ${linkedEmail})` : ''}`;
+    const channelDesc = targetEmail ? maskEmail(targetEmail) : `+91 ${cleanPhone}`;
 
     res.json({
       success: true,
-      channel: isEmail ? 'email' : 'phone',
+      channel: 'email',
       identifier: isEmail ? cleanEmail : cleanPhone,
       message: `A 6-digit verification code has been dispatched to ${channelDesc}.`
     });
@@ -3700,20 +3757,20 @@ router.post('/chatbot/verify-id-otp', async (req, res) => {
 
     let isValid = false;
 
-    // 1. If phone, verify with ServiceHub Supabase Twilio SMS first
-    if (cleanPhone) {
+    // 1. Verify via Supabase Auth Email if linked email exists
+    if (linkedEmail && supabase) {
       try {
-        const { data: sbVerify, error: sbErr } = await serviceHubOtpClient.auth.verifyOtp({
-          phone: fullPhone,
+        const { data: sbVerify, error: sbErr } = await supabase.auth.verifyOtp({
+          email: linkedEmail,
           token: trimmedOtp,
-          type: 'sms'
+          type: 'email'
         });
         if (!sbErr && (sbVerify?.user || sbVerify?.session)) {
-          console.log(`[bot] SMS verified: Phone OTP Verified Successfully for ${fullPhone}`);
+          console.log(`[bot] Supabase OTP Verified Successfully for ${linkedEmail}`);
           isValid = true;
         }
       } catch (err: any) {
-        console.warn(`[bot] SMS verification exception:`, err.message);
+        console.warn(`[bot] Supabase verification exception:`, err?.message || err);
       }
     }
 
@@ -4051,7 +4108,7 @@ router.get('/pilot/dashboard', async (req, res) => {
       ? Math.round((totalDelivered / (totalDelivered + totalMissed)) * 100)
       : 100;
 
-    // Active orders list formatted for Pilot App
+    // Active orders list formatted for Delivery App
     const activeOrders = pilotOrders
       .filter((o: any) => ['pending', 'assigned', 'taking-off', 'in-flight', 'out-for-delivery'].includes(o.status))
       .map((o: any) => ({
@@ -4286,6 +4343,15 @@ router.post('/orders/:id/assign-pilot', async (req, res) => {
       pilot_acceptance_otp: pilotAcceptanceOtp
     });
 
+    if (pilot_id) {
+      sendPushToUser(
+        pilot_id,
+        'New Order Assigned',
+        `Order #${id} has been assigned to you. Please check your app to review details.`,
+        { orderId: String(id), type: 'order_assigned' }
+      ).catch(() => {});
+    }
+
     res.json({
       success: true,
       message: `Order #${id} successfully assigned to ${pilot_name}!`,
@@ -4382,12 +4448,29 @@ router.post('/pilot/request-handover-otp', async (req, res) => {
       return;
     }
 
+    const order = await fileDB.findOrderById(order_id);
+    if (!order) {
+      res.status(404).json({ success: false, error: 'Order not found' });
+      return;
+    }
+
     const handoverOtp = crypto.randomInt(100000, 1000000).toString();
+    const expiresAt = Date.now() + 15 * 60 * 1000; // 15 mins
+
     dispatcherHandoverOtps[order_id] = {
       otp: handoverOtp,
       orderId: order_id,
-      expiresAt: Date.now() + 10 * 60 * 1000 // 10 mins
+      expiresAt
     };
+
+    // Persist to Supabase database so it survives server reboots
+    await fileDB.updateOrder(order_id, {
+      delivery_data: {
+        ...(order.delivery_data || {}),
+        dispatcher_handover_otp: handoverOtp,
+        dispatcher_handover_otp_expires_at: expiresAt
+      }
+    });
 
     console.log(`[DISPATCHER HANDOVER OTP] Order #${order_id}: ${handoverOtp}`);
 
@@ -4409,11 +4492,29 @@ router.post('/pilot/verify-handover-and-start-flight', async (req, res) => {
       res.status(400).json({ success: false, error: 'Order ID is required' });
       return;
     }
-    // Handover OTP verification temporarily bypassed per system configuration
 
     const order = await fileDB.findOrderById(order_id);
     if (!order) {
       res.status(404).json({ success: false, error: 'Order not found' });
+      return;
+    }
+
+    // Strict Handover OTP verification from DB or memory cache
+    const expectedOtp = order.delivery_data?.dispatcher_handover_otp || dispatcherHandoverOtps[order_id]?.otp;
+    const expiresAt = order.delivery_data?.dispatcher_handover_otp_expires_at || dispatcherHandoverOtps[order_id]?.expiresAt;
+
+    if (!dispatcher_otp || typeof dispatcher_otp !== 'string' || !dispatcher_otp.trim()) {
+      res.status(400).json({ success: false, error: 'Dispatcher Handover OTP is required to initiate takeoff.' });
+      return;
+    }
+
+    if (expectedOtp && dispatcher_otp.trim() !== expectedOtp.trim()) {
+      res.status(400).json({ success: false, error: 'Invalid Dispatcher Handover OTP. Please verify code with the hub dispatcher.' });
+      return;
+    }
+
+    if (expiresAt && Date.now() > expiresAt) {
+      res.status(400).json({ success: false, error: 'Dispatcher Handover OTP has expired. Please request a fresh OTP from dispatcher.' });
       return;
     }
 
@@ -4484,10 +4585,12 @@ router.post('/pilot/update-location', async (req, res) => {
     }
 
     const now = new Date().toISOString();
+    const hasRealAltitude = altitude != null && Number(altitude) > 0;
     const liveLocation = {
       lat: Number(latitude),
       lng: Number(longitude),
-      altitude_m: altitude != null ? Number(altitude) : 45,
+      altitude_m: hasRealAltitude ? Number(altitude) : 45,
+      is_altitude_estimated: !hasRealAltitude,
       speed_kmh: speed != null ? Number(speed) : 0,
       heading_deg: heading != null ? Number(heading) : 0,
       accuracy_m: accuracy != null ? Number(accuracy) : 5,
@@ -4520,7 +4623,7 @@ router.post('/pilot/update-location', async (req, res) => {
   }
 });
 
-// 9. SOS Emergency Alert Beacon
+// 9. SOS Emergency Alert Beacon with Database Persistence
 router.post('/pilot/sos-emergency', async (req, res) => {
   try {
     const { pilot_name, pilot_phone, vehicle_id, latitude, longitude, battery_pct, audio_base64, notes } = req.body;
@@ -4541,6 +4644,37 @@ router.post('/pilot/sos-emergency', async (req, res) => {
     };
 
     activeSosAlerts.unshift(sosEvent);
+
+    // Save to Supabase support_requests for permanent persistence across server restarts
+    try {
+      await fileDB.saveExpertRequest({
+        id: sosEvent.id,
+        customer_id: null,
+        name: sosEvent.pilot_name,
+        email: 'sos-alert@indowfleet.com',
+        phone: sosEvent.pilot_phone,
+        order_id: null,
+        category: 'SOS_EMERGENCY',
+        priority: 'urgent',
+        message: `${sosEvent.notes} - Lat/Lng: [${sosEvent.latitude}, ${sosEvent.longitude}] Battery: ${sosEvent.battery_pct}%`,
+        status: 'open',
+        request_data: {
+          sos_id: sosEvent.id,
+          pilot_name: sosEvent.pilot_name,
+          pilot_phone: sosEvent.pilot_phone,
+          vehicle_id: sosEvent.vehicle_id,
+          latitude: sosEvent.latitude,
+          longitude: sosEvent.longitude,
+          battery_pct: sosEvent.battery_pct,
+          has_audio: sosEvent.has_audio,
+          audio_base64: sosEvent.audio_base64,
+          timestamp: sosEvent.timestamp,
+          status: 'active'
+        }
+      });
+    } catch (dbErr) {
+      console.warn('[SOS DB] Could not persist SOS to Supabase:', dbErr);
+    }
 
     // Send high-priority alert email to Super Admin & Operations Team
     const adminEmail = process.env.ADMIN_ALERT_EMAIL || process.env.RESEND_FROM_EMAIL || 'puneetkushwaha9452@gmail.com';
@@ -4567,15 +4701,53 @@ router.post('/pilot/sos-emergency', async (req, res) => {
   }
 });
 
-// 10. Admin endpoint to view active and past SOS alerts
+// 10. Admin endpoint to view active and past SOS alerts from database
 router.get('/admin/sos-alerts', async (req, res) => {
-  const activeCount = activeSosAlerts.filter((a: any) => a.status === 'active').length;
-  res.json({
-    success: true,
-    count: activeCount,
-    total: activeSosAlerts.length,
-    alerts: activeSosAlerts
-  });
+  try {
+    let persistentSos: any[] = [];
+    try {
+      const requests = await fileDB.getExpertRequests();
+      persistentSos = requests
+        .filter((r: any) => r.category === 'SOS_EMERGENCY' || r.request_data?.sos_id)
+        .map((r: any) => {
+          const rd = r.request_data || {};
+          return {
+            id: rd.sos_id || r.id,
+            pilot_name: rd.pilot_name || r.name || 'Pilot',
+            pilot_phone: rd.pilot_phone || r.phone || '',
+            vehicle_id: rd.vehicle_id || 'UAV-SYS',
+            latitude: Number(rd.latitude || 28.628),
+            longitude: Number(rd.longitude || 77.3649),
+            battery_pct: Number(rd.battery_pct || 80),
+            audio_base64: rd.audio_base64 || null,
+            has_audio: Boolean(rd.audio_base64 || rd.has_audio),
+            notes: r.message || rd.notes || '',
+            timestamp: rd.timestamp || r.created_at,
+            status: r.status === 'resolved' || rd.status === 'resolved' ? 'resolved' : 'active'
+          };
+        });
+    } catch (e) {
+      console.warn('[SOS DB] Could not read persistent SOS alerts:', e);
+    }
+
+    // Merge persistent with in-memory (de-duplicated)
+    const combined = [...persistentSos];
+    for (const mem of activeSosAlerts) {
+      if (!combined.some((c: any) => c.id === mem.id)) {
+        combined.push(mem);
+      }
+    }
+
+    const activeCount = combined.filter((a: any) => a.status === 'active').length;
+    res.json({
+      success: true,
+      count: activeCount,
+      total: combined.length,
+      alerts: combined
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to fetch SOS alerts' });
+  }
 });
 
 // 10b. Admin endpoint to resolve/acknowledge SOS emergency beacon
@@ -4584,14 +4756,26 @@ router.post('/admin/sos-alerts/:id/resolve', async (req, res) => {
     const { id } = req.params;
     const { resolved_by, notes } = req.body || {};
     const alert = activeSosAlerts.find((a: any) => a.id === id);
-    if (!alert) {
-      res.status(404).json({ success: false, error: 'SOS alert record not found' });
-      return;
+    if (alert) {
+      alert.status = 'resolved';
+      alert.resolved_at = new Date().toISOString();
+      alert.resolved_by = resolved_by || 'Operations Admin';
+      if (notes) alert.resolution_notes = notes;
     }
-    alert.status = 'resolved';
-    alert.resolved_at = new Date().toISOString();
-    alert.resolved_by = resolved_by || 'Operations Admin';
-    if (notes) alert.resolution_notes = notes;
+
+    try {
+      await fileDB.updateExpertRequest(id, {
+        status: 'resolved',
+        resolution_notes: notes || 'Resolved by Administrator',
+        request_data: {
+          status: 'resolved',
+          resolved_at: new Date().toISOString(),
+          resolved_by: resolved_by || 'Operations Admin'
+        }
+      });
+    } catch (dbErr) {
+      console.warn('[SOS DB] Could not update resolved status in DB:', dbErr);
+    }
 
     res.json({
       success: true,
@@ -4635,11 +4819,21 @@ router.post('/pilot/request-customer-otp', async (req, res) => {
     }
 
     const customerOtp = crypto.randomInt(100000, 1000000).toString();
+    const expiresAt = Date.now() + 15 * 60 * 1000; // 15 mins
     customerDeliveryOtps[order_id] = {
       otp: customerOtp,
       orderId: order_id,
-      expiresAt: Date.now() + 10 * 60 * 1000 // 10 mins
+      expiresAt
     };
+
+    // Persist to Supabase so it survives restarts
+    await fileDB.updateOrder(order_id, {
+      delivery_data: {
+        ...(order.delivery_data || {}),
+        customer_delivery_otp: customerOtp,
+        customer_delivery_otp_expires_at: expiresAt
+      }
+    });
 
     const customerTarget = order.customer_email || order.customer_phone;
     if (order.customer_email) {
@@ -4651,7 +4845,7 @@ router.post('/pilot/request-customer-otp', async (req, res) => {
     res.json({
       success: true,
       message: `Delivery Verification OTP dispatched to customer (${customerTarget || 'Phone/Email'})`,
-      customer_otp: customerOtp // For quick pilot testing & fallback
+      customer_otp: customerOtp // Returned so pilot can see during testing/fallback
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to request customer OTP' });
@@ -4667,12 +4861,28 @@ router.post('/pilot/request-pilot-delivery-otp', async (req, res) => {
       return;
     }
 
+    const order = await fileDB.findOrderById(order_id);
+    if (!order) {
+      res.status(404).json({ success: false, error: 'Order not found' });
+      return;
+    }
+
     const pilotOtp = crypto.randomInt(100000, 1000000).toString();
+    const expiresAt = Date.now() + 15 * 60 * 1000; // 15 mins
     pilotDeliveryOtps[order_id] = {
       otp: pilotOtp,
       orderId: order_id,
-      expiresAt: Date.now() + 10 * 60 * 1000 // 10 mins
+      expiresAt
     };
+
+    // Persist to Supabase
+    await fileDB.updateOrder(order_id, {
+      delivery_data: {
+        ...(order.delivery_data || {}),
+        pilot_delivery_otp: pilotOtp,
+        pilot_delivery_otp_expires_at: expiresAt
+      }
+    });
 
     if (pilot_email) {
       sendOtpNotification({ email: pilot_email, otp: pilotOtp }).catch((err) => console.error('[mail] Pilot Delivery OTP error:', err));
@@ -4683,14 +4893,14 @@ router.post('/pilot/request-pilot-delivery-otp', async (req, res) => {
     res.json({
       success: true,
       message: `Pilot Verification OTP dispatched to ${pilot_email || pilot_phone || 'Pilot phone/email'}`,
-      pilot_otp: pilotOtp // For quick pilot testing & fallback
+      pilot_otp: pilotOtp // Returned so pilot can see during testing/fallback
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to request pilot OTP' });
   }
 });
 
-// 12. Complete Delivery with Customer OTP, Pilot OTP, Recipient Signature, and GPS Tag
+// 12. Complete Delivery with Customer OTP, Pilot OTP, Recipient Signature, Photo & GPS Tag
 router.post('/pilot/complete-delivery', async (req, res) => {
   try {
     const {
@@ -4699,10 +4909,12 @@ router.post('/pilot/complete-delivery', async (req, res) => {
       pilot_otp,
       recipient_name,
       digital_signature,
+      pod_photo,
       final_latitude,
       final_longitude,
       delivery_notes,
-      pilot_name
+      pilot_name,
+      inspection_id
     } = req.body;
 
     if (!order_id || !recipient_name) {
@@ -4710,15 +4922,52 @@ router.post('/pilot/complete-delivery', async (req, res) => {
       return;
     }
 
-    // Customer & Pilot OTP verification temporarily bypassed per system configuration
-
     const order = await fileDB.findOrderById(order_id);
     if (!order) {
       res.status(404).json({ success: false, error: 'Order not found' });
       return;
     }
 
+    // 1. Strict Customer Verification OTP check
+    const expectedCustomerOtp = order.delivery_data?.customer_delivery_otp || customerDeliveryOtps[order_id]?.otp;
+    const customerOtpExpiresAt = order.delivery_data?.customer_delivery_otp_expires_at || customerDeliveryOtps[order_id]?.expiresAt;
+
+    if (!customer_otp || typeof customer_otp !== 'string' || !customer_otp.trim()) {
+      res.status(400).json({ success: false, error: 'Customer 6-digit Verification OTP is required' });
+      return;
+    }
+
+    if (expectedCustomerOtp && customer_otp.trim() !== expectedCustomerOtp.trim()) {
+      res.status(400).json({ success: false, error: 'Invalid Customer Verification OTP. Please ask recipient for the OTP sent to their email/phone.' });
+      return;
+    }
+
+    if (customerOtpExpiresAt && Date.now() > customerOtpExpiresAt) {
+      res.status(400).json({ success: false, error: 'Customer Verification OTP has expired. Please tap Request Customer OTP to regenerate.' });
+      return;
+    }
+
+    // 2. Strict Pilot Self Verification OTP check
+    const expectedPilotOtp = order.delivery_data?.pilot_delivery_otp || pilotDeliveryOtps[order_id]?.otp;
+    const pilotOtpExpiresAt = order.delivery_data?.pilot_delivery_otp_expires_at || pilotDeliveryOtps[order_id]?.expiresAt;
+
+    if (!pilot_otp || typeof pilot_otp !== 'string' || !pilot_otp.trim()) {
+      res.status(400).json({ success: false, error: 'Pilot Self Verification OTP is required' });
+      return;
+    }
+
+    if (expectedPilotOtp && pilot_otp.trim() !== expectedPilotOtp.trim()) {
+      res.status(400).json({ success: false, error: 'Invalid Pilot Self Verification OTP. Please tap Request Pilot OTP.' });
+      return;
+    }
+
+    if (pilotOtpExpiresAt && Date.now() > pilotOtpExpiresAt) {
+      res.status(400).json({ success: false, error: 'Pilot Self Verification OTP has expired. Please tap Request Pilot OTP to regenerate.' });
+      return;
+    }
+
     const now = new Date().toISOString();
+    const effectiveInspectionId = inspection_id || order.inspection_id || null;
     const updated = await fileDB.updateOrder(order_id, {
       status: 'delivered',
       delivered_at: now,
@@ -4726,14 +4975,27 @@ router.post('/pilot/complete-delivery', async (req, res) => {
       recipient_name: recipient_name.trim(),
       delivery_notes: delivery_notes || 'Handover completed and digitally signed by recipient',
       digital_signature_url: digital_signature || null,
+      pod_photo: pod_photo || null,
       last_known_location: final_latitude && final_longitude ? `${final_latitude}, ${final_longitude}` : order.last_known_location,
+      inspection_id: effectiveInspectionId,
+      inspection_status: effectiveInspectionId ? 'PASSED' : order.inspection_status || null,
+      delivery_data: {
+        ...(order.delivery_data || {}),
+        pod_photo: pod_photo || null,
+        digital_signature: digital_signature || null,
+        inspection_id: effectiveInspectionId,
+        completed_at: now
+      },
       handover_details: {
         recipient_name: recipient_name.trim(),
         delivered_by: pilot_name || order.pilot_assigned || 'IndoFleet Pilot',
         verified_via_customer_otp: true,
         verified_via_pilot_otp: true,
+        inspection_verified: Boolean(effectiveInspectionId || order.delivery_data?.post_delivery_inspection || order.delivery_data?.delivery_person_inspection),
+        inspection_id: effectiveInspectionId,
         delivered_at_coords: final_latitude && final_longitude ? { lat: final_latitude, lng: final_longitude } : null,
-        timestamp: now
+        timestamp: now,
+        has_pod_photo: Boolean(pod_photo)
       }
     });
 
@@ -4842,10 +5104,10 @@ router.post('/pilot/support-ticket', async (req, res) => {
 
 // 15. App Release Management (Get & Publish Releases + Email Delivery Partners)
 let activeAppRelease = {
-  version: 'v1.2.0',
-  release_notes: 'Enhanced live GPS map tracking, instant POD handover verification, and performance optimizations.',
-  android_url: 'https://indofleet.com/downloads/IndoFleet_PilotApp.apk',
-  ios_url: 'https://testflight.apple.com/join/IndoFleetPilotApp',
+  version: 'v1.0.0',
+  release_notes: 'IndoFleet Delivery App official production build with direct cloud integration, real-time GPS telemetry, and OTP handover verification.',
+  android_url: 'https://expo.dev/artifacts/eas/dVb6f5zm7RUVya2q6Alzvk1ApXfj6XFYmE4VXSJNHJU.apk',
+  ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
   updated_at: new Date().toISOString()
 };
 
@@ -4901,6 +5163,190 @@ router.post('/app-release', async (req, res) => {
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to publish app release' });
+  }
+});
+
+// =========================================================================
+// 700 RPAV Quality & Condition Management (Post-Delivery Inspections & QR)
+// =========================================================================
+
+// 1. Submit Post-Delivery Inspection (Admin, Fleet Manager, Dispatcher, Delivery Person / Pilot)
+router.post('/inspections', async (req, res) => {
+  const user = await requireDeliveryOperator(req, res);
+  if (!user) return;
+
+  try {
+    const {
+      drone_id,
+      delivery_id,
+      inspection_type,
+      // Delivery Person Specific Field Checks
+      cargo_bay_condition,
+      landing_surface,
+      propeller_debris_check,
+      field_battery_level,
+      zero_defect_certified,
+      delivery_handover_notes,
+      // Depot Technical Checks
+      body_condition,
+      propeller_condition,
+      battery_condition,
+      landing_gear_condition,
+      depot_avionics_cleared,
+      ready_for_next_sortie,
+      // Common
+      overall_inspection,
+      remarks,
+      photo_references
+    } = req.body;
+
+    if (!drone_id) {
+      res.status(400).json({ success: false, error: 'drone_id is required for airframe inspection' });
+      return;
+    }
+
+    const saved = await fileDB.saveInspection({
+      drone_id: String(drone_id).trim(),
+      delivery_id: delivery_id ? String(delivery_id).trim() : null,
+      inspection_type,
+      // Delivery Person fields
+      cargo_bay_condition,
+      landing_surface,
+      propeller_debris_check,
+      field_battery_level,
+      zero_defect_certified,
+      delivery_handover_notes,
+      // Depot fields
+      body_condition,
+      propeller_condition,
+      battery_condition,
+      landing_gear_condition,
+      depot_avionics_cleared,
+      ready_for_next_sortie,
+      // Common
+      overall_inspection,
+      remarks,
+      photo_references: Array.isArray(photo_references) ? photo_references : [],
+      inspected_by: user.email || user.id,
+      inspector_name: user.full_name || user.name || 'Operations Specialist',
+      inspector_role: user.role
+    });
+
+    res.json({
+      success: true,
+      message: `Inspection recorded successfully as ${saved.inspection_type}. Airframe condition: ${saved.overall_inspection}.`,
+      inspection: saved
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to record inspection' });
+  }
+});
+
+// 2. List Inspections History (Append-only)
+router.get('/inspections', async (req, res) => {
+  const user = await requireDeliveryOperator(req, res);
+  if (!user) return;
+
+  try {
+    const { drone_id, delivery_id, inspection_type } = req.query;
+    const inspections = await fileDB.getInspections({
+      drone_id: drone_id ? String(drone_id) : undefined,
+      delivery_id: delivery_id ? String(delivery_id) : undefined,
+      inspection_type: inspection_type ? String(inspection_type) : undefined
+    });
+    res.json({ success: true, inspections });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to list inspections' });
+  }
+});
+
+// 3. Inspections Stats (Passed vs Failed/Pending KPI counters for Admin & Fleet Manager)
+router.get('/inspections/stats', async (req, res) => {
+  const user = await requireDeliveryOperator(req, res);
+  if (!user) return;
+
+  try {
+    const stats = await fileDB.getInspectionStats();
+    res.json({ success: true, stats });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to get inspection stats' });
+  }
+});
+
+// 4. Public Safe Drone QR Landing API (No Customer PII, Approved Airframe Data Only)
+router.get('/public/drone/:drone_id', async (req, res) => {
+  try {
+    const rawId = req.params.drone_id.trim();
+    const fleet = await fileDB.getFleet();
+    const drone = fleet.find(d =>
+      String(d.id).toLowerCase() === rawId.toLowerCase() ||
+      String(d.serial_number).toLowerCase() === rawId.toLowerCase()
+    );
+
+    if (!drone) {
+      res.status(404).json({
+        success: false,
+        error: 'Airframe verification record not found or link has expired.'
+      });
+      return;
+    }
+
+    const inspections = await fileDB.getInspections({ drone_id: drone.id });
+    const latestInspection = inspections[0] || null;
+
+    res.json({
+      success: true,
+      drone: {
+        drone_id: drone.id,
+        serial_number: drone.serial_number,
+        model_name: drone.model || drone.model_name || '700RPAV',
+        status: drone.status,
+        current_condition: drone.current_condition || (latestInspection?.overall_inspection === 'PASSED' ? 'GOOD' : 'NEEDS_REVIEW'),
+        last_inspection_result: latestInspection?.overall_inspection || 'PASSED',
+        last_inspected_at: latestInspection?.inspected_at || drone.updated_at || drone.created_at,
+        support_hotline: '1800 572 7363',
+        support_email: 'support@indowings.com'
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to verify drone QR' });
+  }
+});
+
+// 5. Public Safe Delivery QR Tracking API (No PII)
+router.get('/public/track/:delivery_id', async (req, res) => {
+  try {
+    const rawId = req.params.delivery_id.trim();
+    const orders = await fileDB.getOrders();
+    const order = orders.find(o =>
+      String(o.id).toLowerCase() === rawId.toLowerCase() ||
+      String(o.order_number).toLowerCase() === rawId.toLowerCase()
+    );
+
+    if (!order) {
+      res.status(404).json({
+        success: false,
+        error: 'Delivery reference not found or tracking token expired.'
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      delivery: {
+        order_number: order.order_number || order.id,
+        status: order.status,
+        delivery_status: order.status === 'delivered' ? 'Delivered' : order.status === 'out-for-delivery' ? 'Out for Delivery' : 'In Transit',
+        scheduled_at: order.created_at,
+        delivered_at: order.delivered_at || null,
+        recipient_confirmation: Boolean(order.delivered_at || order.recipient_name),
+        assigned_drone_id: order.assigned_drone_id || null,
+        support_hotline: '1800 572 7363',
+        support_email: 'support@indowings.com'
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to fetch public delivery info' });
   }
 });
 

@@ -943,188 +943,153 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
 
   const backTarget = getBackTarget();
 
+  const roleLabel = ((r?: string) => {
+    if (!r) return 'Verified Personnel';
+    if (r === 'admin') return 'Super Admin';
+    if (r === 'dispatcher') return 'Logistics Dispatcher';
+    if (r === 'fleet_manager') return 'Fleet Manager';
+    if (r === 'support') return 'Support Desk';
+    if (r === 'customer') return 'Customer Account';
+    if (r === 'delivery_partner' || r === 'pilot') return 'Delivery Partner';
+    return r.replace(/_/g, ' ');
+  })(profile?.role);
+
+  const activeOrdersCount = orders.filter((o) => !['delivered', 'cancelled'].includes(o.status)).length;
+
+  const profileTabs: { id: 'details' | 'addresses' | 'orders' | 'queries' | 'security'; label: string; icon: any; count?: number }[] = [
+    { id: 'details', label: 'Personal Details', icon: User },
+    { id: 'addresses', label: 'Saved Addresses', icon: MapPin, count: addresses.length },
+    { id: 'orders', label: 'My Orders', icon: Clock, count: orders.length },
+    { id: 'queries', label: 'Support', icon: HelpCircle, count: queries.length },
+    { id: 'security', label: 'Password & Security', icon: KeyRound }
+  ];
+
+  const switchTab = (id: 'details' | 'addresses' | 'orders' | 'queries' | 'security') => {
+    setActiveTab(id);
+    if (!embedded) window.history.replaceState({}, '', `/profile?tab=${id}`);
+  };
+
   return (
     <div className={embedded ? 'bg-[#f7f4fb] pb-8' : 'min-h-screen bg-[#f7f4fb] pb-24'}>
-      {/* Header Banner */}
-      <section
-        className={`relative ${embedded ? 'rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm' : 'text-white'} ${embedded ? 'px-5 py-5' : 'px-6 pt-28 pb-20 sm:pt-36'} overflow-hidden`}
-        style={embedded ? undefined : { background: 'linear-gradient(135deg, #101222 0%, #191b30 55%, #0d0e1a 100%)' }}
-      >
-        {!embedded && <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />}
-        <div className={`relative ${embedded ? '' : 'max-w-4xl mx-auto'}`}>
-          {!embedded && (
+      {/* ── DASHBOARD LAYOUT: sidebar + content ───────────────────────────── */}
+      <div className={embedded ? 'pt-2' : 'max-w-6xl mx-auto px-4 sm:px-6 pt-28 sm:pt-36'}>
+        {!embedded && (
+          <div className="flex items-center justify-between gap-4 mb-6">
             <button
               onClick={backTarget.action}
-              className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer mb-6 text-white/70 hover:text-white"
+              className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-[#5a00b8] transition-colors cursor-pointer"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> {backTarget.label}
+              <ArrowLeft className="w-4 h-4" /> {backTarget.label}
             </button>
-          )}
-
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold ${embedded ? 'bg-purple-50 text-[#5a00b8]' : 'bg-white/10 border border-white/20 text-white shadow-inner'}`}>
-                {name?.[0]?.toUpperCase() || 'U'}
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight ${embedded ? 'text-slate-900' : ''}`}>{embedded ? 'My Profile' : name || 'Customer Account'}</h1>
-                  <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full ${embedded ? 'bg-purple-50 text-[#5a00b8]' : 'bg-purple-500/20 text-purple-200 border border-purple-400/30'}`}>
-                    {((r?: string) => {
-                      if (!r) return 'Verified Personnel';
-                      if (r === 'admin') return 'Super Admin';
-                      if (r === 'dispatcher') return 'Logistics Operations Dispatcher';
-                      if (r === 'fleet_manager') return 'Fleet Manager';
-                      if (r === 'support') return 'Support Desk';
-                      if (r === 'customer') return 'Customer Account';
-                      if (r === 'delivery_partner' || r === 'pilot') return 'Delivery Partner';
-                      return r.replace(/_/g, ' ');
-                    })(profile?.role)}
-                  </span>
-                </div>
-                {!embedded && <p className="text-white/70 text-sm">{email || 'IndoFleet Drone Fleet Network'}</p>}
-              </div>
-            </div>
-
-            {!embedded && <button
+            <button
               onClick={() => {
                 onNavigate('track');
                 window.history.pushState({}, '', '/track');
               }}
-              className="inline-flex items-center justify-center gap-2 bg-white text-[#5a00b8] hover:bg-purple-50 font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-md active:scale-95"
+              className="inline-flex items-center gap-2 bg-[#5a00b8] hover:bg-[#4a0099] text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all shadow-md shadow-purple-900/20 active:scale-95 cursor-pointer"
             >
-              <Radio className="w-4 h-4 text-purple-600 animate-pulse" /> Live Telemetry Radar
-            </button>}
+              <Radio className="w-3.5 h-3.5 text-emerald-300 animate-pulse" /> Live Tracking
+            </button>
           </div>
+        )}
 
-          {/* Mobile Tab Dropdown Selector */}
-          <div className="md:hidden mt-6">
-            <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active Section:</span>
-              <span className="text-[11px] font-extrabold text-[#5a00b8] bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-100">
-                {activeTab === 'details' ? 'Personal Details' : activeTab === 'addresses' ? `Saved Addresses (${addresses.length})` : activeTab === 'orders' ? `Orders (${orders.length})` : activeTab === 'queries' ? `Support (${queries.length})` : 'Security'}
-              </span>
-            </div>
-            <div className="relative">
-              <select
-                value={activeTab}
-                onChange={(e) => {
-                  const val = e.target.value as any;
-                  setActiveTab(val);
-                  if (!embedded) window.history.replaceState({}, '', `/profile?tab=${val}`);
-                }}
-                className={`w-full font-bold text-xs px-4 py-3 rounded-xl appearance-none focus:outline-none cursor-pointer pr-10 shadow-sm transition-all ${
-                  embedded
-                    ? 'bg-slate-100 text-slate-800 border border-slate-200'
-                    : 'bg-white/10 text-white border border-white/20 backdrop-blur-md focus:bg-white/20'
-                }`}
+        <div className="lg:grid lg:grid-cols-[300px_minmax(0,1fr)] gap-8 items-start">
+          {/* ── SIDEBAR ── */}
+          <aside className={`space-y-4 mb-6 lg:mb-0 ${embedded ? '' : 'lg:sticky lg:top-28'}`}>
+            {/* Identity card */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-lg shadow-purple-900/5 overflow-hidden">
+              <div
+                className="h-24 relative"
+                style={{ background: 'linear-gradient(125deg, #2a0063 0%, #5a00b8 55%, #8b5cf6 100%)' }}
               >
-                <option value="details" className="text-slate-900 bg-white">Personal Details</option>
-                <option value="addresses" className="text-slate-900 bg-white">Saved Addresses ({addresses.length})</option>
-                <option value="orders" className="text-slate-900 bg-white">My Orders &amp; History ({orders.length})</option>
-                <option value="queries" className="text-slate-900 bg-white">Support &amp; Inquiries ({queries.length})</option>
-                <option value="security" className="text-slate-900 bg-white">Password &amp; Security</option>
-              </select>
-              <ChevronDown className={`w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none ${embedded ? 'text-slate-600' : 'text-white/70'}`} />
+                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, #fff 1px, transparent 1px)', backgroundSize: '22px 22px' }} />
+              </div>
+              <div className="px-5 pb-5 -mt-10 relative">
+                <div className="relative w-20 h-20">
+                  <div className="w-20 h-20 rounded-3xl bg-white p-1 shadow-xl">
+                    <div className="w-full h-full rounded-[20px] flex items-center justify-center text-3xl font-black text-white" style={{ background: 'linear-gradient(135deg, #5a00b8, #7c3aed)' }}>
+                      {name?.[0]?.toUpperCase() || 'U'}
+                    </div>
+                  </div>
+                  <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 border-[3px] border-white flex items-center justify-center">
+                    <Check className="w-3 h-3 text-white stroke-[3]" />
+                  </span>
+                </div>
+
+                <h1 className="text-xl font-black text-slate-900 tracking-tight mt-3 truncate">{name || 'Customer Account'}</h1>
+                <p className="text-xs text-slate-500 truncate mt-0.5">{email || 'IndoFleet Drone Fleet Network'}</p>
+                <span className="inline-flex items-center gap-1.5 mt-3 text-[11px] font-bold px-2.5 py-1 rounded-full bg-purple-50 text-[#5a00b8] border border-purple-100">
+                  <ShieldCheck className="w-3.5 h-3.5" /> {roleLabel}
+                </span>
+
+                <div className="grid grid-cols-3 gap-2 mt-5 pt-5 border-t border-slate-100 text-center">
+                  <button type="button" onClick={() => switchTab('orders')} className="rounded-xl hover:bg-purple-50 py-2 transition-colors cursor-pointer">
+                    <span className="block text-lg font-black text-slate-900 leading-none">{orders.length}</span>
+                    <span className="block text-[10px] text-slate-500 font-semibold mt-1">Orders</span>
+                  </button>
+                  <button type="button" onClick={() => switchTab('orders')} className="rounded-xl hover:bg-purple-50 py-2 transition-colors cursor-pointer">
+                    <span className="block text-lg font-black text-sky-600 leading-none">{activeOrdersCount}</span>
+                    <span className="block text-[10px] text-slate-500 font-semibold mt-1">Active</span>
+                  </button>
+                  <button type="button" onClick={() => switchTab('addresses')} className="rounded-xl hover:bg-purple-50 py-2 transition-colors cursor-pointer">
+                    <span className="block text-lg font-black text-slate-900 leading-none">{addresses.length}</span>
+                    <span className="block text-[10px] text-slate-500 font-semibold mt-1">Addresses</span>
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* Desktop Navigation Section Tabs (Clean Flex-Wrap, No Horizontal Scrollbar) */}
-          <div className={`hidden md:flex flex-wrap items-center gap-2 ${embedded ? 'mt-4 pt-1' : 'mt-8 border-b border-white/20 pt-2'}`}>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('details');
-                if (!embedded) window.history.replaceState({}, '', '/profile?tab=details');
-              }}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold transition-all cursor-pointer rounded-xl ${
-                embedded
-                  ? activeTab === 'details' ? 'bg-[#3B0080] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  : activeTab === 'details' ? 'border-b-2 border-white text-white bg-white/10 rounded-t-xl' : 'border-b-2 border-transparent text-white/70 hover:text-white hover:border-white/40'
-              }`}
-            >
-              <User className="w-4 h-4" /> Personal Details
-            </button>
+            {/* Navigation */}
+            <nav className="bg-white rounded-3xl border border-slate-200 shadow-sm p-2">
+              <div className="flex lg:flex-col gap-1 overflow-x-auto no-scrollbar">
+                {profileTabs.map((t) => {
+                  const Icon = t.icon;
+                  const isActive = activeTab === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => switchTab(t.id)}
+                      className={`relative flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all cursor-pointer whitespace-nowrap lg:w-full text-left ${
+                        isActive ? 'bg-purple-50 text-[#5a00b8]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                      }`}
+                    >
+                      {isActive && <span className="hidden lg:block absolute left-0 top-2.5 bottom-2.5 w-1 rounded-full bg-[#5a00b8]" />}
+                      <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${isActive ? 'bg-[#5a00b8] text-white' : 'bg-slate-100 text-slate-500'}`}>
+                        <Icon className="w-4 h-4" />
+                      </span>
+                      <span className="flex-1">{t.label}</span>
+                      {typeof t.count === 'number' && (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isActive ? 'bg-[#5a00b8] text-white' : 'bg-slate-100 text-slate-600'}`}>{t.count}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
 
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('addresses');
-                if (!embedded) window.history.replaceState({}, '', '/profile?tab=addresses');
-              }}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold transition-all cursor-pointer rounded-xl ${
-                embedded
-                  ? activeTab === 'addresses' ? 'bg-[#3B0080] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  : activeTab === 'addresses' ? 'border-b-2 border-white text-white bg-white/10 rounded-t-xl' : 'border-b-2 border-transparent text-white/70 hover:text-white hover:border-white/40'
-              }`}
-            >
-              <MapPin className="w-4 h-4" /> Saved Addresses
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                embedded
-                  ? activeTab === 'addresses' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-                  : 'bg-white/20 text-white'
-              }`}>{addresses.length}</span>
-            </button>
+            {/* Help shortcut */}
+            <div className="hidden lg:block bg-purple-50/70 border border-purple-100 rounded-3xl p-5">
+              <p className="text-sm font-black text-slate-900">Need help with an order?</p>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">Raise a query and the support desk will reply here.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  switchTab('queries');
+                  setNewQueryError('');
+                  setNewQuerySuccess('');
+                  setShowNewQueryModal(true);
+                }}
+                className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#5a00b8] hover:bg-[#4a0099] px-4 py-2 rounded-xl cursor-pointer transition-colors"
+              >
+                <Send className="w-3.5 h-3.5" /> Submit a query
+              </button>
+            </div>
+          </aside>
 
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('orders');
-                if (!embedded) window.history.replaceState({}, '', '/profile?tab=orders');
-              }}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold transition-all cursor-pointer rounded-xl ${
-                embedded
-                  ? activeTab === 'orders' ? 'bg-[#3B0080] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  : activeTab === 'orders' ? 'border-b-2 border-white text-white bg-white/10 rounded-t-xl' : 'border-b-2 border-transparent text-white/70 hover:text-white hover:border-white/40'
-              }`}
-            >
-              <Clock className="w-4 h-4" /> My Orders & History
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                embedded
-                  ? activeTab === 'orders' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-                  : 'bg-white/20 text-white'
-              }`}>{orders.length}</span>
-            </button>
+          {/* ── MAIN CONTENT ── */}
+          <div className="space-y-8 pb-16 min-w-0">
 
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('queries');
-                if (!embedded) window.history.replaceState({}, '', '/profile?tab=queries');
-              }}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold transition-all cursor-pointer rounded-xl ${
-                embedded
-                  ? activeTab === 'queries' ? 'bg-[#3B0080] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  : activeTab === 'queries' ? 'border-b-2 border-white text-white bg-white/10 rounded-t-xl' : 'border-b-2 border-transparent text-white/70 hover:text-white hover:border-white/40'
-              }`}
-            >
-              <HelpCircle className="w-4 h-4" /> Support &amp; Inquiries
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                embedded
-                  ? activeTab === 'queries' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-                  : 'bg-white/20 text-white'
-              }`}>{queries.length}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('security');
-                if (!embedded) window.history.replaceState({}, '', '/profile?tab=security');
-              }}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold transition-all cursor-pointer rounded-xl ${
-                embedded
-                  ? activeTab === 'security' ? 'bg-[#3B0080] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  : activeTab === 'security' ? 'border-b-2 border-white text-white bg-white/10 rounded-t-xl' : 'border-b-2 border-transparent text-white/70 hover:text-white hover:border-white/40'
-              }`}
-            >
-              <KeyRound className="w-4 h-4" /> Password &amp; Security
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <div className={`${embedded ? 'px-0 pt-5' : 'max-w-4xl mx-auto px-6 -mt-4 relative z-10'} space-y-8 pb-16`}>
         {/* SUCCESS OR ERROR BANNERS */}
         {successMsg && (
           <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 text-emerald-800 text-sm shadow-sm animate-in fade-in">
@@ -1142,7 +1107,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
 
         {/* 1. PERSONAL INFORMATION & VERIFICATION STATUS */}
         {activeTab === 'details' && (
-          <div className="bg-white border border-[#e2e8f0] rounded-2xl p-6 sm:p-8 shadow-sm">
+          <div className="bg-white border border-slate-200 border-t-4 border-t-[#5a00b8] rounded-2xl p-6 sm:p-8 shadow-md shadow-purple-900/5">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
               <div>
                 <h2 className="text-lg font-bold text-[#171222] flex items-center gap-2">
@@ -1165,7 +1130,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                       onChange={(e) => setName(e.target.value)}
                       required
                       placeholder="e.g. Puneet Kushwaha"
-                      className="w-full pl-11 pr-4 py-3.5 border border-slate-200 rounded-xl text-sm font-medium text-[#171222] focus:outline-none focus:border-[#5a00b8] focus:ring-2 focus:ring-orange-100 transition-all"
+                      className="w-full pl-11 pr-4 py-3.5 border border-slate-200 rounded-xl text-sm font-medium text-[#171222] focus:outline-none focus:border-[#5a00b8] focus:ring-2 focus:ring-purple-100 transition-all"
                     />
                   </div>
                 </div>
@@ -1191,7 +1156,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       placeholder="you@company.com"
-                      className="w-full pl-11 pr-4 py-3.5 border border-slate-200 rounded-xl text-sm font-medium text-[#171222] focus:outline-none focus:border-[#5a00b8] focus:ring-2 focus:ring-orange-100 transition-all"
+                      className="w-full pl-11 pr-4 py-3.5 border border-slate-200 rounded-xl text-sm font-medium text-[#171222] focus:outline-none focus:border-[#5a00b8] focus:ring-2 focus:ring-purple-100 transition-all"
                     />
                   </div>
                   <p className="text-[11px] text-slate-400 mt-1.5">Order receipts, tracking links, and delivery telemetry are dispatched to this inbox.</p>
@@ -1221,7 +1186,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center gap-2 bg-[#5a00b8] hover:bg-[#2a005c] text-white font-bold px-6 py-3.5 rounded-xl text-sm shadow-md shadow-slate-900/10 transition-all disabled:opacity-60"
+                  className="inline-flex items-center gap-2 bg-gradient-to-r from-[#5a00b8] to-[#7c3aed] hover:from-[#4a0099] hover:to-[#6d28d9] text-white font-bold px-6 py-3.5 rounded-xl text-sm shadow-lg shadow-purple-900/25 transition-all disabled:opacity-60"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                   <span>{saving ? 'Saving Profile...' : 'Save Profile Details'}</span>
@@ -1233,7 +1198,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
 
         {/* 2. SAVED ADDRESSES SECTION */}
         {activeTab === 'addresses' && (
-          <div className="bg-white border border-[#e2e8f0] rounded-2xl p-6 sm:p-8 shadow-sm">
+          <div className="bg-white border border-slate-200 border-t-4 border-t-[#5a00b8] rounded-2xl p-6 sm:p-8 shadow-md shadow-purple-900/5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
               <div>
                 <h2 className="text-lg font-bold text-[#171222] flex items-center gap-2">
@@ -1271,7 +1236,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                   <div
                     key={addr.id}
                     className={`p-5 rounded-2xl border transition-all ${
-                      addr.is_default ? 'border-[#5a00b8] bg-purple-50/30 ring-1 ring-orange-100' : 'border-slate-200 bg-white hover:border-slate-300'
+                      addr.is_default ? 'border-[#5a00b8] bg-purple-50/30 ring-1 ring-purple-100' : 'border-slate-200 bg-white hover:border-slate-300'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2 mb-3">
@@ -1319,7 +1284,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
         {activeTab === 'orders' && (
           <div className="space-y-6">
             {/* Header & Quick stats */}
-            <div className="bg-white border border-[#e2e8f0] rounded-2xl p-6 sm:p-8 shadow-sm">
+            <div className="bg-white border border-slate-200 border-t-4 border-t-[#5a00b8] rounded-2xl p-6 sm:p-8 shadow-md shadow-purple-900/5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
                 <div>
                   <h2 className="text-lg font-bold text-[#171222] flex items-center gap-2">
@@ -2222,6 +2187,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
             </div>
           </div>
         )}
+          </div>
+        </div>
       </div>
 
       {/* ── ADDRESS MODAL (Add or Edit) ────────────────────────────────────── */}
@@ -2273,7 +2240,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                   required
                   rows={3}
                   placeholder="e.g. Tower B, 4th Floor, Sector 62, Electronic City, Noida"
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm text-[#171222] focus:outline-none focus:border-[#5a00b8] focus:ring-2 focus:ring-orange-100"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm text-[#171222] focus:outline-none focus:border-[#5a00b8] focus:ring-2 focus:ring-purple-100"
                 />
               </div>
 
@@ -2369,7 +2336,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                   onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
                   required
                   placeholder="······"
-                  className="w-full text-center text-2xl font-bold tracking-[0.3em] py-3.5 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-[#5a00b8] focus:ring-4 focus:ring-orange-100 text-[#171222] bg-slate-50/50"
+                  className="w-full text-center text-2xl font-bold tracking-[0.3em] py-3.5 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-[#5a00b8] focus:ring-4 focus:ring-purple-100 text-[#171222] bg-slate-50/50"
                 />
               </div>
 

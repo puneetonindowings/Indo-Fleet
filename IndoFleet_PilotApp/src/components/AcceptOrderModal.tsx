@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { ShieldCheck, X, KeyRound, AlertTriangle, UserCheck } from 'lucide-react-native';
+import { ShieldCheck, X, KeyRound, AlertTriangle, UserCheck, CheckCircle2 } from 'lucide-react-native';
 import { DeliveryOrder, UserProfile } from '../types';
 import { acceptAssignedOrder } from '../services/api';
 
@@ -32,6 +32,14 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
 }) => {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (order?.pilot_acceptance_otp) {
+      setOtp(order.pilot_acceptance_otp);
+    } else {
+      setOtp('');
+    }
+  }, [order, visible]);
 
   if (!order) return null;
 
@@ -163,6 +171,14 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
                   autoFocus={true}
                 />
               </View>
+              {Boolean(order.pilot_acceptance_otp) && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 6 }}>
+                  <CheckCircle2 size={13} color="#059669" />
+                  <Text style={{ fontSize: 12, color: '#059669', fontWeight: '600' }}>
+                    Auto-populated OTP: {order.pilot_acceptance_otp}
+                  </Text>
+                </View>
+              )}
             </View>
           )}
 
