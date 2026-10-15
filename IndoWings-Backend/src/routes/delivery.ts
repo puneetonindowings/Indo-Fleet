@@ -5104,9 +5104,9 @@ router.post('/pilot/support-ticket', async (req, res) => {
 
 // 15. App Release Management (Get & Publish Releases + Email Delivery Partners)
 let activeAppRelease = {
-  version: 'v1.0.0',
-  release_notes: 'IndoFleet Delivery App official production build with direct cloud integration, real-time GPS telemetry, and OTP handover verification.',
-  android_url: 'https://expo.dev/artifacts/eas/dVb6f5zm7RUVya2q6Alzvk1ApXfj6XFYmE4VXSJNHJU.apk',
+  version: 'v1.0.1',
+  release_notes: 'IndoFleet RPAV 700 fleet update: Complete QR condition inspection system, streamlined support desk, automated password distribution, and mobile pilot inspections.',
+  android_url: 'https://expo.dev/artifacts/eas/YPjrEBCflyZew06NIYn0vgajbQjflcoHC8N0rHMSzAE.apk',
   ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
   updated_at: new Date().toISOString()
 };
