@@ -16,9 +16,17 @@ const smtpTransporter = nodemailer.createTransport({
   }
 } as any);
 
+export let lastMailError = '';
+
+export function getLastMailError(): string {
+  return lastMailError;
+}
+
 export async function sendEmail({ to, subject, text, html }: { to: string; subject: string; text: string; html?: string }): Promise<boolean> {
+  lastMailError = '';
   if (!to || !to.includes('@')) {
-    console.error('[mail] Not sent: destination email address is invalid.');
+    lastMailError = `Destination email address is invalid: "${to || ''}"`;
+    console.error(`[mail] Not sent: ${lastMailError}`);
     return false;
   }
 
@@ -33,14 +41,18 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
         html: html || undefined
       });
       console.log(`[mail] Gmail SMTP delivered message to ${to} (ID: ${info.messageId})`);
+      lastMailError = '';
       return true;
-    } catch (smtpErr) {
-      console.error('[mail] Gmail SMTP delivery failed:', smtpErr instanceof Error ? smtpErr.message : smtpErr);
+    } catch (smtpErr: any) {
+      const errMsg = smtpErr instanceof Error ? smtpErr.message : String(smtpErr);
+      lastMailError = errMsg;
+      console.error('[mail] Gmail SMTP delivery failed:', errMsg);
       return false;
     }
   }
 
-  console.warn('[mail] SMTP credentials (SMTP_USER, SMTP_PASS) not configured in .env.');
+  lastMailError = 'SMTP credentials (SMTP_USER, SMTP_PASS) not configured in backend environment.';
+  console.warn(`[mail] ${lastMailError}`);
   return false;
 }
 
