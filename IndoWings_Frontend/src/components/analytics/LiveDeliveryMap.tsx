@@ -1,15 +1,66 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
-import type { ErrorEvent as MapLibreErrorEvent, Map as MapLibreMap } from 'maplibre-gl';
+import type { Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { MapPinOff } from 'lucide-react';
+import { MapPinOff, Layers, ZoomIn, ZoomOut, Navigation } from 'lucide-react';
 import { MapDelivery, statusColor, statusLabel } from './analytics';
 
 if (typeof (maplibregl as any).setWorkerUrl === 'function') {
   (maplibregl as any).setWorkerUrl('/maplibre-gl-worker.mjs');
 }
 
-const GOOGLE_MAPS_KEY = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
+// Google Maps Raster Tile Styles (Direct Google Maps Engine - Roadmap & Satellite)
+const GOOGLE_ROADMAP_STYLE = {
+  version: 8 as const,
+  sources: {
+    'google-roadmap': {
+      type: 'raster' as const,
+      tiles: [
+        'https://mt0.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+        'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+        'https://mt2.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+        'https://mt3.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'
+      ],
+      tileSize: 256,
+      attribution: '© Google Maps'
+    }
+  },
+  layers: [
+    {
+      id: 'google-roadmap-layer',
+      type: 'raster' as const,
+      source: 'google-roadmap',
+      minzoom: 0,
+      maxzoom: 22
+    }
+  ]
+};
+
+const GOOGLE_SATELLITE_STYLE = {
+  version: 8 as const,
+  sources: {
+    'google-satellite': {
+      type: 'raster' as const,
+      tiles: [
+        'https://mt0.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        'https://mt2.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        'https://mt3.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
+      ],
+      tileSize: 256,
+      attribution: '© Google Maps Satellite'
+    }
+  },
+  layers: [
+    {
+      id: 'google-satellite-layer',
+      type: 'raster' as const,
+      source: 'google-satellite',
+      minzoom: 0,
+      maxzoom: 22
+    }
+  ]
+};
 
 interface Props {
   deliveries: MapDelivery[];
@@ -20,176 +71,153 @@ export const LiveDeliveryMap: React.FC<Props> = ({ deliveries, center }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
   const [error, setError] = useState('');
   const deliveriesRef = useRef(deliveries);
   deliveriesRef.current = deliveries;
   const markersRef = useRef<any[]>([]);
 
+  const plot = () => {
+    if (!mapRef.current) return;
+    const instance = mapRef.current;
+
+    // clear previous markers
+    markersRef.current.forEach((m) => {
+      try {
+        m.remove();
+      } catch {
+        /* noop */
+      }
+    });
+    markersRef.current = [];
+
+    // clear previous route sources/layers
+    (instance.getStyle().layers || []).forEach((layer) => {
+      if (layer.id.startsWith('route-')) instance.removeLayer(layer.id);
+    });
+    Object.keys(instance.getStyle().sources || {}).forEach((src) => {
+      if (src.startsWith('route-')) instance.removeSource(src);
+    });
+
+    const boundsPoints: [number, number][] = [];
+
+    if (deliveriesRef.current.length === 0) {
+      // Plot IndoFleet Central Logistics Operations Base
+      const hubHtml = `
+        <div style="font-family: Arial, sans-serif; padding: 6px 8px; min-width: 170px;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+            <strong style="font-size: 12px; color: #5a00b8;">IndoFleet Operations Base</strong>
+          </div>
+          <p style="font-size: 11px; color: #475569; margin: 0;">Central Dispatch &amp; Flight Hub</p>
+          <p style="font-size: 10px; color: #10b981; font-weight: bold; margin: 4px 0 0 0;">● Status: 1,000 UAVs Ready in Stock</p>
+        </div>
+      `;
+      const hubMarker = new maplibregl.Marker({ color: '#5a00b8' })
+        .setLngLat([center.lng, center.lat])
+        .setPopup(new maplibregl.Popup({ offset: 20 }).setHTML(hubHtml))
+        .addTo(instance);
+      markersRef.current.push(hubMarker);
+    } else {
+      deliveriesRef.current.forEach((d) => {
+        const color = statusColor(d.status);
+        const route: [number, number][] = [
+          [d.source.lng, d.source.lat],
+          [d.current.lng, d.current.lat],
+          [d.destination.lng, d.destination.lat]
+        ];
+        route.forEach((p) => boundsPoints.push(p));
+
+        const srcId = `route-${d.order_id}`;
+        if (!instance.getSource(srcId)) {
+          instance.addSource(srcId, {
+            type: 'geojson',
+            data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route } }
+          });
+          instance.addLayer({
+            id: srcId,
+            type: 'line',
+            source: srcId,
+            paint: { 'line-color': color, 'line-width': 2.5, 'line-dasharray': [2, 2], 'line-opacity': 0.85 }
+          });
+        }
+
+        const popupHtml = `<div style="font-family:ui-sans-serif,system-ui;padding:4px"><strong style="font-size:12px;color:#0f172a">${d.order_id}</strong><br/><span style="font-size:11px;color:#475569">${d.customer}</span><br/><span style="font-size:11px;font-weight:700;color:${color}">● ${statusLabel(d.status)}</span></div>`;
+        const marker = new maplibregl
+          .Marker({ color })
+          .setLngLat([d.current.lng, d.current.lat])
+          .setPopup(new maplibregl.Popup({ offset: 20 }).setHTML(popupHtml))
+          .addTo(instance);
+        markersRef.current.push(marker);
+      });
+
+      if (boundsPoints.length) {
+        const bounds = new maplibregl.LngLatBounds(boundsPoints[0], boundsPoints[0]);
+        boundsPoints.slice(1).forEach((p) => bounds.extend(p));
+        instance.fitBounds(bounds, { padding: 60, maxZoom: 13 });
+      }
+    }
+  };
+
   useEffect(() => {
     if (!containerRef.current) return;
     const controller = new AbortController();
-    let map: MapLibreMap | null = null;
 
-    const plot = async () => {
-      if (!map) return;
-      const instance = map;
-      if (controller.signal.aborted) return;
+    const activeStyle = mapType === 'satellite' ? GOOGLE_SATELLITE_STYLE : GOOGLE_ROADMAP_STYLE;
 
-      // clear previous markers
-      markersRef.current.forEach((m) => {
-        try {
-          m.remove();
-        } catch {
-          /* noop */
-        }
-      });
-      markersRef.current = [];
+    const map = new maplibregl.Map({
+      container: containerRef.current,
+      style: activeStyle as any,
+      center: [center.lng, center.lat],
+      zoom: 12,
+      attributionControl: false
+    });
+    mapRef.current = map;
 
-      // clear previous route sources/layers
-      (instance.getStyle().layers || []).forEach((layer) => {
-        if (layer.id.startsWith('route-')) instance.removeLayer(layer.id);
-      });
-      Object.keys(instance.getStyle().sources || {}).forEach((src) => {
-        if (src.startsWith('route-')) instance.removeSource(src);
-      });
-
-      const boundsPoints: [number, number][] = [];
-
-      if (deliveriesRef.current.length === 0) {
-        // Plot IndoFleet Central Logistics Operations Base
-        const hubHtml = `
-          <div style="font-family: Arial, sans-serif; padding: 6px 8px; min-width: 160px;">
-            <div style="display: flex; items-center: center; gap: 6px; margin-bottom: 4px;">
-              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
-              <strong style="font-size: 12px; color: #5a00b8;">IndoFleet Operations Base</strong>
-            </div>
-            <p style="font-size: 11px; color: #475569; margin: 0;">Central Dispatch &amp; Flight Hub</p>
-            <p style="font-size: 10px; color: #10b981; font-weight: bold; margin: 4px 0 0 0;">● Status: 1,000 UAVs Ready in Stock</p>
-          </div>
-        `;
-        const hubMarker = new maplibregl.Marker({ color: '#5a00b8' })
-          .setLngLat([center.lng, center.lat])
-          .setPopup(new maplibregl.Popup({ offset: 20 }).setHTML(hubHtml))
-          .addTo(instance);
-        markersRef.current.push(hubMarker);
-      } else {
-        deliveriesRef.current.forEach((d) => {
-          const color = statusColor(d.status);
-          const route: [number, number][] = [
-            [d.source.lng, d.source.lat],
-            [d.current.lng, d.current.lat],
-            [d.destination.lng, d.destination.lat]
-          ];
-          route.forEach((p) => boundsPoints.push(p));
-
-          const srcId = `route-${d.order_id}`;
-          if (!instance.getSource(srcId)) {
-            instance.addSource(srcId, {
-              type: 'geojson',
-              data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route } }
-            });
-            instance.addLayer({ id: srcId, type: 'line', source: srcId, paint: { 'line-color': color, 'line-width': 2, 'line-dasharray': [2, 2], 'line-opacity': 0.7 } });
-          }
-
-          const popupHtml = `<div style="font-family:ui-sans-serif,system-ui"><strong style="font-size:12px">${d.order_id}</strong><br/><span style="font-size:11px;color:#475569">${d.customer}</span><br/><span style="font-size:11px;font-weight:700;color:${color}">${statusLabel(d.status)}</span></div>`;
-          const marker = new maplibregl
-            .Marker({ color })
-            .setLngLat([d.current.lng, d.current.lat])
-            .setPopup(new maplibregl.Popup({ offset: 20 }).setHTML(popupHtml))
-            .addTo(instance);
-          markersRef.current.push(marker);
-        });
-
-        if (boundsPoints.length) {
-          const bounds = new maplibregl.LngLatBounds(boundsPoints[0], boundsPoints[0]);
-          boundsPoints.slice(1).forEach((p) => bounds.extend(p));
-          instance.fitBounds(bounds, { padding: 60, maxZoom: 13 });
-        }
+    map.on('load', () => {
+      map.resize();
+      try {
+        plot();
+      } catch (e: any) {
+        if (!controller.signal.aborted) setError(e?.message || 'Could not plot deliveries.');
       }
-    };
+    });
 
-    // Key-less OpenStreetMap raster style used as a reliable fallback.
-    const OSM_STYLE = {
-      version: 8 as const,
-      sources: {
-        osm: {
-          type: 'raster' as const,
-          tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-          tileSize: 256,
-          attribution: '© OpenStreetMap contributors'
-        }
-      },
-      layers: [{ id: 'osm-tiles', type: 'raster' as const, source: 'osm' }]
-    };
-
-    const GOOGLE_STYLE = GOOGLE_MAPS_KEY ? {
-      version: 8,
-      sources: {
-        'google-maps': {
-          type: 'raster' as const,
-          tiles: [
-            `https://mt0.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&key=${encodeURIComponent(GOOGLE_MAPS_KEY)}`,
-            `https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&key=${encodeURIComponent(GOOGLE_MAPS_KEY)}`,
-            `https://mt2.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&key=${encodeURIComponent(GOOGLE_MAPS_KEY)}`,
-            `https://mt3.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&key=${encodeURIComponent(GOOGLE_MAPS_KEY)}`
-          ],
-          tileSize: 256,
-          attribution: '© Google Maps'
-        }
-      },
-      layers: [{ id: 'google-tiles', type: 'raster' as const, source: 'google-maps' }]
-    } : null;
-
-    const init = async () => {
-      if (controller.signal.aborted || !containerRef.current) return;
-      const initialStyle = GOOGLE_STYLE || OSM_STYLE;
-      map = new maplibregl.Map({
-        container: containerRef.current,
-        style: initialStyle as any,
-        center: [center.lng, center.lat],
-        zoom: 12
-      });
-      mapRef.current = map;
-      map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
-
-      let fellBack = !GOOGLE_MAPS_KEY;
-      const fallbackToOsm = () => {
-        if (fellBack || !map || controller.signal.aborted) return;
-        fellBack = true;
-        map.setStyle(OSM_STYLE as any);
-        map.once('idle', () => {
-          if (controller.signal.aborted || !mapRef.current) return;
-          void plot().catch(() => {});
-        });
-      };
-
-      map.on('load', () => {
-        map?.resize();
-        void plot().catch((e) => !controller.signal.aborted && setError(e instanceof Error ? e.message : 'Could not plot deliveries.'));
-      });
-      map.on('error', (event: MapLibreErrorEvent) => {
-        if (controller.signal.aborted) return;
-        if (event.error) fallbackToOsm();
-      });
-
-      // ensure correct sizing even if the container mounts at zero size
-      const ro = new ResizeObserver(() => map?.resize());
-      ro.observe(containerRef.current);
-      resizeObserverRef.current = ro;
-    };
-
-    void init().catch((e) => !controller.signal.aborted && setError(e instanceof Error ? e.message : 'Could not initialize map.'));
+    // ensure correct sizing even if the container mounts at zero size
+    const ro = new ResizeObserver(() => map.resize());
+    ro.observe(containerRef.current);
+    resizeObserverRef.current = ro;
 
     return () => {
       controller.abort();
       resizeObserverRef.current?.disconnect();
       resizeObserverRef.current = null;
-      map?.remove();
+      map.remove();
       mapRef.current = null;
       markersRef.current = [];
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [GOOGLE_MAPS_KEY]);
+  }, []);
+
+  const handleToggleMapType = () => {
+    const next = mapType === 'roadmap' ? 'satellite' : 'roadmap';
+    setMapType(next);
+    if (mapRef.current) {
+      mapRef.current.setStyle((next === 'satellite' ? GOOGLE_SATELLITE_STYLE : GOOGLE_ROADMAP_STYLE) as any);
+      mapRef.current.once('idle', () => {
+        try {
+          plot();
+        } catch {
+          /* noop */
+        }
+      });
+    }
+  };
+
+  const handleRecenter = () => {
+    if (!mapRef.current) return;
+    mapRef.current.flyTo({ center: [center.lng, center.lat], zoom: 12 });
+  };
 
   if (error) {
     return (
@@ -203,22 +231,75 @@ export const LiveDeliveryMap: React.FC<Props> = ({ deliveries, center }) => {
   return (
     <div className="relative">
       <div ref={containerRef} className="h-[380px] w-full rounded-2xl overflow-hidden border border-slate-200" />
-      
-      {/* Top Status Pill */}
-      <div className="absolute top-3 left-3 bg-white/95 backdrop-blur rounded-xl border border-slate-200 px-3 py-1.5 shadow-sm flex items-center gap-2">
+
+      {/* Top Left Status Pill */}
+      <div className="absolute top-3 left-3 bg-white/95 backdrop-blur rounded-xl border border-slate-200 px-3 py-1.5 shadow-sm flex items-center gap-2 z-10">
         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
         <span className="text-[11px] font-bold text-slate-700">
           {deliveries.length > 0 ? `${deliveries.length} Live Aerial Delivery Missions` : 'Central Flight Base Active · Ready for Dispatch'}
         </span>
       </div>
 
-      <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur rounded-xl border border-slate-200 px-3 py-2 shadow-sm flex flex-wrap gap-x-3 gap-y-1 max-w-[90%]">
+      {/* Top Right: Google Maps Layer Switcher & Zoom Controls */}
+      <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5">
+        <button
+          type="button"
+          onClick={handleToggleMapType}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/95 hover:bg-white text-slate-800 text-xs font-bold shadow-md border border-slate-200 transition-all cursor-pointer backdrop-blur"
+          title="Switch Google Maps Style"
+        >
+          <Layers className="w-3.5 h-3.5 text-blue-600" />
+          <span>{mapType === 'roadmap' ? 'Satellite' : 'Roadmap'}</span>
+        </button>
+
+        <div className="flex flex-col rounded-xl overflow-hidden bg-white/95 shadow-md border border-slate-200 backdrop-blur">
+          <button
+            type="button"
+            onClick={() => mapRef.current?.zoomIn()}
+            className="p-2 hover:bg-slate-100 text-slate-700 border-b border-slate-100 transition-all cursor-pointer flex items-center justify-center"
+            title="Zoom In"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => mapRef.current?.zoomOut()}
+            className="p-2 hover:bg-slate-100 text-slate-700 transition-all cursor-pointer flex items-center justify-center"
+            title="Zoom Out"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleRecenter}
+          className="p-2 rounded-xl bg-white/95 hover:bg-white text-blue-600 shadow-md border border-slate-200 transition-all cursor-pointer backdrop-blur flex items-center justify-center"
+          title="Recenter Map"
+        >
+          <Navigation className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Bottom Left Legend */}
+      <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur rounded-xl border border-slate-200 px-3 py-1.5 shadow-sm flex flex-wrap gap-x-3 gap-y-1 max-w-[70%] z-10">
         {['delivered', 'in-flight', 'out-for-delivery', 'delayed', 'on-hold'].map((s) => (
           <span key={s} className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600">
             <span className="w-2.5 h-2.5 rounded-full" style={{ background: statusColor(s) }} />
             {statusLabel(s)}
           </span>
         ))}
+      </div>
+
+      {/* Bottom Right: Google Maps Branding Badge */}
+      <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur rounded-lg px-2.5 py-1 text-[11px] font-bold text-slate-700 shadow-sm border border-slate-200 flex items-center gap-1 z-10 select-none">
+        <span className="text-[#4285F4] font-black">G</span>
+        <span className="text-[#EA4335] font-black">o</span>
+        <span className="text-[#FBBC05] font-black">o</span>
+        <span className="text-[#4285F4] font-black">g</span>
+        <span className="text-[#34A853] font-black">l</span>
+        <span className="text-[#EA4335] font-black">e</span>
+        <span className="text-slate-600 font-bold ml-0.5">Maps</span>
       </div>
     </div>
   );
