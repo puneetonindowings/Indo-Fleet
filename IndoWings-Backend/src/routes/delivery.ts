@@ -1276,6 +1276,122 @@ router.post('/auth/forgot-password-request', async (req, res) => {
   }
 });
 
+// 3B. Auth: Forgot Password Request via 6-digit OTP (Direct Reset)
+router.post('/auth/forgot-password/send-otp', async (req, res) => {
+  try {
+    const { identifier, email, phone } = req.body;
+    const rawInput = (identifier || email || phone || '').toString().trim();
+    if (!rawInput) {
+      res.status(400).json({ error: 'Please enter your registered email address or mobile number.' });
+      return;
+    }
+
+    let user: any = null;
+    if (rawInput.includes('@')) {
+      user = await fileDB.findUserByEmail(rawInput.toLowerCase().trim());
+    } else {
+      const cleanPhone = rawInput.replace(/[^0-9]/g, '').slice(-10);
+      if (cleanPhone) user = await fileDB.findUserByPhone(cleanPhone);
+      if (!user) user = await fileDB.findUserByEmail(rawInput.toLowerCase().trim());
+    }
+
+    if (!user) {
+      res.status(404).json({ error: 'No registered IndoFleet account was found matching those details.' });
+      return;
+    }
+
+    const targetEmail = (user.email || '').toLowerCase().trim();
+    if (!targetEmail) {
+      res.status(400).json({ error: 'No registered email found for this user account to send verification OTP.' });
+      return;
+    }
+
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    await fileDB.saveOTP(targetEmail, otp, { purpose: 'forgot-password-reset', name: user.name, email: targetEmail });
+
+    if (user.phone) {
+      const cleanPhone = user.phone.replace(/[^0-9]/g, '').slice(-10);
+      await fileDB.saveOTP(cleanPhone, otp, { purpose: 'forgot-password-reset', name: user.name, email: targetEmail });
+    }
+
+    sendPasswordChangeOtpEmail({
+      email: targetEmail,
+      name: user.name,
+      otp
+    }).catch((err) => console.error('[mail] Forgot password OTP failed:', err));
+
+    res.json({
+      success: true,
+      message: `A 6-digit password reset verification code has been dispatched to ${targetEmail}.`,
+      otp_hint: otp
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Failed to dispatch password reset OTP.' });
+  }
+});
+
+router.post('/auth/forgot-password/verify-and-reset', async (req, res) => {
+  try {
+    const { identifier, otp, newPassword } = req.body;
+    const rawInput = (identifier || '').toString().trim();
+    if (!rawInput || !otp || !newPassword) {
+      res.status(400).json({ error: 'Registered identifier, OTP code, and new password are required.' });
+      return;
+    }
+
+    const cleanPass = newPassword.toString().trim();
+    if (cleanPass.length < 6) {
+      res.status(400).json({ error: 'New password must be at least 6 characters long.' });
+      return;
+    }
+
+    let user: any = null;
+    if (rawInput.includes('@')) {
+      user = await fileDB.findUserByEmail(rawInput.toLowerCase().trim());
+    } else {
+      const cleanPhone = rawInput.replace(/[^0-9]/g, '').slice(-10);
+      if (cleanPhone) user = await fileDB.findUserByPhone(cleanPhone);
+      if (!user) user = await fileDB.findUserByEmail(rawInput.toLowerCase().trim());
+    }
+
+    if (!user) {
+      res.status(404).json({ error: 'Account not found.' });
+      return;
+    }
+
+    const targetKey = user.email ? user.email.toLowerCase().trim() : user.phone.replace(/[^0-9]/g, '').slice(-10);
+    const verification = await fileDB.verifyOTP(targetKey, String(otp).trim());
+    if (!verification.valid || verification.meta?.purpose !== 'forgot-password-reset') {
+      res.status(400).json({ error: verification.reason || 'Invalid or expired OTP code.' });
+      return;
+    }
+
+    // Set new permanent password
+    await fileDB.updateUser(user.id, {
+      password: cleanPass,
+      must_change_password: false,
+      password_updated_at: new Date().toISOString()
+    });
+
+    if (user.email) {
+      sendPasswordChangedEmail(user.email, user.name).catch(() => {});
+    }
+
+    const updatedUser = await fileDB.findUserById(user.id);
+    const safeUser = publicUser(updatedUser);
+    const token = jwt.sign(safeUser, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({
+      success: true,
+      message: 'Password reset successfully! You can now log in with your new password.',
+      user: safeUser,
+      token
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Failed to reset password.' });
+  }
+});
+
 // 4. Admin: Generate & Dispatch 10-Minute Temporary Password for Any User
 router.post('/admin/generate-temp-password', async (req, res) => {
   try {

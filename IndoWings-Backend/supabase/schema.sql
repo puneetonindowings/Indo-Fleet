@@ -17,6 +17,7 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now()
 );
 
+do $$
 declare
   constraint_row record;
 begin
