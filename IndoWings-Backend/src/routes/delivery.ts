@@ -5379,7 +5379,7 @@ router.post('/pilot/request-pilot-delivery-otp', async (req, res) => {
   }
 });
 
-// 12. Complete Delivery with Customer OTP, Pilot OTP, Recipient Signature, Photo & GPS Tag
+// 12. Complete Delivery with Customer OTP, Pilot OTP, Photo POD & GPS Tag
 router.post('/pilot/complete-delivery', async (req, res) => {
   try {
     const {
@@ -5452,7 +5452,7 @@ router.post('/pilot/complete-delivery', async (req, res) => {
       delivered_at: now,
       location_is_live: false,
       recipient_name: recipient_name.trim(),
-      delivery_notes: delivery_notes || 'Handover completed and digitally signed by recipient',
+      delivery_notes: delivery_notes || 'Handover completed via dual OTP verification & photo POD',
       digital_signature_url: digital_signature || null,
       pod_photo: pod_photo || null,
       last_known_location: final_latitude && final_longitude ? `${final_latitude}, ${final_longitude}` : order.last_known_location,
