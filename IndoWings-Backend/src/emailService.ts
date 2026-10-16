@@ -5,7 +5,6 @@ import { supabase } from './supabase.js';
 import { fileDB } from './db.js';
 
 // Force Node.js DNS resolver to prioritize IPv4 over IPv6.
-// Render Linux Docker containers lack IPv6 outbound routing, which causes `connect ENETUNREACH` when contacting Google SMTP via IPv6.
 if (typeof (dns as any).setDefaultResultOrder === 'function') {
   (dns as any).setDefaultResultOrder('ipv4first');
 }
@@ -15,47 +14,58 @@ const SUPPORT_FROM_NAME = 'IndoWings Support Desk';
 const MAIL_FROM_NAME = 'IndoWings Operations';
 
 const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-const configuredPort = Number(process.env.SMTP_PORT) || 587;
 const smtpUser = process.env.SMTP_USER || 'puneetkushwaha9452@gmail.com';
 const smtpPass = process.env.SMTP_PASS || 'dzlcpzagmxvdpzwu';
 
-// Primary transporter: Port 587 with STARTTLS (fastest and most reliable across cloud/Render)
-const primaryTransporter = nodemailer.createTransport({
-  host: smtpHost,
-  port: configuredPort === 465 ? 465 : 587,
-  secure: configuredPort === 465,
-  requireTLS: configuredPort !== 465,
-  family: 4, // strictly IPv4
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
-  auth: {
-    user: smtpUser,
-    pass: smtpPass
-  },
-  tls: {
-    rejectUnauthorized: false
+// Resolve guaranteed IPv4 addresses for SMTP host.
+// Render Docker containers have no IPv6 outbound routing; Nodemailer v10's internal resolver
+// picks random addresses from resolve4 + resolve6, causing fatal `connect ENETUNREACH [2607:...]`.
+// Passing an IPv4 IP address directly as `host` bypasses Nodemailer's internal resolver completely.
+async function getSmtpIpv4Addresses(host: string): Promise<string[]> {
+  if (/^(\d{1,3}\.){3}\d{1,3}$/.test(host)) {
+    return [host];
   }
-} as any);
+  try {
+    const addrs = await dns.promises.resolve4(host);
+    if (addrs && addrs.length > 0) {
+      return addrs;
+    }
+  } catch (err: any) {
+    console.warn(`[mail] dns.resolve4 failed for ${host}:`, err?.message || err);
+  }
+  try {
+    const lookup = await dns.promises.lookup(host, { family: 4, all: true });
+    if (lookup && lookup.length > 0) {
+      return lookup.map(l => l.address);
+    }
+  } catch (err: any) {
+    console.warn(`[mail] dns.lookup failed for ${host}:`, err?.message || err);
+  }
+  // Fallback Google SMTP IPv4 addresses if DNS is restricted
+  return ['142.250.183.108', '142.250.183.109', '192.178.158.108', '192.178.158.109'];
+}
 
-// Fallback transporter: alternate port with IPv4
-const fallbackTransporter = nodemailer.createTransport({
-  host: smtpHost,
-  port: configuredPort === 465 ? 587 : 465,
-  secure: configuredPort !== 465,
-  requireTLS: configuredPort === 465,
-  family: 4, // strictly IPv4
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
-  auth: {
-    user: smtpUser,
-    pass: smtpPass
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-} as any);
+function buildIpv4Transporter(targetIp: string, port: number) {
+  const isSecure = port === 465;
+  return nodemailer.createTransport({
+    host: targetIp,
+    port,
+    secure: isSecure,
+    requireTLS: !isSecure,
+    servername: smtpHost, // Preserve TLS SNI & certificate verification against smtp.gmail.com
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 12000,
+    auth: {
+      user: smtpUser,
+      pass: smtpPass
+    },
+    tls: {
+      servername: smtpHost,
+      rejectUnauthorized: false
+    }
+  } as any);
+}
 
 export let lastMailError = '';
 
@@ -81,29 +91,31 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
       html: html || undefined
     };
 
-    // Attempt 1: Primary Transporter (IPv4 forced, Port 587)
-    try {
-      const info = await primaryTransporter.sendMail(mailOptions);
-      console.log(`[mail] Gmail SMTP primary delivered message to ${to} (ID: ${info.messageId})`);
-      lastMailError = '';
-      return true;
-    } catch (primaryErr: any) {
-      const pMsg = primaryErr instanceof Error ? primaryErr.message : String(primaryErr);
-      console.warn(`[mail] Gmail primary SMTP failed (${pMsg}), attempting fallback...`);
+    // Get guaranteed IPv4 addresses (completely eliminates Render IPv6 ENETUNREACH)
+    const ipv4List = await getSmtpIpv4Addresses(smtpHost);
+    const portsToTry = [587, 465];
+    const attemptErrors: string[] = [];
 
-      // Attempt 2: Fallback Transporter (IPv4 forced, Port 465)
-      try {
-        const info = await fallbackTransporter.sendMail(mailOptions);
-        console.log(`[mail] Gmail SMTP fallback delivered message to ${to} (ID: ${info.messageId})`);
-        lastMailError = '';
-        return true;
-      } catch (fallbackErr: any) {
-        const fMsg = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr);
-        lastMailError = `Primary failed: ${pMsg} | Fallback failed: ${fMsg}`;
-        console.error('[mail] Gmail SMTP delivery failed on all transports:', lastMailError);
-        return false;
+    for (const port of portsToTry) {
+      const candidateIps = ipv4List.slice(0, 2);
+      for (const ip of candidateIps) {
+        try {
+          const transporter = buildIpv4Transporter(ip, port);
+          const info = await transporter.sendMail(mailOptions);
+          console.log(`[mail] Gmail SMTP delivered to ${to} via IPv4 ${ip}:${port} (ID: ${info.messageId})`);
+          lastMailError = '';
+          return true;
+        } catch (err: any) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.warn(`[mail] Delivery attempt via IPv4 ${ip}:${port} failed: ${msg}`);
+          attemptErrors.push(`${ip}:${port} (${msg})`);
+        }
       }
     }
+
+    lastMailError = attemptErrors.join(' | ');
+    console.error('[mail] Gmail SMTP delivery failed on all IPv4 transports:', lastMailError);
+    return false;
   }
 
   lastMailError = 'SMTP credentials (SMTP_USER, SMTP_PASS) not configured in backend environment.';
