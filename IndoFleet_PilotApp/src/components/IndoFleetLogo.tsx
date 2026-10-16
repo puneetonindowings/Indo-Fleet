@@ -56,7 +56,7 @@ export const IndoFleetLogo: React.FC<IndoFleetLogoProps> = ({
         </View>
         {showSubtitle && (
           <Text style={[styles.brandSubtitle, isLarge && styles.brandSubtitleLarge]}>
-            DELIVERY
+            PILOT FLIGHT OPS
           </Text>
         )}
       </View>
