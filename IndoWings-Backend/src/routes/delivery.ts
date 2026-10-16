@@ -5428,6 +5428,18 @@ router.get('/public/drone/:drone_id', async (req, res) => {
       })
       .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0] || null;
 
+    let driverName = matchedOrder?.assigned_pilot_name || matchedOrder?.pilot_name || null;
+    let driverPhone = matchedOrder?.assigned_pilot_phone || matchedOrder?.pilot_phone || null;
+
+    if (!driverName && matchedOrder?.assigned_pilot_id) {
+      const users = await fileDB.getUsers();
+      const driver = users.find(u => String(u.id) === String(matchedOrder.assigned_pilot_id));
+      if (driver) {
+        driverName = driver.name || null;
+        driverPhone = driverPhone || driver.phone || null;
+      }
+    }
+
     res.json({
       success: true,
       drone: {
@@ -5448,8 +5460,8 @@ router.get('/public/drone/:drone_id', async (req, res) => {
         customer_phone: matchedOrder?.customer_phone || null,
         customer_email: matchedOrder?.customer_email || null,
         drop_address: matchedOrder?.drop_address || matchedOrder?.delivery_address || null,
-        assigned_pilot_name: matchedOrder?.assigned_pilot_name || matchedOrder?.pilot_name || null,
-        assigned_pilot_phone: matchedOrder?.assigned_pilot_phone || matchedOrder?.pilot_phone || null,
+        assigned_pilot_name: driverName,
+        assigned_pilot_phone: driverPhone,
       }
     });
   } catch (err: any) {
