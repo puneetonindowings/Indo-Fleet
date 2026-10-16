@@ -168,6 +168,43 @@ export default function App() {
   };
 
   const fetchInitialLocation = async () => {
+    // 1. Direct Web Browser Standard Geolocation (for Web / Localhost / Chrome)
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (pos && pos.coords) {
+            console.log('Real Web GPS Coords:', pos.coords.latitude, pos.coords.longitude);
+            setCurrentCoords({
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+            });
+          }
+        },
+        (err) => {
+          console.warn('Browser geolocation warning:', err.message);
+          setCurrentCoords((prev) => prev || { latitude: 28.6280, longitude: 77.3649 });
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+      );
+
+      try {
+        navigator.geolocation.watchPosition(
+          (pos) => {
+            if (pos && pos.coords) {
+              setCurrentCoords({
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+              });
+            }
+          },
+          (err) => console.warn('Browser watchPosition warning:', err.message),
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 }
+        );
+      } catch {}
+      return;
+    }
+
+    // 2. Native Mobile (Android APK / iOS)
     try {
       let { status } = await Location.getForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -176,7 +213,7 @@ export default function App() {
       }
       if (status === 'granted') {
         const loc = await Location.getCurrentPositionAsync({
-          accuracy: Platform.OS === 'web' ? Location.Accuracy.Balanced : Location.Accuracy.High,
+          accuracy: Location.Accuracy.High,
         });
         if (loc?.coords) {
           setCurrentCoords({
@@ -186,26 +223,7 @@ export default function App() {
           return;
         }
       }
-
-      // Web browser / simulator fallback
-      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            setCurrentCoords({
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-            });
-          },
-          () => {
-            // Default IndoFleet Central Hub (Noida / Delhi-NCR Hub: 28.6280, 77.3649)
-            setCurrentCoords((prev) => prev || { latitude: 28.6280, longitude: 77.3649 });
-          },
-          { timeout: 8000, enableHighAccuracy: true }
-        );
-      } else {
-        // Fallback default coordinates so app is never stuck on "Finding..." indefinitely
-        setCurrentCoords((prev) => prev || { latitude: 28.6280, longitude: 77.3649 });
-      }
+      setCurrentCoords((prev) => prev || { latitude: 28.6280, longitude: 77.3649 });
     } catch (err) {
       console.warn('Initial location fetch error:', err);
       setCurrentCoords((prev) => prev || { latitude: 28.6280, longitude: 77.3649 });
@@ -502,6 +520,7 @@ export default function App() {
             telemetry={telemetry}
             currentCoords={currentCoords}
             onRefreshLocation={fetchInitialLocation}
+            onUpdateLocation={(coords) => setCurrentCoords(coords)}
             onBackToDashboard={() => setActiveScreen('dashboard')}
             onCompletePod={handleOpenPodModal}
             onStopTracking={async () => {
