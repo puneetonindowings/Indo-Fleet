@@ -101,4 +101,20 @@ export const setPilotName = async (name: string): Promise<void> => {
   }
 };
 
+export const getRoutingApiUrl = (): string => {
+  return process.env.EXPO_PUBLIC_ROUTING_API_URL || 'https://router.project-osrm.org';
+};
+
+export const getSupportEmail = (): string => {
+  return process.env.EXPO_PUBLIC_SUPPORT_EMAIL || 'connect@indowings.com';
+};
+
+export const getSupportPhone = (): string => {
+  return process.env.EXPO_PUBLIC_SUPPORT_PHONE || '1800 572 7363';
+};
+
+export const getDefaultDroneModel = (): string => {
+  return process.env.EXPO_PUBLIC_DEFAULT_DRONE_MODEL || 'RPAV-000001';
+};
+
 

@@ -34,6 +34,7 @@ import {
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { DeliveryOrder, UserProfile } from '../types';
+import { getDefaultDroneModel } from '../config';
 import {
   requestCustomerDeliveryOtp,
   requestPilotDeliveryOtp,
@@ -90,7 +91,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
 
   if (!order) return null;
 
-  const targetDrone = order.assigned_drone_id || order.drone_id || 'RPAV-000001';
+  const targetDrone = order.assigned_drone_id || order.drone_id || getDefaultDroneModel();
 
   // Step 1: Verify & Lock Airframe & Cargo Inspection
   const handleVerifyInspection = async () => {

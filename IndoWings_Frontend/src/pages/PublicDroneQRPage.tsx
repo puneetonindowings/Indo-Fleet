@@ -23,7 +23,7 @@ import {
   ExternalLink,
   ChevronRight
 } from 'lucide-react';
-import { API_BASE_URL } from '../config/api';
+import { API_BASE_URL, SUPPORT_EMAIL, SUPPORT_PHONE } from '../config/api';
 import { PostDeliveryInspectionModal } from '../components/PostDeliveryInspectionModal';
 
 interface PublicDroneQRPageProps {
@@ -181,7 +181,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
       // Contact info is automatically resolved from the order linked to this drone
       const autoCustomerName = droneData?.customer_name || 'Verified Customer';
       const autoCustomerPhone = droneData?.customer_phone || null;
-      const autoCustomerEmail = droneData?.customer_email || 'connect@indowings.com';
+      const autoCustomerEmail = droneData?.customer_email || SUPPORT_EMAIL;
 
       const res = await fetch(`${API_BASE_URL}/api/delivery/support/expert-requests`, {
         method: 'POST',
@@ -323,7 +323,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
               The requested drone QR link is either invalid or no matching active record exists in the IndoWings fleet registry.
             </p>
             <div className="pt-2 text-xs text-slate-600">
-              Support Helpline: <a href="tel:18005727363" className="text-purple-700 font-bold hover:underline">1800 572 7363</a> • <a href="mailto:connect@indowings.com" className="text-purple-700 font-bold hover:underline">connect@indowings.com</a>
+              Support Helpline: <a href={`tel:${SUPPORT_PHONE.replace(/\s+/g, '')}`} className="text-purple-700 font-bold hover:underline">{SUPPORT_PHONE}</a> • <a href={`mailto:${SUPPORT_EMAIL}`} className="text-purple-700 font-bold hover:underline">{SUPPORT_EMAIL}</a>
             </div>
           </div>
         ) : droneData ? (
@@ -374,11 +374,11 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                     </a>
                   ) : (
                     <a
-                      href="tel:18005727363"
+                      href={`tel:${SUPPORT_PHONE.replace(/\s+/g, '')}`}
                       className="px-4 py-2.5 rounded-xl bg-slate-200/80 hover:bg-slate-300 text-slate-800 text-xs font-bold flex items-center justify-center gap-2 transition-colors shrink-0 cursor-pointer"
                     >
                       <Phone className="w-3.5 h-3.5 text-purple-700" />
-                      <span>Helpline (1800 572 7363)</span>
+                      <span>Helpline ({SUPPORT_PHONE})</span>
                     </a>
                   )}
                 </div>
@@ -690,14 +690,14 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                 </h4>
                 <div className="space-y-2.5 text-xs">
                   <a
-                    href="tel:18005727363"
+                    href={`tel:${SUPPORT_PHONE.replace(/\s+/g, '')}`}
                     className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-between transition-colors"
                   >
                     <div className="flex items-center gap-2.5">
                       <Phone className="w-4 h-4 text-purple-700" />
                       <div>
                         <span className="text-[10px] text-slate-400 uppercase font-bold block">Toll Free Hotline</span>
-                        <span className="font-bold text-slate-900">1800 572 7363</span>
+                        <span className="font-bold text-slate-900">{SUPPORT_PHONE}</span>
                       </div>
                     </div>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
@@ -706,14 +706,14 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                   </a>
 
                   <a
-                    href="mailto:connect@indowings.com"
+                    href={`mailto:${SUPPORT_EMAIL}`}
                     className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-between transition-colors"
                   >
                     <div className="flex items-center gap-2.5">
                       <Mail className="w-4 h-4 text-purple-700" />
                       <div>
                         <span className="text-[10px] text-slate-400 uppercase font-bold block">Official Inquiries</span>
-                        <span className="font-bold text-slate-900">connect@indowings.com</span>
+                        <span className="font-bold text-slate-900">{SUPPORT_EMAIL}</span>
                       </div>
                     </div>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200/70 text-slate-700">

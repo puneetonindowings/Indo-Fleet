@@ -902,7 +902,7 @@ router.post('/admin/provision-user', async (req, res) => {
       userId: newUser.id,
       role: newUser.role,
       temporaryPassword: tempPass,
-      loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`
+      loginUrl: `${(process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '')}/login`
     });
     if (!emailSent) {
       emailError = lastMailError || `Server could not deliver credentials email to ${cleanEmail}.`;
@@ -962,7 +962,7 @@ router.post('/admin/resend-credentials-email', async (req, res) => {
       userId: user.id,
       role: user.role,
       temporaryPassword: passToSend,
-      loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`
+      loginUrl: `${(process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '')}/login`
     });
     if (!emailSent) {
       emailError = lastMailError || `SMTP mailer failed to send email to ${user.email}`;
@@ -3161,7 +3161,7 @@ router.post(['/support/expert-request', '/support/ticket', '/support/expert-requ
         }
       }
       if (!phone && !email) {
-        email = 'connect@indowings.com';
+        email = process.env.SUPPORT_EMAIL || 'connect@indowings.com';
         phone = 'N/A (Drone QR Scan)';
       }
     }
@@ -4897,7 +4897,7 @@ router.post('/pilot/accept-order', async (req, res) => {
     });
 
     // Notify Dispatcher that Delivery Partner accepted order
-    const dispatcherEmail = order.assigned_by_email || process.env.ADMIN_EMAIL || 'ops@IndoFleet.com';
+    const dispatcherEmail = order.assigned_by_email || process.env.DISPATCH_OPS_EMAIL || process.env.ADMIN_EMAIL || 'ops@indowings.com';
     sendOrderAcceptedByDeliveryAlert({
       dispatcherEmail,
       dispatcherName: order.assigned_by_name || 'Dispatcher',
@@ -5011,8 +5011,8 @@ router.post('/pilot/verify-handover-and-start-flight', async (req, res) => {
       } : {})
     });
 
-    // Send Live Tracking Link & Flight Started Notification to Customer
-    const trackingUrl = `${process.env.FRONTEND_URL || 'https://indo-fleet.vercel.app'}/track?orderId=${order_id}`;
+    const trackingBaseUrl = (process.env.PUBLIC_TRACKING_URL || process.env.FRONTEND_URL || 'https://indo-fleet.vercel.app').replace(/\/+$/, '');
+    const trackingUrl = `${trackingBaseUrl}/track?orderId=${order_id}`;
     if (order.customer_email || order.recipient_email) {
       sendFlightStartedCustomerEmail({
         to: order.customer_email || order.recipient_email,
@@ -5156,7 +5156,7 @@ router.post('/pilot/sos-emergency', async (req, res) => {
     }
 
     // Send high-priority alert email to Super Admin & Operations Team
-    const adminEmail = process.env.ADMIN_ALERT_EMAIL || process.env.RESEND_FROM_EMAIL || 'puneetkushwaha9452@gmail.com';
+    const adminEmail = process.env.ADMIN_ALERT_EMAIL || process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'admin@indowings.com';
     sendSosEmergencyAlertEmail({
       adminEmail,
       pilotName: sosEvent.pilot_name,
@@ -5479,7 +5479,7 @@ router.post('/pilot/complete-delivery', async (req, res) => {
     });
 
     // Notify Admin and Operations Desk with proof of delivery
-    const adminEmail = process.env.ADMIN_ALERT_EMAIL || process.env.RESEND_FROM_EMAIL || 'puneetkushwaha9452@gmail.com';
+    const adminEmail = process.env.ADMIN_ALERT_EMAIL || process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'admin@indowings.com';
     sendDeliveryCompletedEmail({
       to: adminEmail,
       orderNumber: order.order_number || order.id,
@@ -5808,8 +5808,8 @@ router.get('/public/drone/:drone_id', async (req, res) => {
         current_condition: drone.current_condition || (latestInspection?.overall_inspection === 'PASSED' ? 'GOOD' : 'NEEDS_REVIEW'),
         last_inspection_result: latestInspection?.overall_inspection || 'PASSED',
         last_inspected_at: latestInspection?.inspected_at || drone.updated_at || drone.created_at,
-        support_hotline: '1800 572 7363',
-        support_email: 'connect@indowings.com',
+        support_hotline: process.env.SUPPORT_PHONE || '1800 572 7363',
+        support_email: process.env.SUPPORT_EMAIL || 'connect@indowings.com',
         // Dynamic order & customer details:
         assigned_order: matchedOrder?.id || null,
         order_number: matchedOrder?.order_number || null,
@@ -5855,8 +5855,8 @@ router.get('/public/track/:delivery_id', async (req, res) => {
         delivered_at: order.delivered_at || null,
         recipient_confirmation: Boolean(order.delivered_at || order.recipient_name),
         assigned_drone_id: order.assigned_drone_id || null,
-        support_hotline: '1800 572 7363',
-        support_email: 'support@indowings.com'
+        support_hotline: process.env.SUPPORT_PHONE || '1800 572 7363',
+        support_email: process.env.SUPPORT_EMAIL || 'support@indowings.com'
       }
     });
   } catch (err: any) {

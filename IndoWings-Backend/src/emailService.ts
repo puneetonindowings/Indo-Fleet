@@ -9,13 +9,14 @@ if (typeof (dns as any).setDefaultResultOrder === 'function') {
   (dns as any).setDefaultResultOrder('ipv4first');
 }
 
-const FROM_EMAIL = process.env.SMTP_USER || 'puneetkushwaha9452@gmail.com';
-const SUPPORT_FROM_NAME = 'IndoWings Support Desk';
-const MAIL_FROM_NAME = 'IndoWings Operations';
+const FROM_EMAIL = process.env.SMTP_USER || process.env.MAIL_FROM_ADDRESS || 'connect@indowings.com';
+const SUPPORT_FROM_NAME = process.env.SUPPORT_FROM_NAME || 'IndoWings Support Desk';
+const MAIL_FROM_NAME = process.env.MAIL_FROM_NAME || 'IndoWings Operations';
+export const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'connect@indowings.com';
 
 const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-const smtpUser = process.env.SMTP_USER || 'puneetkushwaha9452@gmail.com';
-const smtpPass = process.env.SMTP_PASS || 'dzlcpzagmxvdpzwu';
+const smtpUser = process.env.SMTP_USER || '';
+const smtpPass = process.env.SMTP_PASS || '';
 
 // Resolve guaranteed IPv4 addresses for SMTP host.
 // Render Docker containers have no IPv6 outbound routing; Nodemailer v10's internal resolver
@@ -147,14 +148,14 @@ export async function sendOtpNotification({ email, phone, otp }: { email?: strin
   if (targetEmail && targetEmail.includes('@')) {
     // Pure Nodemailer 6-digit OTP delivery with branded template
     const subject = `Your IndoWings Verification Code: ${otp}`;
-    const text = `Hello,\n\nYour IndoWings verification code is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share it with anyone.\n\nIf you did not request this login code, please contact connect@indowings.com.\n\nThanks & Regards,\nIndoWings Operations Team`;
+    const text = `Hello,\n\nYour IndoWings verification code is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share it with anyone.\n\nIf you did not request this login code, please contact ${SUPPORT_EMAIL}.\n\nThanks & Regards,\nIndoWings Operations Team`;
     const html = `
 <div style="font-family: Arial, Helvetica, sans-serif; font-size: 15px; color: #222222; line-height: 1.6; max-width: 560px;">
   <p>Hello,</p>
   <p>Your IndoWings verification code is: <strong style="font-size: 20px; font-family: monospace; letter-spacing: 2px; color: #000000;">${otp}</strong></p>
   <p>This code is valid for 10 minutes. Please do not share it with anyone.</p>
   <br>
-  <p style="color: #666666; font-size: 13px;">If you did not request this login code, please contact <a href="mailto:connect@indowings.com" style="color: #0066cc;">connect@indowings.com</a>.</p>
+  <p style="color: #666666; font-size: 13px;">If you did not request this login code, please contact <a href="mailto:${SUPPORT_EMAIL}" style="color: #0066cc;">${SUPPORT_EMAIL}</a>.</p>
   <br>
   <p style="color: #444444; font-size: 14px; margin: 0;">
     Thanks &amp; Regards,<br>
@@ -830,7 +831,7 @@ ${resolutionNotes}
 Inquiry Reference: ${query.id}
 Resolved By: ${agentName}
 ${query.drone_serial ? `Drone Airframe Serial: ${query.drone_serial}\n` : ''}
-Email: connect@indowings.com
+Email: ${SUPPORT_EMAIL}
 
 Thanks & Regards,
 IndoWings Operations Team
@@ -850,7 +851,7 @@ IndoWings Operations Team
     <p style="font-size: 13px; color: #555555; margin: 0 0 16px 0;">Resolved By: <strong>${agentName}</strong></p>
 
     <p style="font-size: 13px; color: #555555; margin: 0;">
-      If you have any further questions, feel free to reply to this email or reach us at <a href="mailto:connect@indowings.com" style="color: #0066cc;">connect@indowings.com</a>.
+      If you have any further questions, feel free to reply to this email or reach us at <a href="mailto:${SUPPORT_EMAIL}" style="color: #0066cc;">${SUPPORT_EMAIL}</a>.
     </p>
   `;
 
@@ -884,7 +885,7 @@ ${message}
 ------------------------------------
 ${agentName}
 IndoWings Operations Team
-Phone: 1800-IND-WINGS | Email: connect@indowings.com
+Phone: 1800-IND-WINGS | Email: ${SUPPORT_EMAIL}
 `.trim();
 
   const bodyHtml = `
@@ -895,7 +896,7 @@ Phone: 1800-IND-WINGS | Email: connect@indowings.com
     <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 12px; color: #64748b;">
       <strong style="color: #0f172a; display: block; font-size: 13px;">${safeAgentName}</strong>
       IndoWings Operations Team<br>
-      Email: connect@indowings.com
+      Email: ${SUPPORT_EMAIL}
     </div>
   `;
 
@@ -1282,7 +1283,7 @@ IndoFleet Security
     <p style="font-size: 13px; color: #666666;">This code is valid for 10 minutes only. Please do not share it with anyone.</p>
     <br>
     <p style="font-size: 13px; color: #666666; margin: 0;">
-      If you did not request this, please contact connect@indowings.com immediately to secure your account.
+      If you did not request this, please contact ${SUPPORT_EMAIL} immediately to secure your account.
     </p>
   `;
 
