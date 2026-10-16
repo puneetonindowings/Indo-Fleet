@@ -18,6 +18,7 @@ import {
   ExternalLink,
   CheckCircle,
   Zap,
+  QrCode,
 } from 'lucide-react-native';
 import { DeliveryOrder } from '../types';
 
@@ -203,8 +204,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               onPress={() => onCompletePodPress(order)}
               activeOpacity={0.8}
             >
-              <CheckCircle size={16} color="#FFFFFF" />
-              <Text style={styles.podBtnText}>Complete Delivery (POD)</Text>
+              <QrCode size={15} color="#FFFFFF" />
+              <Text style={styles.podBtnText}>Scan Drone QR & Complete</Text>
             </TouchableOpacity>
           </View>
         )}

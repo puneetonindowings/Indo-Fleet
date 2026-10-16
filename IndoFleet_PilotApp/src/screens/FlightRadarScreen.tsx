@@ -648,24 +648,9 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
             <Text style={styles.backBtnText}>Home</Text>
           </TouchableOpacity>
 
-          <View style={styles.segment}>
-            {([
-              { key: 'map', label: 'Map', Icon: Navigation },
-              { key: 'hud', label: 'Instruments', Icon: Gauge },
-            ] as const).map(({ key, label, Icon }) => {
-              const active = viewMode === key;
-              return (
-                <TouchableOpacity
-                  key={key}
-                  style={[styles.segmentBtn, active && styles.segmentBtnActive]}
-                  onPress={() => setViewMode(key)}
-                  activeOpacity={0.8}
-                >
-                  <Icon size={14} color={active ? '#FFFFFF' : C.body} />
-                  <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{label}</Text>
-                </TouchableOpacity>
-              );
-            })}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#F3E8FF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}>
+            <Navigation size={13} color="#5A00B8" />
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#5A00B8' }}>Road GPS Navigation</Text>
           </View>
         </View>
 
@@ -785,53 +770,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
                 </Text>
               </View>
             </View>
-          </View>
-        )}
-
-        {/* Instruments */}
-        {viewMode === 'hud' && (
-          <View style={styles.hudSection}>
-            <View style={styles.meterRow}>
-              <MeterCard
-                icon={<Gauge size={15} color={C.brand} />}
-                label="Speed"
-                value={telemetry.speedKmh}
-                unit="km/h"
-                caption="Current speed"
-                pct={speedPct}
-                tone={C.brand}
-              />
-              <MeterCard
-                icon={<Navigation size={15} color={C.ok} />}
-                label="Altitude"
-                value={telemetry.altitudeM}
-                unit="m"
-                caption="GPS elevation"
-                pct={altPct}
-                tone={C.ok}
-              />
-            </View>
-            <View style={styles.meterRow}>
-              <MeterCard
-                icon={<Compass size={15} color="#7C3AED" />}
-                label="Heading"
-                value={`${telemetry.headingDeg || 0}°`}
-                unit={cardinal(telemetry.headingDeg || 0)}
-                caption="Compass bearing"
-                pct={((telemetry.headingDeg || 0) / 360) * 100}
-                tone="#7C3AED"
-              />
-              <MeterCard
-                icon={<BatteryCharging size={15} color={lowBattery ? C.danger : C.ok} />}
-                label="Battery"
-                value={`${telemetry.batteryPct}%`}
-                caption={lowBattery ? 'Low. Charge soon' : 'Device level'}
-                pct={telemetry.batteryPct}
-                tone={lowBattery ? C.danger : C.ok}
-              />
-            </View>
-
-            <View style={styles.radarCard}>{renderTacticalRadarSvg()}</View>
           </View>
         )}
 

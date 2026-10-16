@@ -149,9 +149,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
       {/* KPI Metrics */}
       <KpiOverview kpis={kpis} />
 
-      {/* Performance Trends Chart */}
-      <PerformanceChart chartData={chartData} />
-
       {/* Orders header + filters */}
       <View style={styles.sortiesHeader}>
         <View style={styles.sortiesTitleRow}>
@@ -162,19 +159,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             <Text style={styles.sortiesTitle}>Assigned Drone Deliveries</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
-            {onInspectDrone && (
-              <TouchableOpacity
-                style={[styles.historyBtn, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}
-                onPress={() => onInspectDrone()}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityRole="button"
-                accessibilityLabel="Post-delivery drone inspection"
-              >
-                <ShieldCheck size={13} color="#059669" />
-                <Text style={[styles.historyBtnText, { color: '#059669' }]}>Inspect Drone</Text>
-              </TouchableOpacity>
-            )}
             {onViewHistory && (
               <TouchableOpacity
                 style={styles.historyBtn}

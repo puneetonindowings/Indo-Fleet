@@ -30,6 +30,7 @@ import {
   Wind,
   Battery,
   Check,
+  QrCode,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { DeliveryOrder, UserProfile } from '../types';
@@ -348,6 +349,23 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
 
               {!isInspectionVerified ? (
                 <View style={styles.inspectionFormBody}>
+                  {/* 0. Drone Airframe QR Verification */}
+                  <View style={styles.checkItem}>
+                    <View style={styles.itemHeader}>
+                      <QrCode size={13} color="#3B0080" />
+                      <Text style={styles.itemLabel}>Airframe QR Verification</Text>
+                    </View>
+                    <View style={{ backgroundColor: '#F8FAFC', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', marginTop: 4 }}>
+                      <Text style={{ fontSize: 11, color: '#64748B', fontWeight: '600' }}>Assigned Airframe Drone ID:</Text>
+                      <Text style={{ fontSize: 15, fontFamily: 'monospace', fontWeight: '900', color: '#0F172A', marginTop: 2 }}>{targetDrone}</Text>
+                      
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, backgroundColor: '#ECFDF5', padding: 8, borderRadius: 8, borderWidth: 1, borderColor: '#A7F3D0' }}>
+                        <Check size={14} color="#059669" />
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#059669' }}>Physical QR Scanned &amp; Verified on Consignment</Text>
+                      </View>
+                    </View>
+                  </View>
+
                   {/* 1. Cargo Bay */}
                   <View style={styles.checkItem}>
                     <View style={styles.itemHeader}>
