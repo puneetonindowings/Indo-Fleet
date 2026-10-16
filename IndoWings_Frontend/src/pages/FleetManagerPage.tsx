@@ -37,7 +37,8 @@ import {
   Mail,
   Phone,
   QrCode,
-  Edit2
+  Edit2,
+  Download
 } from 'lucide-react';
 import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
@@ -49,6 +50,7 @@ import { PostDeliveryInspectionModal } from '../components/PostDeliveryInspectio
 import { DroneQRCodeModal } from '../components/DroneQRCodeModal';
 import { DroneQRScannerModal } from '../components/DroneQRScannerModal';
 import { DroneAuditLogConsole } from '../components/DroneAuditLogConsole';
+import { BulkQrDownloadModal } from '../components/BulkQrDownloadModal';
 
 interface FleetManagerPageProps {
   currentUser: DeliveryUser | null;
@@ -80,6 +82,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   const [selectedInspectionDeliveryId, setSelectedInspectionDeliveryId] = useState('');
   const [selectedQrDrone, setSelectedQrDrone] = useState<any | null>(null);
   const [showQrScanner, setShowQrScanner] = useState(false);
+  const [showBulkQrModal, setShowBulkQrModal] = useState(false);
 
   // Data State
   const [drones, setDrones] = useState<any[]>([]);
@@ -1480,6 +1483,16 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                       <Layers className="w-3.5 h-3.5" />
                       <span>Bulk Batch Add</span>
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowBulkQrModal(true)}
+                      className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap transition-all"
+                      title="Bulk Download Drone QR Codes as ZIP (Range 1-100 or All)"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Bulk QR ZIP</span>
+                    </button>
                   </div>
                 </div>
 
@@ -2643,6 +2656,13 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
           setShowInspectionModal(true);
         }}
         onNavigate={onNavigate}
+      />
+
+      {/* ── BULK QR CODE DOWNLOAD ZIP MODAL (ADMIN / FLEET / DISPATCHER) ──── */}
+      <BulkQrDownloadModal
+        isOpen={showBulkQrModal}
+        onClose={() => setShowBulkQrModal(false)}
+        allDrones={drones}
       />
 
       {/* ── 700 RPAV DRONE QR SCANNER MODAL ──── */}

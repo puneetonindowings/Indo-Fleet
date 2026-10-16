@@ -9,6 +9,7 @@ import {
   ExternalLink,
   ShieldCheck
 } from 'lucide-react';
+import { downloadSingleDroneQR } from '../utils/droneQrGenerator';
 
 interface DroneQRCodeModalProps {
   isOpen: boolean;
@@ -175,70 +176,7 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
   const handleDownload = async () => {
     try {
       setDownloading(true);
-      // Clean minimalist canvas: QR at top, only Drone ID + Model below
-      const canvas = document.createElement('canvas');
-      canvas.width = 520;
-      canvas.height = 620;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas not supported');
-
-      // 1. Fill clean white background
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // 2. Load & draw QR Code image
-      const qrImg = new Image();
-      qrImg.crossOrigin = 'anonymous';
-      await new Promise<void>((resolve, reject) => {
-        qrImg.onload = () => resolve();
-        qrImg.onerror = () => reject(new Error('Failed to load QR image'));
-        qrImg.src = qrImageUrl;
-      });
-
-      const qrSize = 440;
-      const qrX = (canvas.width - qrSize) / 2;
-      const qrY = 32;
-      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-
-      // 3. Draw exact IndoWings black pill badge in center from Image 2
-      const badgeImg = new Image();
-      await new Promise<void>((resolve, reject) => {
-        badgeImg.onload = () => resolve();
-        badgeImg.onerror = () => reject(new Error('Failed to load Badge image'));
-        badgeImg.src = BADGE_DATA_URI;
-      });
-
-      const badgeW = 144;
-      const badgeH = 40;
-      const badgeX = qrX + (qrSize - badgeW) / 2;
-      const badgeY = qrY + (qrSize - badgeH) / 2;
-      ctx.drawImage(badgeImg, badgeX, badgeY, badgeW, badgeH);
-
-      // 4. Draw ONLY Drone ID and Model below the QR code (nothing on top, no other labels)
-      ctx.textAlign = 'center';
-      
-      // Drone ID
-      ctx.fillStyle = '#0F172A';
-      ctx.font = '900 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace';
-      ctx.fillText(droneId, canvas.width / 2, qrY + qrSize + 48);
-
-      // Model
-      ctx.fillStyle = '#64748B';
-      ctx.font = '700 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillText(`Model: ${modelName}`, canvas.width / 2, qrY + qrSize + 74);
-
-      // 5. Trigger download
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `IndoWings_QR_${droneId}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      }, 'image/png');
+      await downloadSingleDroneQR({ id: droneId, model_name: modelName });
     } catch (err) {
       console.error('Failed to generate composite QR canvas:', err);
       window.open(qrImageUrl, '_blank');

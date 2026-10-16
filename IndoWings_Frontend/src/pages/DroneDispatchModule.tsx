@@ -7,7 +7,8 @@ import {
   Volume2, VolumeX, X, Zap, ArrowRight, Copy, CheckCheck, Menu, LogOut,
   ChevronRight, Headphones, FileText, CheckSquare, Layers, Shield,
   Filter, ChevronDown, ShoppingBag, ImageIcon, ChevronLeft, Plus, AlertCircle, Edit, Trash2,
-  Wrench, Calendar, Pause, Play, RotateCcw, SlidersHorizontal, Plane
+  Wrench, Calendar, Pause, Play, RotateCcw, SlidersHorizontal, Plane,
+  Download, QrCode
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 import { DeliveryUser } from '../types';
@@ -15,6 +16,9 @@ import { DeliveryTrackingModule } from './DeliveryTrackingModule';
 import { ProfilePage } from './ProfilePage';
 import { CustomerOrderLiveMap } from '../components/CustomerOrderLiveMap';
 import { SosAlertBanner } from '../components/SosAlertBanner';
+import { DroneQRCodeModal } from '../components/DroneQRCodeModal';
+import { BulkQrDownloadModal } from '../components/BulkQrDownloadModal';
+import { downloadDronesAsZip, getDronesForOrder } from '../utils/droneQrGenerator';
 
 interface DispatchModuleProps {
   currentUser: DeliveryUser | null;
@@ -188,6 +192,29 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
   const [dronePageSize, setDronePageSize] = useState(50);
   const [selectedReservedDrone, setSelectedReservedDrone] = useState<any | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
+
+  // QR Label & Bulk QR Download States
+  const [selectedQrDrone, setSelectedQrDrone] = useState<any | null>(null);
+  const [showBulkQrModal, setShowBulkQrModal] = useState(false);
+  const [orderDownloadingZipId, setOrderDownloadingZipId] = useState<string | null>(null);
+
+  const handleDownloadOrderZip = async (order: any) => {
+    const dronesForOrder = getDronesForOrder(order, fleet);
+    if (!dronesForOrder || dronesForOrder.length === 0) {
+      alert(`No drone units linked with Order #${order.order_number || order.id || 'N/A'} yet.`);
+      return;
+    }
+    try {
+      setOrderDownloadingZipId(order.id);
+      const filename = `Order_${order.order_number || order.id}_Drones_QR`;
+      await downloadDronesAsZip(dronesForOrder, filename);
+    } catch (err: any) {
+      console.error('Error generating order QR zip:', err);
+      alert(`Failed to generate QR ZIP: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setOrderDownloadingZipId(null);
+    }
+  };
 
   // Single & Bulk Drone Creation/Edit Modal State
   const [showAddSingleDrone, setShowAddSingleDrone] = useState(false);
@@ -1339,6 +1366,24 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                         </button>
                       )}
 
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownloadOrderZip(order);
+                        }}
+                        disabled={orderDownloadingZipId === order.id}
+                        className="py-2 px-3 border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                        title="Download all drone QR codes for this order as ZIP"
+                      >
+                        {orderDownloadingZipId === order.id ? (
+                          <Loader2 className="w-3.5 h-3.5 text-amber-700 animate-spin" />
+                        ) : (
+                          <QrCode className="w-3.5 h-3.5 text-amber-700" />
+                        )}
+                        <span>QR ZIP</span>
+                      </button>
+
                       {!['delivered'].includes(order.status) && (
                         <button
                           type="button"
@@ -1468,6 +1513,23 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownloadOrderZip(order);
+                            }}
+                            disabled={orderDownloadingZipId === order.id}
+                            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold rounded-lg text-[11px] transition cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                            title="Download all drone QR codes for this order as ZIP"
+                          >
+                            {orderDownloadingZipId === order.id ? (
+                              <Loader2 className="w-3 h-3 text-amber-700 animate-spin" />
+                            ) : (
+                              <QrCode className="w-3 h-3 text-amber-700" />
+                            )}
+                            <span>QR ZIP</span>
+                          </button>
                           <button
                             onClick={() => {
                               setSelectedOrder(order);
@@ -1730,6 +1792,16 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
               <Layers className="w-3.5 h-3.5" />
               <span>Bulk Batch Add</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setShowBulkQrModal(true)}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap transition-all"
+              title="Bulk Download Drone QR Codes as ZIP (Range 1-100 or All)"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Bulk QR ZIP</span>
+            </button>
           </div>
         </div>
 
@@ -1848,6 +1920,15 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                           >
                             <Wrench className="w-3.5 h-3.5" />
                             <span>{d.status === 'maintenance' ? 'Clear Maint.' : 'Set Maint.'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedQrDrone(d)}
+                            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300 transition-all flex items-center gap-1 cursor-pointer"
+                            title="View & Download QR Code Label"
+                          >
+                            <QrCode className="w-3.5 h-3.5 text-slate-600" />
+                            <span>QR</span>
                           </button>
                           <button
                             onClick={() => {
@@ -3265,6 +3346,21 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
           </div>
         </div>
       )}
+
+      {/* ── 700 RPAV QR CODE LABEL MODAL ──── */}
+      <DroneQRCodeModal
+        isOpen={Boolean(selectedQrDrone)}
+        onClose={() => setSelectedQrDrone(null)}
+        drone={selectedQrDrone}
+        onNavigate={onNavigate}
+      />
+
+      {/* ── BULK QR CODE DOWNLOAD ZIP MODAL (ADMIN / FLEET / DISPATCHER) ──── */}
+      <BulkQrDownloadModal
+        isOpen={showBulkQrModal}
+        onClose={() => setShowBulkQrModal(false)}
+        allDrones={fleet}
+      />
     </div>
   );
 };

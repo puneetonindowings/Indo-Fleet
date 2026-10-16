@@ -1897,7 +1897,27 @@ router.post('/dispatch/confirm', async (req, res) => {
 
 router.get('/store/products', async (_req, res) => {
   const inventory = await fileDB.getFleet();
-  const available = inventory.filter((d) => d.status === 'idle' && (d.qc_status === 'passed' || !d.qc_status));
+  const orders = await fileDB.getOrders();
+
+  // Find all drone IDs currently booked, reserved, or assigned in active orders
+  const activeOrders = orders.filter((o) => !['delivered', 'cancelled', 'rejected'].includes(o.status));
+  const bookedDroneIds = new Set<string>();
+  for (const o of activeOrders) {
+    if (o.assigned_drone_id) bookedDroneIds.add(String(o.assigned_drone_id).toLowerCase());
+    if (o.drone_id) bookedDroneIds.add(String(o.drone_id).toLowerCase());
+    if (Array.isArray(o.reserved_inventory_ids)) {
+      o.reserved_inventory_ids.forEach((id: any) => bookedDroneIds.add(String(id).toLowerCase()));
+    }
+  }
+
+  const available = inventory.filter(
+    (d) =>
+      d.status === 'idle' &&
+      (d.qc_status === 'passed' || !d.qc_status) &&
+      !bookedDroneIds.has(String(d.id).toLowerCase()) &&
+      !bookedDroneIds.has(String(d.serial_number || '').toLowerCase())
+  );
+
   res.json({
     drones: available,
     count: available.length,
