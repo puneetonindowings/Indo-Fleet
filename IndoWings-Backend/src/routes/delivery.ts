@@ -328,9 +328,18 @@ router.post('/auth/verify-password-and-send-otp', otpLimiter, async (req, res) =
     await fileDB.saveOTP(targetPhone, otp, { name: user.name, email: user.email, phone: fullPhone, purpose: 'login' });
   }
 
+  // If user requested email authentication and email failed, return error to screen
+  if (isEmail && !emailSentSuccessfully) {
+    res.status(502).json({
+      error: `Verification code could not be sent to ${user.email || cleanEmail}. ${emailDeliveryError || 'Please check your email address or network connection.'}`,
+      email_failed: true
+    });
+    return;
+  }
+
   const destinationDesc = user.email ? maskEmail(user.email) : `+91 ${cleanPhone}`;
 
-  console.log(`[auth] Password verified & 6-digit OTP generated for: ${destinationDesc} (Code: ${otp})`);
+  console.log(`[auth] Password verified & 6-digit OTP auto-sent to: ${destinationDesc}`);
   res.json({
     success: true,
     otp_sent: true,
@@ -342,11 +351,7 @@ router.post('/auth/verify-password-and-send-otp', otpLimiter, async (req, res) =
       name: user.name,
       email: user.email,
       role: user.role,
-    },
-    email_delivery_failed: isEmail && !emailSentSuccessfully,
-    email_warning: !emailSentSuccessfully ? (emailDeliveryError || 'Email delivery delayed on cloud network.') : undefined,
-    otp_hint: !emailSentSuccessfully ? otp : undefined,
-    dev_otp: otp
+    }
   });
 });
 
@@ -436,15 +441,19 @@ router.post('/auth/send-otp', otpLimiter, async (req, res) => {
       console.error('Email OTP error:', err);
     }
 
+    if (!sent) {
+      res.status(502).json({
+        error: `Could not send verification code to ${cleanEmail}. ${mailErr || 'Please check your email address or network connection.'}`,
+        email_failed: true
+      });
+      return;
+    }
+
     res.json({
-      message: sent ? `Verification code sent to ${cleanEmail}` : `Verification code generated for ${cleanEmail}`,
+      message: `Verification code sent to ${cleanEmail}`,
       channel: 'email',
       destination: cleanEmail,
-      role: existingUser.role,
-      email_delivery_failed: !sent,
-      email_warning: !sent ? (mailErr || 'Email delivery delayed on cloud network.') : undefined,
-      otp_hint: !sent ? otp : undefined,
-      dev_otp: otp
+      role: existingUser.role
     });
     return;
   }
