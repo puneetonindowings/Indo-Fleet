@@ -27,7 +27,11 @@ import {
   Truck,
   ArrowLeft,
   Copy,
-  CheckCheck
+  CheckCheck,
+  Download,
+  Image as ImageIcon,
+  Paperclip,
+  Maximize2
 } from 'lucide-react';
 import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
@@ -81,6 +85,9 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
   const [detailReplyMessage, setDetailReplyMessage] = useState('');
   const [isSendingDetailReply, setIsSendingDetailReply] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // Document Review & Preview Modal
+  const [previewDocument, setPreviewDocument] = useState<any | null>(null);
 
   const supportToken = localStorage.getItem('iw_delivery_token') || '';
   const supportHeaders = {
@@ -268,6 +275,149 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
     navigator.clipboard.writeText(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  // Customer Documents & Attachments from Ticket or Inbound Emails
+  const customerDocuments = useMemo(() => {
+    if (!selectedTicket) return [];
+    const docs: any[] = [];
+
+    // 1. Direct ticket attachments
+    const rawAttachments = selectedTicket.attachments || selectedTicket.documents || selectedTicket.files || selectedTicket.media;
+    if (Array.isArray(rawAttachments)) {
+      rawAttachments.forEach((att, idx) => {
+        if (!att) return;
+        if (typeof att === 'string') {
+          docs.push({
+            id: `doc-${idx}`,
+            name: `Attachment ${idx + 1}`,
+            data: att,
+            url: att.startsWith('http') ? att : '',
+            mimetype: att.startsWith('data:image') ? 'image/jpeg' : att.startsWith('data:application/pdf') ? 'application/pdf' : 'application/octet-stream',
+            size: undefined
+          });
+        } else {
+          docs.push({
+            id: att.id || `doc-${idx}`,
+            name: att.name || att.filename || `Document ${idx + 1}`,
+            data: att.data || att.url || att.content || '',
+            url: att.url || (typeof att.data === 'string' && att.data.startsWith('http') ? att.data : ''),
+            mimetype: att.mimetype || att.type || att.mime || 'application/octet-stream',
+            size: att.size
+          });
+        }
+      });
+    }
+
+    // 2. Attachments from inbound emails in email_thread
+    if (Array.isArray(selectedTicket.email_thread)) {
+      selectedTicket.email_thread.forEach((entry: any, eIdx: number) => {
+        if (Array.isArray(entry.attachments)) {
+          entry.attachments.forEach((att: any, aIdx: number) => {
+            docs.push({
+              id: att.id || `email-${eIdx}-${aIdx}`,
+              name: att.filename || att.name || `Email Attachment ${aIdx + 1}`,
+              data: att.data || att.download_url || '',
+              url: att.download_url || '',
+              mimetype: att.content_type || att.mimetype || 'application/octet-stream',
+              size: att.size,
+              source: `Inbound Email from ${entry.from || selectedTicket.email || 'Customer'}`
+            });
+          });
+        }
+      });
+    }
+
+    return docs;
+  }, [selectedTicket]);
+
+  const getDocumentSource = (doc: any) => {
+    if (!doc) return '';
+    if (doc.data && typeof doc.data === 'string') {
+      if (doc.data.startsWith('data:') || doc.data.startsWith('http://') || doc.data.startsWith('https://')) {
+        return doc.data;
+      }
+      const mime = doc.mimetype || 'application/octet-stream';
+      return `data:${mime};base64,${doc.data}`;
+    }
+    return doc.url || '';
+  };
+
+  const isImageDoc = (doc: any) => {
+    const mime = String(doc.mimetype || doc.type || '').toLowerCase();
+    const name = String(doc.name || doc.filename || '').toLowerCase();
+    return (
+      mime.startsWith('image/') ||
+      name.endsWith('.png') ||
+      name.endsWith('.jpg') ||
+      name.endsWith('.jpeg') ||
+      name.endsWith('.webp') ||
+      name.endsWith('.gif') ||
+      name.endsWith('.svg')
+    );
+  };
+
+  const isPdfDoc = (doc: any) => {
+    const mime = String(doc.mimetype || doc.type || '').toLowerCase();
+    const name = String(doc.name || doc.filename || '').toLowerCase();
+    return mime.includes('pdf') || name.endsWith('.pdf');
+  };
+
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes || bytes <= 0) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleDownloadDoc = (doc: any, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const src = getDocumentSource(doc);
+    if (!src) return;
+
+    const fileName = doc.name || doc.filename || 'downloaded-document';
+
+    const a = document.createElement('a');
+    a.href = src;
+    a.download = fileName;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleOpenInNewTab = (doc: any, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const src = getDocumentSource(doc);
+    if (!src) return;
+
+    if (src.startsWith('http')) {
+      window.open(src, '_blank');
+      return;
+    }
+
+    try {
+      const arr = src.split(',');
+      const mime = arr[0].match(/:(.*?);/)?.[1] || 'application/octet-stream';
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      const blob = new Blob([u8arr], { type: mime });
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+    } catch {
+      const win = window.open();
+      if (win) {
+        if (isImageDoc(doc)) {
+          win.document.write(`<img src="${src}" style="max-width:100%; height:auto;" />`);
+        } else {
+          win.location.href = src;
+        }
+      }
+    }
   };
 
   // Submit Official Resolution from Detail Page
@@ -570,6 +720,129 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                 <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-sm text-slate-800 leading-relaxed whitespace-pre-line font-medium select-text">
                   {selectedTicket.message || 'No description provided.'}
                 </div>
+              </div>
+
+              {/* Customer Uploaded Documents & Media Evidence Card */}
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Paperclip className="w-4 h-4 text-[#5a00b8]" />
+                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                      Customer Documents &amp; Media Evidence
+                    </h4>
+                  </div>
+                  {customerDocuments.length > 0 ? (
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                      {customerDocuments.length} {customerDocuments.length === 1 ? 'File' : 'Files'} Attached
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-medium text-slate-400">
+                      0 Files Attached
+                    </span>
+                  )}
+                </div>
+
+                {customerDocuments.length === 0 ? (
+                  <div className="bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-6 text-center text-slate-400 text-xs">
+                    <Paperclip className="w-7 h-7 mx-auto mb-1.5 text-slate-300" />
+                    <p className="font-semibold text-slate-600">No documents or photos uploaded</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      The customer did not attach any media files or PDF documents with this inquiry.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {customerDocuments.map((doc, idx) => {
+                      const isImg = isImageDoc(doc);
+                      const isPdf = isPdfDoc(doc);
+                      const docSrc = getDocumentSource(doc);
+
+                      return (
+                        <div
+                          key={doc.id || idx}
+                          onClick={() => setPreviewDocument(doc)}
+                          className="group relative bg-slate-50 hover:bg-purple-50/40 border border-slate-200 hover:border-purple-300 rounded-2xl p-3.5 transition-all cursor-pointer shadow-2xs flex flex-col justify-between space-y-3"
+                        >
+                          {/* Image Thumbnail Preview if image */}
+                          {isImg && docSrc && (
+                            <div className="relative w-full h-36 rounded-xl overflow-hidden bg-slate-900/5 border border-slate-200 flex items-center justify-center">
+                              <img
+                                src={docSrc}
+                                alt={doc.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                              />
+                              <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-xs font-bold">
+                                <Eye className="w-4 h-4" />
+                                <span>Click to Review</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Non-image File Header Icon */}
+                          {!isImg && (
+                            <div className="flex items-center gap-3">
+                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                                isPdf ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'bg-blue-50 text-blue-600 border border-blue-200'
+                              }`}>
+                                {isPdf ? 'PDF' : <FileText className="w-6 h-6" />}
+                              </div>
+                              <div className="truncate flex-1">
+                                <p className="text-xs font-bold text-slate-800 truncate" title={doc.name}>
+                                  {doc.name}
+                                </p>
+                                <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                  {doc.mimetype || (isPdf ? 'application/pdf' : 'Document')}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* File Details Strip */}
+                          <div>
+                            {isImg && (
+                              <p className="text-xs font-bold text-slate-800 truncate" title={doc.name}>
+                                {doc.name}
+                              </p>
+                            )}
+                            <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                              <span>{formatFileSize(doc.size) || (isImg ? 'Image File' : 'Document')}</span>
+                              {doc.source && (
+                                <span className="text-[10px] text-purple-700 font-medium truncate max-w-[150px]">
+                                  {doc.source}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2 pt-2 border-t border-slate-200/80">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewDocument(doc);
+                              }}
+                              className="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-[#5a00b8]" />
+                              <span>Review</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => handleDownloadDoc(doc, e)}
+                              className="py-1.5 px-2.5 rounded-xl text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                              title="Download File"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Download</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Resolution On File Card (if exists) */}
@@ -1286,6 +1559,97 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
       )}
 
         </>
+      )}
+
+      {/* DOCUMENT REVIEW & PREVIEW MODAL */}
+      {previewDocument && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+            {/* Modal Top Bar */}
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 bg-slate-50/80">
+              <div className="flex items-center gap-3 truncate mr-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-100 text-[#5a00b8] flex items-center justify-center shrink-0">
+                  {isImageDoc(previewDocument) ? <ImageIcon className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                </div>
+                <div className="truncate">
+                  <h3 className="text-sm font-black text-slate-900 truncate">
+                    {previewDocument.name || 'Document Review'}
+                  </h3>
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500 font-mono">
+                    <span className="font-semibold text-slate-700">{previewDocument.mimetype || 'Attachment'}</span>
+                    {previewDocument.size && <span>• {formatFileSize(previewDocument.size)}</span>}
+                    {previewDocument.source && <span className="text-purple-700">({previewDocument.source})</span>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleDownloadDoc(previewDocument)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer shadow-2xs"
+                  title="Download File"
+                >
+                  <Download className="w-3.5 h-3.5 text-[#5a00b8]" />
+                  <span className="hidden sm:inline">Download</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleOpenInNewTab(previewDocument)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer shadow-2xs"
+                  title="Open in Full Tab"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Open in Tab</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPreviewDocument(null)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 sm:p-6 overflow-auto flex items-center justify-center bg-slate-900/5 min-h-[340px]">
+              {isImageDoc(previewDocument) ? (
+                <div className="max-h-[72vh] flex items-center justify-center">
+                  <img
+                    src={getDocumentSource(previewDocument)}
+                    alt={previewDocument.name || 'Customer uploaded file'}
+                    className="max-h-[72vh] max-w-full rounded-2xl object-contain shadow-lg"
+                  />
+                </div>
+              ) : isPdfDoc(previewDocument) ? (
+                <iframe
+                  src={getDocumentSource(previewDocument)}
+                  title={previewDocument.name || 'PDF Preview'}
+                  className="w-full h-[72vh] rounded-2xl border border-slate-200 bg-white shadow-xs"
+                />
+              ) : (
+                <div className="text-center p-8 space-y-3">
+                  <FileText className="w-14 h-14 text-slate-400 mx-auto" />
+                  <p className="text-base font-black text-slate-800">{previewDocument.name}</p>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    This file format ({previewDocument.mimetype}) can be downloaded to inspect with your local applications.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadDoc(previewDocument)}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-[#5a00b8] text-white hover:bg-[#4a0099] shadow-sm cursor-pointer"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download File to Review</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
