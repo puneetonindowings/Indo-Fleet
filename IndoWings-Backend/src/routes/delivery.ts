@@ -516,30 +516,12 @@ router.post('/auth/verify-otp', otpLimiter, async (req, res) => {
     }
   }
 
-  // 2. Verify via Email OTP if not already verified (Supabase Auth or Local DB session)
+  // 2. Verify via Email OTP directly through database session
   if (!isValid && targetEmail) {
-    if (supabase) {
-      try {
-        const { data: sbVerify, error: sbErr } = await supabase.auth.verifyOtp({
-          email: targetEmail,
-          token: trimmedOtp,
-          type: 'email'
-        });
-        if (!sbErr && sbVerify?.user) {
-          isValid = true;
-          console.log(`[auth] Supabase Auth Email OTP verified for ${targetEmail}`);
-        }
-      } catch (err: any) {
-        console.warn(`[auth] Supabase verifyOtp exception:`, err?.message || err);
-      }
-    }
-
-    if (!isValid) {
-      const localEmailRes = await fileDB.verifyOTP(targetEmail, trimmedOtp);
-      if (localEmailRes.valid) {
-        isValid = true;
-        console.log(`[auth] Local Email OTP verified for ${targetEmail}`);
-      }
+    const localEmailRes = await fileDB.verifyOTP(targetEmail, trimmedOtp);
+    if (localEmailRes.valid) {
+      isValid = true;
+      console.log(`[auth] Email OTP verified for ${targetEmail}`);
     }
   }
 
@@ -3878,33 +3860,14 @@ router.post('/chatbot/verify-id-otp', async (req, res) => {
 
     let isValid = false;
 
-    // 1. Verify via Supabase Auth Email if linked email exists
-    if (linkedEmail && supabase) {
-      try {
-        const { data: sbVerify, error: sbErr } = await supabase.auth.verifyOtp({
-          email: linkedEmail,
-          token: trimmedOtp,
-          type: 'email'
-        });
-        if (!sbErr && (sbVerify?.user || sbVerify?.session)) {
-          console.log(`[bot] Supabase OTP Verified Successfully for ${linkedEmail}`);
-          isValid = true;
-        }
-      } catch (err: any) {
-        console.warn(`[bot] Supabase verification exception:`, err?.message || err);
-      }
-    }
-
-    // 2. Check local session for phone, email, or linked accounts
-    if (!isValid) {
-      const checkKeys = [cleanPhone, cleanEmail, linkedEmail, linkedPhone].filter(Boolean);
-      for (const k of checkKeys) {
-        const localRes = await fileDB.verifyOTP(k, trimmedOtp);
-        if (localRes.valid) {
-          isValid = true;
-          console.log(`[bot] Session verified: OTP Verified for key "${k}"`);
-          break;
-        }
+    // Check database session for phone, email, or linked accounts
+    const checkKeys = [cleanPhone, cleanEmail, linkedEmail, linkedPhone].filter(Boolean);
+    for (const k of checkKeys) {
+      const localRes = await fileDB.verifyOTP(k, trimmedOtp);
+      if (localRes.valid) {
+        isValid = true;
+        console.log(`[bot] Session verified: OTP Verified for key "${k}"`);
+        break;
       }
     }
 

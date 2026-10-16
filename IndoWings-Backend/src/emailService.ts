@@ -3,16 +3,25 @@ import nodemailer from 'nodemailer';
 import { supabase } from './supabase.js';
 import { fileDB } from './db.js';
 
-const FROM_EMAIL = process.env.SMTP_USER || process.env.FROM_EMAIL || 'support@indofleet.com';
-const SUPPORT_FROM_NAME = 'IndoFleet Support Desk';
-const MAIL_FROM_NAME = 'IndoFleet Flight Operations';
+const FROM_EMAIL = process.env.SMTP_USER || 'puneetkushwaha9452@gmail.com';
+const SUPPORT_FROM_NAME = 'IndoWings Support Desk';
+const MAIL_FROM_NAME = 'IndoWings Operations';
 
-const smtpPort = Number(process.env.SMTP_PORT) || 587;
+const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+const smtpPort = Number(process.env.SMTP_PORT) || 465;
+const smtpUser = process.env.SMTP_USER || 'puneetkushwaha9452@gmail.com';
+const smtpPass = process.env.SMTP_PASS || 'dzlcpzagmxvdpzwu';
+
 const smtpTransporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: smtpHost,
+  port: smtpPort,
+  secure: smtpPort === 465,
+  pool: true,
+  maxConnections: 5,
+  maxMessages: 100,
   auth: {
-    user: process.env.SMTP_USER || 'puneetkushwaha9452@gmail.com',
-    pass: process.env.SMTP_PASS || ''
+    user: smtpUser,
+    pass: smtpPass
   }
 } as any);
 
@@ -78,39 +87,36 @@ export async function sendOtpNotification({ email, phone, otp }: { email?: strin
   let delivered = false;
 
   if (targetEmail && targetEmail.includes('@')) {
-    // 1. Primary: Dispatch 6-digit OTP via Gmail Nodemailer with clean, simple standard email format
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-      const isEmailLogin = !phone;
-      const subject = isEmailLogin ? `Your IndoFleet Login Verification Code: ${otp}` : `Your IndoFleet Verification Code: ${otp}`;
-      const text = `Hello,\n\nYour IndoFleet verification code is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share it with anyone.\n\nThanks & Regards,\nIndoFleet Operations Team`;
-      const html = `
-<div style="font-family: Arial, Helvetica, sans-serif; font-size: 15px; color: #222222; line-height: 1.6;">
-  <p>Hello,</p>
-  <p>Your IndoFleet verification code is: <strong style="font-size: 20px; letter-spacing: 2px; color: #000000;">${otp}</strong></p>
-  <p>This code is valid for 10 minutes. Please do not share it with anyone.</p>
-  <br>
-  <p style="color: #555555; margin: 0;">
-    Thanks &amp; Regards,<br>
-    <strong>IndoFleet Operations Team</strong>
-  </p>
+    // Pure Nodemailer 6-digit OTP delivery with branded template
+    const subject = `Your IndoWings Verification Code: ${otp}`;
+    const text = `Hello,\n\nYour IndoWings verification code is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share it with anyone.\n\nThanks & Regards,\nIndoWings Operations Team`;
+    const html = `
+<div style="max-width: 520px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+  <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 26px 22px; text-align: center;">
+    <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">IndoWings Fleet</h1>
+    <p style="color: #e0e7ff; margin: 4px 0 0 0; font-size: 13px;">Security Verification Code</p>
+  </div>
+  <div style="padding: 30px 24px;">
+    <p style="font-size: 15px; color: #334155; margin-top: 0;">Hello,</p>
+    <p style="font-size: 14px; color: #475569; line-height: 1.6;">Use the one-time verification code (OTP) below to authenticate your session. This code is valid for <strong>10 minutes</strong>.</p>
+    <div style="text-align: center; margin: 26px 0;">
+      <div style="display: inline-block; background-color: #f8fafc; border: 2px dashed #6366f1; border-radius: 12px; padding: 14px 28px;">
+        <span style="font-family: monospace; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #4338ca;">${otp}</span>
+      </div>
+    </div>
+    <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin-bottom: 0;">If you did not request this login code, please contact <a href="mailto:connect@indowings.com" style="color: #6366f1; text-decoration: none;">connect@indowings.com</a>.</p>
+  </div>
+  <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px 24px; text-align: center;">
+    <p style="margin: 0; font-size: 12px; color: #94a3b8;">&copy; 2026 IndoWings Technologies &bull; Road &amp; Air Logistics</p>
+  </div>
 </div>
-      `.trim();
-      delivered = await sendEmail({ to: targetEmail, subject, text, html });
-    }
+    `.trim();
 
-    // 2. Secondary Fallback: Dispatch via Supabase Auth Mailer if SMTP fails
-    if (!delivered && supabase) {
-      try {
-        const { error: sbErr } = await supabase.auth.signInWithOtp({ email: targetEmail });
-        if (!sbErr) {
-          console.log(`[mail] Supabase Auth Mailer fallback dispatched to ${targetEmail}`);
-          delivered = true;
-        } else {
-          console.warn(`[mail] Supabase Auth signInWithOtp notice: ${sbErr.message}`);
-        }
-      } catch (err: any) {
-        console.warn(`[mail] Supabase Auth delivery exception:`, err?.message || err);
-      }
+    delivered = await sendEmail({ to: targetEmail, subject, text, html });
+    if (delivered) {
+      console.log(`[mail] Verification code delivered via Nodemailer to ${targetEmail}`);
+    } else {
+      console.error(`[mail] Failed to deliver verification code to ${targetEmail}: ${lastMailError}`);
     }
   }
 
