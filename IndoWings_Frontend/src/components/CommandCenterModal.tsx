@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, RadioTower, ShieldCheck, Plus, Database, Wifi } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { UserProfile, DroneItem, MissionItem, AuditLogItem } from '../types';
+import { DEMO_ADMIN_EMAIL, DEMO_ADMIN_NAME } from '../config/api';
 
 interface CommandCenterModalProps {
   isOpen: boolean;
@@ -205,7 +206,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
               <div className="grid grid-cols-1 gap-3.5 max-w-2xl mx-auto">
                 {/* Admin */}
                 <button 
-                  onClick={() => handleQuickLogin('puneet.kushwaha@indowfleet.com')}
+                  onClick={() => handleQuickLogin(DEMO_ADMIN_EMAIL)}
                   disabled={loading}
                   className="p-4 rounded-xl bg-black/40 border border-purple-800/40 hover:border-orange-500 hover:bg-slate-950/40 text-left transition-all group"
                 >
@@ -213,8 +214,8 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
                     <span className="text-xs font-bold text-purple-300 font-mono">ROLE: ADMINISTRATOR</span>
                     <span className="px-2 py-0.5 rounded text-[10px] bg-slate-900 text-purple-200">Full Access</span>
                   </div>
-                  <div className="font-bold text-white group-hover:text-purple-300">Puneet Kushwaha</div>
-                  <div className="text-[11px] text-slate-400">puneet.kushwaha@indowfleet.com</div>
+                  <div className="font-bold text-white group-hover:text-purple-300">{DEMO_ADMIN_NAME}</div>
+                  <div className="text-[11px] text-slate-400">{DEMO_ADMIN_EMAIL}</div>
                 </button>
               </div>
             </div>

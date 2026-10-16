@@ -39,6 +39,7 @@ import {
   Layers,
 } from 'lucide-react-native';
 import { DeliveryOrder, TelemetryStats } from '../types';
+import { getRoutingApiUrl } from '../config';
 
 interface FlightRadarScreenProps {
   order: DeliveryOrder | null;
@@ -323,7 +324,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
             map.fitBounds(fl.getBounds(), { padding: [55, 55] });
           }
 
-          fetch('https://router.project-osrm.org/route/v1/driving/${pilotLng},${pilotLat};${targetLng},${targetLat}?overview=full&geometries=geojson')
+          fetch('${getRoutingApiUrl().replace(/\/+$/, '')}/route/v1/driving/${pilotLng},${pilotLat};${targetLng},${targetLat}?overview=full&geometries=geojson')
             .then(function(r) { return r.json(); })
             .then(function(d) {
               if (d && d.routes && d.routes[0] && d.routes[0].geometry) {

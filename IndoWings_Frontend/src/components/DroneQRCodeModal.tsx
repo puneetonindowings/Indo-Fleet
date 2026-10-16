@@ -10,6 +10,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { downloadSingleDroneQR } from '../utils/droneQrGenerator';
+import { PUBLIC_PORTAL_URL } from '../config/api';
 
 interface DroneQRCodeModalProps {
   isOpen: boolean;
@@ -61,7 +62,7 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
 
   const droneId = drone.id;
   const modelName = drone.model_name || drone.model || '700 RPAV';
-  const permanentUrl = `https://indo-fleet.vercel.app/drone/${encodeURIComponent(droneId)}`;
+  const permanentUrl = `${PUBLIC_PORTAL_URL}/drone/${encodeURIComponent(droneId)}`;
   
   // High-density QR Code with Level H error correction
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=450x450&ecc=H&margin=4&data=${encodeURIComponent(permanentUrl)}`;

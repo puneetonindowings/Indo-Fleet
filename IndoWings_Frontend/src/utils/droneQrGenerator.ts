@@ -1,4 +1,5 @@
 import JSZip from 'jszip';
+import { PUBLIC_PORTAL_URL } from '../config/api';
 
 export interface DroneQRInfo {
   id: string;
@@ -34,7 +35,7 @@ export const BADGE_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(INDO
 export async function generateDroneQRCodeBlob(drone: DroneQRInfo): Promise<Blob> {
   const droneId = (drone.id || '').trim();
   const modelName = drone.model_name || drone.model || '700 RPAV';
-  const permanentUrl = `https://indo-fleet.vercel.app/drone/${encodeURIComponent(droneId)}`;
+  const permanentUrl = `${PUBLIC_PORTAL_URL}/drone/${encodeURIComponent(droneId)}`;
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=450x450&ecc=H&margin=4&data=${encodeURIComponent(permanentUrl)}`;
 
   const canvas = document.createElement('canvas');
