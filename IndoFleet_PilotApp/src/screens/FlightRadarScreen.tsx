@@ -35,6 +35,8 @@ import {
   PauseCircle,
   Maximize2,
   Minimize2,
+  LocateFixed,
+  Layers,
 } from 'lucide-react-native';
 import { DeliveryOrder, TelemetryStats } from '../types';
 
@@ -49,6 +51,7 @@ interface FlightRadarScreenProps {
   onCompletePod: (order: DeliveryOrder) => void;
   onStopTracking: () => void;
   onRefreshLocation?: () => void;
+  onUpdateLocation?: (coords: { latitude: number; longitude: number }) => void;
 }
 
 /* ───────────────────────── Design tokens ───────────────────────── */
@@ -138,11 +141,13 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   onCompletePod,
   onStopTracking,
   onRefreshLocation,
+  onUpdateLocation,
 }) => {
   const [viewMode, setViewMode] = useState<'map' | 'hud'>('map');
-  const [mapZoom] = useState<number>(14);
+  const [mapZoom] = useState<number>(15);
   const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
   const [fullscreen, setFullscreen] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
 
   // Dispatch hub: only from genuine order pickup coordinates
   const baseHub = useMemo(() => {
@@ -171,6 +176,57 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   const targetLat = order ? order.destination_location?.latitude ?? order.delivery_lat ?? order.drop_lat ?? null : null;
   const targetLng = order ? order.destination_location?.longitude ?? order.delivery_lng ?? order.drop_lng ?? null : null;
   const hasTargetCoords = targetLat != null && targetLng != null;
+
+  // Listen to GPS updates from Web Leaflet iframe
+  React.useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const handleWindowMessage = (e: MessageEvent) => {
+        if (e.data && e.data.type === 'GPS_FIX' && e.data.coords) {
+          if (onUpdateLocation) {
+            onUpdateLocation(e.data.coords);
+          }
+        }
+      };
+      window.addEventListener('message', handleWindowMessage);
+      return () => window.removeEventListener('message', handleWindowMessage);
+    }
+  }, [onUpdateLocation]);
+
+  const handleRecenterLocation = () => {
+    setIsLocating(true);
+    setTimeout(() => setIsLocating(false), 2000);
+
+    // 1. Web browser direct GPS query
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setIsLocating(false);
+          if (pos && pos.coords) {
+            const coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+            if (onUpdateLocation) onUpdateLocation(coords);
+
+            // Notify iframe map to fly smoothly to current coords
+            if (typeof document !== 'undefined') {
+              const iframes = document.querySelectorAll('iframe');
+              iframes.forEach((ifr) => {
+                ifr.contentWindow?.postMessage({ type: 'RECENTER_MAP', coords }, '*');
+              });
+            }
+          }
+        },
+        (err) => {
+          setIsLocating(false);
+          console.warn('Geolocation query warning:', err.message);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    // 2. Trigger parent refresh
+    if (onRefreshLocation) {
+      onRefreshLocation();
+    }
+  };
 
   const calculateDist = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const Rk = 6371;
@@ -207,7 +263,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     ]);
   };
 
-  /* ───────── Web map (Leaflet in iframe) ───────── */
+  /* ───────── Google Maps-Style Web Map (Leaflet in iframe) ───────── */
   const webMapHtml = useMemo(() => {
     if (Platform.OS !== 'web') return '';
 
@@ -225,58 +281,209 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
         : 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
 
     const pill = (bg: string, text: string) =>
-      `<div style="background:${bg};color:#FFF;padding:5px 10px;border-radius:999px;font:700 11px -apple-system,Roboto,sans-serif;white-space:nowrap;box-shadow:0 4px 10px rgba(15,23,42,.35);border:2px solid #FFF;">${text}</div>`;
+      `<div class="gmap-pill" style="background:${bg};">${text}</div>`;
 
     let markers = '';
 
     if (baseHub) {
       markers += `
-        L.marker([${baseHub.latitude}, ${baseHub.longitude}], { icon: L.divIcon({ className: '', html: '${esc(pill('#059669', 'Dispatch hub'))}', iconSize: [96, 28], iconAnchor: [48, 14] }) })
-          .addTo(map).bindPopup("${esc(baseHub.name)}");`;
+        L.marker([${baseHub.latitude}, ${baseHub.longitude}], {
+          icon: L.divIcon({ className: '', html: '${esc(pill('#059669', 'Dispatch Hub'))}', iconSize: [110, 28], iconAnchor: [55, 14] })
+        }).addTo(map).bindPopup("<b>${esc(baseHub.name)}</b><br>Sortie Dispatch Depot");`;
     }
 
     if (hasPilot) {
       markers += `
-        L.marker([${pilotLat}, ${pilotLng}], { icon: L.divIcon({ className: '', html: '<div style="position:relative;width:28px;height:28px"><div style="position:absolute;inset:-8px;border-radius:50%;background:rgba(124,58,237,.25)"></div><div style="position:absolute;inset:0;background:#5A00B8;border-radius:50%;border:3px solid #FFF;box-shadow:0 0 14px rgba(124,58,237,.8)"></div></div>', iconSize: [28, 28], iconAnchor: [14, 14] }) })
-          .addTo(map).bindPopup("You are here<br>${telemetry.speedKmh} km/h");`;
-    } else {
-      markers += `
-        L.marker([${defaultLat}, ${defaultLng}], { icon: L.divIcon({ className: '', html: '${esc(pill('#5A00B8', 'IndoFleet Central Hub'))}', iconSize: [140, 28], iconAnchor: [70, 14] }) })
-          .addTo(map).bindPopup("IndoFleet Sector 62 Central Hub - Awaiting Sortie Assignment");`;
+        pilotMarker = L.marker([${pilotLat}, ${pilotLng}], {
+          icon: createPilotIcon()
+        }).addTo(map).bindPopup("<b>Your Location (Live GPS)</b><br>${telemetry.speedKmh} km/h • Active Courier Fix");`;
     }
 
     if (hasTarget) {
       markers += `
-        L.marker([${targetLat}, ${targetLng}], { icon: L.divIcon({ className: '', html: '${esc(pill('#DC2626', 'Drop-off'))}', iconSize: [80, 28], iconAnchor: [40, 14] }) })
-          .addTo(map).bindPopup("${esc(order?.drop_address || 'Delivery destination')}");`;
+        L.marker([${targetLat}, ${targetLng}], {
+          icon: L.divIcon({ className: '', html: '${esc(pill('#DC2626', '📍 Drop-off: ' + (order?.customer_name || 'Customer')))}', iconSize: [160, 28], iconAnchor: [80, 14] })
+        }).addTo(map).bindPopup("<b>${esc(order?.customer_name || 'Drop-off')}</b><br>${esc(order?.drop_address || 'Delivery point')}");`;
 
       if (hasPilot) {
         markers += `
-          function straight(){var l=L.polyline([[${pilotLat},${pilotLng}],[${targetLat},${targetLng}]],{color:'#7C3AED',weight:4,dashArray:'8 8'}).addTo(map);map.fitBounds(l.getBounds(),{padding:[48,48]});}
+          function drawFallbackLine() {
+            var fl = L.polyline([[${pilotLat}, ${pilotLng}], [${targetLat}, ${targetLng}]], {
+              color: '#1A73E8',
+              weight: 4,
+              dashArray: '8, 8',
+              opacity: 0.95
+            }).addTo(map);
+            map.fitBounds(fl.getBounds(), { padding: [55, 55] });
+          }
+
           fetch('https://router.project-osrm.org/route/v1/driving/${pilotLng},${pilotLat};${targetLng},${targetLat}?overview=full&geometries=geojson')
-            .then(function(r){return r.json();})
-            .then(function(d){
-              if(d&&d.routes&&d.routes[0]&&d.routes[0].geometry){
-                var c=d.routes[0].geometry.coordinates.map(function(p){return [p[1],p[0]];});
-                L.polyline(c,{color:'#FFFFFF',weight:9,opacity:.9}).addTo(map);
-                var line=L.polyline(c,{color:'#5A00B8',weight:5,opacity:1}).addTo(map);
-                map.fitBounds(line.getBounds(),{padding:[48,48]});
-              } else { straight(); }
-            }).catch(straight);`;
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+              if (d && d.routes && d.routes[0] && d.routes[0].geometry) {
+                var coords = d.routes[0].geometry.coordinates.map(function(p) { return [p[1], p[0]]; });
+                // Outer white casing for high visibility
+                L.polyline(coords, { color: '#FFFFFF', weight: 8, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+                // Inner Google Blue navigation road polyline
+                var navRoute = L.polyline(coords, { color: '#1A73E8', weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+                map.fitBounds(navRoute.getBounds(), { padding: [55, 55] });
+
+                var distKm = (d.routes[0].distance / 1000).toFixed(1);
+                var durMin = Math.max(1, Math.round(d.routes[0].duration / 60));
+                var banner = document.createElement('div');
+                banner.className = 'gmap-eta-badge';
+                banner.innerHTML = '<span style="color:#60A5FA;font-weight:900">🚗 ' + durMin + ' min</span> <span>(' + distKm + ' km)</span> <span style="color:#A7F3D0;font-size:10px">• Fastest Route</span>';
+                document.body.appendChild(banner);
+              } else {
+                drawFallbackLine();
+              }
+            })
+            .catch(drawFallbackLine);`;
       }
     }
 
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-      <style>html,body,#map{width:100%;height:100%;margin:0;padding:0;background:${C.night}}</style></head>
-      <body><div id="map"></div><script>
-        var map = L.map('map',{zoomControl:false}).setView([${centerLat}, ${centerLng}], ${mapZoom});
-        L.tileLayer('${tileUrl}',{maxZoom:19}).addTo(map);
-        ${markers}
-      </script></body></html>`;
-  }, [pilotLat, pilotLng, targetLat, targetLng, hasTargetCoords, mapType, mapZoom, telemetry.speedKmh, order, baseHub]);
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    html, body, #map { width: 100%; height: 100%; margin: 0; padding: 0; background: #0F172A; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+    
+    @keyframes gmap-pulse {
+      0% { transform: scale(0.6); opacity: 0.95; }
+      70% { transform: scale(2.0); opacity: 0; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+    .gmap-pilot-marker {
+      position: relative;
+      width: 24px;
+      height: 24px;
+    }
+    .gmap-pulse-ring {
+      position: absolute;
+      inset: -14px;
+      border-radius: 50%;
+      background: rgba(26, 115, 232, 0.45);
+      animation: gmap-pulse 2s cubic-bezier(0.2, 0.6, 0.35, 1) infinite;
+      pointer-events: none;
+    }
+    .gmap-core-dot {
+      position: absolute;
+      inset: 0;
+      background: #1A73E8;
+      border-radius: 50%;
+      border: 3.5px solid #FFFFFF;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    .gmap-pill {
+      color: #FFF;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font: 800 11px -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+      border: 2px solid #FFF;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .gmap-eta-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 999;
+      background: rgba(15, 23, 42, 0.92);
+      color: #FFFFFF;
+      padding: 7px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.15);
+      backdrop-filter: blur(8px);
+    }
+    .leaflet-popup-content-wrapper {
+      background: #0F172A;
+      color: #F8FAFC;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .leaflet-popup-tip { background: #0F172A; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    var map = L.map('map', { zoomControl: false }).setView([${centerLat}, ${centerLng}], ${mapZoom});
+    L.tileLayer('${tileUrl}', { maxZoom: 19 }).addTo(map);
+
+    var pilotMarker = null;
+
+    function createPilotIcon() {
+      return L.divIcon({
+        className: '',
+        html: '<div class="gmap-pilot-marker"><div class="gmap-pulse-ring"></div><div class="gmap-core-dot"></div></div>',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+    }
+
+    ${markers}
+
+    function locateUser() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+          var lat = pos.coords.latitude;
+          var lng = pos.coords.longitude;
+          if (pilotMarker) {
+            pilotMarker.setLatLng([lat, lng]);
+          } else {
+            pilotMarker = L.marker([lat, lng], { icon: createPilotIcon() }).addTo(map);
+          }
+          if (${!hasTarget}) {
+            map.flyTo([lat, lng], 16, { animate: true, duration: 1.2 });
+          }
+          try {
+            window.parent.postMessage({ type: 'GPS_FIX', coords: { latitude: lat, longitude: lng } }, '*');
+          } catch(e) {}
+        }, function(err) {
+          console.warn('Leaflet geolocation error', err);
+        }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
+      }
+    }
+
+    if (${!hasLiveGpsFix}) {
+      locateUser();
+    }
+
+    window.addEventListener('message', function(e) {
+      if (e.data && e.data.type === 'RECENTER_MAP') {
+        if (e.data.coords) {
+          if (pilotMarker) {
+            pilotMarker.setLatLng([e.data.coords.latitude, e.data.coords.longitude]);
+          } else {
+            pilotMarker = L.marker([e.data.coords.latitude, e.data.coords.longitude], { icon: createPilotIcon() }).addTo(map);
+          }
+          map.flyTo([e.data.coords.latitude, e.data.coords.longitude], 16, { animate: true, duration: 1 });
+        } else {
+          locateUser();
+        }
+      }
+    });
+  </script>
+</body>
+</html>`;
+  }, [pilotLat, pilotLng, targetLat, targetLng, hasTargetCoords, mapType, mapZoom, telemetry.speedKmh, order, baseHub, hasLiveGpsFix]);
 
   /* ───────── Native radar (SVG) ───────── */
   const renderTacticalRadarSvg = (full = false) => {
@@ -412,6 +619,13 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
           <TouchableOpacity style={styles.fsBtn} onPress={() => setFullscreen(false)} activeOpacity={0.85}>
             <Minimize2 size={18} color={C.ink} />
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.myLocationBtn, isLocating && styles.myLocationBtnActive]}
+            onPress={handleRecenterLocation}
+            activeOpacity={0.85}
+          >
+            <LocateFixed size={20} color={isLocating ? '#059669' : '#1A73E8'} />
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -531,6 +745,13 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
               {renderMapToggle()}
               <TouchableOpacity style={styles.fsBtn} onPress={() => setFullscreen(true)} activeOpacity={0.85}>
                 <Maximize2 size={17} color={C.ink} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.myLocationBtn, isLocating && styles.myLocationBtnActive]}
+                onPress={handleRecenterLocation}
+                activeOpacity={0.85}
+              >
+                <LocateFixed size={20} color={isLocating ? '#059669' : '#1A73E8'} />
               </TouchableOpacity>
             </View>
 
@@ -792,6 +1013,16 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 10, left: 10, width: 38, height: 38, borderRadius: 19,
     backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center',
     shadowColor: '#0F172A', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 6, elevation: 4,
+    zIndex: 10,
+  },
+  myLocationBtn: {
+    position: 'absolute', bottom: 12, right: 12, width: 42, height: 42, borderRadius: 21,
+    backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#0F172A', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.28, shadowRadius: 6, elevation: 5,
+    borderWidth: 1.5, borderColor: '#E2E8F0', zIndex: 10,
+  },
+  myLocationBtnActive: {
+    backgroundColor: '#ECFDF5', borderColor: '#10B981',
   },
   radarWrap: { alignItems: 'center', justifyContent: 'center', padding: 10 },
   radarBadge: {
