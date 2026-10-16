@@ -943,7 +943,15 @@ router.post('/admin/resend-credentials-email', async (req, res) => {
     return;
   }
 
-  const passToSend = temporaryPassword || '123123';
+  const passToSend = (temporaryPassword && String(temporaryPassword).trim()) || '123123';
+
+  // CRITICAL: Always update database with the password being sent in email!
+  await fileDB.updateUser(user.id, {
+    password: passToSend,
+    must_change_password: true,
+    password_updated_at: new Date().toISOString()
+  });
+
   let emailSent = false;
   let emailError = '';
 
