@@ -9,9 +9,9 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { ShieldCheck, X, KeyRound, AlertTriangle, UserCheck, CheckCircle2 } from 'lucide-react-native';
+import { ShieldCheck, X, KeyRound, AlertTriangle, UserCheck, CheckCircle2, RefreshCw } from 'lucide-react-native';
 import { DeliveryOrder, UserProfile } from '../types';
-import { acceptAssignedOrder } from '../services/api';
+import { acceptAssignedOrder, requestPilotAcceptanceOtp } from '../services/api';
 
 interface AcceptOrderModalProps {
   visible: boolean;
@@ -32,6 +32,7 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
 }) => {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [requestingOtp, setRequestingOtp] = useState(false);
 
   useEffect(() => {
     if (order?.pilot_acceptance_otp) {
@@ -46,6 +47,28 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
   const hasDlId = Boolean(currentUser?.dl_id && currentUser.dl_id.trim());
   const hasVehicleId = Boolean(currentUser?.vehicle_id && currentUser.vehicle_id.trim());
   const isProfileComplete = hasDlId && hasVehicleId;
+
+  const handleRequestMyOtp = async () => {
+    setRequestingOtp(true);
+    try {
+      const res = await requestPilotAcceptanceOtp(order.id, {
+        pilotId: currentUser?.id,
+        pilotEmail: currentUser?.email,
+        pilotPhone: currentUser?.phone,
+      });
+      if (res.acceptance_otp) {
+        setOtp(res.acceptance_otp);
+      }
+      Alert.alert(
+        'Acceptance OTP Dispatched',
+        res.message || 'OTP sent to your registered contact.'
+      );
+    } catch (err: any) {
+      Alert.alert('Request Failed', err.message || 'Failed to dispatch acceptance OTP.');
+    } finally {
+      setRequestingOtp(false);
+    }
+  };
 
   const handleVerifyAccept = async () => {
     if (!isProfileComplete) {
@@ -67,7 +90,7 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
     }
 
     if (!otp.trim()) {
-      Alert.alert('Required', 'Please enter the 6-digit Assignment Acceptance OTP.');
+      Alert.alert('Required', 'Please enter your 6-digit Acceptance OTP.');
       return;
     }
 
@@ -79,6 +102,8 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
         currentUser?.name || 'Delivery Partner',
         {
           pilotId: currentUser?.id,
+          pilotEmail: currentUser?.email,
+          pilotPhone: currentUser?.phone,
           dlId: currentUser?.dl_id,
           vehicleId: currentUser?.vehicle_id,
         }
@@ -104,7 +129,7 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
           ]
         );
       } else {
-        Alert.alert('Verification Failed', err.message || 'Invalid Acceptance OTP. Please check with Dispatcher.');
+        Alert.alert('Verification Failed', err.message || 'Invalid Acceptance OTP. Please tap Request OTP to receive a new code.');
       }
     } finally {
       setLoading(false);
@@ -126,8 +151,7 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
           </View>
 
           <Text style={styles.subtitle}>
-            Order <Text style={styles.highlight}>#{order.order_number}</Text> was assigned by{' '}
-            <Text style={styles.highlight}>{order.assigned_by_name || 'Dispatcher'}</Text>.
+            Order <Text style={styles.highlight}>#{order.order_number}</Text> was assigned to you. Enter your verification OTP to accept.
           </Text>
 
           {/* If Profile Missing DL ID or Vehicle Number, show warning banner */}
@@ -155,8 +179,36 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
               </TouchableOpacity>
             </View>
           ) : (
-            /* If Profile is complete, render OTP input */
+            /* If Profile is complete, render OTP input & Request OTP button */
             <View style={styles.formGroup}>
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  paddingVertical: 10,
+                  backgroundColor: '#F5F3FF',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: '#DDD6FE',
+                  marginBottom: 14,
+                }}
+                onPress={handleRequestMyOtp}
+                disabled={requestingOtp}
+              >
+                {requestingOtp ? (
+                  <ActivityIndicator size="small" color="#3B0080" />
+                ) : (
+                  <>
+                    <RefreshCw size={14} color="#3B0080" />
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#3B0080' }}>
+                      Request My Acceptance OTP
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
               <Text style={styles.inputLabel}>Enter 6-Digit Acceptance OTP</Text>
               <View style={styles.inputContainer}>
                 <KeyRound size={18} color="#64748B" style={styles.inputIcon} />
@@ -171,14 +223,6 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
                   autoFocus={true}
                 />
               </View>
-              {Boolean(order.pilot_acceptance_otp) && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 6 }}>
-                  <CheckCircle2 size={13} color="#059669" />
-                  <Text style={{ fontSize: 12, color: '#059669', fontWeight: '600' }}>
-                    Auto-populated OTP: {order.pilot_acceptance_otp}
-                  </Text>
-                </View>
-              )}
             </View>
           )}
 

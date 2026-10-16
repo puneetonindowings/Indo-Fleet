@@ -43,18 +43,16 @@ export const DispatcherHandoverModal: React.FC<DispatcherHandoverModalProps> = (
   const handleRequestOtp = async () => {
     setRequestingOtp(true);
     try {
-      const res = await requestDispatcherHandoverOtp(order.id, pilotName);
+      const res = await requestDispatcherHandoverOtp(order.id, pilotName, { pilotPhone });
       if (res.handover_otp) {
         setOtp(res.handover_otp);
-        Alert.alert(
-          'Dispatcher Handover OTP Generated',
-          `OTP: ${res.handover_otp}\n\n(Auto-filled for departure authorization)`
-        );
-      } else {
-        Alert.alert('Dispatcher OTP Requested', 'Dispatcher Handover OTP has been generated and sent to the Operations Dispatcher.');
       }
+      Alert.alert(
+        'Departure OTP Dispatched',
+        res.message || 'Departure OTP sent to your registered contact.'
+      );
     } catch (err: any) {
-      Alert.alert('Request Failed', err.message || 'Could not reach dispatcher.');
+      Alert.alert('Request Failed', err.message || 'Could not dispatch departure OTP.');
     } finally {
       setRequestingOtp(false);
     }
@@ -62,7 +60,7 @@ export const DispatcherHandoverModal: React.FC<DispatcherHandoverModalProps> = (
 
   const handleVerifyStart = async () => {
     if (!otp.trim()) {
-      Alert.alert('Required', 'Please enter the 6-digit Dispatcher Handover OTP.');
+      Alert.alert('Required', 'Please enter your 6-digit Departure Authorization OTP.');
       return;
     }
 
@@ -90,7 +88,7 @@ export const DispatcherHandoverModal: React.FC<DispatcherHandoverModalProps> = (
         `Order is now out for delivery. Live tracking link has been sent to ${order.customer_name}.`
       );
     } catch (err: any) {
-      Alert.alert('Verification Failed', err.message || 'Invalid Dispatcher OTP.');
+      Alert.alert('Verification Failed', err.message || 'Invalid Departure OTP. Please request a new code.');
     } finally {
       setLoading(false);
     }
@@ -111,7 +109,7 @@ export const DispatcherHandoverModal: React.FC<DispatcherHandoverModalProps> = (
           </View>
 
           <Text style={styles.subtitle}>
-            To start delivery for order <Text style={styles.highlight}>#{order.order_number}</Text>, enter the authorization OTP given by your Dispatcher.
+            To start delivery for order <Text style={styles.highlight}>#{order.order_number}</Text>, enter your Departure Authorization OTP.
           </Text>
 
           <TouchableOpacity
@@ -124,13 +122,13 @@ export const DispatcherHandoverModal: React.FC<DispatcherHandoverModalProps> = (
             ) : (
               <>
                 <RefreshCw size={14} color="#3B0080" />
-                <Text style={styles.requestOtpText}>Request Dispatcher OTP</Text>
+                <Text style={styles.requestOtpText}>Request My Departure OTP</Text>
               </>
             )}
           </TouchableOpacity>
 
           <View style={styles.formGroup}>
-            <Text style={styles.inputLabel}>Enter 6-Digit Dispatcher OTP</Text>
+            <Text style={styles.inputLabel}>Enter 6-Digit Departure OTP</Text>
             <View style={styles.inputContainer}>
               <KeyRound size={18} color="#64748B" style={styles.inputIcon} />
               <TextInput
