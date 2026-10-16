@@ -115,9 +115,16 @@ verifySupabaseConnection()
     } catch (error) {
       console.error('[seed] Could not seed default accounts:', error instanceof Error ? error.message : error);
     }
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`Server listening on port ${PORT}`);
       console.log(`API endpoints mounted at http://localhost:${PORT}/api`);
+    });
+    server.on('error', (err: any) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`[startup] Port ${PORT} is already in use. Please free port ${PORT} or terminate the existing process.`);
+      } else {
+        console.error('[startup] Server error:', err);
+      }
     });
   })
   .catch(error => {
