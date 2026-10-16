@@ -867,301 +867,360 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
             {activeTab === 'overview' && (
               <div className="space-y-6">
                 {/* ── SECTION 1: HARDWARE, ORDER & 700 RPAV QUALITY KPI METRICS ── */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3.5">
+                {/* ── SECTION 1: HARDWARE & FLIGHT KPI METRICS (4 EXECUTIVE CARDS) ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Card 1: Total Fleet */}
                   <div
                     onClick={() => setActiveTab('inventory')}
-                    className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer hover:border-purple-300 transition-all group"
+                    className="bg-white border border-slate-200 hover:border-purple-300 rounded-3xl p-5 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
                   >
                     <div>
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Inventory</p>
-                      <h4 className="text-2xl font-black text-slate-900 mt-1">{totalUnits}</h4>
-                      <p className="text-[10px] text-purple-700 font-semibold mt-0.5">Central Fleet</p>
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Fleet Inventory</p>
+                      <h4 className="text-3xl font-black text-slate-900 mt-1">{totalUnits}</h4>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
+                        <p className="text-xs text-purple-700 font-semibold">Central RPAV Registry</p>
+                      </div>
                     </div>
-                    <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black group-hover:scale-105 transition-transform">
-                      <Boxes className="w-5 h-5" />
+                    <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black group-hover:scale-105 transition-transform">
+                      <Boxes className="w-6 h-6" />
                     </div>
                   </div>
 
+                  {/* Card 2: Ready for Sorties */}
                   <div
                     onClick={() => setActiveTab('inventory')}
-                    className="bg-white border border-emerald-200 hover:border-emerald-300 bg-emerald-50/20 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
+                    className="bg-white border border-emerald-200 hover:border-emerald-300 bg-emerald-50/20 rounded-3xl p-5 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
                   >
                     <div>
-                      <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Available</p>
-                      <h4 className="text-2xl font-black text-emerald-800 mt-1">{idleUnits}</h4>
-                      <p className="text-[10px] text-emerald-600 font-medium mt-0.5">Ready for Sorties</p>
+                      <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Sortie-Ready</p>
+                      <h4 className="text-3xl font-black text-emerald-800 mt-1">{idleUnits}</h4>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <p className="text-xs text-emerald-600 font-medium">Ready for Dispatch</p>
+                      </div>
                     </div>
-                    <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform">
-                      <CheckCircle2 className="w-5 h-5" />
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform">
+                      <CheckCircle2 className="w-6 h-6" />
                     </div>
                   </div>
 
+                  {/* Card 3: In Transit */}
                   <div
                     onClick={() => setActiveTab('dispatch')}
-                    className="bg-white border border-blue-200 hover:border-blue-300 bg-blue-50/20 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
+                    className="bg-white border border-blue-200 hover:border-blue-300 bg-blue-50/20 rounded-3xl p-5 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
                   >
                     <div>
-                      <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Out for Delivery</p>
-                      <h4 className="text-2xl font-black text-blue-800 mt-1">{inFlightUnits}</h4>
-                      <p className="text-[10px] text-blue-600 font-medium mt-0.5">In Transit</p>
+                      <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Active Deliveries</p>
+                      <h4 className="text-3xl font-black text-blue-800 mt-1">{inFlightUnits}</h4>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        <p className="text-xs text-blue-600 font-medium">Sorties in Flight</p>
+                      </div>
                     </div>
-                    <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform">
-                      <Truck className="w-5 h-5" />
+                    <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform">
+                      <Truck className="w-6 h-6" />
                     </div>
                   </div>
 
-                  <div
-                    onClick={() => setActiveTab('dispatch')}
-                    className="bg-white border border-indigo-200 hover:border-indigo-300 bg-indigo-50/20 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
-                  >
-                    <div>
-                      <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">Total Orders</p>
-                      <h4 className="text-2xl font-black text-indigo-900 mt-1">{dispatchOrders.length}</h4>
-                      <p className="text-[10px] text-indigo-600 font-medium mt-0.5">
-                        {dispatchOrders.filter((o) => !['delivered', 'cancelled'].includes(o.status)).length} Active
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform">
-                      <ShoppingBag className="w-5 h-5" />
-                    </div>
-                  </div>
-
+                  {/* Card 4: Maintenance */}
                   <div
                     onClick={() => setActiveTab('maintenance')}
-                    className="bg-white border border-amber-200 hover:border-amber-300 bg-amber-50/20 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
+                    className="bg-white border border-amber-200 hover:border-amber-300 bg-amber-50/20 rounded-3xl p-5 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
                   >
                     <div>
-                      <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Maintenance</p>
-                      <h4 className="text-2xl font-black text-amber-800 mt-1">{maintenanceUnits}</h4>
-                      <p className="text-[10px] text-amber-600 font-medium mt-0.5">Grounded Units</p>
+                      <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Under Maintenance</p>
+                      <h4 className="text-3xl font-black text-amber-800 mt-1">{maintenanceUnits}</h4>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                        <p className="text-xs text-amber-600 font-medium">Depot Service &amp; QC</p>
+                      </div>
                     </div>
-                    <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform">
-                      <Wrench className="w-5 h-5" />
+                    <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform">
+                      <Wrench className="w-6 h-6" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── SECTION 1B: 700 RPAV FLEET CONDITION & QUALITY ASSURANCE STRIP ── */}
+                <div className="bg-gradient-to-r from-purple-950 via-slate-900 to-[#1e1338] rounded-3xl p-5 sm:p-6 text-white shadow-md flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 border border-purple-900/50">
+                  <div className="space-y-1.5 max-w-xl">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-300 text-[11px] font-bold uppercase tracking-wider">
+                      <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+                      <span>700 RPAV Fleet Airframe Quality &amp; Condition Assurance</span>
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+                      Airworthiness &amp; Condition Management
+                    </h3>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Permanent QR airframe validation, pilot handover inspections, and post-flight zero-defect certification.
+                    </p>
+
+                    {/* KPI Quick Badges */}
+                    <div className="flex flex-wrap items-center gap-3 pt-2">
+                      <div className="px-3.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <span>Passed Inspections: <strong>{inspectionStats.passedCount}</strong> Field Zero-Defect</span>
+                      </div>
+                      <div className="px-3.5 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-bold flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-rose-400" />
+                        <span>Flagged / Review: <strong>{inspectionStats.failedOrPendingCount}</strong> Needs Assessment</span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* ── CARD 6: Inspections Passed ── */}
-                  <div
-                    onClick={() => {
-                      setSelectedInspectionDroneId('');
-                      setShowInspectionModal(true);
-                    }}
-                    className="bg-white border border-emerald-300 hover:border-emerald-400 bg-emerald-50/30 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
-                    title="Click to Record New Airframe Inspection"
-                  >
-                    <div>
-                      <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Inspections Passed</p>
-                      <h4 className="text-2xl font-black text-emerald-900 mt-1">{inspectionStats.passedCount}</h4>
-                      <p className="text-[10px] text-emerald-600 font-medium mt-0.5">
-                        {inspectionStats.deliveryPersonChecks?.zeroDefectCertifiedCount != null
-                          ? `${inspectionStats.deliveryPersonChecks.zeroDefectCertifiedCount} Field Zero-Defect`
-                          : 'Quality Approved'}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-black group-hover:scale-105 transition-transform shadow-xs">
-                      <ShieldCheck className="w-5 h-5" />
-                    </div>
-                  </div>
+                  {/* Quick Action Buttons */}
+                  <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto shrink-0">
+                    <button
+                      onClick={() => setShowQrScanner(true)}
+                      className="flex-1 lg:flex-none px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-sm transition-all"
+                    >
+                      <QrCode className="w-4 h-4" />
+                      <span>Scan Drone QR</span>
+                    </button>
 
-                  {/* ── CARD 7: Inspections Failed or Pending ── */}
-                  <div
-                    onClick={() => {
-                      setSelectedInspectionDroneId('');
-                      setShowInspectionModal(true);
-                    }}
-                    className="bg-white border border-rose-300 hover:border-rose-400 bg-rose-50/30 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
-                    title="Click to Record or Update Airframe Inspection"
-                  >
-                    <div>
-                      <p className="text-[11px] font-bold text-rose-800 uppercase tracking-wider">Inspections Failed / Pending</p>
-                      <h4 className="text-2xl font-black text-rose-900 mt-1">{inspectionStats.failedOrPendingCount}</h4>
-                      <p className="text-[10px] text-rose-600 font-medium mt-0.5">
-                        {inspectionStats.deliveryPersonChecks?.defectReported
-                          ? `${inspectionStats.deliveryPersonChecks.defectReported} Field Defect Flagged`
-                          : 'Needs Review'}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 rounded-2xl bg-rose-500 text-white flex items-center justify-center font-black group-hover:scale-105 transition-transform shadow-xs">
-                      <AlertTriangle className="w-5 h-5" />
-                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedInspectionDroneId('');
+                        setShowInspectionModal(true);
+                      }}
+                      className="flex-1 lg:flex-none px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      <span>Record Inspection</span>
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab('audits')}
+                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                    >
+                      <span>Audit Trail</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
 
                 {/* ── SECTION 2: VISUAL ANALYTICS CHARTS & ORDER BREAKDOWN ── */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Order Status Breakdown Chart */}
-                  <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4">
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
                       <div>
                         <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
                           <Activity className="w-5 h-5 text-[#5a00b8]" />
-                          <span>Orders &amp; Consignment Status Breakdown</span>
+                          <span>Consignment Sortie &amp; Dispatch Breakdown</span>
                         </h3>
-                        <p className="text-xs text-slate-500 font-medium">Real-time status distribution across all client consignments</p>
+                        <p className="text-xs text-slate-500 font-medium">Real-time lifecycle distribution across 700 RPAV deliveries</p>
                       </div>
-                      <span className="text-xs font-mono font-bold text-[#5a00b8] bg-purple-50 px-3 py-1 rounded-full border border-purple-200">
-                        {dispatchOrders.length} Total Bookings
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono font-bold text-[#5a00b8] bg-purple-50 px-3 py-1 rounded-full border border-purple-200">
+                          {dispatchOrders.length} Total Bookings
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Progress Bars Graph */}
-                    <div className="space-y-4 pt-1">
-                      {/* Bar 1: Out for Delivery */}
-                      <div>
-                        <div className="flex justify-between items-center text-xs font-bold mb-1.5">
-                          <span className="text-blue-800 flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                            Out for Delivery / In Transit
-                          </span>
-                          <span className="font-mono text-slate-800">
-                            {dispatchOrders.filter((o) => ['taking-off', 'in-flight', 'approaching', 'out-for-delivery', 'in-transit'].includes(o.status)).length} Orders (
-                            {dispatchOrders.length > 0
-                              ? Math.round(
+                    {/* Quick Metric Pills */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-100">
+                        <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">In Transit</span>
+                        <span className="text-lg font-black font-mono text-blue-950">
+                          {dispatchOrders.filter((o) => ['taking-off', 'in-flight', 'approaching', 'out-for-delivery', 'in-transit'].includes(o.status)).length}
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-100">
+                        <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Delivered</span>
+                        <span className="text-lg font-black font-mono text-emerald-950">
+                          {dispatchOrders.filter((o) => o.status === 'delivered').length}
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-purple-50/70 border border-purple-100">
+                        <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block">Staged / Assigned</span>
+                        <span className="text-lg font-black font-mono text-purple-950">
+                          {dispatchOrders.filter((o) => o.status === 'pending' || o.status === 'assigned').length}
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-amber-50/70 border border-amber-100">
+                        <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">On Hold</span>
+                        <span className="text-lg font-black font-mono text-amber-950">
+                          {dispatchOrders.filter((o) => o.status === 'on-hold').length}
+                        </span>
+                      </div>
+                    </div>
+
+                    {dispatchOrders.length > 0 ? (
+                      /* Progress Bars Graph when orders exist */
+                      <div className="space-y-4 pt-1">
+                        {/* Bar 1: Out for Delivery */}
+                        <div>
+                          <div className="flex justify-between items-center text-xs font-bold mb-1.5">
+                            <span className="text-blue-800 flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                              Out for Delivery / In Transit
+                            </span>
+                            <span className="font-mono text-slate-800">
+                              {dispatchOrders.filter((o) => ['taking-off', 'in-flight', 'approaching', 'out-for-delivery', 'in-transit'].includes(o.status)).length} Orders (
+                              {Math.round(
+                                (dispatchOrders.filter((o) => ['taking-off', 'in-flight', 'approaching', 'out-for-delivery', 'in-transit'].includes(o.status)).length /
+                                  dispatchOrders.length) *
+                                  100
+                              )}%)
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                            <div
+                              className="bg-blue-500 h-full rounded-full transition-all duration-500"
+                              style={{
+                                width: `${
                                   (dispatchOrders.filter((o) => ['taking-off', 'in-flight', 'approaching', 'out-for-delivery', 'in-transit'].includes(o.status)).length /
                                     dispatchOrders.length) *
-                                    100
-                                )
-                              : 0}
-                            %)
-                          </span>
+                                  100
+                                }%`
+                              }}
+                            />
+                          </div>
                         </div>
-                        <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
-                          <div
-                            className="bg-blue-500 h-full rounded-full transition-all duration-500"
-                            style={{
-                              width: `${
-                                dispatchOrders.length > 0
-                                  ? (dispatchOrders.filter((o) => ['taking-off', 'in-flight', 'approaching', 'out-for-delivery', 'in-transit'].includes(o.status)).length /
-                                      dispatchOrders.length) *
-                                    100
-                                  : 0
-                              }%`
-                            }}
-                          />
-                        </div>
-                      </div>
 
-                      {/* Bar 2: Delivered & Completed */}
-                      <div>
-                        <div className="flex justify-between items-center text-xs font-bold mb-1.5">
-                          <span className="text-emerald-800 flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                            Successfully Delivered
-                          </span>
-                          <span className="font-mono text-slate-800">
-                            {dispatchOrders.filter((o) => o.status === 'delivered').length} Orders (
-                            {dispatchOrders.length > 0
-                              ? Math.round((dispatchOrders.filter((o) => o.status === 'delivered').length / dispatchOrders.length) * 100)
-                              : 0}
-                            %)
-                          </span>
+                        {/* Bar 2: Delivered & Completed */}
+                        <div>
+                          <div className="flex justify-between items-center text-xs font-bold mb-1.5">
+                            <span className="text-emerald-800 flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                              Successfully Delivered
+                            </span>
+                            <span className="font-mono text-slate-800">
+                              {dispatchOrders.filter((o) => o.status === 'delivered').length} Orders (
+                              {Math.round((dispatchOrders.filter((o) => o.status === 'delivered').length / dispatchOrders.length) * 100)}%)
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                            <div
+                              className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                              style={{
+                                width: `${
+                                  (dispatchOrders.filter((o) => o.status === 'delivered').length / dispatchOrders.length) * 100
+                                }%`
+                              }}
+                            />
+                          </div>
                         </div>
-                        <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
-                          <div
-                            className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                            style={{
-                              width: `${
-                                dispatchOrders.length > 0
-                                  ? (dispatchOrders.filter((o) => o.status === 'delivered').length / dispatchOrders.length) * 100
-                                  : 0
-                              }%`
-                            }}
-                          />
-                        </div>
-                      </div>
 
-                      {/* Bar 3: Pending Dispatch Assignment */}
-                      <div>
-                        <div className="flex justify-between items-center text-xs font-bold mb-1.5">
-                          <span className="text-purple-800 flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
-                            Awaiting Dispatch / Partner Assignment
-                          </span>
-                          <span className="font-mono text-slate-800">
-                            {dispatchOrders.filter((o) => o.status === 'pending' || o.status === 'assigned').length} Orders (
-                            {dispatchOrders.length > 0
-                              ? Math.round((dispatchOrders.filter((o) => o.status === 'pending' || o.status === 'assigned').length / dispatchOrders.length) * 100)
-                              : 0}
-                            %)
-                          </span>
+                        {/* Bar 3: Pending Dispatch Assignment */}
+                        <div>
+                          <div className="flex justify-between items-center text-xs font-bold mb-1.5">
+                            <span className="text-purple-800 flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                              Awaiting Dispatch / Partner Assignment
+                            </span>
+                            <span className="font-mono text-slate-800">
+                              {dispatchOrders.filter((o) => o.status === 'pending' || o.status === 'assigned').length} Orders (
+                              {Math.round((dispatchOrders.filter((o) => o.status === 'pending' || o.status === 'assigned').length / dispatchOrders.length) * 100)}%)
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                            <div
+                              className="bg-purple-500 h-full rounded-full transition-all duration-500"
+                              style={{
+                                width: `${
+                                  (dispatchOrders.filter((o) => o.status === 'pending' || o.status === 'assigned').length / dispatchOrders.length) * 100
+                                }%`
+                              }}
+                            />
+                          </div>
                         </div>
-                        <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
-                          <div
-                            className="bg-purple-500 h-full rounded-full transition-all duration-500"
-                            style={{
-                              width: `${
-                                dispatchOrders.length > 0
-                                  ? (dispatchOrders.filter((o) => o.status === 'pending' || o.status === 'assigned').length / dispatchOrders.length) * 100
-                                  : 0
-                              }%`
-                            }}
-                          />
-                        </div>
-                      </div>
 
-                      {/* Bar 4: On Hold / Paused */}
-                      <div>
-                        <div className="flex justify-between items-center text-xs font-bold mb-1.5">
-                          <span className="text-amber-800 flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                            On Hold / Delivery Paused
-                          </span>
-                          <span className="font-mono text-slate-800">
-                            {dispatchOrders.filter((o) => o.status === 'on-hold').length} Orders (
-                            {dispatchOrders.length > 0
-                              ? Math.round((dispatchOrders.filter((o) => o.status === 'on-hold').length / dispatchOrders.length) * 100)
-                              : 0}
-                            %)
-                          </span>
-                        </div>
-                        <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
-                          <div
-                            className="bg-amber-500 h-full rounded-full transition-all duration-500"
-                            style={{
-                              width: `${
-                                dispatchOrders.length > 0
-                                  ? (dispatchOrders.filter((o) => o.status === 'on-hold').length / dispatchOrders.length) * 100
-                                  : 0
-                              }%`
-                            }}
-                          />
+                        {/* Bar 4: On Hold / Paused */}
+                        <div>
+                          <div className="flex justify-between items-center text-xs font-bold mb-1.5">
+                            <span className="text-amber-800 flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                              On Hold / Delivery Paused
+                            </span>
+                            <span className="font-mono text-slate-800">
+                              {dispatchOrders.filter((o) => o.status === 'on-hold').length} Orders (
+                              {Math.round((dispatchOrders.filter((o) => o.status === 'on-hold').length / dispatchOrders.length) * 100)}%)
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                            <div
+                              className="bg-amber-500 h-full rounded-full transition-all duration-500"
+                              style={{
+                                width: `${
+                                  (dispatchOrders.filter((o) => o.status === 'on-hold').length / dispatchOrders.length) * 100
+                                }%`
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      /* High-Tech Standby Status State when 0 active orders */
+                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-white border border-purple-100 shadow-2xs flex items-center justify-center text-[#5a00b8] shrink-0">
+                          <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-xs text-slate-900">Fleet Operations Standby • 100% Ready</h4>
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Optimal</span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            All 700 RPAV units calibrated and available for assignment. Consignment sorties booked through the Customer Portal or Dispatch Workbench appear in real time.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setActiveTab('dispatch')}
+                          className="px-3 py-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 transition-colors shrink-0 cursor-pointer"
+                        >
+                          Dispatch Desk &rarr;
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Consignment Fulfillment Health Card */}
-                  <div className="bg-[#171222] text-white rounded-3xl p-6 shadow-md flex flex-col justify-between space-y-4">
+                  <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-[#1e1338] text-white rounded-3xl p-6 sm:p-7 border border-slate-800 shadow-xl flex flex-col justify-between space-y-5">
                     <div className="space-y-2">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-purple-300 block">Fulfillment Health</span>
-                      <h3 className="text-2xl font-black tracking-tight text-white">Consignment Operations</h3>
-                      <p className="text-xs text-slate-300 leading-relaxed">
-                        Track overall order velocity, active partner assignments, and delivery completion rate across central inventory.
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-purple-300">Fulfillment Health</span>
+                        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                          Live Telemetry
+                        </span>
+                      </div>
+                      <h3 className="text-2xl font-black tracking-tight text-white">Consignment SLA</h3>
+                      <p className="text-xs text-slate-300/80 leading-relaxed">
+                        Fleet turnaround times, airframe mission availability, and operator assignment velocity.
                       </p>
                     </div>
 
-                    <div className="space-y-3 pt-2">
-                      <div className="p-3.5 bg-white/10 rounded-2xl border border-white/10 flex items-center justify-between">
-                        <span className="text-xs font-medium text-slate-200">Active Consignments:</span>
+                    <div className="space-y-3">
+                      <div className="p-3.5 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between">
+                        <span className="text-xs font-medium text-slate-300">Active Consignments:</span>
                         <span className="font-mono font-black text-emerald-400 text-sm">
-                          {dispatchOrders.filter((o) => !['delivered', 'cancelled'].includes(o.status)).length} Orders
+                          {dispatchOrders.filter((o) => !['delivered', 'cancelled'].includes(o.status)).length} Active
                         </span>
                       </div>
 
-                      <div className="p-3.5 bg-white/10 rounded-2xl border border-white/10 flex items-center justify-between">
-                        <span className="text-xs font-medium text-slate-200">Completion Rate:</span>
+                      <div className="p-3.5 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between">
+                        <span className="text-xs font-medium text-slate-300">Airframe Readiness:</span>
                         <span className="font-mono font-black text-purple-300 text-sm">
+                          {totalUnits > 0 ? Math.round((idleUnits / totalUnits) * 100) : 100}% Ready
+                        </span>
+                      </div>
+
+                      <div className="p-3.5 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between">
+                        <span className="text-xs font-medium text-slate-300">Completion Ratio:</span>
+                        <span className="font-mono font-black text-white text-sm">
                           {dispatchOrders.length > 0
                             ? Math.round((dispatchOrders.filter((o) => o.status === 'delivered').length / dispatchOrders.length) * 100)
-                            : 100}
-                          %
+                            : 100}%
                         </span>
                       </div>
                     </div>
 
                     <button
                       onClick={() => setActiveTab('dispatch')}
-                      className="w-full py-3 rounded-2xl bg-[#5a00b8] hover:bg-[#6c00db] text-white font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                      className="w-full py-3 rounded-2xl bg-gradient-to-r from-[#5a00b8] to-[#7928ca] hover:opacity-95 text-white font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-purple-950/40"
                     >
                       <span>Manage Dispatch Workbench</span>
                       <ArrowRight className="w-4 h-4" />
@@ -1172,11 +1231,11 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                 {/* ── SECTION 3: LIVE RECENT CONSIGNMENTS & INVENTORY ACTIONS ── */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Recent Consignments Orders Feed */}
-                  <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4">
+                  <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                       <div>
                         <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
-                          <ShoppingBag className="w-4 h-4 text-purple-600" />
+                          <ShoppingBag className="w-4 h-4 text-[#5a00b8]" />
                           <span>Recent Consignment Orders</span>
                         </h3>
                         <p className="text-xs text-slate-500 font-medium">Live customer bookings and assigned delivery partner status</p>
@@ -1229,8 +1288,23 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                       ))}
 
                       {dispatchOrders.length === 0 && (
-                        <div className="p-8 text-center text-xs text-slate-400">
-                          No active consignment orders found in system.
+                        <div className="p-8 text-center rounded-2xl bg-slate-50/60 border border-dashed border-slate-200 space-y-3">
+                          <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center mx-auto shadow-2xs">
+                            <ShoppingBag className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-slate-900 text-xs">No Consignments in Flight</h4>
+                            <p className="text-slate-500 text-[11px] max-w-sm mx-auto mt-0.5">
+                              Central drone fleet is staged and ready. Dispatch missions generated via the Consignment Workbench will stream live here.
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => setActiveTab('dispatch')}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#5a00b8] hover:bg-[#45008c] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+                          >
+                            <span>Open Dispatch Desk</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       )}
                     </div>
@@ -1390,8 +1464,8 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                   </div>
                 </div>
 
-                {/* Search & Filters */}
-                <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3.5 bg-white rounded-2xl border border-slate-200 shadow-xs">
+                {/* Search & Filters Toolbar */}
+                <div className="bg-white rounded-2xl border border-slate-200/90 p-3 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
                   <div className="relative flex-1">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
@@ -1401,8 +1475,8 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                         setSearchQuery(e.target.value);
                         setDroneCurrentPage(1);
                       }}
-                      placeholder="Search by Drone ID, Serial, Model Name, or Category..."
-                      className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#5a00b8]"
+                      placeholder="Search 700 RPAV by Drone ID, Serial Number, Model, or Status..."
+                      className="w-full pl-9 pr-4 py-2 bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 rounded-xl text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-[#5a00b8]/15 focus:border-[#5a00b8]"
                     />
                   </div>
 
@@ -1410,7 +1484,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowQrScanner(true)}
-                      className="px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-[#5a00b8] border border-purple-200 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs"
+                      className="px-3.5 py-2 bg-[#5a00b8] hover:bg-[#470091] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs transition-all"
                       title="Scan Drone QR Code or Airframe ID"
                     >
                       <QrCode className="w-3.5 h-3.5" />
@@ -1423,12 +1497,12 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                         setStatusFilter(e.target.value);
                         setDroneCurrentPage(1);
                       }}
-                      className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none"
+                      className="px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
                     >
                       <option value="all">All Statuses ({totalUnits})</option>
-                      <option value="idle">Ready / In Stock ({idleUnits})</option>
+                      <option value="idle">Ready / Available ({idleUnits})</option>
                       <option value="maintenance">Under Maintenance ({maintenanceUnits})</option>
-                      <option value="in-flight">Out for Delivery / In Transit ({inFlightUnits})</option>
+                      <option value="in-flight">Out for Delivery ({inFlightUnits})</option>
                     </select>
 
                     <select
@@ -1437,29 +1511,29 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                         setVerificationFilter(e.target.value);
                         setDroneCurrentPage(1);
                       }}
-                      className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none"
+                      className="px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
                     >
-                      <option value="all">All ID Verifications</option>
-                      <option value="verified">Verified IDs ({verifiedUnits})</option>
-                      <option value="unverified">Unverified IDs ({unverifiedUnits})</option>
+                      <option value="all">All Verifications</option>
+                      <option value="verified">Verified Hardware ({verifiedUnits})</option>
+                      <option value="unverified">Unverified ({unverifiedUnits})</option>
                     </select>
                   </div>
                 </div>
 
                 {/* Inventory Table */}
-                <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
-                          <th className="py-3 px-4">Photo</th>
-                          <th className="py-3 px-4">Drone ID &amp; Serial</th>
-                          <th className="py-3 px-4">Model Name</th>
+                        <tr className="bg-slate-50/90 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200 text-[11px]">
+                          <th className="py-3 px-3.5 w-14">Photo</th>
+                          <th className="py-3 px-4 min-w-[170px]">Drone ID &amp; Serial</th>
+                          <th className="py-3 px-4">Model</th>
                           <th className="py-3 px-4">Category</th>
-                          <th className="py-3 px-4">Status &amp; Reservation</th>
+                          <th className="py-3 px-4">Status &amp; Mission</th>
                           <th className="py-3 px-4">Condition &amp; QC</th>
-                          <th className="py-3 px-4">ID Verification</th>
-                          <th className="py-3 px-4 text-right">Actions</th>
+                          <th className="py-3 px-4">ID Verify</th>
+                          <th className="py-3 px-4 text-right min-w-[200px]">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
@@ -1471,109 +1545,126 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                             (d.status === 'reserved' || Boolean(linked) || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order));
 
                           return (
-                            <tr key={d.id} className="hover:bg-slate-50/60 transition-colors">
-                              <td className="py-3 px-4">
+                            <tr key={d.id} className="hover:bg-purple-50/20 transition-colors">
+                              {/* Drone Photo */}
+                              <td className="py-3 px-3.5">
                                 {d.image_url ? (
-                                  <img src={d.image_url} alt={d.model} className="h-10 w-14 rounded-lg object-cover border border-slate-200" />
+                                  <img src={d.image_url} alt={d.model} className="h-9 w-12 rounded-xl object-cover border border-slate-200 shadow-2xs" />
                                 ) : (
-                                  <div className="h-10 w-14 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center border border-slate-200">
-                                    <ImageIcon className="h-4 w-4" />
+                                  <div className="h-9 w-12 rounded-xl bg-gradient-to-br from-purple-50 to-slate-100 text-[#5a00b8] flex items-center justify-center border border-purple-100 shadow-2xs">
+                                    <Plane className="h-4 w-4 transform -rotate-45" />
                                   </div>
                                 )}
                               </td>
-                              <td className="py-3 px-4">
-                                <p className="font-mono font-bold text-slate-900">{d.id}</p>
-                                <p className="text-[10px] text-slate-400 font-mono">{d.serial_number || d.id}</p>
-                              </td>
-                              <td className="py-3 px-4 font-bold text-[#5a00b8] whitespace-nowrap">{d.model}</td>
+
+                              {/* Drone ID & Serial Number - Protected with whitespace-nowrap */}
                               <td className="py-3 px-4 whitespace-nowrap">
-                                <span className="inline-block px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[11px] whitespace-nowrap">
+                                <span className="font-mono font-bold text-slate-900 text-xs block tracking-tight">{d.id}</span>
+                                <span className="text-[10px] text-slate-400 font-mono block tracking-tight">{d.serial_number || d.id}</span>
+                              </td>
+
+                              {/* Model */}
+                              <td className="py-3 px-4 font-bold text-[#5a00b8] whitespace-nowrap">{d.model}</td>
+
+                              {/* Category */}
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                <span className="inline-block px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium text-[11px]">
                                   {d.category || 'General UAV'}
                                 </span>
                               </td>
+
+                              {/* Status & Mission */}
                               <td className="py-3 px-4 whitespace-nowrap">
                                 {d.status === 'maintenance' ? (
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-300 whitespace-nowrap">
-                                    <Wrench className="w-3 h-3 text-amber-600 shrink-0" />
-                                    <span>Under Maintenance</span>
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                    <span>Maintenance</span>
                                   </span>
                                 ) : isReserved ? (
                                   <button
                                     type="button"
                                     onClick={() => setSelectedReservedDrone(d)}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer shadow-2xs group whitespace-nowrap"
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer"
                                   >
-                                    <ShoppingBag className="w-3 h-3 text-purple-600 shrink-0" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
                                     <span>Reserved: <strong className="font-mono">{linked?.id || d.assigned_order || 'Booking'}</strong></span>
-                                    <Eye className="w-3 h-3 text-purple-400 group-hover:text-purple-700 shrink-0" />
+                                    <Eye className="w-3 h-3 text-purple-500" />
                                   </button>
                                 ) : d.status === 'en-route' || d.status === 'in-flight' || d.status === 'dispatched' ? (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">
-                                    <Truck className="w-3 h-3 text-blue-600 shrink-0" />
-                                    Dispatched
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                    <span>In Flight</span>
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
-                                    <Check className="w-3 h-3 text-emerald-600 shrink-0" />
-                                    In Stock (Idle)
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    <span>Ready / In Stock</span>
                                   </span>
                                 )}
                               </td>
+
+                              {/* Condition & QC */}
                               <td className="py-3 px-4 whitespace-nowrap">
-                                <div className="flex flex-col gap-1 items-start">
+                                <div className="flex items-center gap-1.5">
                                   <span
-                                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap ${
+                                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold ${
                                       (d.current_condition || '').toUpperCase() === 'DAMAGED'
-                                        ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                        ? 'bg-rose-50 text-rose-700 border border-rose-200'
                                         : (d.current_condition || '').toUpperCase() === 'NEEDS_REVIEW'
-                                        ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                                        : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                        : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                     }`}
                                   >
-                                    <ShieldCheck className="w-3 h-3 shrink-0" />
+                                    {(d.current_condition || '').toUpperCase() === 'DAMAGED' ? (
+                                      <AlertTriangle className="w-3 h-3" />
+                                    ) : (
+                                      <Check className="w-3 h-3" />
+                                    )}
                                     {d.current_condition ? d.current_condition.toUpperCase() : 'GOOD'}
                                   </span>
                                   {d.last_inspection_result && (
-                                    <span className="text-[10px] text-slate-500 font-medium whitespace-nowrap">
-                                      QC: <strong className="uppercase">{d.last_inspection_result}</strong>
+                                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-bold uppercase ${
+                                      d.last_inspection_result.toLowerCase() === 'passed'
+                                        ? 'bg-slate-100 text-slate-700'
+                                        : 'bg-rose-100 text-rose-800'
+                                    }`}>
+                                      {d.last_inspection_result}
                                     </span>
                                   )}
                                 </div>
                               </td>
+
+                              {/* ID Verification */}
                               <td className="py-3 px-4 whitespace-nowrap">
                                 {isVerified ? (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                    Verified ID
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/70">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                    Verified
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
-                                    <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                    Unverified ID
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
+                                    <AlertCircle className="w-3.5 h-3.5 text-slate-400" />
+                                    Pending
                                   </span>
                                 )}
                               </td>
+
+                              {/* Streamlined Actions Toolbar */}
                               <td className="py-3 px-4 text-right whitespace-nowrap">
-                                <div className="inline-flex items-center justify-end gap-1.5 flex-nowrap">
+                                <div className="inline-flex items-center justify-end gap-1.5">
                                   {isReserved && (
                                     <button
                                       type="button"
                                       onClick={() => setSelectedReservedDrone(d)}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
+                                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-all flex items-center gap-1 cursor-pointer"
+                                      title="View Assigned Consignment"
                                     >
                                       <Eye className="w-3.5 h-3.5" />
                                       <span>Order</span>
                                     </button>
                                   )}
-                                  <button
-                                    type="button"
-                                    onClick={() => setSelectedQrDrone(d)}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-[#5a00b8] hover:text-white text-slate-700 border border-slate-200 transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
-                                    title="View & Print 25mm Permanent QR Code Label"
-                                  >
-                                    <QrCode className="w-3.5 h-3.5" />
-                                    <span>QR Label</span>
-                                  </button>
+
+                                  {/* Primary Quick Action: Inspect */}
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -1581,41 +1672,55 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                                       setSelectedInspectionDeliveryId(d.assigned_order || d.delivery_data?.assigned_order || '');
                                       setShowInspectionModal(true);
                                     }}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-50 hover:bg-[#5a00b8] text-[#5a00b8] hover:text-white border border-purple-200 hover:border-[#5a00b8] transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
+                                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#5a00b8] hover:bg-[#43008a] text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                                     title="Record Post-Delivery Condition Inspection"
                                   >
                                     <ShieldCheck className="w-3.5 h-3.5" />
                                     <span>Inspect</span>
                                   </button>
+
+                                  {/* Quick Action: QR Label */}
                                   <button
                                     type="button"
-                                    onClick={() => handleToggleDroneMaintenance(d)}
-                                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer shadow-2xs whitespace-nowrap ${
-                                      d.status === 'maintenance'
-                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                                        : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
-                                    }`}
-                                    title={d.status === 'maintenance' ? 'Clear maintenance and restore to stock' : 'Mark under technical maintenance'}
+                                    onClick={() => setSelectedQrDrone(d)}
+                                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300 transition-all flex items-center gap-1 cursor-pointer"
+                                    title="View &amp; Print 25mm Permanent QR Code Label"
                                   >
-                                    <Wrench className="w-3 h-3" />
-                                    <span>{d.status === 'maintenance' ? 'Clear Maint.' : 'Set Maint.'}</span>
+                                    <QrCode className="w-3.5 h-3.5 text-slate-600" />
+                                    <span>QR</span>
                                   </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => openEditDroneModal(d)}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-purple-50 hover:text-[#5a00b8] hover:border-purple-200 transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
-                                  >
-                                    <Edit2 className="w-3 h-3" />
-                                    <span>Edit</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setDeletingDrone(d)}
-                                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer shrink-0"
-                                    title="Decommission Drone"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
+
+                                  {/* Secondary Tool Group (Maintenance, Edit, Decommission) */}
+                                  <div className="inline-flex items-center rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleDroneMaintenance(d)}
+                                      className={`p-1.5 rounded-md transition-colors cursor-pointer ${
+                                        d.status === 'maintenance'
+                                          ? 'text-emerald-600 hover:bg-emerald-50'
+                                          : 'text-amber-600 hover:bg-amber-50'
+                                      }`}
+                                      title={d.status === 'maintenance' ? 'Restore Drone to Stock (Clear Maint)' : 'Mark under technical maintenance'}
+                                    >
+                                      <Wrench className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditDroneModal(d)}
+                                      className="p-1.5 rounded-md text-slate-500 hover:text-[#5a00b8] hover:bg-purple-50 transition-colors cursor-pointer"
+                                      title="Edit Drone Details &amp; Hardware ID"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setDeletingDrone(d)}
+                                      className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                      title="Decommission Airframe"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
                                 </div>
                               </td>
                             </tr>
