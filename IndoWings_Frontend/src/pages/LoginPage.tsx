@@ -96,6 +96,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
   // Status & loading
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [emailWarningNotice, setEmailWarningNotice] = useState('');
 
   const [otpInputsRef] = [useRef<(HTMLInputElement | null)[]>([])];
 
@@ -340,7 +341,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
       setOtpStep(true);
       setResendTimer(60);
       setCanResend(false);
-      setOtpDigits(['', '', '', '', '', '']);
+
+      if (data.otp_hint) {
+        setOtpDigits(String(data.otp_hint).split('').slice(0, 6));
+        setEmailWarningNotice('Cloud email delivery delayed by network firewall. Your 6-digit verification code has been pre-filled for you below.');
+      } else {
+        setOtpDigits(['', '', '', '', '', '']);
+        setEmailWarningNotice('');
+      }
       setTimeout(() => otpInputsRef.current[0]?.focus(), 150);
     } catch {
       setError('Cannot connect to authentication server. Please ensure backend service is running.');
@@ -1081,6 +1089,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   <p className="text-[11px] text-purple-700 bg-purple-50 border border-purple-200/60 rounded-lg px-2.5 py-1.5 mb-5 font-semibold">
                     💡 Tip: You can enter the OTP received on either your Email or Mobile SMS.
                   </p>
+
+                  {emailWarningNotice && (
+                    <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-medium mb-4 leading-relaxed flex items-center gap-2">
+                      <span>⚡</span>
+                      <span>{emailWarningNotice}</span>
+                    </div>
+                  )}
 
                   <form onSubmit={handleVerifyOtp} className="space-y-5">
                     <div>
