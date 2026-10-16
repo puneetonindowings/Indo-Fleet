@@ -3014,11 +3014,26 @@ function validateBase64Attachment(attachment: any): { valid: boolean; error?: st
 // Submit a support query / technical consultation request
 router.post(['/support/expert-request', '/support/ticket', '/support/expert-requests'], async (req, res) => {
   try {
-    const { name, phone, email, category, query_type, message, preferred_time, preferred_callback, order_id, delivery_address, drone_serial, priority, attachments } = req.body;
+    let { name, phone, email, category, query_type, message, preferred_time, preferred_callback, order_id, delivery_address, drone_serial, priority, attachments } = req.body;
 
+    // Auto-resolve contact info if customer scanned QR code without manual input
     if (!phone && !email) {
-      res.status(400).json({ error: 'Please provide at least a phone number or email address' });
-      return;
+      if (order_id || drone_serial) {
+        const orders = await fileDB.getOrders();
+        const ord = orders.find(o =>
+          (order_id && (String(o.id) === String(order_id) || String(o.order_number) === String(order_id))) ||
+          (drone_serial && (String(o.assigned_drone_id).toLowerCase() === String(drone_serial).toLowerCase() || String(o.drone_id).toLowerCase() === String(drone_serial).toLowerCase()))
+        );
+        if (ord) {
+          if (!phone && ord.customer_phone) phone = ord.customer_phone;
+          if (!email && ord.customer_email) email = ord.customer_email;
+          if (!name && ord.customer_name) name = ord.customer_name;
+        }
+      }
+      if (!phone && !email) {
+        email = 'connect@indowings.com';
+        phone = 'N/A (Drone QR Scan)';
+      }
     }
 
     const validatedAttachments: any[] = [];
@@ -5400,18 +5415,41 @@ router.get('/public/drone/:drone_id', async (req, res) => {
     const inspections = await fileDB.getInspections({ drone_id: drone.id });
     const latestInspection = inspections[0] || null;
 
+    // Dynamically find latest or active order linked to this drone
+    const orders = await fileDB.getOrders();
+    const targetId = String(drone.id).toLowerCase();
+    const targetSn = String(drone.serial_number || '').toLowerCase();
+    const targetRaw = rawId.toLowerCase();
+
+    const matchedOrder = orders
+      .filter(o => {
+        const oDrone = String(o.assigned_drone_id || o.drone_id || '').toLowerCase();
+        return oDrone && (oDrone === targetId || oDrone === targetSn || oDrone === targetRaw);
+      })
+      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0] || null;
+
     res.json({
       success: true,
       drone: {
         drone_id: drone.id,
         serial_number: drone.serial_number,
-        model_name: drone.model || drone.model_name || '700RPAV',
+        model_name: drone.model || drone.model_name || 'IndoWings 700 RPAV',
         status: drone.status,
         current_condition: drone.current_condition || (latestInspection?.overall_inspection === 'PASSED' ? 'GOOD' : 'NEEDS_REVIEW'),
         last_inspection_result: latestInspection?.overall_inspection || 'PASSED',
         last_inspected_at: latestInspection?.inspected_at || drone.updated_at || drone.created_at,
         support_hotline: '1800 572 7363',
-        support_email: 'support@indowings.com'
+        support_email: 'connect@indowings.com',
+        // Dynamic order & customer details:
+        assigned_order: matchedOrder?.id || null,
+        order_number: matchedOrder?.order_number || null,
+        order_status: matchedOrder?.status || null,
+        customer_name: matchedOrder?.customer_name || null,
+        customer_phone: matchedOrder?.customer_phone || null,
+        customer_email: matchedOrder?.customer_email || null,
+        drop_address: matchedOrder?.drop_address || matchedOrder?.delivery_address || null,
+        assigned_pilot_name: matchedOrder?.assigned_pilot_name || matchedOrder?.pilot_name || null,
+        assigned_pilot_phone: matchedOrder?.assigned_pilot_phone || matchedOrder?.pilot_phone || null,
       }
     });
   } catch (err: any) {

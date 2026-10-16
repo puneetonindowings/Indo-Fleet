@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
   ShieldCheck,
-  Plane,
   AlertTriangle,
   CheckCircle2,
   Phone,
   Mail,
-  QrCode,
   Wrench,
   Loader2,
   UserCheck,
@@ -16,12 +14,12 @@ import {
   Video,
   X,
   FileCheck2,
-  Zap,
-  Gauge,
-  Compass,
-  Radio,
-  Clock,
-  Sparkles
+  Package,
+  Truck,
+  HelpCircle,
+  Sparkles,
+  MapPin,
+  Clock
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 import { PostDeliveryInspectionModal } from '../components/PostDeliveryInspectionModal';
@@ -45,10 +43,8 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
   const [error, setError] = useState('');
   const [showInspectionModal, setShowInspectionModal] = useState(false);
 
-  // Customer Feedback & Support Form State
+  // Customer Feedback & Support Form State (Name & Number auto-fetched from order/drone ID)
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
-  const [feedbackName, setFeedbackName] = useState('');
-  const [feedbackContact, setFeedbackContact] = useState('');
   const [selectedPartIssue, setSelectedPartIssue] = useState('Cargo Bay & Electronic Latch');
   const [customIssueText, setCustomIssueText] = useState('');
   const [feedbackMessage, setFeedbackMessage] = useState('');
@@ -57,7 +53,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
   const [feedbackSuccess, setFeedbackSuccess] = useState('');
   const [feedbackError, setFeedbackError] = useState('');
 
-  // Check if current user is an authorized operator/pilot
+  // Check if current user is an authorized operator/staff
   const deliveryUser = (() => {
     try {
       const str = localStorage.getItem('iw_delivery_user');
@@ -115,8 +111,8 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
 
   const handleSubmitCustomerFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!feedbackName.trim() || !feedbackContact.trim() || !feedbackMessage.trim()) {
-      setFeedbackError('Please enter your name, contact details, and message.');
+    if (!feedbackMessage.trim()) {
+      setFeedbackError('Please enter a description of the issue or feedback.');
       return;
     }
 
@@ -125,22 +121,26 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
     setFeedbackSuccess('');
 
     try {
-      const isEmail = feedbackContact.includes('@');
       const issueCategory = selectedPartIssue === 'Other / Unlisted Issue'
         ? (customIssueText.trim() ? `Custom Issue: ${customIssueText.trim()}` : 'Other Unlisted Issue')
         : selectedPartIssue;
+
+      // Contact info is automatically resolved from the order linked to this drone
+      const autoCustomerName = droneData?.customer_name || 'Verified Customer';
+      const autoCustomerPhone = droneData?.customer_phone || null;
+      const autoCustomerEmail = droneData?.customer_email || 'connect@indowings.com';
 
       const res = await fetch(`${API_BASE_URL}/api/delivery/support/expert-requests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           source: 'customer_qr_scan',
-          name: feedbackName.trim(),
-          email: isEmail ? feedbackContact.trim() : null,
-          phone: !isEmail ? feedbackContact.trim() : null,
+          name: autoCustomerName,
+          email: autoCustomerEmail,
+          phone: autoCustomerPhone,
           drone_serial: droneData?.serial_number || droneId,
-          order_id: droneData?.assigned_order || null,
-          category: `Drone Hardware / Delivery Support: ${issueCategory}`,
+          order_id: droneData?.assigned_order || droneData?.order_number || null,
+          category: `Drone Delivery Support: ${issueCategory}`,
           message: `[Drone QR Scan • Part: ${issueCategory}]\n${feedbackMessage.trim()}`,
           priority: 'normal',
           attachments: uploadedMedia.map((m) => ({
@@ -157,11 +157,11 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
         throw new Error(data.error || 'Failed to submit feedback.');
       }
 
-      setFeedbackSuccess('Thank you! Your issue report and media have been submitted to IndoWings Support.');
+      setFeedbackSuccess('Thank you! Your issue report has been logged with IndoWings Support. Our team will review the details.');
       setFeedbackMessage('');
       setCustomIssueText('');
       setUploadedMedia([]);
-      setTimeout(() => setShowFeedbackForm(false), 4000);
+      setTimeout(() => setShowFeedbackForm(false), 4500);
     } catch (err: any) {
       setFeedbackError(err.message || 'Error submitting feedback.');
     } finally {
@@ -189,11 +189,11 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
         const res = await fetch(`${API_BASE_URL}/api/delivery/public/drone/${encodeURIComponent(id)}`);
         const data = await res.json();
         if (!res.ok || !data.success) {
-          throw new Error(data.error || 'Airframe link not valid or record has expired.');
+          throw new Error(data.error || 'Drone verification link not valid or record expired.');
         }
         setDroneData(data.drone);
       } catch (err: any) {
-        setError(err.message || 'Unable to verify drone airframe.');
+        setError(err.message || 'Unable to verify drone record.');
       } finally {
         setLoading(false);
       }
@@ -202,244 +202,244 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
     fetchDrone();
   }, []);
 
+  const hasActiveOrder = Boolean(droneData?.assigned_order || droneData?.order_number || droneData?.assigned_pilot_name);
+  const driverName = droneData?.assigned_pilot_name || droneData?.pilot_name;
+  const driverPhone = droneData?.assigned_pilot_phone || droneData?.pilot_phone;
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-start p-4 sm:p-6 font-sans antialiased">
-      <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden animate-fadeIn my-4">
-        {/* Top Header Badge */}
-        <div className="p-6 text-center border-b border-slate-800 bg-gradient-to-b from-purple-900/30 via-slate-900 to-slate-900 relative">
-          <div className="w-16 h-16 mx-auto rounded-3xl bg-[#5a00b8]/20 border border-[#5a00b8]/40 flex items-center justify-center text-[#a855f7] mb-3 shadow-lg shadow-purple-950/50">
-            <Plane className="w-8 h-8" />
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col items-center justify-start py-6 px-4 sm:px-6 font-sans antialiased">
+      {/* Container - Clean, Responsive, Full-width mobile and centered desktop */}
+      <div className="w-full max-w-2xl bg-white border border-slate-200 rounded-3xl shadow-lg shadow-slate-100 overflow-hidden my-2 animate-fadeIn">
+        
+        {/* Top Header Section - Light Modern Style */}
+        <div className="p-6 sm:p-8 text-center border-b border-slate-100 bg-gradient-to-b from-purple-50/80 via-white to-white relative">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-purple-100 border border-purple-200/80 flex items-center justify-center text-purple-700 mb-3.5 shadow-sm">
+            <Truck className="w-8 h-8" />
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-emerald-400 text-xs font-bold mb-2">
+          
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold mb-2">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>IndoWings DGCA Certified Airframe</span>
+            <span>IndoWings DGCA Certified Drone Fleet</span>
           </div>
-          <h2 className="text-xl font-black text-white tracking-tight">700 RPAV Customer Portal</h2>
-          <p className="text-xs text-slate-400 mt-1 font-mono">
-            AIRFRAME ID: <span className="text-purple-300 font-bold">{droneId ? droneId.toUpperCase() : 'UNKNOWN'}</span>
-          </p>
+
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+            IndoWings Customer Delivery Portal
+          </h2>
+
+          <div className="mt-2 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-100 border border-slate-200">
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Drone ID:</span>
+            <span className="text-xs font-mono font-bold text-purple-800">{droneId ? droneId.toUpperCase() : 'UNKNOWN'}</span>
+          </div>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 space-y-6">
+        <div className="p-5 sm:p-7 space-y-6">
           {loading ? (
-            <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-400">
-              <Loader2 className="w-8 h-8 animate-spin text-[#a855f7]" />
-              <p className="text-xs font-semibold">Verifying airframe credentials against central fleet register…</p>
+            <div className="py-16 flex flex-col items-center justify-center gap-3 text-slate-500">
+              <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+              <p className="text-xs font-semibold">Verifying drone credentials &amp; active order records…</p>
             </div>
           ) : error ? (
-            <div className="py-8 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto">
-                <AlertTriangle className="w-6 h-6" />
+            <div className="py-12 text-center space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-7 h-7" />
               </div>
-              <h3 className="text-sm font-bold text-white">Verification Link Not Valid</h3>
-              <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
-                The requested airframe QR link is either invalid, revoked, or no matching drone record exists in the 700 RPAV registry.
+              <h3 className="text-base font-bold text-slate-900">Verification Link Not Valid</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                The requested drone QR link is either invalid or no matching active record exists in the IndoWings fleet registry.
               </p>
-              <div className="pt-2 text-[11px] text-slate-500">
-                Support: <span className="text-slate-300 font-mono">1800 572 7363</span>
+              <div className="pt-2 text-xs text-slate-500">
+                Support Helpline: <a href="tel:18005727363" className="text-purple-700 font-bold hover:underline">1800 572 7363</a> • <a href="mailto:connect@indowings.com" className="text-purple-700 font-bold hover:underline">connect@indowings.com</a>
               </div>
             </div>
           ) : droneData ? (
             <>
-              {/* SECTION: Delivery Person Name & Details */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-800/50 to-slate-800/50 border border-purple-500/30 space-y-3">
+              {/* SECTION 1: Dynamic Delivery Person / Driver Details (From Real Order) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
-                    <UserCheck className="w-3.5 h-3.5 text-purple-400" />
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-purple-800 flex items-center gap-1.5">
+                    <UserCheck className="w-4 h-4 text-purple-600" />
                     <span>Assigned Delivery Person</span>
                   </span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30">
-                    Verified Driver
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${hasActiveOrder ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-200/70 text-slate-600 border-slate-300'}`}>
+                    {hasActiveOrder ? 'Verified Delivery Driver' : 'Standby Fleet'}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between pt-1">
                   <div>
-                    <h4 className="text-sm font-black text-white">
-                      {droneData.assigned_pilot_name || droneData.pilot_name || 'Rajesh Kumar'}
+                    <h4 className="text-sm font-bold text-slate-900">
+                      {driverName || 'IndoWings Central Road Logistics'}
                     </h4>
-                    <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                      IndoWings Road Logistics &bull; Vehicle Delivery Fleet
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {hasActiveOrder
+                        ? 'Vehicle Delivery Fleet • Road Transit Division'
+                        : 'No active delivery currently en route for this airframe'}
                     </p>
                   </div>
-                  <a
-                    href="tel:18005727363"
-                    className="px-3 py-1.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-400/30 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <Phone className="w-3 h-3 text-purple-300" />
-                    <span>Call Driver</span>
-                  </a>
+                  {driverPhone ? (
+                    <a
+                      href={`tel:${driverPhone}`}
+                      className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>Call Driver</span>
+                    </a>
+                  ) : (
+                    <a
+                      href="tel:18005727363"
+                      className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                    >
+                      <Phone className="w-3.5 h-3.5 text-purple-600" />
+                      <span>Helpline</span>
+                    </a>
+                  )}
                 </div>
               </div>
 
-              {/* SECTION 3: Road Delivery & Handling Instructions */}
-              <div className="p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30 space-y-3">
-                <div className="flex items-center gap-2 text-amber-300">
-                  <AlertTriangle className="w-4 h-4 text-amber-400" />
+              {/* SECTION 2: Road Delivery & Unloading Instructions */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-3">
+                <div className="flex items-center gap-2 text-amber-900">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
                   <h4 className="text-xs font-black uppercase tracking-wider">
                     Drone Delivery &amp; Unloading Instructions
                   </h4>
                 </div>
 
-                <ul className="text-xs text-slate-300 space-y-2">
-                  <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 font-bold text-[10px] mt-0.5">1</span>
-                    <span><strong>Vehicle Unloading:</strong> Drones are transported by road in secure cases. Allow the delivery person to carefully unload the crate.</span>
+                <ul className="text-xs text-slate-700 space-y-2.5">
+                  <li className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-amber-200/80 text-amber-900 flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5">1</span>
+                    <span><strong>Vehicle Unloading:</strong> Drones are transported by road in dedicated secure transit cases. Allow the delivery driver to carefully unload and unbox the crate.</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 font-bold text-[10px] mt-0.5">2</span>
-                    <span><strong>Fragile Electronics:</strong> Inspect the outer carton and security seal for any transit impact or crushing before opening.</span>
+                  <li className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-amber-200/80 text-amber-900 flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5">2</span>
+                    <span><strong>Fragile Electronics:</strong> Inspect the outer packaging and tamper-proof security seals for any transit impact or crushing before signing.</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 font-bold text-[10px] mt-0.5">3</span>
-                    <span><strong>Battery Transport Safety:</strong> Li-Po power cells are shipped in isolated fire-retardant enclosures. Keep dry and away from heat.</span>
+                  <li className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-amber-200/80 text-amber-900 flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5">3</span>
+                    <span><strong>Battery Transport Safety:</strong> Li-Po power cells are shipped in isolated fire-retardant enclosures. Keep dry and store away from direct heat.</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 font-bold text-[10px] mt-0.5">4</span>
-                    <span><strong>Handover &amp; OTP:</strong> Only share your 4-digit Delivery Handshake OTP after verifying package contents and seals.</span>
+                  <li className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-amber-200/80 text-amber-900 flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5">4</span>
+                    <span><strong>Handover &amp; OTP:</strong> Only share your 4-digit Delivery Handshake OTP with the driver after inspecting the physical package.</span>
                   </li>
                 </ul>
               </div>
 
-              {/* SECTION 4: Pre-Delivery Acceptance Checklist */}
-              <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60 space-y-3">
-                <div className="flex items-center gap-2 text-slate-200">
-                  <CheckSquare className="w-4 h-4 text-purple-400" />
+              {/* SECTION 3: Pre-Delivery Acceptance Checklist */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <div className="flex items-center gap-2 text-slate-800">
+                  <CheckSquare className="w-4 h-4 text-purple-600" />
                   <h4 className="text-xs font-black uppercase tracking-wider">
                     Pre-Acceptance Verification Checklist
                   </h4>
                 </div>
-                <p className="text-[11px] text-slate-400">
-                  Please verify these 4 items before accepting the consignment from the drone:
+                <p className="text-[11px] text-slate-500">
+                  Please verify these 4 items before accepting the delivery consignment:
                 </p>
 
                 <div className="space-y-2 pt-1">
-                  <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="text-xs text-slate-300">
-                      <strong>Tamper-Proof Seal:</strong> Ensure the cargo compartment security seal is unbroken.
+                  <div className="p-3 rounded-xl bg-white border border-slate-200 flex items-center gap-3 shadow-2xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="text-xs text-slate-700">
+                      <strong>Tamper-Proof Seal:</strong> Ensure the cargo compartment security seal is intact and unbroken.
                     </span>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="text-xs text-slate-300">
-                      <strong>Consignment ID Match:</strong> Match parcel tag with your order confirmation SMS/email.
+                  <div className="p-3 rounded-xl bg-white border border-slate-200 flex items-center gap-3 shadow-2xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="text-xs text-slate-700">
+                      <strong>Consignment ID Match:</strong> Match parcel tag with your order confirmation SMS / email.
                     </span>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="text-xs text-slate-300">
-                      <strong>No Box Damage:</strong> Inspect the outer carton for crushing, wetness, or puncture.
+                  <div className="p-3 rounded-xl bg-white border border-slate-200 flex items-center gap-3 shadow-2xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="text-xs text-slate-700">
+                      <strong>No Box Damage:</strong> Inspect the outer carton for crushing, punctures, or transit wetness.
                     </span>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="text-xs text-slate-300">
+                  <div className="p-3 rounded-xl bg-white border border-slate-200 flex items-center gap-3 shadow-2xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="text-xs text-slate-700">
                       <strong>4-Digit Handshake OTP:</strong> Share your OTP with the delivery partner ONLY after physical inspection.
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Operator Quick Actions (Only for Authorized Staff) */}
-              {canInspect && (
-                <div className="p-4 rounded-2xl bg-purple-950/40 border border-purple-500/30 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-purple-200">Staff Airframe QC Suite</span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300">
-                      {deliveryUser?.role}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowInspectionModal(true)}
-                    className="w-full py-2.5 rounded-xl bg-[#5a00b8] hover:bg-[#2e0066] text-white text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all"
-                  >
-                    <Wrench className="w-3.5 h-3.5" />
-                    <span>Perform Pre/Post-Flight Airframe Inspection</span>
-                  </button>
-                </div>
-              )}
-
-              {/* SECTION 5: Customer Support Form with Drone Parts Issue Raising & Photo/Video Upload */}
-              <div className="rounded-2xl bg-slate-800/50 border border-slate-700/60 p-4 space-y-3">
+              {/* SECTION 4: Customer Support Form with Auto-Fetched Name/Phone & Drone Parts Issue */}
+              <div className="rounded-2xl bg-white border border-slate-200 p-4 sm:p-5 space-y-3.5 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <FileCheck2 className="w-3.5 h-3.5 text-purple-400" />
+                    <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      <FileCheck2 className="w-4 h-4 text-purple-600" />
                       <span>Report Drone Part Issue / Contact Support</span>
                     </h4>
-                    <p className="text-[11px] text-slate-400">
-                      Raise an issue on specific drone parts with photo &amp; video evidence
+                    <p className="text-[11px] text-slate-500">
+                      Select specific drone parts to raise an issue with photo/video proof
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowFeedbackForm(!showFeedbackForm)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#5a00b8] hover:bg-[#4a0099] text-white transition-all cursor-pointer shadow-sm"
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white transition-all shadow-sm cursor-pointer"
                   >
                     {showFeedbackForm ? 'Hide Form' : 'Raise Issue'}
                   </button>
                 </div>
 
                 {showFeedbackForm && (
-                  <form onSubmit={handleSubmitCustomerFeedback} className="pt-3 border-t border-slate-700/40 space-y-3.5">
+                  <form onSubmit={handleSubmitCustomerFeedback} className="pt-3.5 border-t border-slate-100 space-y-3.5">
                     {feedbackError && (
-                      <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-xs text-rose-300 flex items-center gap-2">
+                      <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
                         <AlertCircle className="w-4 h-4 shrink-0" />
                         <span>{feedbackError}</span>
                       </div>
                     )}
                     {feedbackSuccess && (
-                      <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-xs text-emerald-300 flex items-center gap-2">
+                      <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 shrink-0" />
                         <span>{feedbackSuccess}</span>
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                          Your Full Name <span className="text-rose-400">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={feedbackName}
-                          onChange={(e) => setFeedbackName(e.target.value)}
-                          placeholder="e.g. Aditi Sharma"
-                          className="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
-                        />
+                    {/* Auto-Linked Order & Customer Pill (No manual typing required) */}
+                    <div className="p-3 rounded-xl bg-purple-50/70 border border-purple-200/70 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+                          <UserCheck className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700">Order Customer</span>
+                            {droneData.order_number && (
+                              <span className="text-[10px] font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-purple-200 text-purple-800">
+                                #{droneData.order_number}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs font-bold text-slate-900 mt-0.5">
+                            {droneData.customer_name || 'Verified Customer'}
+                            {droneData.customer_phone ? ` • ${droneData.customer_phone}` : droneData.customer_email ? ` • ${droneData.customer_email}` : ''}
+                          </p>
+                        </div>
                       </div>
-
-                      <div>
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                          Email or Mobile Number <span className="text-rose-400">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={feedbackContact}
-                          onChange={(e) => setFeedbackContact(e.target.value)}
-                          placeholder="e.g. aditi@gmail.com or 9876543210"
-                          className="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
-                        />
-                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0">
+                        Auto-Fetched
+                      </span>
                     </div>
 
                     {/* Drone Parts Selector */}
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                        Select Drone Part / Issue Category <span className="text-rose-400">*</span>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                        Select Drone Part / Issue Category <span className="text-rose-500">*</span>
                       </label>
                       <select
                         value={selectedPartIssue}
                         onChange={(e) => setSelectedPartIssue(e.target.value)}
-                        className="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-purple-500 cursor-pointer"
+                        className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 border border-slate-300 text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white cursor-pointer"
                       >
                         <option value="Cargo Bay & Electronic Latch">Cargo Bay &amp; Electronic Latch</option>
                         <option value="Propellers & Rotor Blades">Propellers &amp; Rotor Blades</option>
@@ -447,7 +447,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                         <option value="Airframe Body & Shell">Airframe Shell &amp; Carbon Body</option>
                         <option value="Battery & Connectors">Battery Pack &amp; Power Connectors</option>
                         <option value="Delivery Package Damage">Damaged Package / Crushed Parcel</option>
-                        <option value="Delivery Person Conduct">Delivery Person / Pilot Conduct</option>
+                        <option value="Delivery Person Conduct">Delivery Driver Conduct / Delay</option>
                         <option value="Other / Unlisted Issue">Other / Unlisted Issue (Write Below)</option>
                       </select>
                     </div>
@@ -455,43 +455,43 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                     {/* Unlisted Problem Custom Field */}
                     {selectedPartIssue === 'Other / Unlisted Issue' && (
                       <div className="animate-fadeIn">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-purple-300 block mb-1">
-                          Specify Unlisted Problem <span className="text-rose-400">*</span>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-purple-700 block mb-1">
+                          Specify Unlisted Problem <span className="text-rose-500">*</span>
                         </label>
                         <input
                           type="text"
                           required
                           value={customIssueText}
                           onChange={(e) => setCustomIssueText(e.target.value)}
-                          placeholder="e.g. Strange high-pitch whistling sound or LED beacon blinking red"
-                          className="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-purple-500/60 text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+                          placeholder="e.g. Broken latch or scratched surface"
+                          className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 border border-purple-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 focus:bg-white"
                         />
                       </div>
                     )}
 
                     {/* Detailed Message Box */}
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                        Detailed Description <span className="text-rose-400">*</span>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                        Detailed Description <span className="text-rose-500">*</span>
                       </label>
                       <textarea
                         required
                         rows={3}
                         value={feedbackMessage}
                         onChange={(e) => setFeedbackMessage(e.target.value)}
-                        placeholder="Please provide details of what you observed on the drone, cargo hatch, or delivery package..."
-                        className="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 resize-none"
+                        placeholder="Please describe what you observed on the drone, cargo hatch, or delivery crate..."
+                        className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 focus:bg-white resize-none"
                       />
                     </div>
 
                     {/* Photo & Video Upload Field */}
                     <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
                         Upload Photos &amp; Videos (Proof of Issue)
                       </label>
                       <div className="flex items-center gap-2">
-                        <label className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-2 cursor-pointer transition-colors shadow-2xs">
-                          <Camera className="w-3.5 h-3.5 text-purple-400" />
+                        <label className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center gap-2 cursor-pointer transition-colors">
+                          <Camera className="w-3.5 h-3.5 text-purple-600" />
                           <span>Add Photo / Video</span>
                           <input
                             type="file"
@@ -512,22 +512,22 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                           {uploadedMedia.map((m, idx) => (
                             <div
                               key={idx}
-                              className="p-2 rounded-xl bg-slate-900 border border-slate-700/80 flex items-center justify-between gap-1 text-[11px]"
+                              className="p-2 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-1 text-[11px]"
                             >
                               <div className="flex items-center gap-1.5 truncate">
                                 {m.type.startsWith('video/') ? (
-                                  <Video className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                  <Video className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                 ) : (
-                                  <Camera className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                  <Camera className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                 )}
-                                <span className="truncate text-slate-300 font-mono text-[10px]">
+                                <span className="truncate text-slate-700 font-mono text-[10px]">
                                   {m.name}
                                 </span>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => removeMedia(idx)}
-                                className="p-1 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer shrink-0"
+                                className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer shrink-0"
                                 title="Remove file"
                               >
                                 <X className="w-3 h-3" />
@@ -541,7 +541,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                     <button
                       type="submit"
                       disabled={submittingFeedback}
-                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#5a00b8] to-[#7928ca] hover:opacity-95 text-white text-xs font-bold transition-all shadow-md cursor-pointer disabled:opacity-50"
+                      className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50"
                     >
                       {submittingFeedback ? 'Uploading & Submitting...' : 'Submit Support Ticket to IndoWings'}
                     </button>
@@ -549,21 +549,41 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                 )}
               </div>
 
+              {/* Staff Airframe QC Suite (Only for Authorized Logged-In Roles) */}
+              {canInspect && (
+                <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-purple-900">Staff Airframe QC Suite</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-200 text-purple-800">
+                      {deliveryUser?.role}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowInspectionModal(true)}
+                    className="w-full py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-sm transition-all"
+                  >
+                    <Wrench className="w-3.5 h-3.5" />
+                    <span>Perform Pre/Post-Transit Airframe Inspection</span>
+                  </button>
+                </div>
+              )}
+
               {/* Support & Contact Strip */}
-              <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+              <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
                 <a
                   href="tel:18005727363"
-                  className="flex items-center gap-1.5 hover:text-white transition-colors"
+                  className="flex items-center gap-1.5 hover:text-purple-700 transition-colors"
                 >
-                  <Phone className="w-3.5 h-3.5 text-purple-400" />
-                  <span>1800 572 7363</span>
+                  <Phone className="w-3.5 h-3.5 text-purple-600" />
+                  <span>1800 572 7363 (Toll Free)</span>
                 </a>
                 <a
-                  href="mailto:support@indowings.com"
-                  className="flex items-center gap-1.5 hover:text-white transition-colors"
+                  href="mailto:connect@indowings.com"
+                  className="flex items-center gap-1.5 hover:text-purple-700 transition-colors"
                 >
-                  <Mail className="w-3.5 h-3.5 text-purple-400" />
-                  <span>support@indowings.com</span>
+                  <Mail className="w-3.5 h-3.5 text-purple-600" />
+                  <span>connect@indowings.com</span>
                 </a>
               </div>
             </>
