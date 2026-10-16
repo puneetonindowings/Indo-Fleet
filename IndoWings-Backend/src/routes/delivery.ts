@@ -3197,6 +3197,16 @@ router.get(['/support/expert-requests/:id/mission-context', '/support/tickets/:i
       ))
     );
 
+    // Fetch fleet to dynamically resolve real model names
+    const allFleet = await fileDB.getFleet();
+    const getModelForSerial = (serial: string) => {
+      const match = allFleet.find((d: any) =>
+        (d.serial_number && String(d.serial_number).toLowerCase() === String(serial).toLowerCase()) ||
+        (d.id && String(d.id).toLowerCase() === String(serial).toLowerCase())
+      );
+      return match?.model || match?.model_name || '700RPAV';
+    };
+
     if (matchedOrder) {
       const reserved = Array.isArray(matchedOrder.reserved_inventory_ids) && matchedOrder.reserved_inventory_ids.length > 0
         ? matchedOrder.reserved_inventory_ids
@@ -3206,7 +3216,7 @@ router.get(['/support/expert-requests/:id/mission-context', '/support/tickets/:i
         const isDefective = String(s).toLowerCase() === droneSerial.toLowerCase();
         return {
           serial: s,
-          model: matchedOrder.drone_model || 'CyberOne Max Heavy-Lift UAV',
+          model: matchedOrder.drone_model || getModelForSerial(s),
           is_reported_defective: isDefective,
           reported_part: isDefective ? issuePart : null,
           status: isDefective ? 'DEFECT_REPORTED' : 'OPERATIONAL',
@@ -3229,7 +3239,7 @@ router.get(['/support/expert-requests/:id/mission-context', '/support/tickets/:i
           customer_phone: matchedOrder.customer_phone || ticket.phone,
           pickup_address: matchedOrder.pickup_address || 'IndoWings Flight Station Alpha • Sector 62, Noida, UP',
           drop_address: matchedOrder.drop_address || 'Enterprise Client Hub • DLF Cyber City, Gurugram, HR',
-          package_type: matchedOrder.package_type || 'Commercial Fleet Deployment',
+          package_type: matchedOrder.package_type || '700RPAV Multi-UAV Consignment Fleet',
           fare_inr: matchedOrder.fare_inr || 2499,
           pilot_name: matchedOrder.pilot_name || matchedOrder.assigned_pilot_name || 'Capt. Rajesh Sharma (Lead Pilot)',
           total_drones_count: fleetDrones.length,
@@ -3241,7 +3251,7 @@ router.get(['/support/expert-requests/:id/mission-context', '/support/tickets/:i
     }
 
     // Realistic linked mission context when no active order in DB yet
-    const targetSerial = droneSerial || 'IN-700RPAV-2026-0004';
+    const targetSerial = droneSerial || 'IW-700RPAV-2026-0004';
     const serialBase = targetSerial.replace(/\d+$/, '');
     const numPart = targetSerial.match(/\d+$/)?.[0] || '0004';
     const num = parseInt(numPart, 10);
@@ -3249,6 +3259,10 @@ router.get(['/support/expert-requests/:id/mission-context', '/support/tickets/:i
 
     const companion1 = `${serialBase}${String(num + 1).padStart(padLen, '0')}`;
     const companion2 = `${serialBase}${String(num + 2).padStart(padLen, '0')}`;
+
+    const primaryModel = getModelForSerial(targetSerial);
+    const comp1Model = getModelForSerial(companion1);
+    const comp2Model = getModelForSerial(companion2);
 
     const syntheticOrder = {
       order_id: ticket.order_id || `ORD-IND-${numPart}-9842`,
@@ -3259,7 +3273,7 @@ router.get(['/support/expert-requests/:id/mission-context', '/support/tickets/:i
       customer_phone: ticket.phone && ticket.phone !== 'N/A' && ticket.phone !== 'N/A (Drone QR Scan)' ? ticket.phone : '+91 98765 43210',
       pickup_address: 'IndoWings Flight Station Alpha • Sector 62, Noida, UP',
       drop_address: 'Enterprise Logistics Terminal • DLF Cyber City, Gurugram, HR',
-      package_type: 'Multi-UAV Rapid Delivery & Industrial Inspection Fleet',
+      package_type: '700RPAV Multi-UAV Tactical Consignment Fleet',
       fare_inr: 4850,
       pilot_name: 'Capt. Rajesh Sharma (Lead Pilot #PLT-4402)',
       total_drones_count: 3,
@@ -3267,7 +3281,7 @@ router.get(['/support/expert-requests/:id/mission-context', '/support/tickets/:i
       drones: [
         {
           serial: targetSerial,
-          model: 'CyberOne Max Heavy-Lift UAV',
+          model: primaryModel,
           is_reported_defective: true,
           reported_part: issuePart,
           status: 'DEFECT_REPORTED',
@@ -3276,7 +3290,7 @@ router.get(['/support/expert-requests/:id/mission-context', '/support/tickets/:i
         },
         {
           serial: companion1,
-          model: 'CyberOne Max Heavy-Lift UAV',
+          model: comp1Model,
           is_reported_defective: false,
           reported_part: null,
           status: 'OPERATIONAL',
@@ -3285,7 +3299,7 @@ router.get(['/support/expert-requests/:id/mission-context', '/support/tickets/:i
         },
         {
           serial: companion2,
-          model: 'IndoWings Q4 Surveillance & Mapping UAV',
+          model: comp2Model,
           is_reported_defective: false,
           reported_part: null,
           status: 'OPERATIONAL',
