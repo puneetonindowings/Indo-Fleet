@@ -182,7 +182,8 @@ export default function App() {
         },
         (err) => {
           console.warn('Browser geolocation warning:', err.message);
-          setCurrentCoords((prev) => prev || { latitude: 28.6280, longitude: 77.3649 });
+          // Fallback to Sector 60 Noida Hub ONLY if GPS is unavailable
+          setCurrentCoords((prev) => prev || { latitude: 28.6037, longitude: 77.3661 });
         },
         { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
       );
@@ -223,10 +224,11 @@ export default function App() {
           return;
         }
       }
-      setCurrentCoords((prev) => prev || { latitude: 28.6280, longitude: 77.3649 });
+      // Fallback to Sector 60 Noida Hub ONLY if live GPS fix is not available
+      setCurrentCoords((prev) => prev || { latitude: 28.6037, longitude: 77.3661 });
     } catch (err) {
       console.warn('Initial location fetch error:', err);
-      setCurrentCoords((prev) => prev || { latitude: 28.6280, longitude: 77.3649 });
+      setCurrentCoords((prev) => prev || { latitude: 28.6037, longitude: 77.3661 });
     }
   };
 
