@@ -242,60 +242,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
             </div>
           ) : droneData ? (
             <>
-              {/* SECTION 1: Customer-Safe Drone Specifications */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-400" />
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">
-                      Aircraft Specifications (700 RPAV)
-                    </h3>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-bold border border-purple-500/30">
-                    Consumer Safe
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 space-y-0.5">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Model / Class</span>
-                    <span className="text-xs font-bold text-white block">{droneData.model_name || 'IndoWings 700 RPAV'}</span>
-                    <span className="text-[10px] text-emerald-400 font-mono block">DGCA Type Certified</span>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 space-y-0.5">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Payload Capacity</span>
-                    <span className="text-xs font-bold text-white block">5.0 kg Max Cargo</span>
-                    <span className="text-[10px] text-slate-400 font-mono block">Secure Electronic Bay</span>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 space-y-0.5">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Operational Range</span>
-                    <span className="text-xs font-bold text-white block">15 km Mission Radius</span>
-                    <span className="text-[10px] text-slate-400 font-mono block">BVLOS Autonomous Link</span>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 space-y-0.5">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Cruise Speed</span>
-                    <span className="text-xs font-bold text-white block">45 km/h (Max 65 km/h)</span>
-                    <span className="text-[10px] text-slate-400 font-mono block">Aero Carbon Fiber</span>
-                  </div>
-                </div>
-
-                {/* Additional Spec Badges */}
-                <div className="p-3 rounded-2xl bg-slate-800/40 border border-slate-800 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 text-slate-300">
-                    <Zap className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Powertrain: Dual Li-Po Electric</span>
-                  </div>
-                  <span className="text-emerald-400 text-[11px] font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" />
-                    Zero Direct Emissions
-                  </span>
-                </div>
-              </div>
-
-              {/* SECTION 2: Delivery Person Name & Details */}
+              {/* SECTION: Delivery Person Name & Details */}
               <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-800/50 to-slate-800/50 border border-purple-500/30 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
