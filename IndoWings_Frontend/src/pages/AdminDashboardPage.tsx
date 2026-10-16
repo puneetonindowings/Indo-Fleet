@@ -500,6 +500,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
 
   const [resendEmailLoading, setResendEmailLoading] = useState(false);
   const [resendEmailStatus, setResendEmailStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [resendPassInput, setResendPassInput] = useState('123123');
 
   const handleResendCredentialsEmail = async (userId: string, tempPass: string) => {
     setResendEmailLoading(true);
@@ -2520,18 +2521,37 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 {resendEmailStatus.message}
               </div>
             )}
+            {selectedUser.email && (
+              <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-slate-600 tracking-wider">
+                    Reset &amp; Resend Temporary Password
+                  </span>
+                  <span className="text-[10px] text-slate-500">
+                    Syncs to database &amp; emails user
+                  </span>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={resendPassInput}
+                    onChange={(e) => setResendPassInput(e.target.value)}
+                    placeholder="Enter password (default: 123123)"
+                    className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#5a00b8]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleResendCredentialsEmail(selectedUser.id, resendPassInput.trim() || '123123')}
+                    disabled={resendEmailLoading}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#5a00b8] hover:bg-[#2a005c] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs disabled:opacity-60 cursor-pointer shrink-0"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${resendEmailLoading ? 'animate-spin' : ''}`} />
+                    {resendEmailLoading ? 'Updating & Sending...' : 'Update DB & Send Email'}
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
-              {selectedUser.email && (
-                <button
-                  type="button"
-                  onClick={() => handleResendCredentialsEmail(selectedUser.id, '123123')}
-                  disabled={resendEmailLoading}
-                  className="inline-flex items-center gap-2 rounded-xl border border-purple-200 px-3 py-2 text-xs font-bold text-[#5a00b8] hover:bg-purple-50 disabled:opacity-60 cursor-pointer"
-                >
-                  <RefreshCw className={`h-4 w-4 ${resendEmailLoading ? 'animate-spin' : ''}`} />
-                  {resendEmailLoading ? 'Sending...' : 'Resend Credentials Email'}
-                </button>
-              )}
               {selectedUser.id !== currentUser?.id && selectedUser.email !== currentUser?.email && (
                 <>
                   <button
