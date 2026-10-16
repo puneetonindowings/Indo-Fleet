@@ -1,27 +1,59 @@
 import './env.js';
+import dns from 'dns';
 import nodemailer from 'nodemailer';
 import { supabase } from './supabase.js';
 import { fileDB } from './db.js';
+
+// Force Node.js DNS resolver to prioritize IPv4 over IPv6.
+// Render Linux Docker containers lack IPv6 outbound routing, which causes `connect ENETUNREACH` when contacting Google SMTP via IPv6.
+if (typeof (dns as any).setDefaultResultOrder === 'function') {
+  (dns as any).setDefaultResultOrder('ipv4first');
+}
 
 const FROM_EMAIL = process.env.SMTP_USER || 'puneetkushwaha9452@gmail.com';
 const SUPPORT_FROM_NAME = 'IndoWings Support Desk';
 const MAIL_FROM_NAME = 'IndoWings Operations';
 
 const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-const smtpPort = Number(process.env.SMTP_PORT) || 465;
+const configuredPort = Number(process.env.SMTP_PORT) || 587;
 const smtpUser = process.env.SMTP_USER || 'puneetkushwaha9452@gmail.com';
 const smtpPass = process.env.SMTP_PASS || 'dzlcpzagmxvdpzwu';
 
-const smtpTransporter = nodemailer.createTransport({
+// Primary transporter: Port 587 with STARTTLS (fastest and most reliable across cloud/Render)
+const primaryTransporter = nodemailer.createTransport({
   host: smtpHost,
-  port: smtpPort,
-  secure: smtpPort === 465,
-  pool: true,
-  maxConnections: 5,
-  maxMessages: 100,
+  port: configuredPort === 465 ? 465 : 587,
+  secure: configuredPort === 465,
+  requireTLS: configuredPort !== 465,
+  family: 4, // strictly IPv4
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
   auth: {
     user: smtpUser,
     pass: smtpPass
+  },
+  tls: {
+    rejectUnauthorized: false
+  }
+} as any);
+
+// Fallback transporter: alternate port with IPv4
+const fallbackTransporter = nodemailer.createTransport({
+  host: smtpHost,
+  port: configuredPort === 465 ? 587 : 465,
+  secure: configuredPort !== 465,
+  requireTLS: configuredPort === 465,
+  family: 4, // strictly IPv4
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
+  auth: {
+    user: smtpUser,
+    pass: smtpPass
+  },
+  tls: {
+    rejectUnauthorized: false
   }
 } as any);
 
@@ -41,22 +73,36 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
 
   // Gmail SMTP via Nodemailer
   if (smtpUser && smtpPass) {
+    const mailOptions = {
+      from: `"${MAIL_FROM_NAME}" <${smtpUser}>`,
+      to,
+      subject,
+      text,
+      html: html || undefined
+    };
+
+    // Attempt 1: Primary Transporter (IPv4 forced, Port 587)
     try {
-      const info = await smtpTransporter.sendMail({
-        from: `"${MAIL_FROM_NAME}" <${smtpUser}>`,
-        to,
-        subject,
-        text,
-        html: html || undefined
-      });
-      console.log(`[mail] Gmail SMTP delivered message to ${to} (ID: ${info.messageId})`);
+      const info = await primaryTransporter.sendMail(mailOptions);
+      console.log(`[mail] Gmail SMTP primary delivered message to ${to} (ID: ${info.messageId})`);
       lastMailError = '';
       return true;
-    } catch (smtpErr: any) {
-      const errMsg = smtpErr instanceof Error ? smtpErr.message : String(smtpErr);
-      lastMailError = errMsg;
-      console.error('[mail] Gmail SMTP delivery failed:', errMsg);
-      return false;
+    } catch (primaryErr: any) {
+      const pMsg = primaryErr instanceof Error ? primaryErr.message : String(primaryErr);
+      console.warn(`[mail] Gmail primary SMTP failed (${pMsg}), attempting fallback...`);
+
+      // Attempt 2: Fallback Transporter (IPv4 forced, Port 465)
+      try {
+        const info = await fallbackTransporter.sendMail(mailOptions);
+        console.log(`[mail] Gmail SMTP fallback delivered message to ${to} (ID: ${info.messageId})`);
+        lastMailError = '';
+        return true;
+      } catch (fallbackErr: any) {
+        const fMsg = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr);
+        lastMailError = `Primary failed: ${pMsg} | Fallback failed: ${fMsg}`;
+        console.error('[mail] Gmail SMTP delivery failed on all transports:', lastMailError);
+        return false;
+      }
     }
   }
 
