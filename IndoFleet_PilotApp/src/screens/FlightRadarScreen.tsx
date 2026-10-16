@@ -574,7 +574,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
 
         <View style={styles.radarBadge}>
           <View style={[styles.radarBadgeDot, { backgroundColor: hasTargetCoords ? '#C084FC' : C.ok }]} />
-          <Text style={styles.radarBadgeText}>{hasTargetCoords ? 'Guiding to drop-off' : 'No deliveries nearby'}</Text>
+          <Text style={styles.radarBadgeText}>{hasTargetCoords ? 'Navigating to Waypoint' : 'Airspace Surveillance Active'}</Text>
         </View>
       </View>
     );
@@ -675,7 +675,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
             <View style={styles.destTop}>
               <View style={styles.destTag}>
                 <Shield size={13} color={C.brandDeep} />
-                <Text style={styles.destTagText}>Current delivery</Text>
+                <Text style={styles.destTagText}>Active Flight Sortie</Text>
               </View>
               <View style={styles.orderChip}>
                 <Text style={styles.orderChipText}>#{order.order_number}</Text>
@@ -689,7 +689,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
                 <MapPin size={14} color={C.danger} />
               </View>
               <Text style={styles.destAddress} numberOfLines={2}>
-                {order.drop_address || order.delivery_address || 'Delivery address'}
+                {order.drop_address || order.delivery_address || 'Designated Landing Coordinates'}
               </Text>
             </View>
 
@@ -713,16 +713,16 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
             <View style={styles.destTop}>
               <View style={styles.destTag}>
                 <View style={styles.liveDot} />
-                <Text style={styles.destTagText}>Your area</Text>
+                <Text style={styles.destTagText}>UAV Flight Ops • Standby</Text>
               </View>
               <View style={styles.orderChip}>
                 <Text style={styles.orderChipText}>
-                  {allOrders.length} {allOrders.length === 1 ? 'delivery' : 'deliveries'} nearby
+                  {allOrders.length} {allOrders.length === 1 ? 'Sortie' : 'Sorties'} in Flight Queue
                 </Text>
               </View>
             </View>
-            <Text style={styles.destName}>Pick a delivery to start</Text>
-            <Text style={styles.areaSub}>Your location is live. Choose a delivery below to get directions to the drop-off.</Text>
+            <Text style={styles.destName}>Standby: No Active Sortie Selected</Text>
+            <Text style={styles.areaSub}>Aircraft telemetry &amp; live GPS are armed. Select an assigned mission from the sortie queue below to initiate flight navigation to the designated landing coordinates.</Text>
           </View>
         )}
 
@@ -732,7 +732,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
             <View style={styles.mapHeader}>
               <View style={styles.mapTitleRow}>
                 <Radio size={15} color={C.brand} />
-                <Text style={styles.mapTitle}>{order ? 'Route to drop-off' : 'Live map'}</Text>
+                <Text style={styles.mapTitle}>{order ? 'Active Sortie Trajectory' : 'Live Airspace Map'}</Text>
               </View>
               <TouchableOpacity
                 onPress={onRefreshLocation}
@@ -835,12 +835,12 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
           </View>
         )}
 
-        {/* Delivery picker */}
+        {/* Sortie Mission Queue */}
         {!order && allOrders.length > 0 && (
           <View style={styles.listCard}>
             <View style={styles.listHeader}>
-              <Package size={16} color={C.brand} />
-              <Text style={styles.listTitle}>Choose a delivery</Text>
+              <Plane size={16} color={C.brand} />
+              <Text style={styles.listTitle}>Assigned Sortie Roster &amp; Flight Missions</Text>
             </View>
 
             {allOrders.map((ord) => {
@@ -865,10 +865,10 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
                   <View style={styles.listBody}>
                     <View style={styles.listNameRow}>
                       <Text style={styles.listName} numberOfLines={1}>{ord.customer_name}</Text>
-                      <Text style={styles.listOrderNo}>#{ord.order_number}</Text>
+                      <Text style={styles.listOrderNo}>Sortie #{ord.order_number}</Text>
                     </View>
                     <Text style={styles.listAddress} numberOfLines={1}>
-                      {ord.drop_address || ord.delivery_address || 'Delivery point'}
+                      Landing Zone: {ord.drop_address || ord.delivery_address || 'Designated Coordinates'}
                     </Text>
                   </View>
                   <View style={styles.listRight}>
@@ -888,18 +888,18 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
           <View style={styles.actions}>
             <TouchableOpacity style={styles.primaryBtn} onPress={() => onCompletePod(order)} activeOpacity={0.85}>
               <CheckCircle size={19} color="#FFFFFF" />
-              <Text style={styles.primaryBtnText}>Complete delivery</Text>
+              <Text style={styles.primaryBtnText}>Confirm Handover &amp; Complete Sortie</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.secondaryBtn} onPress={handleOpenGoogleMaps} activeOpacity={0.85}>
               <ExternalLink size={16} color={C.brandDeep} />
-              <Text style={styles.secondaryBtnText}>Start turn-by-turn navigation</Text>
+              <Text style={styles.secondaryBtnText}>Open Sortie Route (Google Maps)</Text>
             </TouchableOpacity>
 
             {isTracking && (
               <TouchableOpacity style={styles.ghostBtn} onPress={handleStopAlert} activeOpacity={0.7}>
                 <PauseCircle size={15} color={C.body} />
-                <Text style={styles.ghostBtnText}>Pause live GPS</Text>
+                <Text style={styles.ghostBtnText}>Pause Live Telemetry</Text>
               </TouchableOpacity>
             )}
           </View>

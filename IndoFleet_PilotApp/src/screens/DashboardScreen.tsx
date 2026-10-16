@@ -38,20 +38,20 @@ const FILTERS: {
   match: (o: DeliveryOrder) => boolean;
   empty: string;
 }[] = [
-  { key: 'all', label: 'All', match: () => true, empty: 'There are no orders right now.' },
+  { key: 'all', label: 'All', match: () => true, empty: 'There are no flight missions assigned right now.' },
   {
     key: 'assigned',
     label: 'Assigned',
     match: (o) => o.status === 'assigned' || o.pilot_acceptance_status === 'pending_acceptance',
-    empty: 'No orders are waiting for your acceptance.',
+    empty: 'No flight sorties are waiting for your acceptance.',
   },
   {
     key: 'in-flight',
     label: 'In Flight',
     match: (o) => o.status === 'in-flight',
-    empty: 'No orders are in flight.',
+    empty: 'No UAV sorties currently in flight.',
   },
-  { key: 'queue', label: 'Queue', match: (o) => o.status === 'pending', empty: 'The queue is empty.' },
+  { key: 'queue', label: 'Queue', match: (o) => o.status === 'pending', empty: 'Sortie queue is clear.' },
 ];
 
 const getGreeting = () => {
@@ -93,8 +93,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
     return result;
   }, [orders]);
 
-  const displayName = user?.name || 'Delivery Partner';
-  const initial = displayName.trim().charAt(0).toUpperCase() || 'D';
+  const displayName = user?.name || 'Remote Pilot';
+  const initial = displayName.trim().charAt(0).toUpperCase() || 'P';
 
   const renderItem = useCallback(
     ({ item }: { item: DeliveryOrder }) => (
@@ -159,7 +159,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             <View style={styles.titleIcon}>
               <Layers size={14} color="#3B0080" />
             </View>
-            <Text style={styles.sortiesTitle}>Active Orders & Tasks</Text>
+            <Text style={styles.sortiesTitle}>Assigned Sortie Missions &amp; Tasks</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
             {onInspectDrone && (
