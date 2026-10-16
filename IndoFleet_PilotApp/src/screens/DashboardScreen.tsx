@@ -38,20 +38,20 @@ const FILTERS: {
   match: (o: DeliveryOrder) => boolean;
   empty: string;
 }[] = [
-  { key: 'all', label: 'All', match: () => true, empty: 'There are no flight missions assigned right now.' },
+  { key: 'all', label: 'All', match: () => true, empty: 'There are no deliveries assigned right now.' },
   {
     key: 'assigned',
     label: 'Assigned',
     match: (o) => o.status === 'assigned' || o.pilot_acceptance_status === 'pending_acceptance',
-    empty: 'No flight sorties are waiting for your acceptance.',
+    empty: 'No deliveries waiting for acceptance.',
   },
   {
     key: 'in-flight',
-    label: 'In Flight',
+    label: 'In Transit',
     match: (o) => o.status === 'in-flight',
-    empty: 'No UAV sorties currently in flight.',
+    empty: 'No deliveries currently in transit.',
   },
-  { key: 'queue', label: 'Queue', match: (o) => o.status === 'pending', empty: 'Sortie queue is clear.' },
+  { key: 'queue', label: 'Queue', match: (o) => o.status === 'pending', empty: 'No pending deliveries in queue.' },
 ];
 
 const getGreeting = () => {
@@ -93,7 +93,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
     return result;
   }, [orders]);
 
-  const displayName = user?.name || 'Remote Pilot';
+  const displayName = user?.name || 'Delivery Partner';
   const initial = displayName.trim().charAt(0).toUpperCase() || 'P';
 
   const renderItem = useCallback(
@@ -135,7 +135,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         <View style={styles.statRow}>
           {[
             { label: 'Assigned', value: counts.assigned },
-            { label: 'In flight', value: counts['in-flight'] },
+            { label: 'In transit', value: counts['in-flight'] },
             { label: 'In queue', value: counts.queue },
           ].map((s) => (
             <View key={s.label} style={styles.statChip}>
@@ -159,7 +159,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             <View style={styles.titleIcon}>
               <Layers size={14} color="#3B0080" />
             </View>
-            <Text style={styles.sortiesTitle}>Assigned Sortie Missions &amp; Tasks</Text>
+            <Text style={styles.sortiesTitle}>Assigned Drone Deliveries</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
             {onInspectDrone && (

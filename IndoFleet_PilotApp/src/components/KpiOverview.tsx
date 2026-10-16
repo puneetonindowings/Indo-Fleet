@@ -26,7 +26,7 @@ export const KpiOverview: React.FC<KpiOverviewProps> = ({ kpis }) => {
             <Text style={styles.cardTitle}>ASSIGNED</Text>
           </View>
           <Text style={styles.cardBigNumber}>{kpis.total_assigned}</Text>
-          <Text style={styles.cardSub}>Active Sorties</Text>
+          <Text style={styles.cardSub}>Active Deliveries</Text>
         </View>
 
         {/* Total Delivered */}
@@ -36,7 +36,7 @@ export const KpiOverview: React.FC<KpiOverviewProps> = ({ kpis }) => {
             <Text style={styles.cardTitle}>DELIVERED</Text>
           </View>
           <Text style={styles.cardBigNumber}>{kpis.total_delivered}</Text>
-          <Text style={styles.cardSub}>Successful Drops</Text>
+          <Text style={styles.cardSub}>Successful Deliveries</Text>
         </View>
       </View>
 
@@ -67,7 +67,7 @@ export const KpiOverview: React.FC<KpiOverviewProps> = ({ kpis }) => {
         <View style={styles.todayHeader}>
           <View style={styles.todayTitleRow}>
             <Calendar size={14} color="#8B5CF6" />
-            <Text style={styles.todayTitle}>TODAY'S SORTIE METRICS</Text>
+            <Text style={styles.todayTitle}>TODAY'S DELIVERY METRICS</Text>
           </View>
         </View>
 

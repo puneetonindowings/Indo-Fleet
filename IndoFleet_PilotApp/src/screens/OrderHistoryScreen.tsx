@@ -205,11 +205,11 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
           <View>
             <Text style={styles.screenTitle}>Order History</Text>
             <Text style={styles.screenSubtitle}>
-              Completed flight missions &amp; handover log
+              Completed deliveries &amp; handover log
             </Text>
           </View>
           <View style={styles.countBadge}>
-            <Text style={styles.countBadgeText}>{historyOrders.length} Sorties</Text>
+            <Text style={styles.countBadgeText}>{historyOrders.length} Deliveries</Text>
           </View>
         </View>
 
@@ -353,7 +353,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
               {/* Modal Header */}
               <View style={styles.modalHeader}>
                 <View>
-                  <Text style={styles.modalTitle}>Sortie Details</Text>
+                  <Text style={styles.modalTitle}>Delivery Details</Text>
                   <Text style={styles.modalSubtitle}>
                     Order #{selectedOrder.order_number || selectedOrder.id}
                   </Text>

@@ -13,7 +13,7 @@ import {
   User,
   Phone,
   ShieldCheck,
-  Plane,
+  Truck,
   Navigation,
   ExternalLink,
   CheckCircle,
@@ -142,9 +142,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       {/* Drone Specs & Weight */}
       <View style={styles.specsRow}>
         <View style={styles.specItem}>
-          <Plane size={13} color="#3B0080" />
-          <Text style={styles.specLabel}>Vehicle:</Text>
-          <Text style={styles.specValue}>{order.drone_model || 'IndoFleet UAV'}</Text>
+          <Truck size={13} color="#3B0080" />
+          <Text style={styles.specLabel}>Cargo Drone:</Text>
+          <Text style={styles.specValue}>{order.drone_model || 'IndoWings 700 RPAV'}</Text>
         </View>
         <View style={styles.specItem}>
           <Text style={styles.specLabel}>Weight:</Text>

@@ -247,20 +247,20 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
                     <UserCheck className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Assigned Delivery Personnel</span>
+                    <span>Assigned Delivery Person</span>
                   </span>
                   <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30">
-                    Verified Remote Pilot
+                    Verified Driver
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between pt-1">
                   <div>
                     <h4 className="text-sm font-black text-white">
-                      {droneData.assigned_pilot_name || droneData.pilot_name || 'Captain Vikram Malhotra'}
+                      {droneData.assigned_pilot_name || droneData.pilot_name || 'Rajesh Kumar'}
                     </h4>
                     <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                      IndoWings Certified Flight Operations &bull; Lic #IN-RPAV-9821
+                      IndoWings Road Logistics &bull; Vehicle Delivery Fleet
                     </p>
                   </div>
                   <a
@@ -268,36 +268,36 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                     className="px-3 py-1.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-400/30 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <Phone className="w-3 h-3 text-purple-300" />
-                    <span>Call Pilot</span>
+                    <span>Call Driver</span>
                   </a>
                 </div>
               </div>
 
-              {/* SECTION 3: Landing & Safety Instructions */}
+              {/* SECTION 3: Road Delivery & Handling Instructions */}
               <div className="p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30 space-y-3">
                 <div className="flex items-center gap-2 text-amber-300">
                   <AlertTriangle className="w-4 h-4 text-amber-400" />
                   <h4 className="text-xs font-black uppercase tracking-wider">
-                    Landing &amp; Safety Instructions for Customer
+                    Drone Delivery &amp; Unloading Instructions
                   </h4>
                 </div>
 
                 <ul className="text-xs text-slate-300 space-y-2">
                   <li className="flex items-start gap-2">
                     <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 font-bold text-[10px] mt-0.5">1</span>
-                    <span><strong>5-Meter Safe Perimeter:</strong> Maintain at least 5 meters distance from the drone during descent and landing.</span>
+                    <span><strong>Vehicle Unloading:</strong> Drones are transported by road in secure cases. Allow the delivery person to carefully unload the crate.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 font-bold text-[10px] mt-0.5">2</span>
-                    <span><strong>Rotor Hazard Zone:</strong> High-velocity carbon propellers. Never reach toward or step under the drone while rotors are spinning.</span>
+                    <span><strong>Fragile Electronics:</strong> Inspect the outer carton and security seal for any transit impact or crushing before opening.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 font-bold text-[10px] mt-0.5">3</span>
-                    <span><strong>Steady Green Beacon:</strong> Approach the cargo compartment ONLY after the navigation light beacon turns solid green.</span>
+                    <span><strong>Battery Transport Safety:</strong> Li-Po power cells are shipped in isolated fire-retardant enclosures. Keep dry and away from heat.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 font-bold text-[10px] mt-0.5">4</span>
-                    <span><strong>Keep Children &amp; Pets Away:</strong> Clear the landing lawn or terrace of loose debris, toys, and pets prior to arrival.</span>
+                    <span><strong>Handover &amp; OTP:</strong> Only share your 4-digit Delivery Handshake OTP after verifying package contents and seals.</span>
                   </li>
                 </ul>
               </div>

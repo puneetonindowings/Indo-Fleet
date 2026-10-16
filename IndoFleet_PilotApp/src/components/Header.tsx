@@ -103,12 +103,12 @@ export const Header: React.FC<HeaderProps> = ({
               </View>
               <View style={styles.cardInfo}>
                 <Text style={styles.cardName} numberOfLines={1}>
-                  {user?.name || 'Remote Pilot'}
+                  {user?.name || 'Delivery Partner'}
                 </Text>
                 <View style={styles.cardRoleRow}>
                   <View style={styles.cardRoleBadge}>
                     <Text style={styles.cardRoleText}>
-                      {(user?.role?.toLowerCase() === 'pilot' ? 'REMOTE PILOT' : (user?.role || 'FLIGHT OPS')).toUpperCase()}
+                      {(user?.role?.toLowerCase() === 'pilot' ? 'DELIVERY PARTNER' : (user?.role || 'DELIVERY')).toUpperCase()}
                     </Text>
                   </View>
                   <Text style={styles.cardStation} numberOfLines={1}>
