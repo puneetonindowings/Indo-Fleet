@@ -4982,10 +4982,10 @@ router.post('/pilot/request-handover-otp', async (req, res) => {
   }
 });
 
-// 7. Verify Delivery Partner Departure OTP & Start Live Delivery Flight
+// 7. Delivery Partner Starts Live Delivery Flight (Direct 1-tap departure - No OTP required)
 router.post('/pilot/verify-handover-and-start-flight', async (req, res) => {
   try {
-    const { order_id, dispatcher_otp, pilot_otp, otp, pilot_name, pilot_phone, pilot_email, vehicle_id, initial_lat, initial_lng } = req.body;
+    const { order_id, pilot_name, pilot_phone, vehicle_id, initial_lat, initial_lng } = req.body;
     if (!order_id) {
       res.status(400).json({ success: false, error: 'Order ID is required' });
       return;
@@ -4994,41 +4994,6 @@ router.post('/pilot/verify-handover-and-start-flight', async (req, res) => {
     const order = await fileDB.findOrderById(order_id);
     if (!order) {
       res.status(404).json({ success: false, error: 'Order not found' });
-      return;
-    }
-
-    const inputOtp = (dispatcher_otp || pilot_otp || otp || '').toString().trim();
-    if (!inputOtp) {
-      res.status(400).json({ success: false, error: 'Departure Authorization OTP is required to initiate delivery.' });
-      return;
-    }
-
-    const expectedOtp = (order.delivery_data?.dispatcher_handover_otp || dispatcherHandoverOtps[order_id]?.otp || '').toString().trim();
-    const expiresAt = order.delivery_data?.dispatcher_handover_otp_expires_at || dispatcherHandoverOtps[order_id]?.expiresAt;
-
-    let isOtpValid = false;
-    if (expectedOtp && inputOtp === expectedOtp) {
-      isOtpValid = true;
-    } else {
-      const targetEmail = (pilot_email || '').toLowerCase().trim();
-      const targetPhone = (pilot_phone || order.pilot_phone || '').replace(/[^0-9]/g, '').slice(-10);
-      if (targetEmail) {
-        const v = await fileDB.verifyOTP(targetEmail, inputOtp);
-        if (v.valid) isOtpValid = true;
-      }
-      if (!isOtpValid && targetPhone) {
-        const v = await fileDB.verifyOTP(targetPhone, inputOtp);
-        if (v.valid) isOtpValid = true;
-      }
-    }
-
-    if (!isOtpValid) {
-      res.status(400).json({ success: false, error: 'Invalid Departure Authorization OTP. Please request a new code.' });
-      return;
-    }
-
-    if (expiresAt && Date.now() > expiresAt) {
-      res.status(400).json({ success: false, error: 'Departure Authorization OTP has expired. Please request a fresh OTP.' });
       return;
     }
 
@@ -5053,22 +5018,22 @@ router.post('/pilot/verify-handover-and-start-flight', async (req, res) => {
         to: order.customer_email || order.recipient_email,
         customerName: order.customer_name || order.recipient_name || 'Customer',
         orderNumber: order.order_number || order.id,
-        pilotName: pilot_name || 'IndoFleet Flight Pilot',
-        pilotPhone: pilot_phone || '+91 7669478937',
-        vehicleId: vehicle_id || order.drone_id || 'IndoFleet 700RPAV UAV',
         trackingUrl,
+        pilotName: pilot_name || order.pilot_assigned || 'IndoFleet Pilot',
+        pilotPhone: pilot_phone || order.pilot_phone || '',
+        vehicleId: vehicle_id || order.drone_id || 'UAV-SYS-01',
         deliveryAddress: order.drop_address || order.destination_address || 'Delivery Destination'
-      }).catch((err) => console.error('[mail] Flight start email dispatch error:', err));
+      }).catch((err) => console.error('[mail] Flight start email error:', err));
     }
 
     res.json({
       success: true,
-      message: `Flight Transit initiated! Live tracking link sent to customer.`,
-      tracking_url: trackingUrl,
-      order: updated
+      message: `Delivery started! Order #${order.order_number || order.id} is now out for delivery.`,
+      order: updated,
+      tracking_url: trackingUrl
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message || 'Failed to start flight' });
+    res.status(500).json({ success: false, error: err.message || 'Failed to start delivery flight' });
   }
 });
 

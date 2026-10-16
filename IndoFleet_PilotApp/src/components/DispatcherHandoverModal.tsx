@@ -2,16 +2,15 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   Modal,
   StyleSheet,
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Zap, X, KeyRound, RefreshCw } from 'lucide-react-native';
+import { Zap, X, MapPin, User, Package, Navigation } from 'lucide-react-native';
 import { DeliveryOrder } from '../types';
-import { requestDispatcherHandoverOtp, verifyHandoverAndStartFlight } from '../services/api';
+import { verifyHandoverAndStartFlight } from '../services/api';
 
 interface DispatcherHandoverModalProps {
   visible: boolean;
@@ -34,41 +33,15 @@ export const DispatcherHandoverModal: React.FC<DispatcherHandoverModalProps> = (
   onClose,
   onFlightStarted,
 }) => {
-  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const [requestingOtp, setRequestingOtp] = useState(false);
 
   if (!order) return null;
 
-  const handleRequestOtp = async () => {
-    setRequestingOtp(true);
-    try {
-      const res = await requestDispatcherHandoverOtp(order.id, pilotName, { pilotPhone });
-      if (res.handover_otp) {
-        setOtp(res.handover_otp);
-      }
-      Alert.alert(
-        'Departure OTP Dispatched',
-        res.message || 'Departure OTP sent to your registered contact.'
-      );
-    } catch (err: any) {
-      Alert.alert('Request Failed', err.message || 'Could not dispatch departure OTP.');
-    } finally {
-      setRequestingOtp(false);
-    }
-  };
-
-  const handleVerifyStart = async () => {
-    if (!otp.trim()) {
-      Alert.alert('Required', 'Please enter your 6-digit Departure Authorization OTP.');
-      return;
-    }
-
+  const handleStartFlight = async () => {
     setLoading(true);
     try {
       const res = await verifyHandoverAndStartFlight({
         order_id: order.id,
-        dispatcher_otp: otp.trim(),
         pilot_name: pilotName,
         pilot_phone: pilotPhone,
         vehicle_id: vehicleId,
@@ -76,7 +49,6 @@ export const DispatcherHandoverModal: React.FC<DispatcherHandoverModalProps> = (
         initial_lng: currentCoords?.longitude,
       });
 
-      setOtp('');
       onClose();
       try {
         await onFlightStarted(res.tracking_url);
@@ -85,10 +57,10 @@ export const DispatcherHandoverModal: React.FC<DispatcherHandoverModalProps> = (
       }
       Alert.alert(
         'Delivery Started',
-        `Order is now out for delivery. Live tracking link has been sent to ${order.customer_name}.`
+        `Order #${order.order_number} is now in transit. Live tracking link has been sent to ${order.customer_name || 'Customer'}.`
       );
     } catch (err: any) {
-      Alert.alert('Verification Failed', err.message || 'Invalid Departure OTP. Please request a new code.');
+      Alert.alert('Start Delivery Failed', err.message || 'Could not initiate delivery flight.');
     } finally {
       setLoading(false);
     }
@@ -109,39 +81,37 @@ export const DispatcherHandoverModal: React.FC<DispatcherHandoverModalProps> = (
           </View>
 
           <Text style={styles.subtitle}>
-            To start delivery for order <Text style={styles.highlight}>#{order.order_number}</Text>, enter your Departure Authorization OTP.
+            Ready to depart for order <Text style={styles.highlight}>#{order.order_number}</Text>?
           </Text>
 
-          <TouchableOpacity
-            style={styles.requestOtpBtn}
-            onPress={handleRequestOtp}
-            disabled={requestingOtp}
-          >
-            {requestingOtp ? (
-              <ActivityIndicator size="small" color="#3B0080" />
-            ) : (
-              <>
-                <RefreshCw size={14} color="#3B0080" />
-                <Text style={styles.requestOtpText}>Request My Departure OTP</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.inputLabel}>Enter 6-Digit Departure OTP</Text>
-            <View style={styles.inputContainer}>
-              <KeyRound size={18} color="#64748B" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={otp}
-                onChangeText={setOtp}
-                placeholder="••••••"
-                placeholderTextColor="#94A3B8"
-                keyboardType="number-pad"
-                maxLength={6}
-                autoFocus={true}
-              />
+          {/* Delivery Details Card */}
+          <View style={styles.detailsCard}>
+            <View style={styles.detailRow}>
+              <User size={15} color="#64748B" />
+              <Text style={styles.detailLabel}>Customer:</Text>
+              <Text style={styles.detailValue} numberOfLines={1}>{order.customer_name || 'Customer'}</Text>
             </View>
+
+            <View style={styles.detailRow}>
+              <MapPin size={15} color="#64748B" />
+              <Text style={styles.detailLabel}>Destination:</Text>
+              <Text style={styles.detailValue} numberOfLines={1}>
+                {order.drop_address || order.delivery_address || 'Customer Drop Site'}
+              </Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Package size={15} color="#64748B" />
+              <Text style={styles.detailLabel}>Payload Weight:</Text>
+              <Text style={styles.detailValue}>{order.weight_kg ? `${order.weight_kg} kg` : 'Standard'}</Text>
+            </View>
+          </View>
+
+          <View style={styles.infoBanner}>
+            <Navigation size={16} color="#3B0080" />
+            <Text style={styles.infoText}>
+              Package is loaded. Starting delivery will notify customer and activate live GPS corridor telemetry.
+            </Text>
           </View>
 
           <View style={styles.actions}>
@@ -151,13 +121,17 @@ export const DispatcherHandoverModal: React.FC<DispatcherHandoverModalProps> = (
 
             <TouchableOpacity
               style={styles.submitBtn}
-              onPress={handleVerifyStart}
+              onPress={handleStartFlight}
               disabled={loading}
+              activeOpacity={0.8}
             >
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.submitBtnText}>Verify & Start Delivery</Text>
+                <>
+                  <Zap size={16} color="#FFFFFF" />
+                  <Text style={styles.submitBtnText}>Start Delivery</Text>
+                </>
               )}
             </TouchableOpacity>
           </View>
@@ -197,71 +171,66 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    fontSize: 16,
-    fontWeight: '900',
+    fontSize: 18,
+    fontWeight: '800',
     color: '#0F172A',
   },
   closeBtn: {
     padding: 4,
-    borderRadius: 6,
-    backgroundColor: '#F1F5F9',
   },
   subtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 18,
-    marginBottom: 14,
+    fontSize: 14,
+    color: '#475569',
+    marginBottom: 16,
+    lineHeight: 20,
   },
   highlight: {
+    fontWeight: '700',
+    color: '#3B0080',
+  },
+  detailsCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 10,
+    marginBottom: 14,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+    width: 95,
+  },
+  detailValue: {
+    flex: 1,
+    fontSize: 12,
     color: '#0F172A',
     fontWeight: '700',
   },
-  requestOtpBtn: {
+  infoBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
+    gap: 10,
     backgroundColor: '#F5F3FF',
+    borderRadius: 12,
+    padding: 12,
     borderWidth: 1,
     borderColor: '#DDD6FE',
-    borderRadius: 10,
-    paddingVertical: 10,
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  requestOtpText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#3B0080',
-  },
-  formGroup: {
-    marginBottom: 18,
-  },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#3B0080',
-    letterSpacing: 0.5,
-    marginBottom: 6,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    paddingHorizontal: 12,
-  },
-  inputIcon: {
-    marginRight: 8,
-  },
-  input: {
+  infoText: {
     flex: 1,
-    height: 48,
-    color: '#0F172A',
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: 4,
+    fontSize: 12,
+    color: '#3B0080',
+    fontWeight: '600',
+    lineHeight: 16,
   },
   actions: {
     flexDirection: 'row',
@@ -269,35 +238,35 @@ const styles = StyleSheet.create({
   },
   cancelBtn: {
     flex: 1,
-    height: 48,
-    borderRadius: 12,
+    paddingVertical: 13,
     backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
+    borderRadius: 12,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    justifyContent: 'center',
   },
   cancelBtnText: {
-    fontSize: 13,
+    color: '#475569',
     fontWeight: '700',
-    color: '#64748B',
+    fontSize: 14,
   },
   submitBtn: {
-    flex: 1.8,
-    height: 48,
-    borderRadius: 12,
+    flex: 2,
+    paddingVertical: 13,
     backgroundColor: '#3B0080',
-    justifyContent: 'center',
+    borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     shadowColor: '#3B0080',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitBtnText: {
-    fontSize: 13,
-    fontWeight: '900',
     color: '#FFFFFF',
-    letterSpacing: 0.5,
+    fontWeight: '700',
+    fontSize: 14,
   },
 });

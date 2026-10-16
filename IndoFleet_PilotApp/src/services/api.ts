@@ -226,7 +226,8 @@ export async function requestDispatcherHandoverOtp(
 // 6. Verify Dispatcher Handover & Start Flight (Triggers Customer Email & Live Tracking)
 export async function verifyHandoverAndStartFlight(payload: {
   order_id: string;
-  dispatcher_otp: string;
+  dispatcher_otp?: string;
+  pilot_otp?: string;
   pilot_name: string;
   pilot_phone?: string;
   vehicle_id?: string;
