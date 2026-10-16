@@ -84,7 +84,7 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
         battery_condition: 'NORMAL',
         landing_gear_condition: landingSurface === 'IMPACT_COLLISION' ? 'DAMAGED' : 'GOOD',
         overall_inspection: overallVerdict,
-        remarks: fieldNotes.trim() || (zeroDefectCertified ? 'Delivery completed with 0 defects. Airframe cleared for return flight.' : 'Field defect flagged during delivery handover.'),
+        remarks: fieldNotes.trim() || (zeroDefectCertified ? 'Delivery completed with 0 defects. Drone verified and secured for vehicle transport.' : 'Field defect flagged during delivery handover.'),
       });
 
       Alert.alert(

@@ -238,10 +238,10 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
           `${res.message || 'OTP sent to your registered account.'}\n\nDelivery OTP: ${res.pilot_otp} (Auto-filled)`
         );
       } else {
-        Alert.alert('Pilot OTP Dispatched', res.message || 'Pilot Verification OTP sent to your registered account.');
+        Alert.alert('Delivery OTP Dispatched', res.message || 'Delivery Partner Verification OTP sent to your registered account.');
       }
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Could not request pilot OTP.');
+      Alert.alert('Error', err.message || 'Could not request delivery OTP.');
     } finally {
       setRequestingPilotOtp(false);
     }
@@ -249,7 +249,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
 
   const handleCompleteHandover = async () => {
     if (!isInspectionVerified) {
-      Alert.alert('Inspection Required', 'Please complete and verify Airframe Inspection in Step 1 before completing delivery.');
+      Alert.alert('Inspection Required', 'Please complete and verify Drone Inspection in Step 1 before completing delivery.');
       return;
     }
     if (!recipientName.trim()) {
@@ -261,7 +261,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
       return;
     }
     if (!pilotOtp.trim()) {
-      Alert.alert('Pilot OTP Required', 'Please enter your 6-digit Pilot Self Verification OTP.');
+      Alert.alert('Delivery Partner OTP Required', 'Please enter your 6-digit Delivery Partner Verification OTP.');
       return;
     }
 
@@ -277,7 +277,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
         final_latitude: currentCoords?.latitude,
         final_longitude: currentCoords?.longitude,
         delivery_notes: deliveryNotes.trim() || 'Verified via Drone Field Check, Customer OTP & Digital Signature',
-        pilot_name: pilotUser?.name || 'Pilot',
+        pilot_name: pilotUser?.name || 'Delivery Partner',
         inspection_id: verifiedInspectionId || undefined,
       });
 
@@ -535,7 +535,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                 <View style={styles.lockedNoticeBox}>
                   <Lock size={20} color="#94A3B8" />
                   <Text style={styles.lockedNoticeText}>
-                    Complete and verify Step 1 (Airframe &amp; Cargo Inspection) above to unlock Customer OTP, Pilot OTP, and Digital Signature handover.
+                    Complete and verify Step 1 (Drone &amp; Cargo Inspection) above to unlock Customer OTP, Delivery Partner OTP, and Digital Signature handover.
                   </Text>
                 </View>
               ) : (
@@ -573,11 +573,11 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                     />
                   </View>
 
-                  {/* Step 2B: Delivery Pilot Self OTP */}
+                  {/* Step 2B: Delivery Partner Self OTP */}
                   <View style={styles.sectionBox}>
                     <View style={styles.sectionHeader}>
                       <ShieldCheck size={15} color="#059669" />
-                      <Text style={styles.sectionTitle}>Delivery Pilot Self OTP</Text>
+                      <Text style={styles.sectionTitle}>Delivery Partner Self OTP</Text>
                     </View>
 
                     <TouchableOpacity
