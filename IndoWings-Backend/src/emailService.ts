@@ -53,9 +53,9 @@ function buildIpv4Transporter(targetIp: string, port: number) {
     secure: isSecure,
     requireTLS: !isSecure,
     servername: smtpHost, // Preserve TLS SNI & certificate verification against smtp.gmail.com
-    connectionTimeout: 3500,
-    greetingTimeout: 3500,
-    socketTimeout: 5000,
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 12000,
     auth: {
       user: smtpUser,
       pass: smtpPass
@@ -81,40 +81,7 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
     return false;
   }
 
-  // 1. Resend HTTPS API (Port 443 - Never blocked by Render Free Tier or cloud firewalls)
-  if (process.env.RESEND_API_KEY) {
-    try {
-      const fromEmail = process.env.FROM_EMAIL || 'onboarding@resend.dev';
-      const resendRes = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          from: `"${MAIL_FROM_NAME}" <${fromEmail}>`,
-          to: [to],
-          subject,
-          text,
-          html: html || undefined
-        })
-      });
-      const data: any = await resendRes.json();
-      if (resendRes.ok && data?.id) {
-        console.log(`[mail] Resend HTTPS delivered message to ${to} (ID: ${data.id})`);
-        lastMailError = '';
-        return true;
-      } else {
-        const rErr = data?.message || data?.error || JSON.stringify(data);
-        console.warn(`[mail] Resend HTTPS delivery error (${rErr}), trying fallback transports...`);
-        lastMailError = `Resend: ${rErr}`;
-      }
-    } catch (rFetchErr: any) {
-      console.warn('[mail] Resend fetch error:', rFetchErr?.message || rFetchErr);
-    }
-  }
-
-  // 2. Direct IPv4 Nodemailer SMTP
+  // Pure Gmail SMTP via Nodemailer
   if (smtpUser && smtpPass) {
     const mailOptions = {
       from: `"${MAIL_FROM_NAME}" <${smtpUser}>`,
@@ -124,13 +91,13 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
       html: html || undefined
     };
 
-    // Get guaranteed IPv4 addresses (completely eliminates Render IPv6 ENETUNREACH)
+    // Get guaranteed IPv4 addresses
     const ipv4List = await getSmtpIpv4Addresses(smtpHost);
     const portsToTry = [587, 465];
     const attemptErrors: string[] = [];
 
     for (const port of portsToTry) {
-      const candidateIps = ipv4List.slice(0, 1);
+      const candidateIps = ipv4List.slice(0, 2);
       for (const ip of candidateIps) {
         try {
           const transporter = buildIpv4Transporter(ip, port);
