@@ -48,6 +48,7 @@ interface FlightRadarScreenProps {
   onBackToDashboard: () => void;
   onCompletePod: (order: DeliveryOrder) => void;
   onStopTracking: () => void;
+  onRefreshLocation?: () => void;
 }
 
 /* ───────────────────────── Design tokens ───────────────────────── */
@@ -136,6 +137,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   onBackToDashboard,
   onCompletePod,
   onStopTracking,
+  onRefreshLocation,
 }) => {
   const [viewMode, setViewMode] = useState<'map' | 'hud'>('map');
   const [mapZoom] = useState<number>(14);
@@ -212,18 +214,10 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     const hasPilot = pilotLat != null && pilotLng != null;
     const hasTarget = hasTargetCoords;
 
-    if (!hasPilot && !hasTarget) {
-      return `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>
-        html,body{width:100%;height:100%;margin:0;background:${C.night};display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;text-align:center}
-        .ring{width:64px;height:64px;border-radius:50%;border:2px solid #A855F7;display:flex;align-items:center;justify-content:center;margin-bottom:16px;animation:p 2s infinite;background:rgba(168,85,247,.12)}
-        @keyframes p{0%{transform:scale(.92);opacity:.7}50%{transform:scale(1.08);opacity:1}100%{transform:scale(.92);opacity:.7}}
-        h3{color:#F8FAFC;margin:0 0 6px;font-size:15px}p{font-size:12px;margin:0;max-width:240px;line-height:1.5;color:#94A3B8}
-      </style></head><body><div class="ring"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C084FC" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/><path d="M12 12 19 5"/></svg></div>
-      <h3>Finding your location</h3><p>Waiting for a GPS fix or an active delivery route.</p></body></html>`;
-    }
-
-    const centerLat = hasPilot && hasTarget ? (pilotLat! + targetLat!) / 2 : hasPilot ? pilotLat! : targetLat!;
-    const centerLng = hasPilot && hasTarget ? (pilotLng! + targetLng!) / 2 : hasPilot ? pilotLng! : targetLng!;
+    const defaultLat = 28.6280;
+    const defaultLng = 77.3649;
+    const centerLat = hasPilot && hasTarget ? (pilotLat! + targetLat!) / 2 : hasPilot ? pilotLat! : hasTarget ? targetLat! : defaultLat;
+    const centerLng = hasPilot && hasTarget ? (pilotLng! + targetLng!) / 2 : hasPilot ? pilotLng! : hasTarget ? targetLng! : defaultLng;
 
     const tileUrl =
       mapType === 'satellite'
@@ -245,6 +239,10 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
       markers += `
         L.marker([${pilotLat}, ${pilotLng}], { icon: L.divIcon({ className: '', html: '<div style="position:relative;width:28px;height:28px"><div style="position:absolute;inset:-8px;border-radius:50%;background:rgba(124,58,237,.25)"></div><div style="position:absolute;inset:0;background:#5A00B8;border-radius:50%;border:3px solid #FFF;box-shadow:0 0 14px rgba(124,58,237,.8)"></div></div>', iconSize: [28, 28], iconAnchor: [14, 14] }) })
           .addTo(map).bindPopup("You are here<br>${telemetry.speedKmh} km/h");`;
+    } else {
+      markers += `
+        L.marker([${defaultLat}, ${defaultLng}], { icon: L.divIcon({ className: '', html: '${esc(pill('#5A00B8', 'IndoFleet Central Hub'))}', iconSize: [140, 28], iconAnchor: [70, 14] }) })
+          .addTo(map).bindPopup("IndoFleet Sector 62 Central Hub - Awaiting Sortie Assignment");`;
     }
 
     if (hasTarget) {
@@ -516,12 +514,16 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
                 <Radio size={15} color={C.brand} />
                 <Text style={styles.mapTitle}>{order ? 'Route to drop-off' : 'Live map'}</Text>
               </View>
-              <View style={[styles.gpsBadge, hasLiveGpsFix ? styles.gpsOk : styles.gpsWait]}>
+              <TouchableOpacity
+                onPress={onRefreshLocation}
+                activeOpacity={0.7}
+                style={[styles.gpsBadge, hasLiveGpsFix ? styles.gpsOk : styles.gpsWait]}
+              >
                 <View style={[styles.gpsDot, { backgroundColor: hasLiveGpsFix ? C.ok : C.warn }]} />
                 <Text style={[styles.gpsText, { color: hasLiveGpsFix ? '#065F46' : '#92400E' }]}>
-                  {hasLiveGpsFix ? 'GPS locked' : 'Finding GPS'}
+                  {hasLiveGpsFix ? 'GPS locked' : 'Tap to Lock GPS'}
                 </Text>
-              </View>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.mapFrame}>

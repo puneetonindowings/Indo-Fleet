@@ -49,7 +49,8 @@ import {
   Smartphone,
   Zap,
   QrCode,
-  Edit2
+  Edit2,
+  Plane
 } from 'lucide-react';
 import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
@@ -1768,67 +1769,65 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
 
             {/* ── TAB 4: FLEET & INVENTORY (SCALE UP TO 1000+ DRONES WITH REAL ID VERIFICATION) ─ */}
             {activeTab === 'fleet' && (
-              <div className="space-y-5">
-                {/* Top Fleet KPI Metrics Bar */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3.5">
-                  <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+              <div className="space-y-6">
+                {/* ── TIER 1: 4 EXECUTIVE FLEET KPI CARDS ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Total Fleet */}
+                  <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-xs flex items-center justify-between">
                     <div>
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Fleet</p>
-                      <h4 className="text-2xl font-black text-slate-900 mt-1">{drones.length}</h4>
-                      <p className="text-[10px] text-purple-700 font-semibold mt-0.5">Central Inventory</p>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Fleet</span>
+                      <h4 className="text-3xl font-black text-slate-900 mt-0.5 tracking-tight">{drones.length}</h4>
+                      <p className="text-xs text-purple-700 font-medium mt-0.5">Central Inventory</p>
                     </div>
-                    <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black shrink-0">
-                      <Truck className="w-5 h-5" />
+                    <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black shrink-0 border border-purple-100 shadow-2xs">
+                      <Truck className="w-6 h-6" />
                     </div>
                   </div>
 
-                  {/* Reserved for Customer Bookings */}
-                  <div
-                    onClick={() => {
-                      setDroneFilter(droneFilter === 'reserved' ? 'all' : 'reserved');
-                      setDroneCurrentPage(1);
-                    }}
-                    className={`border rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all ${
-                      droneFilter === 'reserved'
-                        ? 'bg-purple-100/70 border-purple-400 ring-2 ring-purple-400/30'
-                        : 'bg-white border-purple-200 hover:border-purple-300 bg-purple-50/20'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-[11px] font-bold text-purple-700 uppercase tracking-wider">Reserved</p>
-                        <span className="px-1.5 py-0.2 text-[9px] font-extrabold bg-purple-200 text-purple-800 rounded-md">LIVE</span>
-                      </div>
-                      <h4 className="text-2xl font-black text-purple-900 mt-1">{reservedDronesCount}</h4>
-                      <p className="text-[10px] text-purple-600 font-semibold mt-0.5 flex items-center gap-1">
-                        <span>{droneFilter === 'reserved' ? 'Filtered' : 'Bookings'}</span>
-                        <ChevronRight className="w-3 h-3" />
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-black shrink-0">
-                      <ShoppingBag className="w-5 h-5" />
-                    </div>
-                  </div>
-
-                  {/* Available In-Stock */}
+                  {/* Ready for Sorties / In-Stock */}
                   <div
                     onClick={() => {
                       setDroneFilter(droneFilter === 'idle' ? 'all' : 'idle');
                       setDroneCurrentPage(1);
                     }}
-                    className={`border rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all ${
+                    className={`border rounded-3xl p-5 shadow-xs flex items-center justify-between cursor-pointer transition-all ${
                       droneFilter === 'idle'
-                        ? 'bg-emerald-100/70 border-emerald-400 ring-2 ring-emerald-400/30'
-                        : 'bg-white border-emerald-200 hover:border-emerald-300 bg-emerald-50/20'
+                        ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-400/30'
+                        : 'bg-white border-slate-200/90 hover:border-emerald-300'
                     }`}
                   >
                     <div>
-                      <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">In-Stock</p>
-                      <h4 className="text-2xl font-black text-emerald-800 mt-1">{idleDronesCount}</h4>
-                      <p className="text-[10px] text-emerald-600 font-medium mt-0.5">Ready for booking</p>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Sortie-Ready</span>
+                      <h4 className="text-3xl font-black text-emerald-950 mt-0.5 tracking-tight">{idleDronesCount}</h4>
+                      <p className="text-xs text-emerald-600 font-medium mt-0.5">Ready for booking</p>
                     </div>
-                    <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black shrink-0">
-                      <CheckCircle2 className="w-5 h-5" />
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black shrink-0 border border-emerald-100 shadow-2xs">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                  </div>
+
+                  {/* Reserved / Active Sorties */}
+                  <div
+                    onClick={() => {
+                      setDroneFilter(droneFilter === 'reserved' ? 'all' : 'reserved');
+                      setDroneCurrentPage(1);
+                    }}
+                    className={`border rounded-3xl p-5 shadow-xs flex items-center justify-between cursor-pointer transition-all ${
+                      droneFilter === 'reserved'
+                        ? 'bg-purple-50 border-purple-400 ring-2 ring-purple-400/30'
+                        : 'bg-white border-slate-200/90 hover:border-purple-300'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-purple-700">Reserved / Active</span>
+                        <span className="px-1.5 py-0.2 text-[9px] font-extrabold bg-purple-200 text-purple-800 rounded-md">LIVE</span>
+                      </div>
+                      <h4 className="text-3xl font-black text-purple-950 mt-0.5 tracking-tight">{reservedDronesCount}</h4>
+                      <p className="text-xs text-purple-600 font-medium mt-0.5">Assigned to sorties</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black shrink-0 border border-purple-100 shadow-2xs">
+                      <ShoppingBag className="w-6 h-6" />
                     </div>
                   </div>
 
@@ -1838,85 +1837,88 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                       setDroneFilter(droneFilter === 'maintenance' ? 'all' : 'maintenance');
                       setDroneCurrentPage(1);
                     }}
-                    className={`border rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all ${
+                    className={`border rounded-3xl p-5 shadow-xs flex items-center justify-between cursor-pointer transition-all ${
                       droneFilter === 'maintenance'
-                        ? 'bg-amber-100/70 border-amber-400 ring-2 ring-amber-400/30'
-                        : 'bg-white border-amber-200 hover:border-amber-300 bg-amber-50/20'
+                        ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-400/30'
+                        : 'bg-white border-slate-200/90 hover:border-amber-300'
                     }`}
                   >
                     <div>
-                      <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Maintenance</p>
-                      <h4 className="text-2xl font-black text-amber-800 mt-1">{maintenanceDronesCount}</h4>
-                      <p className="text-[10px] text-amber-600 font-medium mt-0.5">Excluded from store</p>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">Maintenance</span>
+                      <h4 className="text-3xl font-black text-amber-950 mt-0.5 tracking-tight">{maintenanceDronesCount}</h4>
+                      <p className="text-xs text-amber-600 font-medium mt-0.5">Grounded for service</p>
                     </div>
-                    <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-black shrink-0">
-                      <Wrench className="w-5 h-5" />
-                    </div>
-                  </div>
-
-                  {/* Hardware Verification */}
-                  <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-                    <div>
-                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Verified IDs</p>
-                      <h4 className="text-2xl font-black text-slate-900 mt-1">{verifiedDronesCount} <span className="text-xs font-semibold text-slate-400">/ {drones.length}</span></h4>
-                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">{unverifiedDronesCount} unverified</p>
-                    </div>
-                    <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center font-black shrink-0">
-                      <Shield className="w-5 h-5" />
-                    </div>
-                  </div>
-
-                  {/* Inspections Passed */}
-                  <div
-                    onClick={() => {
-                      setSelectedInspectionDroneId('');
-                      setSelectedInspectionDeliveryId('');
-                      setShowInspectionModal(true);
-                    }}
-                    className="bg-white border border-emerald-300 hover:border-emerald-400 bg-emerald-50/30 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
-                    title="Click to Record New Airframe Inspection"
-                  >
-                    <div>
-                      <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Inspections Passed</p>
-                      <h4 className="text-2xl font-black text-emerald-900 mt-1">{inspectionStats.passedCount}</h4>
-                      <p className="text-[10px] text-emerald-600 font-medium mt-0.5">
-                        {inspectionStats.deliveryPersonChecks?.zeroDefectCertifiedCount != null
-                          ? `${inspectionStats.deliveryPersonChecks.zeroDefectCertifiedCount} Zero-Defect`
-                          : 'Quality Approved'}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform shrink-0">
-                      <ShieldCheck className="w-5 h-5" />
-                    </div>
-                  </div>
-
-                  {/* Inspections Failed or Pending */}
-                  <div
-                    onClick={() => {
-                      setSelectedInspectionDroneId('');
-                      setSelectedInspectionDeliveryId('');
-                      setShowInspectionModal(true);
-                    }}
-                    className="bg-white border border-rose-300 hover:border-rose-400 bg-rose-50/30 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
-                    title="Click to Record or Update Airframe Inspection"
-                  >
-                    <div>
-                      <p className="text-[11px] font-bold text-rose-800 uppercase tracking-wider">Failed / Pending</p>
-                      <h4 className="text-2xl font-black text-rose-900 mt-1">{inspectionStats.failedOrPendingCount}</h4>
-                      <p className="text-[10px] text-rose-600 font-medium mt-0.5">
-                        {inspectionStats.deliveryPersonChecks?.defectReported
-                          ? `${inspectionStats.deliveryPersonChecks.defectReported} Flagged`
-                          : 'Needs Review'}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform shrink-0">
-                      <AlertTriangle className="w-5 h-5" />
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center font-black shrink-0 border border-amber-100 shadow-2xs">
+                      <Wrench className="w-6 h-6" />
                     </div>
                   </div>
                 </div>
 
+                {/* ── TIER 2: 700 RPAV QUALITY & AIRFRAME ASSURANCE STRIP ── */}
+                <div className="bg-gradient-to-r from-slate-900 via-[#1e1338] to-slate-900 border border-slate-800 text-white rounded-3xl p-5 sm:p-6 shadow-lg flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-black uppercase tracking-wider border border-purple-400/20">
+                        AEROSPACE STANDARD
+                      </span>
+                      <span className="text-xs text-slate-400 font-mono">700 RPAV Specification</span>
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-black tracking-tight text-white">
+                      Fleet Airframe Quality &amp; Condition Assurance
+                    </h3>
+                    <p className="text-xs text-slate-300/80 max-w-xl">
+                      Each airframe has a permanent, tamper-resistant 25mm QR code. Inspections are append-only to preserve airworthiness integrity.
+                    </p>
+                  </div>
+
+                  {/* Quality metrics & quick actions */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/5 border border-white/10">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                      <div className="text-left">
+                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Inspections</span>
+                        <span className="text-xs font-mono font-bold text-emerald-300">
+                          {inspectionStats.passedCount} Passed &bull; {inspectionStats.failedOrPendingCount} Needs Review
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/5 border border-white/10">
+                      <Shield className="w-4 h-4 text-purple-400" />
+                      <div className="text-left">
+                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Hardware IDs</span>
+                        <span className="text-xs font-mono font-bold text-white">
+                          {verifiedDronesCount} / {drones.length} Verified
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowQrScanner(true)}
+                      className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-purple-950/40"
+                    >
+                      <QrCode className="w-4 h-4 text-white" />
+                      <span>Scan Drone QR</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedInspectionDroneId('');
+                        setSelectedInspectionDeliveryId('');
+                        setShowInspectionModal(true);
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 font-bold text-xs flex items-center gap-2 cursor-pointer transition-all"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      <span>Record Inspection</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Filters, Search & Action Buttons */}
-                <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3.5 bg-white rounded-2xl border border-slate-200 shadow-xs">
+                <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3.5 bg-white rounded-2xl border border-slate-200/90 shadow-xs">
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
                     <div className="relative flex-1 max-w-md">
                       <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -1928,7 +1930,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                           setDroneCurrentPage(1);
                         }}
                         placeholder="Search by Drone ID, Model, Serial, Order ID..."
-                        className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#5a00b8]"
+                        className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-slate-50 focus:bg-white text-xs focus:outline-none focus:ring-2 focus:ring-[#5a00b8]/15 focus:border-[#5a00b8] transition-colors"
                       />
                     </div>
 
@@ -1938,7 +1940,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         setDroneFilter(e.target.value);
                         setDroneCurrentPage(1);
                       }}
-                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white"
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-slate-50 hover:border-slate-300 focus:outline-none cursor-pointer"
                     >
                       <option value="all">All Fleet UAVs ({drones.length})</option>
                       <option value="reserved">Reserved for Bookings ({reservedDronesCount})</option>
@@ -1953,7 +1955,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     <button
                       type="button"
                       onClick={() => setShowQrScanner(true)}
-                      className="px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#5a00b8] border border-purple-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs"
+                      className="px-3.5 py-2 rounded-xl bg-[#5a00b8] hover:bg-[#43008a] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs transition-all"
                       title="Scan Drone QR Code or Airframe ID"
                     >
                       <QrCode className="w-3.5 h-3.5" />
@@ -1973,7 +1975,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         setInventoryOtp('');
                         setAdminOtpError('');
                       }}
-                      className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                      className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>+1 Single Drone</span>
@@ -1991,7 +1993,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         setInventoryOtp('');
                         setAdminOtpError('');
                       }}
-                      className="px-4 py-2 rounded-xl bg-[#5a00b8] hover:bg-[#2e0066] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap"
+                      className="px-4 py-2 rounded-xl bg-[#5a00b8] hover:bg-[#2e0066] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap transition-colors"
                     >
                       <Layers className="w-3.5 h-3.5" />
                       <span>Bulk Batch Add</span>
@@ -2000,131 +2002,150 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </div>
 
                 {/* Fleet Table */}
-                <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
-                          <th className="py-3 px-4">Photo</th>
-                          <th className="py-3 px-4">Drone ID &amp; Serial</th>
+                        <tr className="bg-slate-50/90 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200 text-[11px]">
+                          <th className="py-3 px-3.5 w-14">Photo</th>
+                          <th className="py-3 px-4 min-w-[170px]">Drone ID &amp; Serial</th>
                           <th className="py-3 px-4">Model Name</th>
                           <th className="py-3 px-4">Category</th>
                           <th className="py-3 px-4">Status &amp; Reservation</th>
                           <th className="py-3 px-4">Condition &amp; QC</th>
                           <th className="py-3 px-4">ID Verification</th>
-                          <th className="py-3 px-4 text-right">Actions</th>
+                          <th className="py-3 px-4 text-right min-w-[200px]">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {paginatedDrones.map((d) => {
                           const isVerified = d.is_verified === true || d.verification_status === 'verified';
                           const linked = getLinkedOrderForDrone(d);
-                          const isReserved = d.status !== 'maintenance' && (d.status === 'reserved' || Boolean(linked) || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order));
+                          const isReserved =
+                            d.status !== 'maintenance' &&
+                            (d.status === 'reserved' || Boolean(linked) || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order));
 
                           return (
-                            <tr key={d.id} className="hover:bg-slate-50/60 transition-colors">
-                              <td className="py-3 px-4">
+                            <tr key={d.id} className="hover:bg-purple-50/20 transition-colors">
+                              {/* Drone Photo */}
+                              <td className="py-3 px-3.5">
                                 {d.image_url ? (
-                                  <img src={d.image_url} alt={d.model} className="h-10 w-14 rounded-lg object-cover border border-slate-200" />
+                                  <img src={d.image_url} alt={d.model} className="h-9 w-12 rounded-xl object-cover border border-slate-200 shadow-2xs" />
                                 ) : (
-                                  <div className="h-10 w-14 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center border border-slate-200">
-                                    <ImageIcon className="h-4 w-4" />
+                                  <div className="h-9 w-12 rounded-xl bg-gradient-to-br from-purple-50 to-slate-100 text-[#5a00b8] flex items-center justify-center border border-purple-100 shadow-2xs">
+                                    <Plane className="h-4 w-4 transform -rotate-45" />
                                   </div>
                                 )}
                               </td>
-                              <td className="py-3 px-4">
-                                <p className="font-mono font-bold text-slate-900">{d.id}</p>
-                                <p className="text-[10px] text-slate-400 font-mono">{d.serial_number || d.id}</p>
-                              </td>
-                              <td className="py-3 px-4 font-bold text-[#5a00b8] whitespace-nowrap">{d.model}</td>
+
+                              {/* Drone ID & Serial Number - Protected with whitespace-nowrap */}
                               <td className="py-3 px-4 whitespace-nowrap">
-                                <span className="inline-block px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[11px] whitespace-nowrap">
+                                <span className="font-mono font-bold text-slate-900 text-xs block tracking-tight">{d.id}</span>
+                                <span className="text-[10px] text-slate-400 font-mono block tracking-tight">{d.serial_number || d.id}</span>
+                              </td>
+
+                              {/* Model */}
+                              <td className="py-3 px-4 font-bold text-[#5a00b8] whitespace-nowrap">{d.model}</td>
+
+                              {/* Category */}
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                <span className="inline-block px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium text-[11px]">
                                   {d.category || 'General UAV'}
                                 </span>
                               </td>
+
+                              {/* Status & Reservation */}
                               <td className="py-3 px-4 whitespace-nowrap">
                                 {d.status === 'maintenance' ? (
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-300 whitespace-nowrap">
-                                    <Wrench className="w-3 h-3 text-amber-600 shrink-0" />
-                                    <span>Under Maintenance</span>
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                    <span>Maintenance</span>
                                   </span>
                                 ) : isReserved ? (
                                   <button
                                     type="button"
                                     onClick={() => setSelectedReservedDrone(d)}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer shadow-2xs group whitespace-nowrap"
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer"
                                   >
-                                    <ShoppingBag className="w-3 h-3 text-purple-600 shrink-0" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
                                     <span>Reserved: <strong className="font-mono">{linked?.id || d.assigned_order || 'Booking'}</strong></span>
-                                    <Eye className="w-3 h-3 text-purple-400 group-hover:text-purple-700 shrink-0" />
+                                    <Eye className="w-3 h-3 text-purple-500" />
                                   </button>
                                 ) : d.status === 'en-route' || d.status === 'in-flight' || d.status === 'dispatched' ? (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">
-                                    <Truck className="w-3 h-3 text-blue-600 shrink-0" />
-                                    Dispatched
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                    <span>In Flight</span>
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
-                                    <Check className="w-3 h-3 text-emerald-600 shrink-0" />
-                                    In Stock (Idle)
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    <span>Ready / In Stock</span>
                                   </span>
                                 )}
                               </td>
+
+                              {/* Condition & QC */}
                               <td className="py-3 px-4 whitespace-nowrap">
-                                <div className="flex flex-col gap-1 items-start">
+                                <div className="flex items-center gap-1.5">
                                   <span
-                                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap ${
+                                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold ${
                                       (d.current_condition || '').toUpperCase() === 'DAMAGED'
-                                        ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                        ? 'bg-rose-50 text-rose-700 border border-rose-200'
                                         : (d.current_condition || '').toUpperCase() === 'NEEDS_REVIEW'
-                                        ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                                        : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                        : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                     }`}
                                   >
-                                    <ShieldCheck className="w-3 h-3 shrink-0" />
+                                    {(d.current_condition || '').toUpperCase() === 'DAMAGED' ? (
+                                      <AlertTriangle className="w-3 h-3" />
+                                    ) : (
+                                      <Check className="w-3 h-3" />
+                                    )}
                                     {d.current_condition ? d.current_condition.toUpperCase() : 'GOOD'}
                                   </span>
                                   {d.last_inspection_result && (
-                                    <span className="text-[10px] text-slate-500 font-medium whitespace-nowrap">
-                                      QC: <strong className="uppercase">{d.last_inspection_result}</strong>
+                                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-bold uppercase ${
+                                      d.last_inspection_result.toLowerCase() === 'passed'
+                                        ? 'bg-slate-100 text-slate-700'
+                                        : 'bg-rose-100 text-rose-800'
+                                    }`}>
+                                      {d.last_inspection_result}
                                     </span>
                                   )}
                                 </div>
                               </td>
+
+                              {/* ID Verification */}
                               <td className="py-3 px-4 whitespace-nowrap">
                                 {isVerified ? (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                    Verified ID
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/70">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                    Verified
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
-                                    <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                    Unverified ID
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
+                                    <AlertCircle className="w-3.5 h-3.5 text-slate-400" />
+                                    Pending
                                   </span>
                                 )}
                               </td>
+
+                              {/* Streamlined Actions Toolbar */}
                               <td className="py-3 px-4 text-right whitespace-nowrap">
-                                <div className="inline-flex items-center justify-end gap-1.5 flex-nowrap">
+                                <div className="inline-flex items-center justify-end gap-1.5">
                                   {isReserved && (
                                     <button
                                       type="button"
                                       onClick={() => setSelectedReservedDrone(d)}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
+                                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-all flex items-center gap-1 cursor-pointer"
+                                      title="View Assigned Consignment"
                                     >
                                       <Eye className="w-3.5 h-3.5" />
                                       <span>Order</span>
                                     </button>
                                   )}
-                                  <button
-                                    type="button"
-                                    onClick={() => setSelectedQrDrone(d)}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-[#5a00b8] hover:text-white text-slate-700 border border-slate-200 transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
-                                    title="View & Print 25mm Permanent QR Code Label"
-                                  >
-                                    <QrCode className="w-3.5 h-3.5" />
-                                    <span>QR Label</span>
-                                  </button>
+
+                                  {/* Primary Quick Action: Inspect */}
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -2132,33 +2153,71 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                       setSelectedInspectionDeliveryId(d.assigned_order || d.delivery_data?.assigned_order || '');
                                       setShowInspectionModal(true);
                                     }}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-50 hover:bg-[#5a00b8] text-[#5a00b8] hover:text-white border border-purple-200 hover:border-[#5a00b8] transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
+                                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#5a00b8] hover:bg-[#43008a] text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                                     title="Record Post-Delivery Condition Inspection"
                                   >
                                     <ShieldCheck className="w-3.5 h-3.5" />
                                     <span>Inspect</span>
                                   </button>
+
+                                  {/* Quick Action: QR Label */}
                                   <button
                                     type="button"
-                                    onClick={() => handleToggleDroneMaintenance(d)}
-                                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer shadow-2xs whitespace-nowrap ${
-                                      d.status === 'maintenance'
-                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                                        : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
-                                    }`}
-                                    title={d.status === 'maintenance' ? 'Clear maintenance and restore to stock' : 'Mark under technical maintenance'}
+                                    onClick={() => setSelectedQrDrone(d)}
+                                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300 transition-all flex items-center gap-1 cursor-pointer"
+                                    title="View & Print 25mm Permanent QR Code Label"
                                   >
-                                    <Wrench className="w-3 h-3" />
-                                    <span>{d.status === 'maintenance' ? 'Clear Maint.' : 'Set Maint.'}</span>
+                                    <QrCode className="w-3.5 h-3.5 text-slate-600" />
+                                    <span>QR</span>
                                   </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => openEditDroneModal(d)}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-purple-50 hover:text-[#5a00b8] hover:border-purple-200 transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
-                                  >
-                                    <Edit2 className="w-3 h-3" />
-                                    <span>Edit</span>
-                                  </button>
+
+                                  {/* Secondary Tool Group (Maintenance, Edit, Decommission) */}
+                                  <div className="inline-flex items-center rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleDroneMaintenance(d)}
+                                      className={`p-1.5 rounded-md transition-colors cursor-pointer ${
+                                        d.status === 'maintenance'
+                                          ? 'text-emerald-600 hover:bg-emerald-50'
+                                          : 'text-amber-600 hover:bg-amber-50'
+                                      }`}
+                                      title={d.status === 'maintenance' ? 'Restore Drone to Stock (Clear Maint)' : 'Mark under technical maintenance'}
+                                    >
+                                      <Wrench className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditDroneModal(d)}
+                                      className="p-1.5 rounded-md text-slate-500 hover:text-[#5a00b8] hover:bg-purple-50 transition-colors cursor-pointer"
+                                      title="Edit Drone Details & Hardware ID"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        if (window.confirm(`Are you sure you want to decommission airframe ${d.id}?`)) {
+                                          try {
+                                            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                                            const res = await fetch(`${API_BASE_URL}/api/delivery/drones/${encodeURIComponent(d.id)}`, {
+                                              method: 'DELETE',
+                                              headers: {
+                                                'Content-Type': 'application/json',
+                                                ...(token ? { Authorization: `Bearer ${token}` } : {})
+                                              }
+                                            });
+                                            if (res.ok) {
+                                              setDrones((prev) => prev.filter((item) => item.id !== d.id));
+                                            }
+                                          } catch {}
+                                        }
+                                      }}
+                                      className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                      title="Decommission Airframe"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
                                 </div>
                               </td>
                             </tr>

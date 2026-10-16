@@ -169,20 +169,46 @@ export default function App() {
 
   const fetchInitialLocation = async () => {
     try {
-      const { status } = await Location.getForegroundPermissionsAsync();
+      let { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        const { status: reqStatus } = await Location.requestForegroundPermissionsAsync();
+        status = reqStatus;
+      }
       if (status === 'granted') {
         const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
+          accuracy: Platform.OS === 'web' ? Location.Accuracy.Balanced : Location.Accuracy.High,
         });
         if (loc?.coords) {
           setCurrentCoords({
             latitude: loc.coords.latitude,
             longitude: loc.coords.longitude,
           });
+          return;
         }
+      }
+
+      // Web browser / simulator fallback
+      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setCurrentCoords({
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+            });
+          },
+          () => {
+            // Default IndoFleet Central Hub (Noida / Delhi-NCR Hub: 28.6280, 77.3649)
+            setCurrentCoords((prev) => prev || { latitude: 28.6280, longitude: 77.3649 });
+          },
+          { timeout: 8000, enableHighAccuracy: true }
+        );
+      } else {
+        // Fallback default coordinates so app is never stuck on "Finding..." indefinitely
+        setCurrentCoords((prev) => prev || { latitude: 28.6280, longitude: 77.3649 });
       }
     } catch (err) {
       console.warn('Initial location fetch error:', err);
+      setCurrentCoords((prev) => prev || { latitude: 28.6280, longitude: 77.3649 });
     }
   };
 
@@ -475,6 +501,7 @@ export default function App() {
             isTracking={isTracking}
             telemetry={telemetry}
             currentCoords={currentCoords}
+            onRefreshLocation={fetchInitialLocation}
             onBackToDashboard={() => setActiveScreen('dashboard')}
             onCompletePod={handleOpenPodModal}
             onStopTracking={async () => {
