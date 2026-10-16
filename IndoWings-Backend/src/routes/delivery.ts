@@ -2981,12 +2981,14 @@ function validateBase64Attachment(attachment: any): { valid: boolean; error?: st
   const size = attachment.size;
 
   if (typeof data === 'string' && data.length > 0) {
-    if (data.length > 7_000_000) {
-      return { valid: false, error: 'Attachment file size exceeds maximum limit of 5 MB.' };
+    // 35MB base64 string length limit (~25MB binary)
+    if (data.length > 35_000_000) {
+      return { valid: false, error: 'Attachment file size exceeds maximum limit of 25 MB.' };
     }
 
     const allowedMimeTypes = [
       'image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif',
+      'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/3gpp', 'video/mpeg',
       'application/pdf', 'text/plain', 'text/csv'
     ];
 
@@ -2997,12 +2999,12 @@ function validateBase64Attachment(attachment: any): { valid: boolean; error?: st
     }
 
     if (detectedMime && !allowedMimeTypes.includes(detectedMime.toLowerCase())) {
-      return { valid: false, error: `Invalid attachment MIME type '${detectedMime}'. Allowed types: images, PDF, text/csv.` };
+      return { valid: false, error: `Invalid attachment MIME type '${detectedMime}'. Allowed types: images, video (mp4, webm, mov), PDF.` };
     }
   }
 
-  if (size && Number(size) > 5 * 1024 * 1024) {
-    return { valid: false, error: 'Attachment file size exceeds maximum limit of 5 MB.' };
+  if (size && Number(size) > 25 * 1024 * 1024) {
+    return { valid: false, error: 'Attachment file size exceeds maximum limit of 25 MB.' };
   }
 
   return { valid: true };
@@ -3010,7 +3012,7 @@ function validateBase64Attachment(attachment: any): { valid: boolean; error?: st
 
 // Support: Expert consultation requests
 // Submit a support query / technical consultation request
-router.post(['/support/expert-request', '/support/ticket'], async (req, res) => {
+router.post(['/support/expert-request', '/support/ticket', '/support/expert-requests'], async (req, res) => {
   try {
     const { name, phone, email, category, query_type, message, preferred_time, preferred_callback, order_id, delivery_address, drone_serial, priority, attachments } = req.body;
 
@@ -3019,6 +3021,7 @@ router.post(['/support/expert-request', '/support/ticket'], async (req, res) => 
       return;
     }
 
+    const validatedAttachments: any[] = [];
     if (attachments) {
       const list = Array.isArray(attachments) ? attachments : [attachments];
       for (const att of list) {
@@ -3027,6 +3030,7 @@ router.post(['/support/expert-request', '/support/ticket'], async (req, res) => 
           res.status(400).json({ error: val.error });
           return;
         }
+        validatedAttachments.push(att);
       }
     }
 
@@ -3042,12 +3046,13 @@ router.post(['/support/expert-request', '/support/ticket'], async (req, res) => 
       email: email?.trim() || '',
       category: category || query_type || 'General Support',
       subject: category || query_type || 'General Support',
-      source: 'web',
+      source: req.body.source || 'web',
       priority: (priority || 'normal').toLowerCase(), // urgent, high, normal, low
       order_id: order_id?.trim() || null,
       delivery_address: delivery_address?.trim() || null,
       drone_serial: drone_serial?.trim() || null,
       message: message?.trim() || '',
+      attachments: validatedAttachments,
       preferred_time: preferred_time || preferred_callback || 'Immediate Callback',
       status: 'open', // open, in_progress, resolved, closed
       audit_log: [
@@ -3058,7 +3063,7 @@ router.post(['/support/expert-request', '/support/ticket'], async (req, res) => 
           actor_name: name?.trim() || matchingCustomer?.name || 'Client',
           actor_role: 'customer',
           previous_value: null,
-          new_value: { status: 'open', source: 'web' },
+          new_value: { status: 'open', source: req.body.source || 'web' },
           timestamp: new Date().toISOString()
         }
       ],
