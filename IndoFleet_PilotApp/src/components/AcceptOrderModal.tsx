@@ -111,7 +111,7 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
       setOtp('');
       onAccepted();
       onClose();
-      Alert.alert('Order Accepted', `Order #${order.order_number} has been officially accepted. You can now proceed to package handover.`);
+      Alert.alert('Order Accepted', `Order #${order.order_number} has been officially accepted. You can now tap Start Delivery.`);
     } catch (err: any) {
       if (err.requires_profile_update || (err.message && err.message.includes('Profile Incomplete'))) {
         Alert.alert(
