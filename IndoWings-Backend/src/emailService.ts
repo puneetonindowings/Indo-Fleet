@@ -147,26 +147,19 @@ export async function sendOtpNotification({ email, phone, otp }: { email?: strin
   if (targetEmail && targetEmail.includes('@')) {
     // Pure Nodemailer 6-digit OTP delivery with branded template
     const subject = `Your IndoWings Verification Code: ${otp}`;
-    const text = `Hello,\n\nYour IndoWings verification code is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share it with anyone.\n\nThanks & Regards,\nIndoWings Operations Team`;
+    const text = `Hello,\n\nYour IndoWings verification code is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share it with anyone.\n\nIf you did not request this login code, please contact connect@indowings.com.\n\nThanks & Regards,\nIndoWings Operations Team`;
     const html = `
-<div style="max-width: 520px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-  <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 26px 22px; text-align: center;">
-    <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">IndoWings Fleet</h1>
-    <p style="color: #e0e7ff; margin: 4px 0 0 0; font-size: 13px;">Security Verification Code</p>
-  </div>
-  <div style="padding: 30px 24px;">
-    <p style="font-size: 15px; color: #334155; margin-top: 0;">Hello,</p>
-    <p style="font-size: 14px; color: #475569; line-height: 1.6;">Use the one-time verification code (OTP) below to authenticate your session. This code is valid for <strong>10 minutes</strong>.</p>
-    <div style="text-align: center; margin: 26px 0;">
-      <div style="display: inline-block; background-color: #f8fafc; border: 2px dashed #6366f1; border-radius: 12px; padding: 14px 28px;">
-        <span style="font-family: monospace; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #4338ca;">${otp}</span>
-      </div>
-    </div>
-    <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin-bottom: 0;">If you did not request this login code, please contact <a href="mailto:connect@indowings.com" style="color: #6366f1; text-decoration: none;">connect@indowings.com</a>.</p>
-  </div>
-  <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px 24px; text-align: center;">
-    <p style="margin: 0; font-size: 12px; color: #94a3b8;">&copy; 2026 IndoWings Technologies &bull; Road &amp; Air Logistics</p>
-  </div>
+<div style="font-family: Arial, Helvetica, sans-serif; font-size: 15px; color: #222222; line-height: 1.6; max-width: 560px;">
+  <p>Hello,</p>
+  <p>Your IndoWings verification code is: <strong style="font-size: 20px; font-family: monospace; letter-spacing: 2px; color: #000000;">${otp}</strong></p>
+  <p>This code is valid for 10 minutes. Please do not share it with anyone.</p>
+  <br>
+  <p style="color: #666666; font-size: 13px;">If you did not request this login code, please contact <a href="mailto:connect@indowings.com" style="color: #0066cc;">connect@indowings.com</a>.</p>
+  <br>
+  <p style="color: #444444; font-size: 14px; margin: 0;">
+    Thanks &amp; Regards,<br>
+    <strong>IndoWings Operations Team</strong>
+  </p>
 </div>
     `.trim();
 
@@ -1288,21 +1281,17 @@ IndoFleet Security
 `.trim();
 
   const bodyHtml = `
-    <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
+    <p style="font-size: 15px; color: #222222; margin: 0 0 12px 0;">
       Hello <strong>${name || 'Valued User'}</strong>,<br>
       A request was made to update the password for your account (<strong>${email}</strong>).
     </p>
-
-    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
-      <p style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px 0;">Verification Code</p>
-      <div style="font-family: monospace; font-size: 32px; font-weight: 800; color: #5a00b8; letter-spacing: 6px; margin: 4px 0;">
-        ${otp}
-      </div>
-      <p style="margin: 8px 0 0 0; font-size: 12px; color: #dc2626; font-weight: 600;">Valid for 10 minutes only</p>
-    </div>
-
-    <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin: 0;">
-      Enter this code on the password update screen. If you did not request this, please contact your Administrator to secure your account.
+    <p style="font-size: 15px; color: #222222;">
+      Your verification code is: <strong style="font-size: 20px; font-family: monospace; letter-spacing: 2px; color: #000000;">${otp}</strong>
+    </p>
+    <p style="font-size: 13px; color: #666666;">This code is valid for 10 minutes only. Please do not share it with anyone.</p>
+    <br>
+    <p style="font-size: 13px; color: #666666; margin: 0;">
+      If you did not request this, please contact connect@indowings.com immediately to secure your account.
     </p>
   `;
 
@@ -1343,31 +1332,24 @@ INSTRUCTIONS:
 • Use this temporary password to log in.
 • Immediately update your password in Profile Settings upon signing in.
 
-IndoFleet Security
+IndoWings Security
 `.trim();
 
   const bodyHtml = `
-    <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
+    <p style="font-size: 15px; color: #222222; margin: 0 0 12px 0;">
       Hello <strong>${name || 'Valued User'}</strong>,<br>
       A temporary password has been ${adminGenerated ? 'generated by your Administrator' : 'requested for your account'} (<strong>${email}</strong>).
     </p>
-
-    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
-      <p style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px 0;">Temporary Password</p>
-      <div style="font-family: monospace; font-size: 24px; font-weight: 800; color: #5a00b8; letter-spacing: 2px; margin: 4px 0;">
-        ${tempPassword}
-      </div>
-      <p style="margin: 8px 0 0 0; font-size: 12px; color: #dc2626; font-weight: 600;">Valid for 10 minutes only</p>
-    </div>
-
-    <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; margin-top: 16px;">
-      <p style="font-size: 12px; font-weight: 700; color: #0f172a; margin: 0 0 6px 0;">Instructions:</p>
-      <ol style="font-size: 12px; color: #64748b; padding-left: 18px; margin: 0; line-height: 1.6;">
-        <li>Log in with this temporary password within 10 minutes.</li>
-        <li>Go to your <strong>Profile Settings &rarr; Change Password</strong>.</li>
-        <li>Set your new permanent password.</li>
-      </ol>
-    </div>
+    <p style="font-size: 15px; color: #222222;">
+      Temporary Password: <strong style="font-size: 18px; font-family: monospace; letter-spacing: 1px; color: #000000;">${tempPassword}</strong>
+    </p>
+    <p style="font-size: 13px; color: #666666;">This temporary password is valid for 10 minutes only.</p>
+    <br>
+    <p style="font-size: 14px; color: #222222; margin: 0 0 6px 0;"><strong>Instructions:</strong></p>
+    <ol style="font-size: 14px; color: #444444; padding-left: 20px; margin: 0; line-height: 1.6;">
+      <li>Log in with this temporary password within 10 minutes.</li>
+      <li>Go to Profile Settings &rarr; Change Password to set your permanent password.</li>
+    </ol>
   `;
 
   const html = renderCleanEmail({
