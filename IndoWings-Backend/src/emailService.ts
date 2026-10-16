@@ -40,10 +40,10 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
   }
 
   // Gmail SMTP via Nodemailer
-  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+  if (smtpUser && smtpPass) {
     try {
       const info = await smtpTransporter.sendMail({
-        from: `"${MAIL_FROM_NAME}" <${process.env.SMTP_USER}>`,
+        from: `"${MAIL_FROM_NAME}" <${smtpUser}>`,
         to,
         subject,
         text,
