@@ -7,7 +7,7 @@ import {
   Volume2, VolumeX, X, Zap, ArrowRight, Copy, CheckCheck, Menu, LogOut,
   ChevronRight, Headphones, FileText, CheckSquare, Layers, Shield,
   Filter, ChevronDown, ShoppingBag, ImageIcon, ChevronLeft, Plus, AlertCircle, Edit, Trash2,
-  Wrench, Calendar, Pause, Play, RotateCcw, SlidersHorizontal
+  Wrench, Calendar, Pause, Play, RotateCcw, SlidersHorizontal, Plane
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 import { DeliveryUser } from '../types';
@@ -1762,90 +1762,91 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                   const isReserved = d.status !== 'maintenance' && (d.status === 'reserved' || Boolean(linked) || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order));
 
                   return (
-                    <tr key={d.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3 px-4">
+                    <tr key={d.id} className="hover:bg-purple-50/20 transition-colors">
+                      <td className="py-3 px-3.5">
                         {d.image_url ? (
-                          <img src={d.image_url} alt={d.model} className="h-10 w-14 rounded-lg object-cover border border-slate-200" />
+                          <img src={d.image_url} alt={d.model} className="h-9 w-12 rounded-xl object-cover border border-slate-200 shadow-2xs" />
                         ) : (
-                          <div className="h-10 w-14 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center border border-slate-200">
-                            <ImageIcon className="h-4 w-4" />
+                          <div className="h-9 w-12 rounded-xl bg-gradient-to-br from-purple-50 to-slate-100 text-[#5a00b8] flex items-center justify-center border border-purple-100 shadow-2xs">
+                            <Plane className="h-4 w-4 transform -rotate-45" />
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-4">
-                        <p className="font-mono font-bold text-slate-900">{d.id}</p>
-                        <p className="text-[10px] text-slate-400 font-mono">{d.serial_number || d.id}</p>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className="font-mono font-bold text-slate-900 text-xs block tracking-tight">{d.id}</span>
+                        <span className="text-[10px] text-slate-400 font-mono block tracking-tight">{d.serial_number || d.id}</span>
                       </td>
-                      <td className="py-3 px-4 font-bold text-[#3B0080]">{d.model}</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[11px]">
+                      <td className="py-3 px-4 font-bold text-[#5a00b8] whitespace-nowrap">{d.model}</td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className="inline-block px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[11px] whitespace-nowrap">
                           {d.category || 'General UAV'}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-4 whitespace-nowrap">
                         {d.status === 'maintenance' ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
-                            <Wrench className="w-3 h-3 text-amber-600 shrink-0" />
-                            <span>Under Maintenance</span>
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                            <span>Maintenance</span>
                           </span>
                         ) : isReserved ? (
                           <button
                             type="button"
                             onClick={() => setSelectedReservedDrone(d)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-50 text-[#3B0080] border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer shadow-2xs group"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer"
                           >
-                            <ShoppingBag className="w-3 h-3 text-[#3B0080] shrink-0" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
                             <span>Reserved: <strong className="font-mono">{linked?.id || d.assigned_order || 'Booking'}</strong></span>
-                            <Eye className="w-3 h-3 text-purple-400 group-hover:text-[#3B0080] shrink-0" />
+                            <Eye className="w-3 h-3 text-purple-500" />
                           </button>
                         ) : d.status === 'en-route' || d.status === 'in-flight' || d.status === 'dispatched' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
-                            <Truck className="w-3 h-3 text-blue-600" />
-                            Dispatched
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                            <span>In Flight</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <Check className="w-3 h-3 text-emerald-600" />
-                            In Stock (Idle)
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span>Ready / In Stock</span>
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-4 whitespace-nowrap">
                         {isVerified ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/70">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            Verified ID
+                            Verified
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-amber-50 text-amber-700 border border-amber-200">
-                            <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-                            Unverified ID
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
+                            <AlertCircle className="w-3.5 h-3.5 text-slate-400" />
+                            Pending
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center justify-end gap-1.5">
                           {isReserved && (
                             <button
                               type="button"
                               onClick={() => setSelectedReservedDrone(d)}
-                              className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-purple-50 text-[#3B0080] border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-all flex items-center gap-1 cursor-pointer"
+                              title="View Assigned Consignment"
                             >
                               <Eye className="w-3.5 h-3.5" />
-                              <span>View Order</span>
+                              <span>Order</span>
                             </button>
                           )}
                           <button
                             type="button"
                             onClick={() => handleToggleDroneMaintenance(d)}
-                            className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer flex items-center gap-1 ${
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer flex items-center gap-1 ${
                               d.status === 'maintenance'
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
                                 : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
                             }`}
                             title={d.status === 'maintenance' ? 'Clear maintenance and restore to stock' : 'Mark under technical maintenance'}
                           >
-                            <Wrench className="w-3 h-3" />
+                            <Wrench className="w-3.5 h-3.5" />
                             <span>{d.status === 'maintenance' ? 'Clear Maint.' : 'Set Maint.'}</span>
                           </button>
                           <button
@@ -1856,9 +1857,10 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                               });
                               setInventoryModalError('');
                             }}
-                            className="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 hover:bg-purple-50 hover:text-[#3B0080] hover:border-purple-200 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-[#5a00b8] hover:bg-purple-50 border border-slate-200 transition-colors cursor-pointer"
+                            title="Edit Drone Details"
                           >
-                            Edit
+                            <Edit className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
