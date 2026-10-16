@@ -50,7 +50,8 @@ import {
   Zap,
   QrCode,
   Edit2,
-  Plane
+  Plane,
+  Download
 } from 'lucide-react';
 import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
@@ -71,6 +72,8 @@ import { DroneQRCodeModal } from '../components/DroneQRCodeModal';
 import { DroneQRScannerModal } from '../components/DroneQRScannerModal';
 import { PostDeliveryInspectionModal } from '../components/PostDeliveryInspectionModal';
 import { DroneAuditLogConsole } from '../components/DroneAuditLogConsole';
+import { BulkQrDownloadModal } from '../components/BulkQrDownloadModal';
+import { downloadDronesAsZip, getDronesForOrder } from '../utils/droneQrGenerator';
 
 interface AdminDashboardProps {
   currentUser: DeliveryUser | null;
@@ -106,9 +109,33 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   }>({ passedCount: 0, failedOrPendingCount: 0, totalCount: 0 });
   const [selectedQrDrone, setSelectedQrDrone] = useState<any | null>(null);
   const [showQrScanner, setShowQrScanner] = useState(false);
+  const [showBulkQrModal, setShowBulkQrModal] = useState(false);
+  const [orderDownloadingZipId, setOrderDownloadingZipId] = useState<string | null>(null);
   const [selectedInspectionDroneId, setSelectedInspectionDroneId] = useState('');
   const [selectedInspectionDeliveryId, setSelectedInspectionDeliveryId] = useState('');
   const [showInspectionModal, setShowInspectionModal] = useState(false);
+
+  // Order-wise Bulk Drone QR Download Handler
+  const handleDownloadOrderZip = async (order: any) => {
+    const dronesForOrder = getDronesForOrder(order, drones);
+    if (!dronesForOrder || dronesForOrder.length === 0) {
+      setToastMessage(`No drone units linked with Order #${order.order_number || order.id || 'N/A'} yet.`);
+      setTimeout(() => setToastMessage(''), 4000);
+      return;
+    }
+    try {
+      setOrderDownloadingZipId(order.id);
+      const filename = `Order_${order.order_number || order.id}_Drones_QR`;
+      await downloadDronesAsZip(dronesForOrder, filename);
+      setToastMessage(`Successfully downloaded QR codes (.ZIP) for Order #${order.order_number || order.id}!`);
+    } catch (err: any) {
+      console.error('Error generating order QR zip:', err);
+      setToastMessage(`Failed to generate QR ZIP: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setOrderDownloadingZipId(null);
+      setTimeout(() => setToastMessage(''), 4500);
+    }
+  };
   
   // Single Drone Form State
   const [showAddSingleDrone, setShowAddSingleDrone] = useState(false);
@@ -2006,6 +2033,16 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                       <Layers className="w-3.5 h-3.5" />
                       <span>Bulk Batch Add</span>
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowBulkQrModal(true)}
+                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap transition-colors"
+                      title="Bulk Download Drone QR Codes as ZIP (Range 1-100 or All)"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Bulk QR ZIP</span>
+                    </button>
                   </div>
                 </div>
 
@@ -2375,13 +2412,29 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                               </span>
                             </td>
                             <td className="py-3 px-4 text-right">
-                              <button
-                                onClick={() => setAdminTrackingOrder(o)}
-                                className="px-3 py-1.5 rounded-xl bg-purple-50 text-[#5a00b8] hover:bg-purple-100 font-bold text-xs border border-purple-200 cursor-pointer flex items-center gap-1.5 ml-auto shadow-2xs"
-                              >
-                                <Radio className="w-3.5 h-3.5 text-purple-600 animate-pulse" />
-                                <span>Track Flight &rarr;</span>
-                              </button>
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownloadOrderZip(o)}
+                                  disabled={orderDownloadingZipId === o.id}
+                                  className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-xs cursor-pointer flex items-center gap-1 shadow-2xs transition-all disabled:opacity-50"
+                                  title="Download all drone QR codes for this order as ZIP"
+                                >
+                                  {orderDownloadingZipId === o.id ? (
+                                    <Loader2 className="w-3.5 h-3.5 text-amber-700 animate-spin" />
+                                  ) : (
+                                    <QrCode className="w-3.5 h-3.5 text-amber-700" />
+                                  )}
+                                  <span>QR ZIP</span>
+                                </button>
+                                <button
+                                  onClick={() => setAdminTrackingOrder(o)}
+                                  className="px-3 py-1.5 rounded-xl bg-purple-50 text-[#5a00b8] hover:bg-purple-100 font-bold text-xs border border-purple-200 cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                                >
+                                  <Radio className="w-3.5 h-3.5 text-purple-600 animate-pulse" />
+                                  <span>Track Flight &rarr;</span>
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -3593,6 +3646,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
           setShowInspectionModal(true);
         }}
         onNavigate={onNavigate}
+      />
+
+      {/* ── BULK QR CODE DOWNLOAD ZIP MODAL (ADMIN / FLEET / DISPATCHER) ──── */}
+      <BulkQrDownloadModal
+        isOpen={showBulkQrModal}
+        onClose={() => setShowBulkQrModal(false)}
+        allDrones={drones}
       />
 
       {/* ── 700 RPAV DRONE QR SCANNER MODAL ──── */}
