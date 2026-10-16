@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   X,
   QrCode,
@@ -7,10 +7,7 @@ import {
   Copy,
   Check,
   ExternalLink,
-  ShieldCheck,
-  Plane,
-  Layers,
-  Sparkles
+  ShieldCheck
 } from 'lucide-react';
 
 interface DroneQRCodeModalProps {
@@ -32,6 +29,23 @@ interface DroneQRCodeModalProps {
   onNavigate?: (page: string) => void;
 }
 
+// Exact official IndoWings center pill SVG badge from Reference Image 2
+const INDOWINGS_PILL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="40" viewBox="0 0 144 40">
+  <rect width="144" height="40" rx="9" fill="#000000"/>
+  <g transform="translate(13, 10.5) scale(0.62)">
+    <!-- Top Orange Accent -->
+    <path d="M433.185.01h7.072a.541.541,0,0,1,.55.748l-.262.811a1.158,1.158,0,0,1-1.032.749h-7.072a.541.541,0,0,1-.55-.749l.262-.811A1.156,1.156,0,0,1,433.185.01Z" transform="translate(-424.348 -0.01)" fill="#ef7f1a" fill-rule="evenodd"/>
+    <!-- Main Aerodynamic Body -->
+    <path d="M55.862,7.511,50.919,22.646c-.949,2.9-2,7.6-9.565,7.6H5.81c-2.736,0-7.343-1.618-5.307-7.6L4.6,10.607c.243-.712.9-2.551,2.893-2.552l4.017,0c1.623.083,2.231.58,1.693,2.591L8.783,23.76c-.715,2.876,1.31,4.138,3.925,4.138H40.464c3.3,0,5.224-2.23,5.988-5.094l4.687-14c1.544-4.612-.893-6.312-5.21-6.312H24.086C21.6,2.491,16.361.129,19.238.125,27.956.112,38.8.133,47.513.127c8.612-.006,9.225,4.7,8.348,7.384ZM43.655,22.649c-.8,2.719-2.166,4.155-5.542,4.175H30c-2.335,0-3.007-1.492-2.6-2.9l4.323-12.879c.283-.816-1.1-.9-1.4.055L26.014,23.817c-.728,2.389-2,2.954-3.858,3.006H13.845c-2.313,0-2.471-1.895-1.978-3.716L16.317,9.953c.572-1.691,1.243-1.9,2.274-1.9h.769c1.764,0,1.631.981,1.234,2.172L16.527,22.369c-.266.8.1,1.44.831,1.44h1.933A1.528,1.528,0,0,0,20.9,22.568l4.089-12.035c.758-2.231,2.045-2.559,3.375-2.559h4.611c2.19,0,2.058,1.569,1.722,2.56L30.75,22.182c-.309.916.1,1.595.97,1.609l1.712.028c.715.012,1.278-.239,1.659-1.355L38.543,12.35c1.068-3.129,1.623-6.442-2.656-6.442H27.17c-2.487,0-7.625-2.366-4.848-2.366H44.669c3.115,0,4.778,1.962,3.836,4.668l-4.85,14.44Z" transform="translate(0.001 -0.118)" fill="#ffffff" fill-rule="evenodd"/>
+    <!-- Bottom Orange Accent -->
+    <path d="M363.23,197.13h7.149a.541.541,0,0,1,.55.748l-.262.811a1.158,1.158,0,0,1-1.032.749h-7.149a.541.541,0,0,1-.55-.749l.262-.811A1.156,1.156,0,0,1,363.23,197.13Z" transform="translate(-355.608 -193.703)" fill="#ef7f1a" fill-rule="evenodd"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="54" y="24.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="900" letter-spacing="1.4px" fill="#ffffff">INDOWINGS</text>
+</svg>`;
+
+const BADGE_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(INDOWINGS_PILL_SVG)}`;
+
 export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
   isOpen,
   onClose,
@@ -45,14 +59,11 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
   if (!isOpen || !drone) return null;
 
   const droneId = drone.id;
-  const serialNumber = drone.serial_number || droneId;
   const modelName = drone.model_name || drone.model || '700 RPAV';
-  const condition = (drone.current_condition || 'GOOD').toUpperCase();
   const permanentUrl = `https://indo-fleet.vercel.app/drone/${encodeURIComponent(droneId)}`;
   
-  // 400x400 QR Code with Error Correction Level H (30% recovery margin)
-  // Level H ensures the QR code remains 100% scan-reliable with the centered IndoWings logo
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&ecc=H&margin=4&data=${encodeURIComponent(permanentUrl)}`;
+  // High-density QR Code with Level H error correction
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=450x450&ecc=H&margin=4&data=${encodeURIComponent(permanentUrl)}`;
 
   const handleCopyUrl = async () => {
     try {
@@ -65,16 +76,16 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
   };
 
   const handlePrint = () => {
-    const printWindow = window.open('', '_blank', 'width=540,height=580');
+    const printWindow = window.open('', '_blank', 'width=520,height=560');
     if (!printWindow) return;
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
-          <title>IndoWings Airframe Label - ${droneId}</title>
+          <title>IndoWings Label - ${droneId}</title>
           <style>
             @page {
-              size: 25mm 28mm;
+              size: 25mm 27mm;
               margin: 0;
             }
             * {
@@ -82,32 +93,23 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
             }
             body {
               margin: 0;
-              padding: 1.2mm 1mm;
+              padding: 1.2mm 0.8mm;
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
               text-align: center;
               background: #fff;
               color: #000;
               width: 25mm;
-              height: 28mm;
+              height: 27mm;
               display: flex;
               flex-direction: column;
               align-items: center;
-              justify-content: space-between;
+              justify-content: center;
               overflow: hidden;
-            }
-            .brand-header {
-              font-size: 4.2pt;
-              font-weight: 900;
-              letter-spacing: 0.3px;
-              text-transform: uppercase;
-              color: #5a00b8;
-              line-height: 1;
-              margin-bottom: 0.5mm;
             }
             .qr-wrapper {
               position: relative;
-              width: 17mm;
-              height: 17mm;
+              width: 18mm;
+              height: 18mm;
               display: flex;
               align-items: center;
               justify-content: center;
@@ -118,58 +120,45 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
               height: 100%;
               display: block;
             }
-            .qr-center-badge {
+            .qr-center-pill {
               position: absolute;
               top: 50%;
               left: 50%;
               transform: translate(-50%, -50%);
-              background: #ffffff;
-              padding: 0.4mm 1mm;
-              border-radius: 0.8mm;
-              border: 0.25mm solid #5a00b8;
-              display: flex;
-              align-items: center;
-              gap: 0.4mm;
-              box-shadow: 0 0.5mm 1mm rgba(0,0,0,0.15);
-            }
-            .qr-center-text {
-              font-size: 2.8pt;
-              font-weight: 900;
-              color: #5a00b8;
-              letter-spacing: 0.2px;
+              width: 6.8mm;
+              height: auto;
+              display: block;
             }
             .footer-info {
-              margin-top: 0.6mm;
+              margin-top: 1.2mm;
               width: 100%;
-              line-height: 1.15;
+              line-height: 1.2;
             }
             .drone-id-label {
-              font-size: 4.8pt;
+              font-size: 5.2pt;
               font-weight: 900;
-              font-family: monospace;
-              letter-spacing: 0.2px;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", monospace;
+              letter-spacing: 0.3px;
               color: #0f172a;
               white-space: nowrap;
             }
-            .serial-label {
-              font-size: 3.2pt;
-              color: #475569;
-              font-family: monospace;
+            .model-label {
+              font-size: 3.4pt;
+              color: #64748b;
+              font-weight: 700;
               white-space: nowrap;
+              margin-top: 0.2mm;
             }
           </style>
         </head>
         <body>
-          <div class="brand-header">INDOWINGS 700 RPAV</div>
           <div class="qr-wrapper">
             <img class="qr-img" src="${qrImageUrl}" alt="QR" />
-            <div class="qr-center-badge">
-              <span class="qr-center-text">INDOWINGS</span>
-            </div>
+            <img class="qr-center-pill" src="${BADGE_DATA_URI}" alt="IndoWings" />
           </div>
           <div class="footer-info">
             <div class="drone-id-label">${droneId}</div>
-            <div class="serial-label">S/N: ${serialNumber}</div>
+            <div class="model-label">Model: ${modelName}</div>
           </div>
           <script>
             window.onload = function() {
@@ -186,10 +175,10 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
   const handleDownload = async () => {
     try {
       setDownloading(true);
-      // Create high-resolution composite canvas (600x750)
+      // Clean minimalist canvas: QR at top, only Drone ID + Model below
       const canvas = document.createElement('canvas');
-      canvas.width = 600;
-      canvas.height = 760;
+      canvas.width = 520;
+      canvas.height = 620;
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Canvas not supported');
 
@@ -197,94 +186,48 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 2. Draw border frame
-      ctx.strokeStyle = '#E2E8F0';
-      ctx.lineWidth = 4;
-      ctx.strokeRect(12, 12, canvas.width - 24, canvas.height - 24);
-
-      // 3. Draw top branding banner
-      ctx.fillStyle = '#5A00B8';
-      ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('INDOWINGS 700 RPAV', canvas.width / 2, 50);
-
-      ctx.fillStyle = '#64748B';
-      ctx.font = 'bold 12px monospace';
-      ctx.fillText('OFFICIAL AIRFRAME IDENTIFIER • DGCA TYPE CERTIFIED', canvas.width / 2, 72);
-
-      // 4. Load & draw QR Code image with Level H error correction
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
+      // 2. Load & draw QR Code image
+      const qrImg = new Image();
+      qrImg.crossOrigin = 'anonymous';
       await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error('Failed to load QR image'));
-        img.src = qrImageUrl;
+        qrImg.onload = () => resolve();
+        qrImg.onerror = () => reject(new Error('Failed to load QR image'));
+        qrImg.src = qrImageUrl;
       });
 
       const qrSize = 440;
       const qrX = (canvas.width - qrSize) / 2;
-      const qrY = 95;
-      ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
+      const qrY = 32;
+      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-      // 5. Draw center IndoWings badge in the exact middle of the QR code
-      const badgeW = 140;
-      const badgeH = 44;
-      const badgeX = (canvas.width - badgeW) / 2;
+      // 3. Draw exact IndoWings black pill badge in center from Image 2
+      const badgeImg = new Image();
+      await new Promise<void>((resolve, reject) => {
+        badgeImg.onload = () => resolve();
+        badgeImg.onerror = () => reject(new Error('Failed to load Badge image'));
+        badgeImg.src = BADGE_DATA_URI;
+      });
+
+      const badgeW = 144;
+      const badgeH = 40;
+      const badgeX = qrX + (qrSize - badgeW) / 2;
       const badgeY = qrY + (qrSize - badgeH) / 2;
+      ctx.drawImage(badgeImg, badgeX, badgeY, badgeW, badgeH);
 
-      // Rounded background for center badge
-      ctx.fillStyle = '#FFFFFF';
-      ctx.strokeStyle = '#5A00B8';
-      ctx.lineWidth = 2.5;
-      
-      const r = 10;
-      ctx.beginPath();
-      ctx.moveTo(badgeX + r, badgeY);
-      ctx.lineTo(badgeX + badgeW - r, badgeY);
-      ctx.quadraticCurveTo(badgeX + badgeW, badgeY, badgeX + badgeW, badgeY + r);
-      ctx.lineTo(badgeX + badgeW, badgeY + badgeH - r);
-      ctx.quadraticCurveTo(badgeX + badgeW, badgeY + badgeH, badgeX + badgeW - r, badgeY + badgeH);
-      ctx.lineTo(badgeX + r, badgeY + badgeH);
-      ctx.quadraticCurveTo(badgeX, badgeY + badgeH, badgeX, badgeY + badgeH - r);
-      ctx.lineTo(badgeX, badgeY + r);
-      ctx.quadraticCurveTo(badgeX, badgeY, badgeX + r, badgeY);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      // Wing mark accent (orange)
-      ctx.fillStyle = '#EF7F1A';
-      ctx.fillRect(badgeX + 16, badgeY + 12, 10, 3);
-      ctx.fillRect(badgeX + 22, badgeY + 28, 10, 3);
-
-      // IndoWings center text
-      ctx.fillStyle = '#5A00B8';
-      ctx.font = '900 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      // 4. Draw ONLY Drone ID and Model below the QR code (nothing on top, no other labels)
       ctx.textAlign = 'center';
-      ctx.fillText('IndoWings', badgeX + (badgeW / 2) + 6, badgeY + 27);
-
-      // 6. Draw details OUTSIDE below the QR code (not inside the QR)
-      const footerY = qrY + qrSize + 36;
-      ctx.fillStyle = '#64748B';
-      ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.fillText('DRONE AIRFRAME ID', canvas.width / 2, footerY);
-
-      // Bold, high-contrast Drone ID
+      
+      // Drone ID
       ctx.fillStyle = '#0F172A';
-      ctx.font = '900 24px monospace';
-      ctx.fillText(droneId, canvas.width / 2, footerY + 30);
+      ctx.font = '900 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace';
+      ctx.fillText(droneId, canvas.width / 2, qrY + qrSize + 48);
 
-      // Serial Number and Model
-      ctx.fillStyle = '#475569';
-      ctx.font = '600 14px monospace';
-      ctx.fillText(`MODEL: ${modelName}   •   S/N: ${serialNumber}`, canvas.width / 2, footerY + 54);
+      // Model
+      ctx.fillStyle = '#64748B';
+      ctx.font = '700 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText(`Model: ${modelName}`, canvas.width / 2, qrY + qrSize + 74);
 
-      // Condition Tag
-      ctx.fillStyle = condition === 'GOOD' ? '#059669' : '#D97706';
-      ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.fillText(`AIRFRAME CONDITION: ${condition}`, canvas.width / 2, footerY + 76);
-
-      // 7. Trigger download
+      // 5. Trigger download
       canvas.toBlob((blob) => {
         if (!blob) return;
         const url = window.URL.createObjectURL(blob);
@@ -327,7 +270,7 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
                 </span>
               </div>
               <p className="text-[11px] text-purple-200/80 font-mono mt-0.5">
-                Branded IndoWings QR &bull; Unique Airframe Link &bull; Zero Mismatch
+                Official IndoWings Identity &bull; {droneId}
               </p>
             </div>
           </div>
@@ -342,78 +285,38 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-6 space-y-5 overflow-y-auto">
-          {/* Branded QR Box: IndoWings Logo in Center + Drone ID OUTSIDE Below */}
-          <div className="flex flex-col items-center justify-center p-5 bg-slate-50/90 border-2 border-dashed border-purple-200/90 rounded-3xl">
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/90 text-center flex flex-col items-center w-full max-w-[290px]">
-              {/* Brand Top Header */}
-              <div className="text-[11px] font-black uppercase tracking-wider text-[#5a00b8] mb-2 flex items-center gap-1.5">
-                <Plane className="w-3.5 h-3.5 transform -rotate-45" />
-                <span>IndoWings 700 RPAV</span>
-              </div>
+          {/* Minimalist QR Card: No Top Text, Official Black IndoWings Pill in Center, Only ID & Model Below */}
+          <div className="flex flex-col items-center justify-center p-5 bg-slate-50/90 border border-slate-200/90 rounded-3xl">
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/90 text-center flex flex-col items-center w-full max-w-[280px]">
               
-              {/* QR Container with Centered IndoWings Badge Overlay */}
-              <div className="relative p-2.5 bg-white rounded-2xl border border-slate-200 shadow-inner">
+              {/* QR Container with Centered Official IndoWings Pill Badge (Matching Reference Image 2) */}
+              <div className="relative p-2 bg-white rounded-xl border border-slate-100 shadow-2xs">
                 <img
                   src={qrImageUrl}
                   alt={`QR code for ${droneId}`}
                   className="w-48 h-48 object-contain rounded-lg"
                 />
 
-                {/* Center IndoWings Logo Badge: 100% scan safe with Level H error correction */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-3 py-1.5 rounded-xl border-2 border-[#5a00b8] shadow-md flex items-center gap-1.5 pointer-events-none select-none">
-                  {/* Wing Icon Accent */}
-                  <div className="w-4 h-4 flex flex-col justify-between py-0.5">
-                    <div className="w-2.5 h-0.5 bg-[#ef7f1a] rounded-full self-start" />
-                    <div className="w-3.5 h-1 bg-[#5a00b8] rounded-full" />
-                    <div className="w-2.5 h-0.5 bg-[#ef7f1a] rounded-full self-end" />
-                  </div>
-                  <span className="text-[11px] font-black tracking-tight text-[#5a00b8]">
-                    IndoWings
-                  </span>
+                {/* Exact IndoWings Black Pill Badge Overlay from Image 2 */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none drop-shadow-md">
+                  <img
+                    src={BADGE_DATA_URI}
+                    alt="IndoWings"
+                    className="w-32 h-auto"
+                  />
                 </div>
               </div>
 
-              {/* Drone ID Placed OUTSIDE below the QR code (as requested: "qr k niche mtlb qr k bahr andar nhi") */}
-              <div className="mt-3.5 w-full px-2 pt-2 border-t border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-                  DRONE ID (EXTERNAL)
-                </span>
-                <span className="font-mono font-black text-slate-900 text-base tracking-wider block whitespace-nowrap select-all mt-0.5">
+              {/* OUTSIDE Below QR: Only Drone ID & Model (Clean & uncluttered) */}
+              <div className="mt-4 w-full text-center">
+                <span className="font-mono font-black text-slate-900 text-base tracking-wider block whitespace-nowrap select-all">
                   {droneId}
                 </span>
-                <span className="text-[11px] text-slate-500 font-mono block whitespace-nowrap mt-0.5 select-all font-semibold">
-                  S/N: {serialNumber} &bull; {modelName}
-                </span>
-              </div>
-
-              {/* Operational Status Badge */}
-              <div className="mt-2.5">
-                <span
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold ${
-                    condition === 'GOOD'
-                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                      : condition === 'DAMAGED'
-                      ? 'bg-rose-50 text-rose-800 border border-rose-200'
-                      : 'bg-amber-50 text-amber-800 border border-amber-200'
-                  }`}
-                >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      condition === 'GOOD'
-                        ? 'bg-emerald-500'
-                        : condition === 'DAMAGED'
-                        ? 'bg-rose-500'
-                        : 'bg-amber-500'
-                    }`}
-                  />
-                  <span>Condition: {condition}</span>
+                <span className="text-xs text-slate-500 font-semibold block mt-0.5 select-all">
+                  Model: {modelName}
                 </span>
               </div>
             </div>
-
-            <p className="text-[11px] text-slate-500 mt-2.5 text-center font-medium">
-              Centered IndoWings branding with Level H error recovery &bull; Drone ID outside QR
-            </p>
           </div>
 
           {/* Airframe Details Grid (2x2 sleek cards) */}
@@ -435,9 +338,9 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
 
             <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Airframe Condition</span>
-              <span className={`text-xs font-bold mt-0.5 block truncate ${
-                condition === 'GOOD' ? 'text-emerald-700' : 'text-amber-700'
-              }`}>{condition}</span>
+              <span className="text-xs font-bold text-emerald-700 mt-0.5 block truncate">
+                {drone.current_condition || 'GOOD'}
+              </span>
             </div>
 
             <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80">
@@ -453,7 +356,7 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
           {/* Permanent URL Box */}
           <div className="space-y-1.5">
             <label className="block text-[11px] font-bold text-slate-700">
-              Unique QR Scan Link (Direct Airframe Public Portal)
+              Direct Airframe Link
             </label>
             <div className="flex items-center gap-2">
               <input
