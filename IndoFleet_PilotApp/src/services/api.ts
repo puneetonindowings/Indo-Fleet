@@ -143,12 +143,36 @@ export async function fetchPilotOrderHistory(pilotId?: string): Promise<{
   return data;
 }
 
+// 3.5. Request Delivery Partner Self Acceptance OTP
+export async function requestPilotAcceptanceOtp(
+  orderId: string,
+  extra?: { pilotId?: string; pilotEmail?: string; pilotPhone?: string }
+): Promise<{ success: boolean; acceptance_otp?: string; message: string }> {
+  const baseUrl = await getServerUrl();
+  const res = await fetch(`${baseUrl}/api/delivery/pilot/request-acceptance-otp`, {
+    method: 'POST',
+    headers: await getHeaders(),
+    body: JSON.stringify({
+      order_id: orderId,
+      pilot_id: extra?.pilotId,
+      pilot_email: extra?.pilotEmail,
+      pilot_phone: extra?.pilotPhone,
+    }),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || 'Failed to request acceptance OTP');
+  }
+  return data;
+}
+
 // 4. Accept Assigned Order via OTP
 export async function acceptAssignedOrder(
   orderId: string,
   otp: string,
   pilotName: string,
-  extra?: { pilotId?: string; dlId?: string; vehicleId?: string }
+  extra?: { pilotId?: string; pilotEmail?: string; pilotPhone?: string; dlId?: string; vehicleId?: string }
 ): Promise<any> {
   const baseUrl = await getServerUrl();
   const res = await fetch(`${baseUrl}/api/delivery/pilot/accept-order`, {
@@ -159,6 +183,8 @@ export async function acceptAssignedOrder(
       otp,
       pilot_name: pilotName,
       pilot_id: extra?.pilotId,
+      pilot_email: extra?.pilotEmail,
+      pilot_phone: extra?.pilotPhone,
       dl_id: extra?.dlId,
       vehicle_id: extra?.vehicleId
     }),
@@ -171,18 +197,28 @@ export async function acceptAssignedOrder(
   return data;
 }
 
-// 5. Request Dispatcher Handover OTP
-export async function requestDispatcherHandoverOtp(orderId: string, pilotName: string): Promise<{ success: boolean; handover_otp?: string }> {
+// 5. Request Delivery Partner Departure / Pickup OTP
+export async function requestDispatcherHandoverOtp(
+  orderId: string,
+  pilotName: string,
+  extra?: { pilotId?: string; pilotEmail?: string; pilotPhone?: string }
+): Promise<{ success: boolean; handover_otp?: string; message?: string }> {
   const baseUrl = await getServerUrl();
   const res = await fetch(`${baseUrl}/api/delivery/pilot/request-handover-otp`, {
     method: 'POST',
     headers: await getHeaders(),
-    body: JSON.stringify({ order_id: orderId, pilot_name: pilotName }),
+    body: JSON.stringify({
+      order_id: orderId,
+      pilot_name: pilotName,
+      pilot_id: extra?.pilotId,
+      pilot_email: extra?.pilotEmail,
+      pilot_phone: extra?.pilotPhone,
+    }),
   });
 
   const data = await res.json();
   if (!res.ok || !data.success) {
-    throw new Error(data.error || 'Failed to request dispatcher handover OTP');
+    throw new Error(data.error || 'Failed to request departure OTP');
   }
   return data;
 }

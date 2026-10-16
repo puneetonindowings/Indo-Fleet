@@ -838,7 +838,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to assign delivery partner');
 
-      setNotice(`Order #${selectedOrder.order_number || selectedOrder.id} successfully assigned to ${partner.name}! Assigned UAV: ${resolvedDroneId}. Acceptance OTP: ${json.pilot_acceptance_otp}`);
+      setNotice(`Order #${selectedOrder.order_number || selectedOrder.id} successfully assigned to ${partner.name}! Assigned UAV: ${resolvedDroneId}. Delivery Partner will verify via their own OTP.`);
       setAssignModalOpen(false);
       setSelectedOrder(null);
       setSelectedPartnerId('');
@@ -982,7 +982,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         <div className="bg-purple-50/70 p-4 rounded-xl border border-purple-200 shadow-xs">
           <p className="text-xs font-bold text-purple-800 uppercase tracking-wider">Ready Handover</p>
           <p className="text-2xl font-black text-[#3B0080] mt-1">{stats.acceptedReadyHandover}</p>
-          <p className="text-[11px] text-purple-700 mt-0.5">Handover OTP Ready</p>
+          <p className="text-[11px] text-purple-700 mt-0.5">Ready for Departure</p>
         </div>
 
         <div className="bg-cyan-50/70 p-4 rounded-xl border border-cyan-200 shadow-xs">
@@ -1299,21 +1299,19 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                             </p>
                           )}
 
-                          {/* Acceptance OTP Strip */}
-                          {order.pilot_acceptance_otp && (
-                            <div className="mt-2 pt-2 border-t border-slate-100">
-                              <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold text-amber-700 uppercase">Acceptance OTP:</span>
-                                <button
-                                  onClick={() => handleCopyOtp(order.pilot_acceptance_otp!, `acc-${order.id}`)}
-                                  className="flex items-center gap-1 font-mono font-black text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 hover:bg-amber-100 cursor-pointer"
-                                >
-                                  <span>{order.pilot_acceptance_otp}</span>
-                                  {copiedOtpId === `acc-${order.id}` ? <CheckCheck className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                                </button>
-                              </div>
+                          {/* Partner Acceptance Status */}
+                          <div className="mt-2 pt-2 border-t border-slate-100">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold text-slate-500 uppercase">Partner Status:</span>
+                              <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${
+                                order.pilot_acceptance_status === 'accepted'
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  : 'bg-amber-50 text-amber-800 border-amber-200'
+                              }`}>
+                                {order.pilot_acceptance_status === 'accepted' ? 'Order Accepted' : 'Awaiting Partner OTP'}
+                              </span>
                             </div>
-                          )}
+                          </div>
                         </div>
                       ) : (
                         <div className="text-center p-4 bg-amber-50/70 border border-amber-200 rounded-lg">

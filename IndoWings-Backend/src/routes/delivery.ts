@@ -4763,10 +4763,69 @@ router.post('/orders/:id/assign-pilot', async (req, res) => {
   }
 });
 
-// 5. Delivery Partner Accepts Order via Acceptance OTP
+// 5A. Delivery Partner Requests Acceptance OTP to their own registered Phone/Email
+router.post('/pilot/request-acceptance-otp', async (req, res) => {
+  try {
+    const { order_id, pilot_id, pilot_email, pilot_phone } = req.body;
+    if (!order_id) {
+      res.status(400).json({ success: false, error: 'Order ID is required' });
+      return;
+    }
+
+    const order = await fileDB.findOrderById(order_id);
+    if (!order) {
+      res.status(404).json({ success: false, error: 'Order not found' });
+      return;
+    }
+
+    let deliveryUser: any = null;
+    if (pilot_id) deliveryUser = await fileDB.findUserById(pilot_id);
+    if (!deliveryUser && order.assigned_pilot_id) deliveryUser = await fileDB.findUserById(order.assigned_pilot_id);
+    if (!deliveryUser && pilot_email) deliveryUser = await fileDB.findUserByEmail(pilot_email);
+    if (!deliveryUser && (pilot_phone || order.pilot_phone)) deliveryUser = await fileDB.findUserByPhone(pilot_phone || order.pilot_phone);
+
+    const targetEmail = (pilot_email || deliveryUser?.email || '').toLowerCase().trim();
+    const targetPhone = pilot_phone || deliveryUser?.phone || order.pilot_phone || '';
+
+    if (!targetEmail && !targetPhone) {
+      res.status(400).json({ success: false, error: 'No contact information found for delivery partner to send OTP.' });
+      return;
+    }
+
+    const acceptanceOtp = crypto.randomInt(100000, 1000000).toString();
+    if (targetEmail) {
+      await fileDB.saveOTP(targetEmail, acceptanceOtp, { purpose: `pilot-acceptance-${order_id}` });
+      sendOtpNotification({ email: targetEmail, otp: acceptanceOtp }).catch(e => console.error('[mail] Pilot acceptance OTP err:', e));
+    }
+    if (targetPhone) {
+      const cleanPhone = targetPhone.replace(/[^0-9]/g, '').slice(-10);
+      await fileDB.saveOTP(cleanPhone, acceptanceOtp, { purpose: `pilot-acceptance-${order_id}` });
+    }
+
+    await fileDB.updateOrder(order_id, {
+      pilot_acceptance_otp: acceptanceOtp,
+      delivery_data: {
+        ...(order.delivery_data || {}),
+        pilot_acceptance_otp: acceptanceOtp
+      }
+    });
+
+    console.log(`[DELIVERY PARTNER ACCEPTANCE OTP] Order #${order_id}: ${acceptanceOtp} -> ${targetEmail || targetPhone}`);
+
+    res.json({
+      success: true,
+      message: `Acceptance OTP sent to your registered ${targetEmail ? 'email (' + targetEmail + ')' : 'phone'}`,
+      acceptance_otp: acceptanceOtp
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to dispatch acceptance OTP' });
+  }
+});
+
+// 5B. Delivery Partner Accepts Order via Self Acceptance OTP
 router.post('/pilot/accept-order', async (req, res) => {
   try {
-    const { order_id, otp, pilot_name, pilot_id, dl_id, vehicle_id } = req.body;
+    const { order_id, otp, pilot_name, pilot_id, pilot_email, pilot_phone, dl_id, vehicle_id } = req.body;
     if (!order_id || !otp) {
       res.status(400).json({ success: false, error: 'Order ID and Acceptance OTP are required' });
       return;
@@ -4786,8 +4845,11 @@ router.post('/pilot/accept-order', async (req, res) => {
     if (!deliveryUser && pilot_id) {
       deliveryUser = await fileDB.findUserById(pilot_id);
     }
-    if (!deliveryUser && order.pilot_phone) {
-      deliveryUser = await fileDB.findUserByPhone(order.pilot_phone);
+    if (!deliveryUser && (pilot_phone || order.pilot_phone)) {
+      deliveryUser = await fileDB.findUserByPhone(pilot_phone || order.pilot_phone);
+    }
+    if (!deliveryUser && (pilot_email || order.pilot_email)) {
+      deliveryUser = await fileDB.findUserByEmail(pilot_email || order.pilot_email);
     }
 
     const partnerDl = (dl_id || deliveryUser?.dl_id || deliveryUser?.metadata?.dl_id || '').toString().trim();
@@ -4803,9 +4865,27 @@ router.post('/pilot/accept-order', async (req, res) => {
       return;
     }
 
-    // OTP verification temporarily bypassed per system configuration
     const cleanOtp = (otp || '').toString().trim();
-    const expectedOtp = (order.pilot_acceptance_otp || '').toString().trim();
+    const expectedOtp = (order.pilot_acceptance_otp || order.delivery_data?.pilot_acceptance_otp || '').toString().trim();
+    const targetEmail = (pilot_email || deliveryUser?.email || '').toLowerCase().trim();
+    const targetPhone = pilot_phone || deliveryUser?.phone || order.pilot_phone || '';
+
+    let isOtpValid = false;
+    if (expectedOtp && cleanOtp === expectedOtp) {
+      isOtpValid = true;
+    } else if (targetEmail) {
+      const v = await fileDB.verifyOTP(targetEmail, cleanOtp);
+      if (v.valid) isOtpValid = true;
+    }
+    if (!isOtpValid && targetPhone) {
+      const v = await fileDB.verifyOTP(targetPhone.replace(/[^0-9]/g, '').slice(-10), cleanOtp);
+      if (v.valid) isOtpValid = true;
+    }
+
+    if (!isOtpValid) {
+      res.status(400).json({ success: false, error: 'Invalid or expired Acceptance OTP. Please tap Request OTP to receive a new code.' });
+      return;
+    }
 
     const updated = await fileDB.updateOrder(order_id, {
       pilot_acceptance_status: 'accepted',
@@ -4831,7 +4911,7 @@ router.post('/pilot/accept-order', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Order #${order_id} accepted by ${pilot_name || 'Delivery Partner'}! Ready for package handover.`,
+      message: `Order #${order_id} accepted by ${pilot_name || 'Delivery Partner'}! Ready for departure.`,
       order: updated
     });
   } catch (err: any) {
@@ -4839,10 +4919,10 @@ router.post('/pilot/accept-order', async (req, res) => {
   }
 });
 
-// 6. Request Dispatcher Handover OTP to Start Delivery / Flight
+// 6. Request Delivery Partner Departure / Pickup OTP to Start Delivery / Flight
 router.post('/pilot/request-handover-otp', async (req, res) => {
   try {
-    const { order_id, pilot_name } = req.body;
+    const { order_id, pilot_name, pilot_id, pilot_email, pilot_phone } = req.body;
     if (!order_id) {
       res.status(400).json({ success: false, error: 'Order ID is required' });
       return;
@@ -4853,6 +4933,15 @@ router.post('/pilot/request-handover-otp', async (req, res) => {
       res.status(404).json({ success: false, error: 'Order not found' });
       return;
     }
+
+    let deliveryUser: any = null;
+    if (pilot_id) deliveryUser = await fileDB.findUserById(pilot_id);
+    if (!deliveryUser && order.assigned_pilot_id) deliveryUser = await fileDB.findUserById(order.assigned_pilot_id);
+    if (!deliveryUser && pilot_email) deliveryUser = await fileDB.findUserByEmail(pilot_email);
+    if (!deliveryUser && (pilot_phone || order.pilot_phone)) deliveryUser = await fileDB.findUserByPhone(pilot_phone || order.pilot_phone);
+
+    const targetEmail = (pilot_email || deliveryUser?.email || '').toLowerCase().trim();
+    const targetPhone = pilot_phone || deliveryUser?.phone || order.pilot_phone || '';
 
     const handoverOtp = crypto.randomInt(100000, 1000000).toString();
     const expiresAt = Date.now() + 15 * 60 * 1000; // 15 mins
@@ -4863,7 +4952,7 @@ router.post('/pilot/request-handover-otp', async (req, res) => {
       expiresAt
     };
 
-    // Persist to Supabase database so it survives server reboots
+    // Persist to database so it survives server reboots
     await fileDB.updateOrder(order_id, {
       delivery_data: {
         ...(order.delivery_data || {}),
@@ -4872,22 +4961,31 @@ router.post('/pilot/request-handover-otp', async (req, res) => {
       }
     });
 
-    console.log(`[DISPATCHER HANDOVER OTP] Order #${order_id}: ${handoverOtp}`);
+    if (targetEmail) {
+      await fileDB.saveOTP(targetEmail, handoverOtp, { purpose: `pilot-departure-${order_id}` });
+      sendOtpNotification({ email: targetEmail, otp: handoverOtp }).catch((err) => console.error('[mail] Pilot departure OTP error:', err));
+    }
+    if (targetPhone) {
+      const cleanPhone = targetPhone.replace(/[^0-9]/g, '').slice(-10);
+      await fileDB.saveOTP(cleanPhone, handoverOtp, { purpose: `pilot-departure-${order_id}` });
+    }
+
+    console.log(`[DELIVERY PARTNER DEPARTURE OTP] Order #${order_id}: ${handoverOtp} -> ${targetEmail || targetPhone}`);
 
     res.json({
       success: true,
-      message: 'Dispatcher Handover OTP generated.',
-      handover_otp: handoverOtp // Returned so pilot/dispatcher can see in demo or receive via SMS
+      message: `Departure Authorization OTP dispatched to your registered ${targetEmail ? 'email (' + targetEmail + ')' : 'phone'}.`,
+      handover_otp: handoverOtp
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message || 'Failed to generate handover OTP' });
+    res.status(500).json({ success: false, error: err.message || 'Failed to generate departure OTP' });
   }
 });
 
-// 7. Verify Dispatcher Handover OTP & Start Live Delivery Flight
+// 7. Verify Delivery Partner Departure OTP & Start Live Delivery Flight
 router.post('/pilot/verify-handover-and-start-flight', async (req, res) => {
   try {
-    const { order_id, dispatcher_otp, pilot_name, pilot_phone, vehicle_id, initial_lat, initial_lng } = req.body;
+    const { order_id, dispatcher_otp, pilot_otp, otp, pilot_name, pilot_phone, pilot_email, vehicle_id, initial_lat, initial_lng } = req.body;
     if (!order_id) {
       res.status(400).json({ success: false, error: 'Order ID is required' });
       return;
@@ -4899,22 +4997,38 @@ router.post('/pilot/verify-handover-and-start-flight', async (req, res) => {
       return;
     }
 
-    // Strict Handover OTP verification from DB or memory cache
-    const expectedOtp = order.delivery_data?.dispatcher_handover_otp || dispatcherHandoverOtps[order_id]?.otp;
-    const expiresAt = order.delivery_data?.dispatcher_handover_otp_expires_at || dispatcherHandoverOtps[order_id]?.expiresAt;
-
-    if (!dispatcher_otp || typeof dispatcher_otp !== 'string' || !dispatcher_otp.trim()) {
-      res.status(400).json({ success: false, error: 'Dispatcher Handover OTP is required to initiate takeoff.' });
+    const inputOtp = (dispatcher_otp || pilot_otp || otp || '').toString().trim();
+    if (!inputOtp) {
+      res.status(400).json({ success: false, error: 'Departure Authorization OTP is required to initiate delivery.' });
       return;
     }
 
-    if (expectedOtp && dispatcher_otp.trim() !== expectedOtp.trim()) {
-      res.status(400).json({ success: false, error: 'Invalid Dispatcher Handover OTP. Please verify code with the hub dispatcher.' });
+    const expectedOtp = (order.delivery_data?.dispatcher_handover_otp || dispatcherHandoverOtps[order_id]?.otp || '').toString().trim();
+    const expiresAt = order.delivery_data?.dispatcher_handover_otp_expires_at || dispatcherHandoverOtps[order_id]?.expiresAt;
+
+    let isOtpValid = false;
+    if (expectedOtp && inputOtp === expectedOtp) {
+      isOtpValid = true;
+    } else {
+      const targetEmail = (pilot_email || '').toLowerCase().trim();
+      const targetPhone = (pilot_phone || order.pilot_phone || '').replace(/[^0-9]/g, '').slice(-10);
+      if (targetEmail) {
+        const v = await fileDB.verifyOTP(targetEmail, inputOtp);
+        if (v.valid) isOtpValid = true;
+      }
+      if (!isOtpValid && targetPhone) {
+        const v = await fileDB.verifyOTP(targetPhone, inputOtp);
+        if (v.valid) isOtpValid = true;
+      }
+    }
+
+    if (!isOtpValid) {
+      res.status(400).json({ success: false, error: 'Invalid Departure Authorization OTP. Please request a new code.' });
       return;
     }
 
     if (expiresAt && Date.now() > expiresAt) {
-      res.status(400).json({ success: false, error: 'Dispatcher Handover OTP has expired. Please request a fresh OTP from dispatcher.' });
+      res.status(400).json({ success: false, error: 'Departure Authorization OTP has expired. Please request a fresh OTP.' });
       return;
     }
 
