@@ -3345,8 +3345,16 @@ router.patch(['/support/expert-requests/:id', '/support/tickets/:id'], async (re
 
     // If resolved or closed with notes, send resolution notification email to user
     const statusChanged = Boolean(updates.status && updates.status !== existing.status);
-    if (updated.email && statusChanged && (updates.status === 'resolved' || updates.status === 'closed')) {
-      sendQueryResolutionEmail(updated, updates.resolution_notes || 'Your query has been reviewed and resolved by our support team.', agent_name || 'IndoFleet Support Desk').catch((err) =>
+    const shouldSendResolutionEmail = Boolean(
+      updated.email && (
+        req.body.send_email === true ||
+        (statusChanged && (updates.status === 'resolved' || updates.status === 'closed')) ||
+        (updates.resolution_notes && (updates.status === 'resolved' || updates.status === 'closed'))
+      )
+    );
+
+    if (shouldSendResolutionEmail) {
+      sendQueryResolutionEmail(updated, updates.resolution_notes || 'Your query has been reviewed and resolved by our support team.', agent_name || actor.name || 'IndoWings Support Desk').catch((err) =>
         console.error('[support] Resolution email error:', err)
       );
     } else if (updated.email && statusChanged) {

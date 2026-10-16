@@ -24,7 +24,10 @@ import {
   Inbox,
   Sparkles,
   Eye,
-  Truck
+  Truck,
+  ArrowLeft,
+  Copy,
+  CheckCheck
 } from 'lucide-react';
 import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
@@ -65,6 +68,19 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
   const [replySubject, setReplySubject] = useState('');
   const [replyMessage, setReplyMessage] = useState('');
   const [isSendingReply, setIsSendingReply] = useState(false);
+
+  // Full-Page Detail View & In-Page Resolution State
+  const [detailResolutionNotes, setDetailResolutionNotes] = useState('');
+  const [detailStatus, setDetailStatus] = useState('resolved');
+  const [detailSendEmail, setDetailSendEmail] = useState(true);
+  const [isSubmittingDetailResolution, setIsSubmittingDetailResolution] = useState(false);
+
+  // Direct reply in detail view
+  const [showDetailDirectReply, setShowDetailDirectReply] = useState(false);
+  const [detailReplySubject, setDetailReplySubject] = useState('');
+  const [detailReplyMessage, setDetailReplyMessage] = useState('');
+  const [isSendingDetailReply, setIsSendingDetailReply] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const supportToken = localStorage.getItem('iw_delivery_token') || '';
   const supportHeaders = {
@@ -211,9 +227,9 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
         method: 'POST',
         headers: supportHeaders,
         body: JSON.stringify({
-          subject: replySubject.trim() || `IndoFleet Support Update: Ticket ${replyingTicket.id}`,
+          subject: replySubject.trim() || `IndoWings Support Update: Ticket ${replyingTicket.id}`,
           message: replyMessage.trim(),
-          agent_name: currentUser?.name || 'IndoFleet Support Desk'
+          agent_name: currentUser?.name || 'IndoWings Support Desk'
         })
       });
 
@@ -228,6 +244,120 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
       setSupportError(err.message || 'Failed to dispatch email reply.');
     } finally {
       setIsSendingReply(false);
+    }
+  };
+
+  // Sync selectedTicket changes with detail view form
+  useEffect(() => {
+    if (selectedTicket) {
+      setDetailResolutionNotes(selectedTicket.resolution_notes || selectedTicket.notes || '');
+      setDetailStatus(
+        selectedTicket.status === 'resolved' || selectedTicket.status === 'closed'
+          ? selectedTicket.status
+          : 'resolved'
+      );
+      setDetailSendEmail(Boolean(selectedTicket.email));
+      setDetailReplySubject(`Re: [IndoWings Support] Inquiry ${selectedTicket.id}`);
+      setDetailReplyMessage('');
+      setShowDetailDirectReply(false);
+    }
+  }, [selectedTicket]);
+
+  const handleCopy = (text: string, field: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  // Submit Official Resolution from Detail Page
+  const handleSubmitDetailResolution = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTicket) return;
+
+    if (!detailResolutionNotes.trim() && (detailStatus === 'resolved' || detailStatus === 'closed')) {
+      setSupportError('Please provide official resolution notes before resolving.');
+      return;
+    }
+
+    setIsSubmittingDetailResolution(true);
+    setSupportError('');
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/support/tickets/${selectedTicket.id}`, {
+        method: 'PATCH',
+        headers: supportHeaders,
+        body: JSON.stringify({
+          status: detailStatus,
+          resolution_notes: detailResolutionNotes.trim(),
+          agent_name: currentUser?.name || 'IndoWings Support Desk',
+          send_email: detailSendEmail && Boolean(selectedTicket.email)
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to submit resolution.');
+
+      const updatedTicket = data.request || {
+        ...selectedTicket,
+        status: detailStatus,
+        resolution_notes: detailResolutionNotes.trim(),
+        resolved_at: new Date().toISOString(),
+        resolved_by: currentUser?.name || 'IndoWings Support Desk'
+      };
+
+      setSelectedTicket(updatedTicket);
+      showToast(
+        detailSendEmail && selectedTicket.email
+          ? `Inquiry ${selectedTicket.id} marked as ${detailStatus.toUpperCase()} & official resolution email dispatched to ${selectedTicket.email}!`
+          : `Inquiry ${selectedTicket.id} updated to ${detailStatus.toUpperCase()} successfully!`
+      );
+      fetchTickets(true);
+    } catch (err: any) {
+      setSupportError(err.message || 'Error updating ticket resolution.');
+    } finally {
+      setIsSubmittingDetailResolution(false);
+    }
+  };
+
+  // Send Direct Email Reply from Detail Page
+  const handleSendDetailDirectReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTicket || !selectedTicket.email) return;
+
+    if (!detailReplyMessage.trim()) {
+      setSupportError('Please enter a message before sending reply.');
+      return;
+    }
+
+    setIsSendingDetailReply(true);
+    setSupportError('');
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/support/tickets/${selectedTicket.id}/send-email`, {
+        method: 'POST',
+        headers: supportHeaders,
+        body: JSON.stringify({
+          subject: detailReplySubject.trim() || `IndoWings Support Update: Ticket ${selectedTicket.id}`,
+          message: detailReplyMessage.trim(),
+          agent_name: currentUser?.name || 'IndoWings Support Desk'
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to dispatch email reply.');
+
+      showToast(`Direct reply sent successfully to ${selectedTicket.email}!`);
+      setDetailReplyMessage('');
+      setShowDetailDirectReply(false);
+      if (data.request) {
+        setSelectedTicket(data.request);
+      }
+      fetchTickets(true);
+    } catch (err: any) {
+      setSupportError(err.message || 'Failed to dispatch email reply.');
+    } finally {
+      setIsSendingDetailReply(false);
     }
   };
 
@@ -284,23 +414,393 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
         </div>
       )}
 
-      {/* Top Header Card */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#5a00b8] border border-purple-200 flex items-center justify-center font-black">
-              <Inbox className="w-5 h-5" />
+      {selectedTicket ? (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          {/* Top Bar: Back Button, Ticket ID, Status, Refresh */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-xs">
+            <button
+              type="button"
+              onClick={() => setSelectedTicket(null)}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-purple-50 hover:text-[#5a00b8] text-slate-700 transition-colors cursor-pointer w-fit"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to All Inquiries</span>
+            </button>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-xs font-black text-slate-900 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                {selectedTicket.id}
+              </span>
+              {getStatusBadge(selectedTicket.status)}
+              <button
+                type="button"
+                onClick={() => fetchTickets(true)}
+                disabled={refreshing}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-[#5a00b8]' : ''}`} />
+                <span>Refresh</span>
+              </button>
             </div>
-            <div>
-              <h2 className="text-xl font-black text-slate-900 tracking-tight">
-                IndoFleet Support Desk
-              </h2>
-              <p className="text-xs text-slate-500 font-medium">
-                Unified inbox for Website Form inquiries and Customer Drone QR Scan submissions.
-              </p>
+          </div>
+
+          {/* Support Error Banner if any */}
+          {supportError && (
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center justify-between gap-3 text-rose-800 text-xs font-medium">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{supportError}</span>
+              </div>
+              <button type="button" onClick={() => setSupportError('')} className="p-1 hover:bg-rose-100 rounded-lg">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Main 2-Column Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left Column: Customer Dossier & Inquiry Details */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* Inquiry Header Card */}
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      {isQrScanTicket(selectedTicket) ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-black text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full">
+                          <QrCode className="w-3.5 h-3.5" />
+                          Customer Drone QR Scan Submission
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-black text-purple-700 bg-purple-50 border border-purple-200 px-3 py-1 rounded-full">
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          Website Form Submission
+                        </span>
+                      )}
+                      {selectedTicket.category && (
+                        <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700">
+                          {selectedTicket.category}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight mt-2">
+                      Inquiry #{selectedTicket.id}
+                    </h3>
+                  </div>
+
+                  <div className="text-right text-xs text-slate-400">
+                    <span className="block font-bold text-slate-500">Submitted</span>
+                    <span>{formatDate(selectedTicket.created_at)}</span>
+                  </div>
+                </div>
+
+                {/* Customer Details Strip */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-slate-100">
+                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3.5 space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                      <User className="w-3 h-3" /> Customer Name
+                    </span>
+                    <p className="text-sm font-black text-slate-900">
+                      {selectedTicket.name || 'Anonymous Customer'}
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3.5 space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                      <Mail className="w-3 h-3" /> Email Address
+                    </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-mono font-bold text-slate-800 truncate">
+                        {selectedTicket.email || 'N/A'}
+                      </p>
+                      {selectedTicket.email && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(selectedTicket.email, 'email')}
+                          className="p-1 hover:bg-slate-200 rounded-md text-slate-500 hover:text-slate-800 transition-colors"
+                          title="Copy Email"
+                        >
+                          {copiedField === 'email' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3.5 space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                      <Phone className="w-3 h-3" /> Phone Number
+                    </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-mono font-bold text-slate-800">
+                        {selectedTicket.phone || 'N/A'}
+                      </p>
+                      {selectedTicket.phone && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(selectedTicket.phone, 'phone')}
+                          className="p-1 hover:bg-slate-200 rounded-md text-slate-500 hover:text-slate-800 transition-colors"
+                          title="Copy Phone"
+                        >
+                          {copiedField === 'phone' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3.5 space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                      <Truck className="w-3 h-3" /> Airframe / Linked Asset
+                    </span>
+                    <p className="text-xs font-mono font-bold text-purple-700">
+                      {selectedTicket.drone_serial ? selectedTicket.drone_serial : selectedTicket.order_id ? `Order ${selectedTicket.order_id}` : 'General Inquiry'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Message Description Card */}
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-[#5a00b8]" />
+                    Customer Inquiry Message
+                  </h4>
+                  <span className="text-[11px] text-slate-400 font-medium">As submitted by user</span>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-sm text-slate-800 leading-relaxed whitespace-pre-line font-medium select-text">
+                  {selectedTicket.message || 'No description provided.'}
+                </div>
+              </div>
+
+              {/* Resolution On File Card (if exists) */}
+              {selectedTicket.resolution_notes && (
+                <div className="bg-white border border-emerald-200 rounded-3xl p-6 shadow-xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-black text-emerald-900 uppercase tracking-wider flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      Recorded Resolution Notes
+                    </h4>
+                    <span className="text-[11px] text-emerald-700 font-medium">
+                      {selectedTicket.resolved_by ? `By ${selectedTicket.resolved_by}` : 'Resolved'} • {formatDate(selectedTicket.resolved_at)}
+                    </span>
+                  </div>
+                  <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-5 text-sm text-emerald-950 leading-relaxed whitespace-pre-line font-medium">
+                    {selectedTicket.resolution_notes}
+                  </div>
+                </div>
+              )}
+
+              {/* Email Communications Thread (if any) */}
+              {Array.isArray(selectedTicket.email_thread) && selectedTicket.email_thread.length > 0 && (
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+                  <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-blue-600" />
+                    Email Communication History ({selectedTicket.email_thread.length})
+                  </h4>
+                  <div className="space-y-3">
+                    {selectedTicket.email_thread.map((entry: any, idx: number) => (
+                      <div key={idx} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-800">
+                            {entry.direction === 'inbound' ? 'Inbound Customer Email' : `Reply from ${entry.agent_name || 'Support Desk'}`}
+                          </span>
+                          <span className="text-[11px] text-slate-400">{formatDate(entry.timestamp)}</span>
+                        </div>
+                        <p className="font-bold text-slate-700">Subject: {entry.subject}</p>
+                        <p className="text-slate-600 whitespace-pre-line leading-relaxed">{entry.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right Column: In-Page Resolution Form & Email Dispatch */}
+            <div className="lg:col-span-5 space-y-6">
+              {/* Official Resolution Card */}
+              <div className="bg-white border-2 border-purple-200 rounded-3xl p-6 shadow-md space-y-5">
+                <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-100 text-[#5a00b8] flex items-center justify-center font-bold">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">Provide Resolution</h3>
+                    <p className="text-xs text-slate-500">Record action &amp; email customer resolution</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSubmitDetailResolution} className="space-y-4">
+                  {/* Status Dropdown */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5">
+                      Ticket Status
+                    </label>
+                    <select
+                      value={detailStatus}
+                      onChange={(e) => setDetailStatus(e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-xs font-bold rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#5a00b8] text-slate-800"
+                    >
+                      <option value="resolved">Resolved (Complete)</option>
+                      <option value="in_progress">In Progress (Under Technical Review)</option>
+                      <option value="closed">Closed (Archived)</option>
+                      <option value="open">Pending / Open</option>
+                    </select>
+                  </div>
+
+                  {/* Resolution Textarea */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold text-slate-700">
+                        Official Resolution Notes <span className="text-rose-500">*</span>
+                      </label>
+                      <span className="text-[10px] text-slate-400 font-medium">Sent to customer via email</span>
+                    </div>
+                    <textarea
+                      rows={6}
+                      required={detailStatus === 'resolved' || detailStatus === 'closed'}
+                      value={detailResolutionNotes}
+                      onChange={(e) => setDetailResolutionNotes(e.target.value)}
+                      placeholder="Explain how the inquiry/issue was addressed (e.g. Drone airframe inspected, battery connector replaced and verified, flight readiness confirmed. Query marked resolved)..."
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#5a00b8] leading-relaxed resize-none text-slate-800"
+                    />
+                  </div>
+
+                  {/* Email Dispatch Checkbox */}
+                  <div className="bg-purple-50/60 border border-purple-200 rounded-2xl p-4 space-y-2">
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={detailSendEmail && Boolean(selectedTicket.email)}
+                        disabled={!selectedTicket.email}
+                        onChange={(e) => setDetailSendEmail(e.target.checked)}
+                        className="mt-0.5 rounded text-[#5a00b8] focus:ring-[#5a00b8]"
+                      />
+                      <div className="text-xs">
+                        <span className="font-bold text-slate-900 block">
+                          Send Official Resolution Email to Customer
+                        </span>
+                        {selectedTicket.email ? (
+                          <span className="text-[11px] text-purple-800 block mt-0.5">
+                            Recipient: <strong>{selectedTicket.email}</strong>
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-rose-600 block mt-0.5 font-medium">
+                            No customer email found. Record will be updated in system only.
+                          </span>
+                        )}
+                      </div>
+                    </label>
+
+                    <div className="text-[10px] text-slate-500 border-t border-purple-100 pt-2 flex items-center justify-between">
+                      <span>Sender: <strong>connect@indowings.com</strong></span>
+                      <span className="text-purple-700 font-bold">IndoWings Operations</span>
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={isSubmittingDetailResolution}
+                    className="w-full py-3 px-4 rounded-xl text-xs font-black bg-[#5a00b8] hover:bg-[#4a0099] text-white flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isSubmittingDetailResolution ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Submitting Resolution...</span>
+                      </>
+                    ) : detailSendEmail && selectedTicket.email ? (
+                      <>
+                        <Send className="w-4 h-4" />
+                        <span>Submit Resolution &amp; Send Email</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Save Resolution</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+
+              {/* Direct Reply Collapsible Card */}
+              {selectedTicket.email && (
+                <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs space-y-3">
+                  <div
+                    onClick={() => setShowDetailDirectReply(!showDetailDirectReply)}
+                    className="flex items-center justify-between cursor-pointer select-none"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-purple-600" />
+                      <h4 className="text-xs font-black text-slate-900">
+                        Need More Information? Send Direct Email
+                      </h4>
+                    </div>
+                    <span className="text-xs text-[#5a00b8] font-bold">
+                      {showDetailDirectReply ? 'Hide' : 'Open Form'}
+                    </span>
+                  </div>
+
+                  {showDetailDirectReply && (
+                    <form onSubmit={handleSendDetailDirectReply} className="space-y-3 pt-3 border-t border-slate-100 animate-in fade-in">
+                      <p className="text-[11px] text-slate-500">
+                        Send a direct question or interim update to <strong className="text-slate-800">{selectedTicket.email}</strong> without marking the ticket resolved.
+                      </p>
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1">Subject</label>
+                        <input
+                          type="text"
+                          required
+                          value={detailReplySubject}
+                          onChange={(e) => setDetailReplySubject(e.target.value)}
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#5a00b8]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1">Message</label>
+                        <textarea
+                          rows={4}
+                          required
+                          value={detailReplyMessage}
+                          onChange={(e) => setDetailReplyMessage(e.target.value)}
+                          placeholder="Type your message to customer..."
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#5a00b8] resize-none"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={isSendingDetailReply}
+                        className="w-full py-2.5 px-3 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>{isSendingDetailReply ? 'Sending Email...' : 'Send Direct Email Reply'}</span>
+                      </button>
+                    </form>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
+      ) : (
+        <>
+          {/* Top Header Card */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#5a00b8] border border-purple-200 flex items-center justify-center font-black">
+                  <Inbox className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-slate-900 tracking-tight">
+                    IndoWings Support Desk
+                  </h2>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Unified inbox for Website Form inquiries and Customer Drone QR Scan submissions.
+                  </p>
+                </div>
+              </div>
+            </div>
 
         <div className="flex items-center gap-2.5">
           <button
@@ -602,7 +1102,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                         type="button"
                         onClick={() => {
                           setReplyingTicket(ticket);
-                          setReplySubject(`Re: [IndoFleet Support] Inquiry ${ticket.id}`);
+                          setReplySubject(`Re: [IndoWings Support] Inquiry ${ticket.id}`);
                           setReplyMessage('');
                         }}
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-50 hover:bg-[#5a00b8] text-[#5a00b8] hover:text-white border border-purple-200 transition-colors cursor-pointer shadow-2xs"
@@ -785,84 +1285,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
         </div>
       )}
 
-      {/* MODAL 3: View Full Details */}
-      {selectedTicket && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="text-base font-black text-slate-900">Inquiry Details</h3>
-                <p className="text-xs text-slate-500 font-mono">ID: {selectedTicket.id}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedTicket(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Customer Name</span>
-                  <span className="font-bold text-slate-800">{selectedTicket.name || 'Anonymous'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Status</span>
-                  {getStatusBadge(selectedTicket.status)}
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Email</span>
-                  <span className="font-mono text-slate-800">{selectedTicket.email || 'N/A'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Phone</span>
-                  <span className="font-mono text-slate-800">{selectedTicket.phone || 'N/A'}</span>
-                </div>
-                {selectedTicket.drone_serial && (
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Drone Airframe Serial</span>
-                    <span className="font-mono font-bold text-purple-700">{selectedTicket.drone_serial}</span>
-                  </div>
-                )}
-                {selectedTicket.order_id && (
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Linked Order ID</span>
-                    <span className="font-mono font-bold text-blue-700">{selectedTicket.order_id}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-2 border-t border-slate-100">
-                <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Message Content</span>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 leading-relaxed whitespace-pre-line">
-                  {selectedTicket.message || 'No description provided.'}
-                </div>
-              </div>
-
-              {selectedTicket.resolution_notes && (
-                <div className="pt-2 border-t border-slate-100">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Resolution Notes</span>
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-emerald-800 leading-relaxed italic">
-                    "{selectedTicket.resolution_notes}"
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => setSelectedTicket(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-white cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

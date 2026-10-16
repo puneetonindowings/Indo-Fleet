@@ -813,59 +813,50 @@ Time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
 }
 
 // ── 9. Support Query: Resolution Notification to User ────────────────────────
-export async function sendQueryResolutionEmail(query: any, resolutionNotes: string, agentName: string = 'IndoFleet Support') {
+export async function sendQueryResolutionEmail(query: any, resolutionNotes: string, agentName: string = 'IndoWings Support') {
   if (!query.email) return;
   const to = query.email;
-  const subject = `Your Support Query [${query.id}] Has Been Resolved - IndoFleet`;
+  const subject = `Your Inquiry [${query.id}] Has Been Resolved - IndoWings`;
   const text = `
 Dear ${query.name || 'Valued Customer'},
 
-Your support inquiry (Ticket ID: ${query.id}) regarding "${query.category || 'Support Request'}" has been resolved by our operations team.
+Your inquiry regarding "${query.category || 'Support Request'}" (Reference ID: ${query.id}) has been reviewed and resolved.
 
 Resolution Details:
-------------------------------------
+--------------------------------------------------
 ${resolutionNotes}
-------------------------------------
+--------------------------------------------------
 
-Ticket: ${query.id}
+Inquiry Reference: ${query.id}
 Resolved By: ${agentName}
+${query.drone_serial ? `Drone Airframe Serial: ${query.drone_serial}\n` : ''}
+Email: connect@indowings.com
 
-Helpline: 1800-IND-WINGS | Email: connect@IndoFleet.com
-IndoFleet Flight Operations
+Thanks & Regards,
+IndoWings Operations Team
 `.trim();
 
   const bodyHtml = `
-    <p style="font-size: 14px; color: #334155; margin: 0 0 16px 0;">
+    <p style="font-size: 15px; color: #222222; margin: 0 0 12px 0;">
       Dear <strong>${query.name || 'Valued Customer'}</strong>,<br>
-      Our support operations team has reviewed and resolved your inquiry regarding <strong>${query.category || 'Flight Operations'}</strong>.
+      Your inquiry regarding <strong>${query.category || 'Support Request'}</strong> (Reference ID: <strong>${query.id}</strong>) has been reviewed and resolved.
     </p>
 
-    <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-      <p style="font-size: 11px; font-weight: 700; color: #166534; text-transform: uppercase; margin: 0 0 6px 0;">Official Resolution Note:</p>
-      <p style="margin: 0; font-size: 13px; color: #14532d; line-height: 1.6; white-space: pre-wrap;">${resolutionNotes}</p>
-    </div>
+    <p style="font-size: 15px; color: #111111; margin: 16px 0 6px 0;"><strong>Official Resolution Note:</strong></p>
+    <p style="font-size: 14px; color: #333333; line-height: 1.6; white-space: pre-wrap; margin: 0 0 16px 0;">${resolutionNotes}</p>
 
-    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
-      <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
-        <tr>
-          <td style="padding: 4px 0; color: #64748b; width: 130px;">Ticket Reference:</td>
-          <td style="padding: 4px 0; color: #5a00b8; font-family: monospace; font-weight: 700;">${query.id}</td>
-        </tr>
-        <tr>
-          <td style="padding: 4px 0; color: #64748b;">Resolved By:</td>
-          <td style="padding: 4px 0; color: #0f172a; font-weight: 600;">${agentName}</td>
-        </tr>
-      </table>
-    </div>
+    <p style="font-size: 13px; color: #555555; margin: 8px 0 4px 0;">Reference ID: <strong>${query.id}</strong></p>
+    ${query.drone_serial ? `<p style="font-size: 13px; color: #555555; margin: 0 0 4px 0;">Drone Airframe: <strong>${query.drone_serial}</strong></p>` : ''}
+    <p style="font-size: 13px; color: #555555; margin: 0 0 16px 0;">Resolved By: <strong>${agentName}</strong></p>
 
-    <p style="font-size: 12px; color: #64748b; margin: 0;">
-      If you have additional questions, feel free to reply to this email or reach our support helpline.
+    <p style="font-size: 13px; color: #555555; margin: 0;">
+      If you have any further questions, feel free to reply to this email or reach us at <a href="mailto:connect@indowings.com" style="color: #0066cc;">connect@indowings.com</a>.
     </p>
   `;
 
   const html = renderCleanEmail({
-    title: 'Query Resolved',
-    subtitle: `Ticket ${query.id} has been marked as resolved`,
+    title: 'Inquiry Resolution Update',
+    subtitle: `Reference ID: ${query.id}`,
     bodyHtml
   });
 
@@ -873,7 +864,7 @@ IndoFleet Flight Operations
 }
 
 // ── 10. Direct Email Reply from Support Agent ─────────────────────────────────
-export async function sendDirectSupportEmail(to: string, subject: string, message: string, agentName: string = 'IndoFleet Support Desk') {
+export async function sendDirectSupportEmail(to: string, subject: string, message: string, agentName: string = 'IndoWings Support Desk') {
   if (!to || !to.includes('@')) return { success: false, error: 'Customer email address is invalid.' };
 
   const escapeHtml = (value: string) => value.replace(/[&<>"']/g, character => ({
@@ -892,8 +883,8 @@ ${message}
 
 ------------------------------------
 ${agentName}
-IndoFleet Aerospace Technologies Ltd.
-Phone: 1800-IND-WINGS | Email: connect@IndoFleet.com
+IndoWings Operations Team
+Phone: 1800-IND-WINGS | Email: connect@indowings.com
 `.trim();
 
   const bodyHtml = `
@@ -901,10 +892,10 @@ Phone: 1800-IND-WINGS | Email: connect@IndoFleet.com
       ${safeMessage}
     </div>
 
-    <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; font-size: 12px; color: #64748b;">
+    <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 12px; color: #64748b;">
       <strong style="color: #0f172a; display: block; font-size: 13px;">${safeAgentName}</strong>
-      Support &amp; Operations Command Desk<br>
-      IndoFleet Aerospace Technologies Ltd.
+      IndoWings Operations Team<br>
+      Email: connect@indowings.com
     </div>
   `;
 
