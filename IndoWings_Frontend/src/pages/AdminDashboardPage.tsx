@@ -1854,66 +1854,72 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   </div>
                 </div>
 
-                {/* ── TIER 2: 700 RPAV QUALITY & AIRFRAME ASSURANCE STRIP ── */}
-                <div className="bg-gradient-to-r from-slate-900 via-[#1e1338] to-slate-900 border border-slate-800 text-white rounded-3xl p-5 sm:p-6 shadow-lg flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-black uppercase tracking-wider border border-purple-400/20">
-                        AEROSPACE STANDARD
-                      </span>
-                      <span className="text-xs text-slate-400 font-mono">700 RPAV Specification</span>
+                {/* ── ROW 2: QUALITY & AIRFRAME VERIFICATION CARDS ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Verified Hardware IDs */}
+                  <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-xs flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Verified Hardware IDs</span>
+                      <h4 className="text-2xl font-black text-slate-900 mt-0.5 tracking-tight font-mono">{verifiedDronesCount} <span className="text-sm font-semibold text-slate-400">/ {drones.length}</span></h4>
+                      <p className="text-xs text-purple-700 font-medium mt-0.5">Tamper-Proof QR Linked</p>
                     </div>
-                    <h3 className="text-lg sm:text-xl font-black tracking-tight text-white">
-                      Fleet Airframe Quality &amp; Condition Assurance
-                    </h3>
-                    <p className="text-xs text-slate-300/80 max-w-xl">
-                      Each airframe has a permanent, tamper-resistant 25mm QR code. Inspections are append-only to preserve airworthiness integrity.
-                    </p>
+                    <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black shrink-0 border border-purple-100 shadow-2xs">
+                      <Shield className="w-6 h-6" />
+                    </div>
                   </div>
 
-                  {/* Quality metrics & quick actions */}
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/5 border border-white/10">
-                      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                      <div className="text-left">
-                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Inspections</span>
-                        <span className="text-xs font-mono font-bold text-emerald-300">
-                          {inspectionStats.passedCount} Passed &bull; {inspectionStats.failedOrPendingCount} Needs Review
-                        </span>
-                      </div>
+                  {/* Inspections Passed */}
+                  <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-xs flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Inspections Passed</span>
+                      <h4 className="text-2xl font-black text-emerald-950 mt-0.5 tracking-tight font-mono">{inspectionStats.passedCount}</h4>
+                      <p className="text-xs text-emerald-600 font-medium mt-0.5">Zero-Defect Certified</p>
                     </div>
-
-                    <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/5 border border-white/10">
-                      <Shield className="w-4 h-4 text-purple-400" />
-                      <div className="text-left">
-                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Hardware IDs</span>
-                        <span className="text-xs font-mono font-bold text-white">
-                          {verifiedDronesCount} / {drones.length} Verified
-                        </span>
-                      </div>
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black shrink-0 border border-emerald-100 shadow-2xs">
+                      <ShieldCheck className="w-6 h-6" />
                     </div>
+                  </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setShowQrScanner(true)}
-                      className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-purple-950/40"
-                    >
-                      <QrCode className="w-4 h-4 text-white" />
-                      <span>Scan Drone QR</span>
-                    </button>
+                  {/* Flagged / Needs Review */}
+                  <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-xs flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">Flagged / Review</span>
+                      <h4 className="text-2xl font-black text-amber-950 mt-0.5 tracking-tight font-mono">{inspectionStats.failedOrPendingCount}</h4>
+                      <p className="text-xs text-amber-600 font-medium mt-0.5">Needs Assessment</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center font-black shrink-0 border border-amber-100 shadow-2xs">
+                      <AlertTriangle className="w-6 h-6" />
+                    </div>
+                  </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedInspectionDroneId('');
-                        setSelectedInspectionDeliveryId('');
-                        setShowInspectionModal(true);
-                      }}
-                      className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 font-bold text-xs flex items-center gap-2 cursor-pointer transition-all"
-                    >
-                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                      <span>Record Inspection</span>
-                    </button>
+                  {/* Quick Airframe Operations Card */}
+                  <div className="bg-gradient-to-br from-slate-900 via-[#1e1338] to-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xs flex flex-col justify-between text-white">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-purple-300">Airframe Actions</span>
+                      <span className="px-1.5 py-0.5 text-[9px] font-bold bg-purple-500/30 text-purple-200 rounded-md">LIVE</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowQrScanner(true)}
+                        className="px-2.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm"
+                      >
+                        <QrCode className="w-3.5 h-3.5 text-white" />
+                        <span>Scan QR</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedInspectionDroneId('');
+                          setSelectedInspectionDeliveryId('');
+                          setShowInspectionModal(true);
+                        }}
+                        className="px-2.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Inspect</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
