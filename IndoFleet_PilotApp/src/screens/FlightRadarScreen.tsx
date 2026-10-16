@@ -149,7 +149,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   const [fullscreen, setFullscreen] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
 
-  // Dispatch hub: only from genuine order pickup coordinates
+  // Dispatch hub: order pickup coordinates, falling back to Sector 60 Base Hub ONLY if order base is missing
   const baseHub = useMemo(() => {
     const pLat = order?.pickup_location?.latitude ?? order?.pickup_lat;
     const pLng = order?.pickup_location?.longitude ?? order?.pickup_lng;
@@ -160,7 +160,12 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     ) {
       return { latitude: pLat, longitude: pLng, name: order?.pickup_address || 'Order Dispatch Hub' };
     }
-    return null;
+    // Fallback: A-21, Block A, Sector 60, Noida, UP (only if order pickup base is unavailable)
+    return {
+      latitude: 28.6037,
+      longitude: 77.3661,
+      name: 'A-21, Block A, Sector 60, Noida, UP (Central Base Hub)',
+    };
   }, [order?.pickup_location, order?.pickup_lat, order?.pickup_lng, order?.pickup_address]);
 
   const hasLiveGpsFix = Boolean(
@@ -170,8 +175,8 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
       (currentCoords.latitude !== 0 || currentCoords.longitude !== 0)
   );
 
-  const pilotLat: number | null = hasLiveGpsFix ? currentCoords!.latitude : baseHub?.latitude ?? null;
-  const pilotLng: number | null = hasLiveGpsFix ? currentCoords!.longitude : baseHub?.longitude ?? null;
+  const pilotLat: number | null = hasLiveGpsFix ? currentCoords!.latitude : baseHub?.latitude ?? 28.6037;
+  const pilotLng: number | null = hasLiveGpsFix ? currentCoords!.longitude : baseHub?.longitude ?? 77.3661;
 
   const targetLat = order ? order.destination_location?.latitude ?? order.delivery_lat ?? order.drop_lat ?? null : null;
   const targetLng = order ? order.destination_location?.longitude ?? order.delivery_lng ?? order.drop_lng ?? null : null;
@@ -270,8 +275,9 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     const hasPilot = pilotLat != null && pilotLng != null;
     const hasTarget = hasTargetCoords;
 
-    const defaultLat = 28.6280;
-    const defaultLng = 77.3649;
+    // Default Sector 60 Noida Hub coordinates (Used only if live GPS & target are unavailable)
+    const defaultLat = 28.6037;
+    const defaultLng = 77.3661;
     const centerLat = hasPilot && hasTarget ? (pilotLat! + targetLat!) / 2 : hasPilot ? pilotLat! : hasTarget ? targetLat! : defaultLat;
     const centerLng = hasPilot && hasTarget ? (pilotLng! + targetLng!) / 2 : hasPilot ? pilotLng! : hasTarget ? targetLng! : defaultLng;
 
