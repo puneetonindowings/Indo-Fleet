@@ -34,7 +34,6 @@ import {
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { DeliveryOrder, UserProfile } from '../types';
-import { SignaturePad } from './SignaturePad';
 import {
   requestCustomerDeliveryOtp,
   requestPilotDeliveryOtp,
@@ -83,7 +82,6 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
   const [pilotOtp, setPilotOtp] = useState('');
   const [recipientName, setRecipientName] = useState(order?.recipient_name || order?.customer_name || '');
   const [deliveryNotes, setDeliveryNotes] = useState('');
-  const [signatureSvg, setSignatureSvg] = useState('');
   const [podPhoto, setPodPhoto] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
@@ -131,8 +129,8 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
       Alert.alert(
         '✓ Inspection Verified',
         zeroDefectCertified
-          ? `Airframe ${targetDrone} inspected: 0 Defects Confirmed.\nCustomer OTP & Signature handover are now unlocked.`
-          : `Inspection logged as ${overallVerdict}. Customer OTP & Signature handover are now unlocked.`
+          ? `Airframe ${targetDrone} inspected: 0 Defects Confirmed.\nCustomer & Partner OTP handover are now unlocked.`
+          : `Inspection logged as ${overallVerdict}. Customer & Partner OTP handover are now unlocked.`
       );
     } catch (err: any) {
       Alert.alert('Inspection Failed', err.message || 'Could not verify airframe inspection.');
@@ -273,11 +271,10 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
         customer_otp: customerOtp.trim(),
         pilot_otp: pilotOtp.trim(),
         recipient_name: recipientName.trim(),
-        digital_signature: signatureSvg || undefined,
         pod_photo: podPhoto || undefined,
         final_latitude: currentCoords?.latitude,
         final_longitude: currentCoords?.longitude,
-        delivery_notes: deliveryNotes.trim() || 'Verified via Drone Field Check, Customer OTP & Digital Signature',
+        delivery_notes: deliveryNotes.trim() || 'Verified via Drone Field Check, Customer OTP & Delivery Partner OTP',
         pilot_name: pilotUser?.name || 'Delivery Partner',
         inspection_id: verifiedInspectionId || undefined,
       });
@@ -285,13 +282,12 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
       const finishedOrder = order;
       setCustomerOtp('');
       setPilotOtp('');
-      setSignatureSvg('');
       setPodPhoto(null);
       onDelivered(finishedOrder);
       onClose();
       Alert.alert(
         'Delivery Completed',
-        `Order #${finishedOrder.order_number} marked as Delivered. Airframe Inspection, Customer OTP & Signature verified.`
+        `Order #${finishedOrder.order_number} marked as Delivered. Airframe Inspection, Customer OTP & Delivery Partner OTP verified.`
       );
     } catch (err: any) {
       Alert.alert('Delivery Failed', err.message || 'Could not complete delivery.');
@@ -335,7 +331,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                     <Text style={styles.stepSubtitle}>
                       {isInspectionVerified
                         ? 'Inspection verified. 0 Defects confirmed on airframe.'
-                        : 'Inspect drone & payload before taking OTP / Signature'}
+                        : 'Inspect drone & payload before taking Customer & Partner OTP'}
                     </Text>
                   </View>
                 </View>
@@ -524,7 +520,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
             </View>
 
             {/* ═══════════════════════════════════════════════════════════
-                STAGE 2: CUSTOMER OTP & DIGITAL SIGNATURE (LOCKED UNTIL STEP 1)
+                STAGE 2: CUSTOMER OTP & PROOF OF DELIVERY (LOCKED UNTIL STEP 1)
                ═══════════════════════════════════════════════════════════ */}
             <View style={[styles.stepContainer, !isInspectionVerified && styles.stepContainerLocked]}>
               <View style={styles.stepHeaderRow}>
@@ -534,10 +530,10 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                   </View>
                   <View>
                     <Text style={[styles.stepTitle, !isInspectionVerified && styles.textMuted]}>
-                      Step 2: Customer OTP &amp; Digital Signature
+                      Step 2: Customer OTP &amp; Proof of Delivery (POD)
                     </Text>
                     <Text style={styles.stepSubtitle}>
-                      {isInspectionVerified ? 'Collect customer verification and signature' : 'Locked until Step 1 Inspection is verified'}
+                      {isInspectionVerified ? 'Collect customer verification and package photo' : 'Locked until Step 1 Inspection is verified'}
                     </Text>
                   </View>
                 </View>
@@ -553,7 +549,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                 <View style={styles.lockedNoticeBox}>
                   <Lock size={20} color="#94A3B8" />
                   <Text style={styles.lockedNoticeText}>
-                    Complete and verify Step 1 (Drone &amp; Cargo Inspection) above to unlock Customer OTP, Delivery Partner OTP, and Digital Signature handover.
+                    Complete and verify Step 1 (Drone &amp; Cargo Inspection) above to unlock Customer OTP, Delivery Partner OTP, and POD handover.
                   </Text>
                 </View>
               ) : (
@@ -677,10 +673,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                     )}
                   </View>
 
-                  {/* Step 2E: Digital Signature Canvas */}
-                  <SignaturePad onSignatureChange={setSignatureSvg} />
-
-                  {/* Step 2F: Delivery Location Geo-Tag */}
+                  {/* Step 2E: Delivery Location Geo-Tag */}
                   <View style={styles.geoBox}>
                     <MapPin size={15} color="#059669" />
                     <View style={styles.geoInfo}>
