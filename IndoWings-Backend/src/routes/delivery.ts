@@ -30,7 +30,8 @@ import {
   sendOrderAcceptedByDeliveryAlert,
   sendPasswordChangeOtpEmail,
   sendTemporaryPasswordEmail,
-  sendAppReleaseEmail
+  sendAppReleaseEmail,
+  lastMailError
 } from '../emailService.js';
 import { sendPushToUser, broadcastPushToPilots } from '../firebaseService.js';
 import { JWT_SECRET } from '../middleware/auth.js';
@@ -304,16 +305,36 @@ router.post('/auth/verify-password-and-send-otp', otpLimiter, async (req, res) =
   const isEmail = Boolean(cleanEmail || (!cleanPhone && user.email));
 
   // Save OTP under both Email and Phone so user can verify with either!
+  let emailSentSuccessfully = false;
+  let emailDeliveryError = '';
+
   if (user.email) {
     const targetEmail = user.email.toLowerCase().trim();
     await fileDB.saveOTP(targetEmail, otp, { name: user.name, email: targetEmail, purpose: 'login' });
-    sendOtpNotification({ email: targetEmail, otp }).catch((err) => console.error('[mail] Auto OTP email error:', err));
+    try {
+      emailSentSuccessfully = await sendOtpNotification({ email: targetEmail, otp });
+      if (!emailSentSuccessfully) {
+        emailDeliveryError = lastMailError || `Failed to send verification OTP to ${targetEmail}`;
+      }
+    } catch (err: any) {
+      emailDeliveryError = err?.message || 'Email delivery exception';
+      console.error('[mail] Auto OTP email error:', err);
+    }
   }
 
   if (user.phone) {
     const targetPhone = user.phone.replace(/[^0-9]/g, '').slice(-10);
     const fullPhone = `+91${targetPhone}`;
     await fileDB.saveOTP(targetPhone, otp, { name: user.name, email: user.email, phone: fullPhone, purpose: 'login' });
+  }
+
+  // If user requested email authentication and email failed, return error to screen
+  if (isEmail && !emailSentSuccessfully) {
+    res.status(502).json({
+      error: `Verification code could not be sent to ${user.email || cleanEmail}. ${emailDeliveryError || 'Please check your email address or network connection.'}`,
+      email_failed: true
+    });
+    return;
   }
 
   const destinationDesc = user.email ? maskEmail(user.email) : `+91 ${cleanPhone}`;
@@ -404,7 +425,25 @@ router.post('/auth/send-otp', otpLimiter, async (req, res) => {
   if (isEmail && cleanEmail) {
     await fileDB.saveOTP(cleanEmail, otp, { name: existingUser.name, email: cleanEmail, purpose: otpPurpose });
 
-    sendOtpNotification({ email: cleanEmail, otp }).catch((err) => console.error('Email OTP error:', err));
+    let sent = false;
+    let mailErr = '';
+    try {
+      sent = await sendOtpNotification({ email: cleanEmail, otp });
+      if (!sent) {
+        mailErr = lastMailError || `Failed to deliver OTP to ${cleanEmail}`;
+      }
+    } catch (err: any) {
+      mailErr = err?.message || 'Email delivery exception';
+      console.error('Email OTP error:', err);
+    }
+
+    if (!sent) {
+      res.status(502).json({
+        error: `Could not send verification code to ${cleanEmail}. ${mailErr || 'Please check your email address or SMTP configuration.'}`,
+        email_failed: true
+      });
+      return;
+    }
 
     res.json({
       message: `Verification code sent to ${cleanEmail}`,
@@ -869,6 +908,7 @@ router.post('/admin/provision-user', async (req, res) => {
   console.log(`[admin] User ${newUser.name} provisioned with ID ${newUser.id} (Role: ${newUser.role})`);
 
   let emailSent = false;
+  let emailError = '';
   try {
     emailSent = await sendUserProvisionedEmail({
       to: cleanEmail,
@@ -876,19 +916,80 @@ router.post('/admin/provision-user', async (req, res) => {
       userId: newUser.id,
       role: newUser.role,
       temporaryPassword: tempPass,
-      loginUrl: `${process.env.FRONTEND_URL || 'https://IndoFleet.com'}/login`
+      loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`
     });
-  } catch (err) {
+    if (!emailSent) {
+      emailError = lastMailError || `Server could not deliver credentials email to ${cleanEmail}.`;
+    }
+  } catch (err: any) {
+    emailError = err?.message || 'Email delivery exception';
     console.error('[mail] Failed to send user provisioning email:', err);
   }
 
   res.status(201).json({
     success: true,
-    message: emailSent ? `Account provisioned and credentials emailed to ${cleanEmail}.` : `Account provisioned, but the credentials email could not be sent to ${cleanEmail}.`,
+    message: emailSent
+      ? `Account provisioned and credentials emailed to ${cleanEmail}.`
+      : `Account provisioned, but credentials email could not be sent to ${cleanEmail}.`,
     emailSent,
+    emailError,
+    temporaryPassword: tempPass,
     user: (() => {
       return publicUser(newUser);
     })()
+  });
+});
+
+// 2B. Admin: Resend credentials email to an existing user if delivery failed earlier
+router.post('/admin/resend-credentials-email', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
+  const { userId, temporaryPassword } = req.body;
+  if (!userId) {
+    res.status(400).json({ error: 'User ID is required.' });
+    return;
+  }
+
+  const user = await fileDB.findUserById(userId);
+  if (!user || !user.email) {
+    res.status(404).json({ error: 'User account not found or has no registered email.' });
+    return;
+  }
+
+  const passToSend = temporaryPassword || '123123';
+  let emailSent = false;
+  let emailError = '';
+
+  try {
+    emailSent = await sendUserProvisionedEmail({
+      to: user.email,
+      name: user.name,
+      userId: user.id,
+      role: user.role,
+      temporaryPassword: passToSend,
+      loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`
+    });
+    if (!emailSent) {
+      emailError = lastMailError || `SMTP mailer failed to send email to ${user.email}`;
+    }
+  } catch (err: any) {
+    emailError = err?.message || 'Email dispatch exception';
+    console.error('[mail] Resend credentials error:', err);
+  }
+
+  if (!emailSent) {
+    res.status(502).json({
+      error: `Could not send email to ${user.email}. ${emailError || 'Please check SMTP settings or email address.'}`,
+      emailSent: false
+    });
+    return;
+  }
+
+  res.json({
+    success: true,
+    message: `Credentials email sent successfully to ${user.email}!`,
+    emailSent: true
   });
 });
 

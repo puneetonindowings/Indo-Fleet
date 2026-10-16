@@ -451,13 +451,53 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         return;
       }
 
-      setProvisioningSuccess({ ...data.user, emailSent: data.emailSent });
-      showToast(data.emailSent ? `Account created! Credentials emailed to ${provEmail.trim()}.` : `Account created! Please share credentials securely.`);
+      setProvisioningSuccess({
+        ...data.user,
+        emailSent: Boolean(data.emailSent),
+        emailError: data.emailError || '',
+        tempPassword: provTempPass.trim()
+      });
+      if (data.emailSent) {
+        showToast(`Account created! Credentials emailed to ${provEmail.trim()}.`);
+      } else {
+        showToast(`Account created, but email could not be sent: ${data.emailError || 'Delivery Failed'}`);
+      }
       await fetchData();
     } catch {
       setAdminOtpError('Connection error during user provisioning.');
     } finally {
       setAdminOtpLoading(false);
+    }
+  };
+
+  const [resendEmailLoading, setResendEmailLoading] = useState(false);
+  const [resendEmailStatus, setResendEmailStatus] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleResendCredentialsEmail = async (userId: string, tempPass: string) => {
+    setResendEmailLoading(true);
+    setResendEmailStatus(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/admin/resend-credentials-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('iw_delivery_token') || ''}`
+        },
+        body: JSON.stringify({ userId, temporaryPassword: tempPass })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setResendEmailStatus({ success: false, message: data.error || 'Failed to send credentials email.' });
+        return;
+      }
+      setResendEmailStatus({ success: true, message: data.message || 'Credentials email successfully delivered!' });
+      if (provisioningSuccess) {
+        setProvisioningSuccess({ ...provisioningSuccess, emailSent: true, emailError: '' });
+      }
+    } catch {
+      setResendEmailStatus({ success: false, message: 'Connection error while attempting to resend email.' });
+    } finally {
+      setResendEmailLoading(false);
     }
   };
 
@@ -471,6 +511,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     setAdminOtp('');
     setAdminOtpError('');
     setProvisioningSuccess(null);
+    setResendEmailStatus(null);
   };
 
   const requestInventoryOtp = async () => {
@@ -1512,15 +1553,56 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
 
                 {/* Success Card when created */}
                 {provisioningSuccess ? (
-                  <div className="bg-white border border-emerald-200 rounded-3xl p-8 text-center shadow-sm space-y-4">
-                    <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto text-2xl border border-emerald-100">
-                      <Check className="w-8 h-8" />
+                  <div className={`bg-white border rounded-3xl p-6 sm:p-8 text-center shadow-sm space-y-4 ${
+                    provisioningSuccess.emailSent ? 'border-emerald-200' : 'border-rose-300 ring-1 ring-rose-200'
+                  }`}>
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto text-2xl border ${
+                      provisioningSuccess.emailSent ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-200'
+                    }`}>
+                      {provisioningSuccess.emailSent ? <Check className="w-8 h-8" /> : <AlertCircle className="w-8 h-8" />}
                     </div>
-                    <h3 className="text-2xl font-black text-slate-900">{provisioningSuccess.emailSent ? 'Account Created &amp; Credentials Emailed!' : 'Account Created — Email Delivery Failed'}</h3>
+
+                    <h3 className={`text-2xl font-black ${
+                      provisioningSuccess.emailSent ? 'text-slate-900' : 'text-rose-950'
+                    }`}>
+                      {provisioningSuccess.emailSent
+                        ? 'Account Created & Credentials Emailed!'
+                        : 'Account Created — Email Delivery Failed!'}
+                    </h3>
+
+                    {/* Email Failure Alert Box directly on screen */}
+                    {!provisioningSuccess.emailSent && (
+                      <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl p-4 text-xs text-left space-y-1.5 max-w-lg mx-auto">
+                        <div className="font-bold flex items-center gap-1.5 text-rose-950 text-sm">
+                          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                          Email Delivery Error: {provisioningSuccess.email}
+                        </div>
+                        <p className="text-rose-700 leading-relaxed">
+                          Server credentials email deliver nahi kar paya to <strong>{provisioningSuccess.email}</strong>.
+                          <br />
+                          <span className="font-mono text-[11px] bg-rose-100/70 px-1.5 py-0.5 rounded text-rose-900 inline-block mt-1">
+                            Error: {provisioningSuccess.emailError || 'SMTP Delivery Failed or Connection Refused'}
+                          </span>
+                        </p>
+                        <p className="text-rose-600 font-medium pt-1">
+                          Aap credentials neeche se copy karke directly user ko share kar sakte hain, ya niche "Retry Sending Email" dabayein.
+                        </p>
+                      </div>
+                    )}
+
+                    {resendEmailStatus && (
+                      <div className={`p-3 rounded-xl text-xs max-w-lg mx-auto font-medium ${
+                        resendEmailStatus.success ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' : 'bg-rose-50 border border-rose-200 text-rose-800'
+                      }`}>
+                        {resendEmailStatus.message}
+                      </div>
+                    )}
+
                     <p className="text-slate-600 text-sm max-w-md mx-auto">
                       Account provisioned for <strong>{provisioningSuccess.name}</strong> ({provisioningSuccess.role}).{' '}
-                      {provisioningSuccess.emailSent ? 'Credentials and onboarding steps were emailed to:' : 'Email delivery failed. Share the temporary credentials securely with:'}
+                      {provisioningSuccess.emailSent ? 'Credentials and onboarding steps were emailed to:' : 'Temporary credentials details:'}
                     </p>
+
                     <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 max-w-md mx-auto text-left text-xs space-y-2 font-mono">
                       <p>
                         <span className="text-slate-400 font-bold font-sans">User ID:</span> {provisioningSuccess.id}
@@ -1528,14 +1610,36 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                       <p>
                         <span className="text-slate-400 font-bold font-sans">Login Email:</span> {provisioningSuccess.email}
                       </p>
-                      <p>
-                        <span className="text-slate-400 font-bold font-sans">Temporary Pass:</span> {provTempPass || '••••••••'}
+                      <p className="flex items-center justify-between">
+                        <span><span className="text-slate-400 font-bold font-sans">Temporary Pass:</span> <strong className="text-slate-900">{provisioningSuccess.tempPassword || provTempPass || '••••••••'}</strong></span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(provisioningSuccess.tempPassword || provTempPass);
+                            showToast('Password copied to clipboard!');
+                          }}
+                          className="text-xs text-[#5a00b8] hover:underline flex items-center gap-1 font-sans font-bold cursor-pointer"
+                        >
+                          <Copy className="w-3.5 h-3.5" /> Copy
+                        </button>
                       </p>
                       <p>
                         <span className="text-slate-400 font-bold font-sans">First-Time Action:</span> User will be prompted to verify identity via OTP and set a permanent password.
                       </p>
                     </div>
-                    <div className="pt-2 flex justify-center gap-3">
+
+                    <div className="pt-2 flex flex-wrap justify-center gap-3">
+                      {!provisioningSuccess.emailSent && (
+                        <button
+                          type="button"
+                          disabled={resendEmailLoading}
+                          onClick={() => handleResendCredentialsEmail(provisioningSuccess.id, provisioningSuccess.tempPassword || provTempPass)}
+                          className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-60"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${resendEmailLoading ? 'animate-spin' : ''}`} />
+                          {resendEmailLoading ? 'Sending...' : 'Retry Sending Email'}
+                        </button>
+                      )}
                       <button onClick={resetProvisioningForm} className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer">
                         Add Another Member
                       </button>
@@ -2289,7 +2393,25 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 <strong>{selectedUser.created_at ? new Date(selectedUser.created_at).toLocaleString() : '—'}</strong>
               </div>
             </div>
+            {resendEmailStatus && (
+              <div className={`p-3 rounded-xl text-xs font-medium ${
+                resendEmailStatus.success ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' : 'bg-rose-50 border border-rose-200 text-rose-800'
+              }`}>
+                {resendEmailStatus.message}
+              </div>
+            )}
             <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
+              {selectedUser.email && (
+                <button
+                  type="button"
+                  onClick={() => handleResendCredentialsEmail(selectedUser.id, '123123')}
+                  disabled={resendEmailLoading}
+                  className="inline-flex items-center gap-2 rounded-xl border border-purple-200 px-3 py-2 text-xs font-bold text-[#5a00b8] hover:bg-purple-50 disabled:opacity-60 cursor-pointer"
+                >
+                  <RefreshCw className={`h-4 w-4 ${resendEmailLoading ? 'animate-spin' : ''}`} />
+                  {resendEmailLoading ? 'Sending...' : 'Resend Credentials Email'}
+                </button>
+              )}
               {selectedUser.id !== currentUser?.id && selectedUser.email !== currentUser?.email && (
                 <>
                   <button
