@@ -31,7 +31,12 @@ import {
   Download,
   Image as ImageIcon,
   Paperclip,
-  Maximize2
+  Maximize2,
+  MapPin,
+  Package,
+  BatteryCharging,
+  Wrench,
+  Hash
 } from 'lucide-react';
 import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
@@ -88,6 +93,10 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
 
   // Document Review & Preview Modal
   const [previewDocument, setPreviewDocument] = useState<any | null>(null);
+
+  // Linked Mission & Fleet Manifest Context
+  const [missionContext, setMissionContext] = useState<any | null>(null);
+  const [loadingMission, setLoadingMission] = useState(false);
 
   const supportToken = localStorage.getItem('iw_delivery_token') || '';
   const supportHeaders = {
@@ -267,6 +276,32 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
       setDetailReplySubject(`Re: [IndoWings Support] Inquiry ${selectedTicket.id}`);
       setDetailReplyMessage('');
       setShowDetailDirectReply(false);
+
+      // Fetch mission context (linked order & fleet manifest)
+      setLoadingMission(true);
+      fetch(`${API_BASE_URL}/api/delivery/support/tickets/${selectedTicket.id}/mission-context`, {
+        headers: supportHeaders
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.mission) {
+            setMissionContext(data.mission);
+            if (data.mission.customer_email) {
+              setDetailSendEmail(true);
+            }
+          } else {
+            setMissionContext(null);
+          }
+        })
+        .catch((err) => {
+          console.error('[SupportDesk] Error fetching mission context:', err);
+          setMissionContext(null);
+        })
+        .finally(() => {
+          setLoadingMission(false);
+        });
+    } else {
+      setMissionContext(null);
     }
   }, [selectedTicket]);
 
@@ -276,6 +311,31 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
   };
+
+  // Effective Customer and Mission details (resolved from linked order)
+  const effectiveCustomerName = useMemo(() => {
+    if (selectedTicket?.name && selectedTicket.name !== 'Verified Customer') {
+      return selectedTicket.name;
+    }
+    return missionContext?.customer_name || selectedTicket?.name || 'Customer';
+  }, [selectedTicket, missionContext]);
+
+  const effectiveCustomerEmail = useMemo(() => {
+    if (selectedTicket?.email && selectedTicket.email !== 'connect@indowings.com') {
+      return selectedTicket.email;
+    }
+    return missionContext?.customer_email || (selectedTicket?.email !== 'connect@indowings.com' ? selectedTicket?.email : '') || '';
+  }, [selectedTicket, missionContext]);
+
+  const effectiveCustomerPhone = useMemo(() => {
+    if (selectedTicket?.phone && selectedTicket.phone !== 'N/A' && selectedTicket.phone !== 'N/A (Drone QR Scan)') {
+      return selectedTicket.phone;
+    }
+    return missionContext?.customer_phone || selectedTicket?.phone || 'N/A';
+  }, [selectedTicket, missionContext]);
+
+  const effectiveOrderId = missionContext?.order_id || selectedTicket?.order_id || null;
+  const isEnrichedFromOrder = Boolean(missionContext && (missionContext.customer_name || missionContext.order_id));
 
   // Customer Documents & Attachments from Ticket or Inbound Emails
   const customerDocuments = useMemo(() => {
@@ -433,6 +493,10 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
     setIsSubmittingDetailResolution(true);
     setSupportError('');
 
+    const targetRecipient = (selectedTicket.email && selectedTicket.email !== 'connect@indowings.com')
+      ? selectedTicket.email
+      : (missionContext?.customer_email || selectedTicket.email || '');
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/delivery/support/tickets/${selectedTicket.id}`, {
         method: 'PATCH',
@@ -441,7 +505,8 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
           status: detailStatus,
           resolution_notes: detailResolutionNotes.trim(),
           agent_name: currentUser?.name || 'IndoWings Support Desk',
-          send_email: detailSendEmail && Boolean(selectedTicket.email)
+          send_email: detailSendEmail && Boolean(targetRecipient),
+          customer_email: targetRecipient
         })
       });
 
@@ -458,8 +523,8 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
 
       setSelectedTicket(updatedTicket);
       showToast(
-        detailSendEmail && selectedTicket.email
-          ? `Inquiry ${selectedTicket.id} marked as ${detailStatus.toUpperCase()} & official resolution email dispatched to ${selectedTicket.email}!`
+        detailSendEmail && targetRecipient
+          ? `Inquiry ${selectedTicket.id} marked as ${detailStatus.toUpperCase()} & official resolution email dispatched to ${targetRecipient}!`
           : `Inquiry ${selectedTicket.id} updated to ${detailStatus.toUpperCase()} successfully!`
       );
       fetchTickets(true);
@@ -473,7 +538,11 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
   // Send Direct Email Reply from Detail Page
   const handleSendDetailDirectReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedTicket || !selectedTicket.email) return;
+    const targetRecipient = (selectedTicket?.email && selectedTicket.email !== 'connect@indowings.com')
+      ? selectedTicket.email
+      : (missionContext?.customer_email || selectedTicket?.email || '');
+
+    if (!selectedTicket || !targetRecipient) return;
 
     if (!detailReplyMessage.trim()) {
       setSupportError('Please enter a message before sending reply.');
@@ -490,14 +559,15 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
         body: JSON.stringify({
           subject: detailReplySubject.trim() || `IndoWings Support Update: Ticket ${selectedTicket.id}`,
           message: detailReplyMessage.trim(),
-          agent_name: currentUser?.name || 'IndoWings Support Desk'
+          agent_name: currentUser?.name || 'IndoWings Support Desk',
+          recipient_email: targetRecipient
         })
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to dispatch email reply.');
 
-      showToast(`Direct reply sent successfully to ${selectedTicket.email}!`);
+      showToast(`Direct reply sent successfully to ${targetRecipient}!`);
       setDetailReplyMessage('');
       setShowDetailDirectReply(false);
       if (data.request) {
@@ -647,11 +717,18 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                 {/* Customer Details Strip */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-slate-100">
                   <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3.5 space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                      <User className="w-3 h-3" /> Customer Name
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                        <User className="w-3 h-3" /> Customer Name
+                      </span>
+                      {isEnrichedFromOrder && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">
+                          Linked Order
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm font-black text-slate-900">
-                      {selectedTicket.name || 'Anonymous Customer'}
+                      {effectiveCustomerName}
                     </p>
                   </div>
 
@@ -661,12 +738,12 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                     </span>
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-mono font-bold text-slate-800 truncate">
-                        {selectedTicket.email || 'N/A'}
+                        {effectiveCustomerEmail || 'N/A'}
                       </p>
-                      {selectedTicket.email && (
+                      {effectiveCustomerEmail && effectiveCustomerEmail !== 'N/A' && (
                         <button
                           type="button"
-                          onClick={() => handleCopy(selectedTicket.email, 'email')}
+                          onClick={() => handleCopy(effectiveCustomerEmail, 'email')}
                           className="p-1 hover:bg-slate-200 rounded-md text-slate-500 hover:text-slate-800 transition-colors"
                           title="Copy Email"
                         >
@@ -682,12 +759,12 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                     </span>
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-mono font-bold text-slate-800">
-                        {selectedTicket.phone || 'N/A'}
+                        {effectiveCustomerPhone}
                       </p>
-                      {selectedTicket.phone && (
+                      {effectiveCustomerPhone && effectiveCustomerPhone !== 'N/A' && (
                         <button
                           type="button"
-                          onClick={() => handleCopy(selectedTicket.phone, 'phone')}
+                          onClick={() => handleCopy(effectiveCustomerPhone, 'phone')}
                           className="p-1 hover:bg-slate-200 rounded-md text-slate-500 hover:text-slate-800 transition-colors"
                           title="Copy Phone"
                         >
@@ -699,14 +776,189 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
 
                   <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3.5 space-y-1">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                      <Truck className="w-3 h-3" /> Airframe / Linked Asset
+                      <Truck className="w-3 h-3" /> Airframe &amp; Mission
                     </span>
-                    <p className="text-xs font-mono font-bold text-purple-700">
-                      {selectedTicket.drone_serial ? selectedTicket.drone_serial : selectedTicket.order_id ? `Order ${selectedTicket.order_id}` : 'General Inquiry'}
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-mono font-bold text-purple-700">
+                        {selectedTicket.drone_serial || 'General Asset'}
+                      </p>
+                      {effectiveOrderId && (
+                        <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
+                          Order #{effectiveOrderId}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {/* Linked Mission & Fleet Manifest (Order Context) Card */}
+              {(loadingMission || missionContext) && (
+                <div className="bg-white border-2 border-purple-200 rounded-3xl p-6 shadow-sm space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-purple-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-purple-100 text-[#5a00b8] flex items-center justify-center font-bold">
+                        <Truck className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                            Linked Mission &amp; Fleet Manifest
+                          </h4>
+                          {missionContext?.is_synthetic && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
+                              Simulated Flow
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          Matched via Airframe Serial <span className="font-mono font-bold text-purple-700">{selectedTicket.drone_serial || 'Reported Asset'}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    {missionContext?.order_id && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono font-black px-3 py-1.5 rounded-xl bg-purple-50 text-purple-800 border border-purple-200">
+                          Order #{missionContext.order_id}
+                        </span>
+                        <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-xl bg-blue-50 text-blue-700 border border-blue-200">
+                          {missionContext.order_status || 'In Transit'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {loadingMission ? (
+                    <div className="py-8 text-center text-slate-400 text-xs">
+                      <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#5a00b8]" />
+                      <p className="font-bold text-slate-600">Matching Airframe Serial to Order History &amp; Fleet Inventory...</p>
+                    </div>
+                  ) : missionContext ? (
+                    <div className="space-y-4">
+                      {/* Mission Route & Dispatch Info */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs bg-slate-50 border border-slate-100 rounded-2xl p-4">
+                        <div className="space-y-2">
+                          <div className="flex items-start gap-2">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-slate-400 block">Dispatch Origin</span>
+                              <span className="font-semibold text-slate-800">{missionContext.pickup_address}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <MapPin className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" />
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-slate-400 block">Delivery Destination</span>
+                              <span className="font-semibold text-slate-800">{missionContext.drop_address}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 border-t md:border-t-0 md:border-l border-slate-200 pt-2 md:pt-0 md:pl-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] uppercase font-bold text-slate-400">Mission Package:</span>
+                            <span className="font-semibold text-slate-800 text-right">{missionContext.package_type}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] uppercase font-bold text-slate-400">Assigned Pilot:</span>
+                            <span className="font-semibold text-slate-800">{missionContext.pilot_name}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] uppercase font-bold text-slate-400">Fleet Allocation:</span>
+                            <span className="font-mono font-bold text-purple-700">{missionContext.total_drones_count} Active UAV Units</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Fleet Manifest (All Drones in Order) */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h5 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                            <Layers className="w-3.5 h-3.5 text-purple-600" />
+                            Order Fleet Manifest ({missionContext.drones?.length || 0} Drones Assigned)
+                          </h5>
+                          <span className="text-[10px] font-bold text-rose-600">
+                            1 Unit Flagged Defective
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3">
+                          {missionContext.drones?.map((drone: any, idx: number) => {
+                            const isDefective = Boolean(drone.is_reported_defective);
+
+                            return (
+                              <div
+                                key={drone.serial || idx}
+                                className={`rounded-2xl p-4 transition-all ${
+                                  isDefective
+                                    ? 'bg-rose-50/70 border-2 border-rose-400 shadow-xs'
+                                    : 'bg-white border border-slate-200'
+                                }`}
+                              >
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                                  <div className="flex items-center gap-2.5">
+                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                                      isDefective ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
+                                    }`}>
+                                      {isDefective ? <AlertTriangle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                                    </div>
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-mono font-black text-sm text-slate-900">
+                                          {drone.serial}
+                                        </span>
+                                        <span className="text-[11px] font-medium text-slate-500">
+                                          ({drone.model})
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    {isDefective ? (
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-rose-600 text-white shadow-xs">
+                                        <AlertTriangle className="w-3 h-3" />
+                                        DEFECT REPORTED BY CUSTOMER
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        <Check className="w-3 h-3" />
+                                        OPERATIONAL / NOMINAL
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 text-xs">
+                                  <div>
+                                    <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">
+                                      {isDefective ? 'Reported Faulty Component' : 'System Health & Battery'}
+                                    </span>
+                                    <p className={`font-bold ${isDefective ? 'text-rose-700 flex items-center gap-1.5' : 'text-slate-700'}`}>
+                                      {isDefective && <Wrench className="w-3.5 h-3.5 text-rose-600" />}
+                                      {isDefective ? (drone.reported_part || 'Component Fault') : drone.battery_level}
+                                    </p>
+                                  </div>
+
+                                  <div>
+                                    <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">
+                                      Status Note
+                                    </span>
+                                    <p className="text-slate-600 text-[11px] leading-relaxed">
+                                      {drone.notes}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              )}
 
               {/* Message Description Card */}
               <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-3">
@@ -943,8 +1195,8 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                     <label className="flex items-start gap-2.5 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={detailSendEmail && Boolean(selectedTicket.email)}
-                        disabled={!selectedTicket.email}
+                        checked={detailSendEmail && Boolean(effectiveCustomerEmail)}
+                        disabled={!effectiveCustomerEmail}
                         onChange={(e) => setDetailSendEmail(e.target.checked)}
                         className="mt-0.5 rounded text-[#5a00b8] focus:ring-[#5a00b8]"
                       />
@@ -952,9 +1204,14 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                         <span className="font-bold text-slate-900 block">
                           Send Official Resolution Email to Customer
                         </span>
-                        {selectedTicket.email ? (
+                        {effectiveCustomerEmail ? (
                           <span className="text-[11px] text-purple-800 block mt-0.5">
-                            Recipient: <strong>{selectedTicket.email}</strong>
+                            Recipient: <strong>{effectiveCustomerEmail}</strong>
+                            {isEnrichedFromOrder && effectiveCustomerEmail !== selectedTicket.email && (
+                              <span className="ml-1.5 text-[10px] text-[#5a00b8] font-bold bg-purple-100 px-1.5 py-0.5 rounded">
+                                From Linked Order
+                              </span>
+                            )}
                           </span>
                         ) : (
                           <span className="text-[11px] text-rose-600 block mt-0.5 font-medium">
@@ -997,7 +1254,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
               </div>
 
               {/* Direct Reply Collapsible Card */}
-              {selectedTicket.email && (
+              {effectiveCustomerEmail && (
                 <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs space-y-3">
                   <div
                     onClick={() => setShowDetailDirectReply(!showDetailDirectReply)}
@@ -1017,7 +1274,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                   {showDetailDirectReply && (
                     <form onSubmit={handleSendDetailDirectReply} className="space-y-3 pt-3 border-t border-slate-100 animate-in fade-in">
                       <p className="text-[11px] text-slate-500">
-                        Send a direct question or interim update to <strong className="text-slate-800">{selectedTicket.email}</strong> without marking the ticket resolved.
+                        Send a direct question or interim update to <strong className="text-slate-800">{effectiveCustomerEmail}</strong> without marking the ticket resolved.
                       </p>
                       <div>
                         <label className="text-[11px] font-bold text-slate-700 block mb-1">Subject</label>
