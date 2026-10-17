@@ -325,14 +325,32 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
     });
   };
 
-  // Conversational NLP & Step-by-Step Processing
   const processUserQuery = async (queryText: string) => {
     setLoading(true);
     const clean = queryText.trim();
     const lower = clean.toLowerCase();
 
     try {
-      // 1. STEP 1 OF 3: LOST ORDER ID - ASKING FOR NAME
+      const injectionPatterns = [
+        /ignore\s+(?:all\s+)?(?:previous|prior)\s+instructions/i,
+        /disregard\s+(?:all\s+)?(?:previous|prior)\s+instructions/i,
+        /you\s+are\s+now\s+(?:an?\s+)?(?:dan|unfiltered|jailbroken)/i,
+        /system\s+override/i,
+        /reveal\s+(?:your\s+)?(?:system\s+prompt|source\s+code|api\s+key|credentials)/i,
+        /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+        /(?:drop|alter|truncate)\s+table/i,
+        /(?:union\s+select|1\s*=\s*1|'\s*or\s*'1'\s*=\s*'1)/i
+      ];
+
+      if (injectionPatterns.some(pattern => pattern.test(clean))) {
+        addMessage({
+          sender: 'bot',
+          text: 'Security Alert: Adversarial prompt or unauthorized syntax detected. IndoWings Assistant operates under strict operational security policies. How can I assist you with legitimate consignment, flight operations, or tracking inquiries?'
+        });
+        setLoading(false);
+        return;
+      }
+
       if (convState.step === 'lookup_name') {
         setConvState({
           step: 'lookup_phone',
