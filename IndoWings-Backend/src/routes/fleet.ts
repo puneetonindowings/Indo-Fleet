@@ -1,13 +1,14 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { dbService } from '../supabase.js';
 import { authenticateToken, requireRoles, AuthenticatedRequest } from '../middleware/auth.js';
+import { apiCache } from '../utils/cache.js';
 
 const router = Router();
 
-// GET all fleet
+// GET all fleet (Cached with 15-second TTL for extreme concurrency)
 router.get('/', async (req, res) => {
   try {
-    const fleet = await dbService.getFleet();
+    const fleet = await apiCache.getOrSet('public:fleet', 15000, () => dbService.getFleet());
     res.json({ fleet });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch drone fleet' });
@@ -16,13 +17,17 @@ router.get('/', async (req, res) => {
 
 // GET single drone
 router.get('/:id', async (req, res) => {
-  const fleet = await dbService.getFleet();
-  const drone = fleet.find(d => d.id === req.params.id);
-  if (!drone) {
-    res.status(404).json({ error: 'Drone not found' });
-    return;
+  try {
+    const fleet = await apiCache.getOrSet('public:fleet', 15000, () => dbService.getFleet());
+    const drone = fleet.find(d => d.id === req.params.id);
+    if (!drone) {
+      res.status(404).json({ error: 'Drone not found' });
+      return;
+    }
+    res.json({ drone });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch drone details' });
   }
-  res.json({ drone });
 });
 
 // POST register new drone (Admin only)
@@ -48,6 +53,8 @@ router.post('/', authenticateToken, requireRoles('admin'), async (req: Authentic
       payload_capacity_kg: Number(payload_capacity_kg) || 2,
       image_url: image_url || 'https://IndoFleet.com/images/home/cyberonepro.webp'
     });
+
+    apiCache.invalidate('public:fleet');
 
     await dbService.logAudit({
       user_email: req.user?.email || 'admin',

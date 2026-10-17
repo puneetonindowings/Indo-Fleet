@@ -2,34 +2,36 @@ import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { Footer } from './components/Footer';
-import { PlatformPage } from './pages/PlatformPage';
-import { CommandCenterPage } from './pages/CommandCenterPage';
-import { GcsPage } from './pages/GcsPage';
-import { DownloadsPage } from './pages/DownloadsPage';
-import { VersionsPage } from './pages/VersionsPage';
-import { TrackOrderPage } from './pages/TrackOrderPage';
-import { DroneDispatchModule } from './pages/DroneDispatchModule';
 import { LoginPage } from './pages/LoginPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { SupportPage } from './pages/SupportPage';
-import { DocsPage } from './pages/DocsPage';
-import { CompanyPage } from './pages/CompanyPage';
-import { FeedbackPage } from './pages/FeedbackPage';
-import { LegalPage } from './pages/LegalPage';
-import { AdminDashboardPage } from './pages/AdminDashboardPage';
-import { FleetManagerPage } from './pages/FleetManagerPage';
-import { SupportDeskPage } from './pages/SupportDeskPage';
-import { StorePage } from './pages/StorePage';
-import { NotFoundPage } from './pages/NotFoundPage';
 import { CommandCenterModal } from './components/CommandCenterModal';
 import { DemoBookingModal } from './components/DemoBookingModal';
 import { API_BASE_URL } from './config/api';
 import { SEOHead } from './components/SEOHead';
-import { DeliveryTrackingModule } from './pages/DeliveryTrackingModule';
-import { DeliveryAppPage } from './pages/DeliveryAppPage';
-import { PublicDroneQRPage } from './pages/PublicDroneQRPage';
 import { Chatbot } from './components/Chatbot';
 import { UserProfile, DeliveryUser } from './types';
+
+// Dynamic code-split pages with React.lazy
+const PlatformPage = React.lazy(() => import('./pages/PlatformPage').then(m => ({ default: m.PlatformPage })));
+const CommandCenterPage = React.lazy(() => import('./pages/CommandCenterPage').then(m => ({ default: m.CommandCenterPage })));
+const GcsPage = React.lazy(() => import('./pages/GcsPage').then(m => ({ default: m.GcsPage })));
+const DownloadsPage = React.lazy(() => import('./pages/DownloadsPage').then(m => ({ default: m.DownloadsPage })));
+const VersionsPage = React.lazy(() => import('./pages/VersionsPage').then(m => ({ default: m.VersionsPage })));
+const TrackOrderPage = React.lazy(() => import('./pages/TrackOrderPage').then(m => ({ default: m.TrackOrderPage })));
+const DroneDispatchModule = React.lazy(() => import('./pages/DroneDispatchModule').then(m => ({ default: m.DroneDispatchModule })));
+const ProfilePage = React.lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
+const SupportPage = React.lazy(() => import('./pages/SupportPage').then(m => ({ default: m.SupportPage })));
+const DocsPage = React.lazy(() => import('./pages/DocsPage').then(m => ({ default: m.DocsPage })));
+const CompanyPage = React.lazy(() => import('./pages/CompanyPage').then(m => ({ default: m.CompanyPage })));
+const FeedbackPage = React.lazy(() => import('./pages/FeedbackPage').then(m => ({ default: m.FeedbackPage })));
+const LegalPage = React.lazy(() => import('./pages/LegalPage').then(m => ({ default: m.LegalPage })));
+const AdminDashboardPage = React.lazy(() => import('./pages/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
+const FleetManagerPage = React.lazy(() => import('./pages/FleetManagerPage').then(m => ({ default: m.FleetManagerPage })));
+const SupportDeskPage = React.lazy(() => import('./pages/SupportDeskPage').then(m => ({ default: m.SupportDeskPage })));
+const StorePage = React.lazy(() => import('./pages/StorePage').then(m => ({ default: m.StorePage })));
+const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
+const DeliveryTrackingModule = React.lazy(() => import('./pages/DeliveryTrackingModule').then(m => ({ default: m.DeliveryTrackingModule })));
+const DeliveryAppPage = React.lazy(() => import('./pages/DeliveryAppPage').then(m => ({ default: m.DeliveryAppPage })));
+const PublicDroneQRPage = React.lazy(() => import('./pages/PublicDroneQRPage').then(m => ({ default: m.PublicDroneQRPage })));
 
 type Page = 'home' | 'platform' | 'command-center' | 'gcs' | 'downloads' | 'versions' | 'track' | 'dispatch' | 'drone-dispatch' | 'delivery-tracking' | 'delivery-app' | 'drone' | 'login' | 'profile' | 'orders' | 'support' | 'docs' | 'company' | 'feedback' | 'legal' | 'admin' | 'fleet' | 'support-desk' | 'shop' | 'store' | 'cart' | '404';
 
@@ -258,67 +260,74 @@ export const App: React.FC = () => {
       )}
 
       <main className="flex-1 w-full max-w-full min-w-0">
-        {currentPage === 'drone' ? (
-          <PublicDroneQRPage onNavigate={handleNavigate} />
-        ) : currentPage === 'login' ? (
-          <LoginPage onNavigate={handleNavigate} onSuccess={handleDeliveryLogin} />
-        ) : currentPage === 'admin' ? (
-          <AdminDashboardPage currentUser={deliveryUser} onUpdateUser={setDeliveryUser} onNavigate={handleNavigate} onLogout={handleDeliveryLogout} />
-        ) : currentPage === 'fleet' ? (
-          <FleetManagerPage currentUser={deliveryUser} onNavigate={handleNavigate} onLogout={handleDeliveryLogout} />
-        ) : currentPage === 'support-desk' ? (
-          <SupportDeskPage currentUser={deliveryUser} onNavigate={handleNavigate} onLogout={handleDeliveryLogout} />
-        ) : (currentPage === 'shop' || currentPage === 'store' || currentPage === 'cart') ? (
-          <StorePage key={currentPage + (typeof window !== 'undefined' ? window.location.pathname : '')} currentUser={deliveryUser} onNavigate={handleNavigate} />
-        ) : currentPage === 'profile' ? (
-          <ProfilePage onNavigate={handleNavigate} currentUser={deliveryUser} onUpdateUser={setDeliveryUser} />
-        ) : currentPage === 'orders' ? (
-          <ProfilePage onNavigate={handleNavigate} currentUser={deliveryUser} onUpdateUser={setDeliveryUser} initialTab="orders" />
-        ) : currentPage === 'platform' ? (
-          <PlatformPage onOpenCommandCenter={() => setIsCommandCenterOpen(true)} onOpenDemoBooking={() => handleOpenDemoBooking()} />
-        ) : currentPage === 'command-center' ? (
-          <CommandCenterPage onNavigate={handleNavigate} onOpenCommandCenter={() => setIsCommandCenterOpen(true)} onOpenDemoBooking={() => handleOpenDemoBooking()} />
-        ) : currentPage === 'gcs' ? (
-          <GcsPage onNavigate={handleNavigate} onOpenCommandCenter={() => setIsCommandCenterOpen(true)} onOpenDemoBooking={() => handleOpenDemoBooking()} />
-        ) : currentPage === 'downloads' ? (
-          <DownloadsPage onNavigate={handleNavigate} onOpenCommandCenter={() => setIsCommandCenterOpen(true)} onOpenDemoBooking={() => handleOpenDemoBooking()} />
-        ) : currentPage === 'versions' ? (
-          <VersionsPage onNavigate={handleNavigate} onOpenDemoBooking={() => handleOpenDemoBooking()} />
-        ) : currentPage === 'track' ? (
-          <TrackOrderPage onNavigate={handleNavigate} />
-        ) : (currentPage === 'dispatch' || currentPage === 'drone-dispatch') ? (
-          <DroneDispatchModule
-            currentUser={deliveryUser}
-            onNavigate={handleNavigate}
-            onLogout={handleDeliveryLogout}
-          />
-        ) : currentPage === 'delivery-tracking' ? (
-          <div className="min-h-screen bg-[#f8fafc] text-slate-900 pt-28 sm:pt-32 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-            <DeliveryTrackingModule currentUser={deliveryUser} onNavigate={handleNavigate} />
+        <React.Suspense fallback={
+          <div className="min-h-[70vh] flex flex-col items-center justify-center gap-3">
+            <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Loading Module...</p>
           </div>
-        ) : currentPage === 'delivery-app' ? (
-          <DeliveryAppPage
-            user={deliveryUser}
-            onLogout={handleDeliveryLogout}
-            onNavigate={handleNavigate}
-          />
-        ) : currentPage === 'support' ? (
-          <SupportPage onNavigate={handleNavigate} currentUser={deliveryUser} />
-        ) : currentPage === 'docs' ? (
-          <DocsPage onNavigate={handleNavigate} onOpenCommandCenter={() => setIsCommandCenterOpen(true)} onOpenDemoBooking={() => handleOpenDemoBooking()} />
-        ) : currentPage === 'company' ? (
-          <CompanyPage onNavigate={handleNavigate} onOpenCommandCenter={() => setIsCommandCenterOpen(true)} onOpenDemoBooking={() => handleOpenDemoBooking()} />
-        ) : currentPage === 'feedback' ? (
-          <FeedbackPage onNavigate={handleNavigate} currentUser={deliveryUser} />
-        ) : currentPage === 'legal' ? (
-          <LegalPage onNavigate={handleNavigate} section={window.location.hash.replace('#', '') || undefined} />
-        ) : currentPage === '404' ? (
-          <NotFoundPage onNavigate={handleNavigate} />
-        ) : (
-          <>
-            <Hero currentUser={deliveryUser} onOpenCommandCenter={() => setIsCommandCenterOpen(true)} onOpenDemoBooking={() => handleOpenDemoBooking()} onNavigate={handleNavigate} />
-          </>
-        )}
+        }>
+          {currentPage === 'drone' ? (
+            <PublicDroneQRPage onNavigate={handleNavigate} />
+          ) : currentPage === 'login' ? (
+            <LoginPage onNavigate={handleNavigate} onSuccess={handleDeliveryLogin} />
+          ) : currentPage === 'admin' ? (
+            <AdminDashboardPage currentUser={deliveryUser} onUpdateUser={setDeliveryUser} onNavigate={handleNavigate} onLogout={handleDeliveryLogout} />
+          ) : currentPage === 'fleet' ? (
+            <FleetManagerPage currentUser={deliveryUser} onNavigate={handleNavigate} onLogout={handleDeliveryLogout} />
+          ) : currentPage === 'support-desk' ? (
+            <SupportDeskPage currentUser={deliveryUser} onNavigate={handleNavigate} onLogout={handleDeliveryLogout} />
+          ) : (currentPage === 'shop' || currentPage === 'store' || currentPage === 'cart') ? (
+            <StorePage key={currentPage + (typeof window !== 'undefined' ? window.location.pathname : '')} currentUser={deliveryUser} onNavigate={handleNavigate} />
+          ) : currentPage === 'profile' ? (
+            <ProfilePage onNavigate={handleNavigate} currentUser={deliveryUser} onUpdateUser={setDeliveryUser} />
+          ) : currentPage === 'orders' ? (
+            <ProfilePage onNavigate={handleNavigate} currentUser={deliveryUser} onUpdateUser={setDeliveryUser} initialTab="orders" />
+          ) : currentPage === 'platform' ? (
+            <PlatformPage onOpenCommandCenter={() => setIsCommandCenterOpen(true)} onOpenDemoBooking={() => handleOpenDemoBooking()} />
+          ) : currentPage === 'command-center' ? (
+            <CommandCenterPage onNavigate={handleNavigate} onOpenCommandCenter={() => setIsCommandCenterOpen(true)} onOpenDemoBooking={() => handleOpenDemoBooking()} />
+          ) : currentPage === 'gcs' ? (
+            <GcsPage onNavigate={handleNavigate} onOpenCommandCenter={() => setIsCommandCenterOpen(true)} onOpenDemoBooking={() => handleOpenDemoBooking()} />
+          ) : currentPage === 'downloads' ? (
+            <DownloadsPage onNavigate={handleNavigate} onOpenCommandCenter={() => setIsCommandCenterOpen(true)} onOpenDemoBooking={() => handleOpenDemoBooking()} />
+          ) : currentPage === 'versions' ? (
+            <VersionsPage onNavigate={handleNavigate} onOpenDemoBooking={() => handleOpenDemoBooking()} />
+          ) : currentPage === 'track' ? (
+            <TrackOrderPage onNavigate={handleNavigate} />
+          ) : (currentPage === 'dispatch' || currentPage === 'drone-dispatch') ? (
+            <DroneDispatchModule
+              currentUser={deliveryUser}
+              onNavigate={handleNavigate}
+              onLogout={handleDeliveryLogout}
+            />
+          ) : currentPage === 'delivery-tracking' ? (
+            <div className="min-h-screen bg-[#f8fafc] text-slate-900 pt-28 sm:pt-32 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+              <DeliveryTrackingModule currentUser={deliveryUser} onNavigate={handleNavigate} />
+            </div>
+          ) : currentPage === 'delivery-app' ? (
+            <DeliveryAppPage
+              user={deliveryUser}
+              onLogout={handleDeliveryLogout}
+              onNavigate={handleNavigate}
+            />
+          ) : currentPage === 'support' ? (
+            <SupportPage onNavigate={handleNavigate} currentUser={deliveryUser} />
+          ) : currentPage === 'docs' ? (
+            <DocsPage onNavigate={handleNavigate} onOpenCommandCenter={() => setIsCommandCenterOpen(true)} onOpenDemoBooking={() => handleOpenDemoBooking()} />
+          ) : currentPage === 'company' ? (
+            <CompanyPage onNavigate={handleNavigate} onOpenCommandCenter={() => setIsCommandCenterOpen(true)} onOpenDemoBooking={() => handleOpenDemoBooking()} />
+          ) : currentPage === 'feedback' ? (
+            <FeedbackPage onNavigate={handleNavigate} currentUser={deliveryUser} />
+          ) : currentPage === 'legal' ? (
+            <LegalPage onNavigate={handleNavigate} section={window.location.hash.replace('#', '') || undefined} />
+          ) : currentPage === '404' ? (
+            <NotFoundPage onNavigate={handleNavigate} />
+          ) : (
+            <>
+              <Hero currentUser={deliveryUser} onOpenCommandCenter={() => setIsCommandCenterOpen(true)} onOpenDemoBooking={() => handleOpenDemoBooking()} onNavigate={handleNavigate} />
+            </>
+          )}
+        </React.Suspense>
       </main>
 
       {currentPage !== 'login' && (
