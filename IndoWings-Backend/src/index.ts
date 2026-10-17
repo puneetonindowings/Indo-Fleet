@@ -1,6 +1,7 @@
 import './env.js';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import authRoutes from './routes/auth.js';
 import fleetRoutes from './routes/fleet.js';
 import missionsRoutes from './routes/missions.js';
@@ -14,6 +15,12 @@ import { seedDefaultAccounts } from './seed.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Enterprise Security Headers
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
@@ -31,7 +38,9 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
       'https://IndoFleet.com',
       'https://indowfleet.com',
       'https://app.IndoFleet.com',
-      'https://app.indowfleet.com'
+      'https://app.indowfleet.com',
+      'https://indowings.com',
+      'https://app.indowings.com'
     ];
 
 const isAllowedOrigin = (origin: string): boolean => {
@@ -39,10 +48,11 @@ const isAllowedOrigin = (origin: string): boolean => {
   if (/^https?:\/\/localhost(?::\d+)?$/i.test(origin)) return true;
   if (/^https?:\/\/127\.0\.0\.1(?::\d+)?$/i.test(origin)) return true;
   if (/^https?:\/\/(?:192\.168|10|172\.(?:1[6-9]|2\d|3[01]))\.\d+\.\d+(?::\d+)?$/i.test(origin)) return true;
-  if (/^https:\/\/.*\.vercel\.app$/i.test(origin)) return true;
-  if (/^https:\/\/.*\.onrender\.com$/i.test(origin)) return true;
-  if (/^https:\/\/(?:.*\.)?indowfleet\.com$/i.test(origin)) return true;
-  if (/^https:\/\/(?:.*\.)?indowings\.com$/i.test(origin)) return true;
+  // Specific trusted domains and their subdomains only (no arbitrary *.vercel.app or *.onrender.com)
+  if (/^https:\/\/(?:[a-zA-Z0-9-]+\.)?indowfleet\.com$/i.test(origin)) return true;
+  if (/^https:\/\/(?:[a-zA-Z0-9-]+\.)?indowings\.com$/i.test(origin)) return true;
+  if (/^https:\/\/(?:indo-fleet|indowfleet)\.vercel\.app$/i.test(origin)) return true;
+  if (/^https:\/\/(?:indo-fleet|indowfleet)\.onrender\.com$/i.test(origin)) return true;
   return false;
 };
 

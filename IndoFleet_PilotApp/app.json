@@ -14,7 +14,9 @@
           "fetch"
         ],
         "NSLocationWhenInUseUsageDescription": "IndoFleet Delivery App needs location access to track real-time delivery telemetry.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "IndoFleet Delivery App requires continuous background GPS to sync delivery tracking with Command Center."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "IndoFleet Delivery App requires continuous background GPS to sync delivery tracking with Command Center.",
+        "NSCameraUsageDescription": "IndoFleet Delivery App needs camera access to capture Proof of Delivery (POD) handover photos.",
+        "NSPhotoLibraryUsageDescription": "IndoFleet Delivery App needs photo library access to upload Proof of Delivery (POD) handover images."
       }
     },
     "android": {
@@ -32,7 +34,10 @@
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_LOCATION",
         "POST_NOTIFICATIONS",
-        "VIBRATE"
+        "VIBRATE",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES"
       ],
       "predictiveBackGestureEnabled": false
     },
@@ -44,7 +49,15 @@
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "IndoFleet Delivery App needs access to your photos to upload Proof of Delivery photos.",
+          "cameraPermission": "IndoFleet Delivery App needs access to your camera to capture Proof of Delivery photos."
+        }
+      ],
+      "expo-secure-store"
     ],
     "web": {
       "favicon": "./assets/favicon.png"

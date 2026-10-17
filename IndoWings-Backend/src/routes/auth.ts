@@ -1,4 +1,4 @@
-﻿import '../env.js';
+import '../env.js';
 import { Router, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { dbService } from '../supabase.js';
@@ -10,44 +10,82 @@ import { createRateLimiter } from '../middleware/rateLimiter.js';
 
 const authLimiter = createRateLimiter(15 * 60 * 1000, 15, 'Too many login attempts. Please wait 15 minutes before retrying.');
 
-// 1. Get all pre-configured demo accounts for quick testing
+import { fileDB } from '../db.js';
+
+// 1. Get pre-configured demo accounts (Only enabled in development mode)
 router.get('/demo-accounts', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    res.status(403).json({ error: 'Demo accounts listing is disabled in production.' });
+    return;
+  }
   const profiles = await dbService.getAllProfiles();
   res.json({ accounts: profiles });
 });
 
-// 2. Login
+// 2. Login with strict password verification
 router.post('/login', authLimiter, async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email) {
-    res.status(400).json({ error: 'Email is required' });
+  if (!email || !password) {
+    res.status(400).json({ error: 'Email and password are required' });
     return;
   }
 
-  const profile = await dbService.getProfileByEmail(email);
-  if (!profile) {
-    res.status(401).json({ error: 'User not found with this email in IndoFleet Command Center' });
+  const cleanEmail = email.toLowerCase().trim();
+  const cleanPass = password.toString().replace(/\s+/g, '');
+
+  const user = await fileDB.findUserByEmail(cleanEmail);
+  if (!user) {
+    res.status(401).json({ error: 'Invalid credentials. User not found.' });
+    return;
+  }
+
+  if (user.status !== 'active') {
+    res.status(403).json({ error: 'This account has been restricted. Contact Administrator.' });
+    return;
+  }
+
+  if (!user.password_hash) {
+    res.status(401).json({ error: 'Account credentials not provisioned. Contact Administrator.' });
+    return;
+  }
+
+  const validPassword = await fileDB.verifyPassword(cleanPass, user.password_hash);
+  if (!validPassword) {
+    res.status(401).json({ error: 'Invalid email or password' });
     return;
   }
 
   // Generate JWT with user profile payload
-  const token = jwt.sign(profile, JWT_SECRET, { expiresIn: '24h' });
+  const token = jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      station: user.station,
+      organization: user.organization
+    },
+    JWT_SECRET,
+    { expiresIn: '24h' }
+  );
 
   // Log audit entry
   await dbService.logAudit({
-    user_email: profile.email,
-    role: profile.role,
+    user_email: user.email,
+    role: user.role,
     action: 'USER_LOGIN',
     resource: 'Web Command Center GCS',
     ip_address: req.ip || '127.0.0.1',
     severity: 'INFO'
-  });
+  }).catch(() => {});
+
+  const { password: _p, password_hash: _ph, ...safeUser } = user;
 
   res.json({
     message: 'Authentication successful',
     token,
-    user: profile
+    user: safeUser
   });
 });
 

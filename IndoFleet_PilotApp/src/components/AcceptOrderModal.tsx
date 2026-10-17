@@ -35,11 +35,7 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
   const [requestingOtp, setRequestingOtp] = useState(false);
 
   useEffect(() => {
-    if (order?.pilot_acceptance_otp) {
-      setOtp(order.pilot_acceptance_otp);
-    } else {
-      setOtp('');
-    }
+    setOtp('');
   }, [order, visible]);
 
   if (!order) return null;
@@ -56,12 +52,9 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
         pilotEmail: currentUser?.email,
         pilotPhone: currentUser?.phone,
       });
-      if (res.acceptance_otp) {
-        setOtp(res.acceptance_otp);
-      }
       Alert.alert(
         'Acceptance OTP Dispatched',
-        res.message || 'OTP sent to your registered contact.'
+        res.message || 'Verification OTP sent to your registered email and phone. Please check and enter the OTP.'
       );
     } catch (err: any) {
       Alert.alert('Request Failed', err.message || 'Failed to dispatch acceptance OTP.');
