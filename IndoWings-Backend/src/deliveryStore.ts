@@ -459,11 +459,22 @@ export const deliveryStore = {
   },
   async findOrderById(id: string) {
     if (!id) return undefined;
-    const { data, error } = await db().from('delivery_orders').select('*').eq('id', id).maybeSingle();
+    const cleanId = id.trim();
+    const { data, error } = await db().from('delivery_orders')
+      .select('*')
+      .or(`id.eq.${cleanId},challan_number.eq.${cleanId}`)
+      .limit(1)
+      .maybeSingle();
     fail('find delivery order', error);
     if (data) return fromOrder(data);
-    const normalized = id.toLowerCase().replace(/-/g, '');
-    return (await this.getOrders()).find(order => String(order.id).toLowerCase().replace(/-/g, '') === normalized);
+
+    const normalized = cleanId.toLowerCase().replace(/-/g, '');
+    const { data: fuzzyData } = await db().from('delivery_orders')
+      .select('*')
+      .ilike('id', `%${normalized}%`)
+      .limit(1)
+      .maybeSingle();
+    return fuzzyData ? fromOrder(fuzzyData) : undefined;
   },
   async addOrder(order: JsonRecord) {
     const { data, error } = await db().from('delivery_orders').insert(toOrder(order)).select('*').single();
@@ -574,7 +585,7 @@ export const deliveryStore = {
     const cleanOtp = (otp || '').trim();
     if (!cleanOtp) return { valid: false, reason: 'Verification code is required.' };
 
-    if (cleanOtp === '123123' || cleanOtp === '000000') {
+    if (process.env.NODE_ENV !== 'production' && (cleanOtp === '123123' || cleanOtp === '000000')) {
       return { valid: true, meta: { purpose: 'override' } };
     }
 

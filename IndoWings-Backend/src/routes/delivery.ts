@@ -2291,15 +2291,8 @@ router.post('/orders', async (req, res) => {
   const now = new Date();
   const currentYear = now.getFullYear();
 
-  // Consignment / Dispatch number (e.g. DSP-2026-001)
-  const existingOrders = await fileDB.getOrders();
-  let orderOfTheDay = existingOrders.length + 1;
-  let orderId = `DSP-${currentYear}-${String(orderOfTheDay).padStart(3, '0')}`;
-
-  while (existingOrders.some((o) => o.id.toUpperCase() === orderId.toUpperCase())) {
-    orderOfTheDay++;
-    orderId = `DSP-${currentYear}-${String(orderOfTheDay).padStart(3, '0')}`;
-  }
+  const orderSuffix = `${Date.now().toString().slice(-5)}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+  const orderId = `DSP-${currentYear}-${orderSuffix}`;
 
   const challanNo = `CHL-${currentYear}-${String(Math.floor(1000 + Math.random() * 9000))}`;
   const estimatedDelivery = new Date(now.getTime() + 48 * 3600 * 1000); // 48 hours transit avg
@@ -2407,54 +2400,59 @@ async function hasVerifiedDispatchRecord(order: any) {
 router.get('/delivery/dashboard', async (req, res) => {
   const operator = await requireDeliveryOperator(req, res);
   if (!operator) return;
-  const orders = await fileDB.getOrders();
-  const [fleet, dispatchHistory, users] = await Promise.all([fileDB.getFleet(), fileDB.getDispatchHistory(), fileDB.getUsers()]);
-  const deliveries = orders.filter(order => order.order_type !== 'demo');
-  const counts = {
-    total: deliveries.length,
-    pending: deliveries.filter(order => ['pending', 'assigned'].includes(order.status)).length,
-    in_transit: deliveries.filter(order => ['taking-off', 'in-flight', 'approaching', 'out-for-delivery', 'in-transit'].includes(order.status)).length,
-    out_for_delivery: deliveries.filter(order => order.status === 'out-for-delivery').length,
-    delivered: deliveries.filter(order => order.status === 'delivered').length,
-    on_hold: deliveries.filter(order => order.status === 'on-hold').length,
-    rescheduled: deliveries.filter(order => order.status === 'rescheduled').length,
-    delayed: deliveries.filter(order => order.status === 'delayed').length,
-    failed: deliveries.filter(order => order.status === 'failed').length,
-    cancelled: deliveries.filter(order => order.status === 'cancelled').length
-  };
-  res.json({
-    counts,
-    orders: deliveries.sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
-      .map(order => {
-        const drone = fleet.find(item => item.id === order.drone_id)
-          || fleet.find(item => Array.isArray(order.reserved_inventory_ids) && order.reserved_inventory_ids.includes(item.id));
-        const customer = users.find(item => item.id === order.creator_id);
-        const dispatchTime = dispatchHistory
-          .filter(entry => entry.order_id === order.id && entry.status === 'dispatched')
-          .map(entry => String(entry.dispatched_at || ''))
-          .filter(Boolean)
-          .sort()
-          .pop();
-        return {
-          ...order,
-          delivery_id: order.delivery_id || `DEL-${order.id}`,
-          organization_name: order.organization_name || order.client_name || customer?.organization || '',
-          organization_id: order.organization_id || customer?.organization_id || '',
-          location_is_live: false,
-          last_known_location: order.last_known_location || null,
-          last_location_updated_at: order.last_location_updated_at || null,
-          dispatch_time: order.dispatch_time || order.dispatched_at || dispatchTime || null,
-          rpav_info: drone ? {
-            id: drone.id,
-            name: drone.model,
-            status: drone.status,
-            battery: Number.isFinite(Number(drone.battery)) ? Number(drone.battery) : null,
-            current_location: drone.current_city || null,
-            last_location_updated_at: drone.last_location_updated_at || null
-          } : null
-        };
-      })
+
+  const payload = await apiCache.getOrSet('delivery:dashboard:data', 3000, async () => {
+    const orders = await fileDB.getOrders();
+    const [fleet, dispatchHistory, users] = await Promise.all([fileDB.getFleet(), fileDB.getDispatchHistory(), fileDB.getUsers()]);
+    const deliveries = orders.filter(order => order.order_type !== 'demo');
+    const counts = {
+      total: deliveries.length,
+      pending: deliveries.filter(order => ['pending', 'assigned'].includes(order.status)).length,
+      in_transit: deliveries.filter(order => ['taking-off', 'in-flight', 'approaching', 'out-for-delivery', 'in-transit'].includes(order.status)).length,
+      out_for_delivery: deliveries.filter(order => order.status === 'out-for-delivery').length,
+      delivered: deliveries.filter(order => order.status === 'delivered').length,
+      on_hold: deliveries.filter(order => order.status === 'on-hold').length,
+      rescheduled: deliveries.filter(order => order.status === 'rescheduled').length,
+      delayed: deliveries.filter(order => order.status === 'delayed').length,
+      failed: deliveries.filter(order => order.status === 'failed').length,
+      cancelled: deliveries.filter(order => order.status === 'cancelled').length
+    };
+    return {
+      counts,
+      orders: deliveries.sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
+        .map(order => {
+          const drone = fleet.find(item => item.id === order.drone_id)
+            || fleet.find(item => Array.isArray(order.reserved_inventory_ids) && order.reserved_inventory_ids.includes(item.id));
+          const customer = users.find(item => item.id === order.creator_id);
+          const dispatchTime = dispatchHistory
+            .filter(entry => entry.order_id === order.id && entry.status === 'dispatched')
+            .map(entry => String(entry.dispatched_at || ''))
+            .filter(Boolean)
+            .sort()
+            .pop();
+          return {
+            ...order,
+            delivery_id: order.delivery_id || `DEL-${order.id}`,
+            organization_name: order.organization_name || order.client_name || customer?.organization || '',
+            organization_id: order.organization_id || customer?.organization_id || '',
+            location_is_live: false,
+            last_known_location: order.last_known_location || null,
+            last_location_updated_at: order.last_location_updated_at || null,
+            dispatch_time: order.dispatch_time || order.dispatched_at || dispatchTime || null,
+            rpav_info: drone ? {
+              id: drone.id,
+              name: drone.model,
+              status: drone.status,
+              battery: Number.isFinite(Number(drone.battery)) ? Number(drone.battery) : null,
+              current_location: drone.current_city || null,
+              last_location_updated_at: drone.last_location_updated_at || null
+            } : null
+          };
+        })
+    };
   });
+
+  res.json(payload);
 });
 
 router.patch('/delivery/orders/:id/porter-tracking', async (req, res) => {
@@ -2998,61 +2996,62 @@ router.post('/orders/:id/cancel', async (req, res) => {
 
 // Fleet: Get fleet status
 router.get('/fleet', async (req, res) => {
-  const fleet = await fileDB.getFleet();
-  const orders = await fileDB.getOrders();
+  const payload = await apiCache.getOrSet('delivery:fleet:synced', 5000, async () => {
+    const fleet = await fileDB.getFleet();
+    const orders = await fileDB.getOrders();
 
-  // Dynamically synchronize fleet with active orders
-  const syncedFleet = fleet.map((drone) => {
-    // Find if drone is currently assigned to an active order
-    const activeOrder = orders.find((o) => o.drone_id === drone.id && ['assigned', 'taking-off', 'in-flight', 'approaching', 'on-hold'].includes(o.status));
+    const syncedFleet = fleet.map((drone) => {
+      const activeOrder = orders.find((o) => o.drone_id === drone.id && ['assigned', 'taking-off', 'in-flight', 'approaching', 'on-hold'].includes(o.status));
 
-    if (activeOrder) {
-      const isFlying = ['taking-off', 'in-flight', 'approaching'].includes(activeOrder.status);
-      const isOnHold = activeOrder.status === 'on-hold';
+      if (activeOrder) {
+        const isFlying = ['taking-off', 'in-flight', 'approaching'].includes(activeOrder.status);
+        const isOnHold = activeOrder.status === 'on-hold';
 
-      return {
-        ...drone,
-        status: isOnHold ? 'on-hold' : isFlying ? 'en-route' : 'assigned',
-        speed_kmh: isFlying ? (activeOrder.status === 'taking-off' ? 28 : activeOrder.status === 'approaching' ? 18 : 68) : 0,
-        altitude_m: isFlying ? (activeOrder.status === 'taking-off' ? 30 : activeOrder.status === 'approaching' ? 12 : 95) : isOnHold ? 60 : 0,
-        assigned_order: activeOrder.id,
-        current_order: {
-          id: activeOrder.id,
-          customer_name: activeOrder.customer_name,
-          destination: activeOrder.drop_address,
-          package_type: activeOrder.package_type,
-          package_weight_kg: activeOrder.package_weight_kg,
-          fare: activeOrder.fare,
-          payment_method: activeOrder.payment_method,
-          status: activeOrder.status
-        }
-      };
-    } else {
-      // Drone not carrying an active order
-      return {
-        ...drone,
-        status: drone.status === 'charging' ? 'charging' : drone.status === 'maintenance' ? 'maintenance' : drone.status === 'on-hold' ? 'on-hold' : 'idle',
-        speed_kmh: 0,
-        altitude_m: 0,
-        assigned_order: null,
-        current_order: null
-      };
-    }
+        return {
+          ...drone,
+          status: isOnHold ? 'on-hold' : isFlying ? 'en-route' : 'assigned',
+          speed_kmh: isFlying ? (activeOrder.status === 'taking-off' ? 28 : activeOrder.status === 'approaching' ? 18 : 68) : 0,
+          altitude_m: isFlying ? (activeOrder.status === 'taking-off' ? 30 : activeOrder.status === 'approaching' ? 12 : 95) : isOnHold ? 60 : 0,
+          assigned_order: activeOrder.id,
+          current_order: {
+            id: activeOrder.id,
+            customer_name: activeOrder.customer_name,
+            destination: activeOrder.drop_address,
+            package_type: activeOrder.package_type,
+            package_weight_kg: activeOrder.package_weight_kg,
+            fare: activeOrder.fare,
+            payment_method: activeOrder.payment_method,
+            status: activeOrder.status
+          }
+        };
+      } else {
+        return {
+          ...drone,
+          status: drone.status === 'charging' ? 'charging' : drone.status === 'maintenance' ? 'maintenance' : drone.status === 'on-hold' ? 'on-hold' : 'idle',
+          speed_kmh: 0,
+          altitude_m: 0,
+          assigned_order: null,
+          current_order: null
+        };
+      }
+    });
+
+    const activeCount = syncedFleet.filter((d) => d.status === 'en-route' || d.status === 'assigned').length;
+    const idleCount = syncedFleet.filter((d) => d.status === 'idle').length;
+    const chargingCount = syncedFleet.filter((d) => d.status === 'charging').length;
+    const onHoldCount = syncedFleet.filter((d) => d.status === 'on-hold').length;
+
+    return {
+      fleet: syncedFleet,
+      total_fleet: syncedFleet.length,
+      active: activeCount,
+      idle: idleCount,
+      charging: chargingCount,
+      on_hold: onHoldCount
+    };
   });
 
-  const activeCount = syncedFleet.filter((d) => d.status === 'en-route' || d.status === 'assigned').length;
-  const idleCount = syncedFleet.filter((d) => d.status === 'idle').length;
-  const chargingCount = syncedFleet.filter((d) => d.status === 'charging').length;
-  const onHoldCount = syncedFleet.filter((d) => d.status === 'on-hold').length;
-
-  res.json({
-    fleet: syncedFleet,
-    total_fleet: syncedFleet.length,
-    active: activeCount,
-    idle: idleCount,
-    charging: chargingCount,
-    on_hold: onHoldCount
-  });
+  res.json(payload);
 });
 
 // Fleet: Update drone telemetry (Fleet Manager or Admin only)
