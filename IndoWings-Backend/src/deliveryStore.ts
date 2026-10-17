@@ -458,8 +458,9 @@ export const deliveryStore = {
     return (data || []).map(fromOrder);
   },
   async findOrderById(id: string) {
-    if (!id) return undefined;
-    const cleanId = id.trim();
+    if (!id || typeof id !== 'string') return undefined;
+    const cleanId = id.trim().replace(/[^a-zA-Z0-9_-]/g, '');
+    if (!cleanId) return undefined;
     const { data, error } = await db().from('delivery_orders')
       .select('*')
       .or(`id.eq.${cleanId},challan_number.eq.${cleanId}`)
@@ -468,7 +469,8 @@ export const deliveryStore = {
     fail('find delivery order', error);
     if (data) return fromOrder(data);
 
-    const normalized = cleanId.toLowerCase().replace(/-/g, '');
+    const normalized = cleanId.toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
+    if (!normalized) return undefined;
     const { data: fuzzyData } = await db().from('delivery_orders')
       .select('*')
       .ilike('id', `%${normalized}%`)

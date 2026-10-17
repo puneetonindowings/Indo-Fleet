@@ -12,6 +12,7 @@ import deliveryRoutes from './routes/delivery.js';
 import notificationRoutes from './routes/notifications.js';
 import { verifySupabaseConnection } from './supabase.js';
 import { seedDefaultAccounts } from './seed.js';
+import { securityShield } from './middleware/securityShield.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -70,6 +71,7 @@ app.use(cors({
 
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ limit: '15mb', extended: true }));
+app.use(securityShield);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/fleet', fleetRoutes);
