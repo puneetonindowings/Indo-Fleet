@@ -308,9 +308,6 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
           </View>
 
           <ScrollView style={styles.scrollBody} showsVerticalScrollIndicator={false}>
-            {/* ═══════════════════════════════════════════════════════════
-                STAGE 1: AIRFRAME & ZERO-DEFECT INSPECTION (MANDATORY)
-               ═══════════════════════════════════════════════════════════ */}
             <View style={[styles.stepContainer, isInspectionVerified ? styles.stepContainerVerified : styles.stepContainerPending]}>
               <View style={styles.stepHeaderRow}>
                 <View style={styles.stepTitleGroup}>
@@ -510,9 +507,6 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
               )}
             </View>
 
-            {/* ═══════════════════════════════════════════════════════════
-                STAGE 2: CUSTOMER OTP & PROOF OF DELIVERY (LOCKED UNTIL STEP 1)
-               ═══════════════════════════════════════════════════════════ */}
             <View style={[styles.stepContainer, !isInspectionVerified && styles.stepContainerLocked]}>
               <View style={styles.stepHeaderRow}>
                 <View style={styles.stepTitleGroup}>

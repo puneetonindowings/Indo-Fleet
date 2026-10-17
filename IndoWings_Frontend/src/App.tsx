@@ -10,7 +10,6 @@ import { SEOHead } from './components/SEOHead';
 import { Chatbot } from './components/Chatbot';
 import { UserProfile, DeliveryUser } from './types';
 
-// Dynamic code-split pages with React.lazy
 const PlatformPage = React.lazy(() => import('./pages/PlatformPage').then(m => ({ default: m.PlatformPage })));
 const CommandCenterPage = React.lazy(() => import('./pages/CommandCenterPage').then(m => ({ default: m.CommandCenterPage })));
 const GcsPage = React.lazy(() => import('./pages/GcsPage').then(m => ({ default: m.GcsPage })));

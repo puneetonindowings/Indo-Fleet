@@ -5,7 +5,6 @@ import { apiCache } from '../utils/cache.js';
 
 const router = Router();
 
-// GET all fleet (Cached with 15-second TTL for extreme concurrency)
 router.get('/', async (req, res) => {
   try {
     const fleet = await apiCache.getOrSet('public:fleet', 15000, () => dbService.getFleet());
@@ -15,7 +14,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET single drone
 router.get('/:id', async (req, res) => {
   try {
     const fleet = await apiCache.getOrSet('public:fleet', 15000, () => dbService.getFleet());
@@ -30,7 +28,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST register new drone (Admin only)
 router.post('/', authenticateToken, requireRoles('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const { model_name, category, serial_number, max_range_km, endurance_mins, max_speed_kmh, payload_capacity_kg, image_url } = req.body;

@@ -3867,8 +3867,6 @@ router.get('/support/tickets/:id/emails/:emailId/attachments/:attachmentId', asy
   }
 });
 
-// Feedback: Customer reviews and ratings
-// Public: Get all feedbacks (Cached with 20s TTL for high concurrency)
 router.get('/feedbacks', async (req, res) => {
   try {
     const feedbacks = await apiCache.getOrSet('delivery:feedbacks', 20000, () => fileDB.getFeedbacks());

@@ -12,7 +12,6 @@ const authLimiter = createRateLimiter(15 * 60 * 1000, 15, 'Too many login attemp
 
 import { fileDB } from '../db.js';
 
-// 1. Get pre-configured demo accounts (Only enabled in development mode)
 router.get('/demo-accounts', async (req, res) => {
   if (process.env.NODE_ENV === 'production') {
     res.status(403).json({ error: 'Demo accounts listing is disabled in production.' });
@@ -22,7 +21,6 @@ router.get('/demo-accounts', async (req, res) => {
   res.json({ accounts: profiles });
 });
 
-// 2. Login with strict password verification
 router.post('/login', authLimiter, async (req, res) => {
   const { email, password } = req.body;
 
@@ -56,7 +54,6 @@ router.post('/login', authLimiter, async (req, res) => {
     return;
   }
 
-  // Generate JWT with user profile payload
   const token = jwt.sign(
     {
       id: user.id,
@@ -70,7 +67,6 @@ router.post('/login', authLimiter, async (req, res) => {
     { expiresIn: '24h' }
   );
 
-  // Log audit entry
   await dbService.logAudit({
     user_email: user.email,
     role: user.role,
@@ -89,7 +85,6 @@ router.post('/login', authLimiter, async (req, res) => {
   });
 });
 
-// 3. Me (Verify Session)
 router.get('/me', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
   res.json({ user: req.user });
 });
