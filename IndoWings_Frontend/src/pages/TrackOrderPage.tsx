@@ -70,7 +70,7 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
         .catch(() => {});
     }, 4000);
     return () => clearInterval(interval);
-  }, [order]);
+  }, [order?.id, order?.status]);
 
   const handleSearch = async (e?: React.FormEvent, customId?: string) => {
     e?.preventDefault();
