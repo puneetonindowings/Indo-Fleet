@@ -242,7 +242,11 @@ router.post('/auth/login', authLimiter, async (req, res) => {
     res.status(403).json({ error: 'This account is restricted. Contact an administrator.' });
     return;
   }
-  const validPassword = user.password_hash ? await fileDB.verifyPassword(cleanPass, user.password_hash) : cleanPass === '123123';
+  if (!user.password_hash) {
+    res.status(401).json({ error: 'Account password not configured. Please contact Administrator for credentials.' });
+    return;
+  }
+  const validPassword = await fileDB.verifyPassword(cleanPass, user.password_hash);
   if (!validPassword) {
     res.status(401).json({ error: 'Invalid password. Please check and retry.' });
     return;
@@ -294,7 +298,11 @@ router.post('/auth/verify-password-and-send-otp', otpLimiter, async (req, res) =
     return;
   }
 
-  const validPassword = user.password_hash ? await fileDB.verifyPassword(cleanPass, user.password_hash) : cleanPass === '123123';
+  if (!user.password_hash) {
+    res.status(401).json({ error: 'Account password not configured. Please contact Administrator for credentials.' });
+    return;
+  }
+  const validPassword = await fileDB.verifyPassword(cleanPass, user.password_hash);
   if (!validPassword) {
     res.status(401).json({ error: 'Invalid password. Please check and retry.' });
     return;
@@ -724,8 +732,7 @@ router.post('/admin/request-provision-otp', async (req, res) => {
       : `Security OTP dispatched (${targets[0]}).`,
     targets,
     target: targets[0],
-    channel,
-    dev_otp: otp
+    channel
   });
 });
 
@@ -770,8 +777,7 @@ router.post('/admin/request-inventory-otp', async (req, res) => {
       : `Inventory authorization OTP dispatched (${targets[0]}).`,
     targets,
     target: targets[0],
-    channel,
-    dev_otp: otp
+    channel
   });
 });
 
@@ -813,8 +819,7 @@ router.post('/admin/request-decommission-otp', async (req, res) => {
     message: `Decommission authorization OTP dispatched to ${targets.join(' and ')}. You can enter the OTP received on either Email or SMS.`,
     targets,
     target: targets[0],
-    channel,
-    dev_otp: otp
+    channel
   });
 });
 
@@ -943,7 +948,7 @@ router.post('/admin/resend-credentials-email', async (req, res) => {
     return;
   }
 
-  const passToSend = (temporaryPassword && String(temporaryPassword).trim()) || '123123';
+  const passToSend = (temporaryPassword && String(temporaryPassword).trim()) || `IW-${crypto.randomBytes(3).toString('hex').toUpperCase()}9!`;
 
   // CRITICAL: Always update database with the password being sent in email!
   await fileDB.updateUser(user.id, {
@@ -1105,7 +1110,7 @@ router.post('/profile/request-change-password-otp', async (req, res) => {
     const cleanCurrent = currentPassword.toString().replace(/\s+/g, '');
     const validCurrent = user.password_hash
       ? await fileDB.verifyPassword(cleanCurrent, user.password_hash)
-      : (cleanCurrent === user.password || cleanCurrent === '123123');
+      : (cleanCurrent === user.password && user.password);
 
     if (!validCurrent) {
       res.status(400).json({ success: false, error: 'Incorrect current password. Please verify and try again.' });
@@ -2346,26 +2351,31 @@ router.get('/orders', async (req, res) => {
   let user: any = null;
   if (auth) {
     try {
-      user = jwt.verify(auth.replace('Bearer ', ''), JWT_SECRET);
+      user = jwt.verify(auth.replace(/^Bearer\s+/i, '').trim(), JWT_SECRET);
     } catch {}
+  }
+
+  if (!user) {
+    res.status(401).json({ error: 'Authentication required. Please sign in to view orders.' });
+    return;
   }
 
   const allOrders = await fileDB.getOrders();
 
-  if (user?.role === 'admin') {
+  if (user.role === 'admin' || user.role === 'dispatcher' || user.role === 'fleet_manager') {
     res.json({ orders: allOrders, total: allOrders.length });
-  } else if (user) {
+  } else {
     const userEmail = (user.email || '').toLowerCase().trim();
     const userPhoneClean = (user.phone || '').replace(/[^0-9]/g, '').slice(-10);
     const myOrders = allOrders.filter(
       (o) =>
         (o.creator_id && o.creator_id === user.id) ||
         (userEmail && o.customer_email && o.customer_email.toLowerCase() === userEmail) ||
-        (userPhoneClean && o.customer_phone && o.customer_phone.replace(/[^0-9]/g, '').endsWith(userPhoneClean))
+        (userPhoneClean && o.customer_phone && o.customer_phone.replace(/[^0-9]/g, '').endsWith(userPhoneClean)) ||
+        (o.pilot_id && o.pilot_id === user.id) ||
+        (userEmail && o.pilot_email && o.pilot_email.toLowerCase() === userEmail)
     );
     res.json({ orders: myOrders, total: myOrders.length });
-  } else {
-    res.json({ orders: allOrders, total: allOrders.length });
   }
 });
 
@@ -2783,8 +2793,7 @@ router.post('/orders/:id/hold-request-otp', async (req, res) => {
 
   res.json({
     success: true,
-    message: `Security verification OTP sent to ${operator.email || operator.phone}`,
-    dev_otp: otp
+    message: `Security verification OTP sent to ${operator.email || operator.phone}`
   });
 });
 
@@ -3037,8 +3046,11 @@ router.get('/fleet', async (req, res) => {
   });
 });
 
-// Fleet: Update drone telemetry
+// Fleet: Update drone telemetry (Fleet Manager or Admin only)
 router.patch('/fleet/:id', async (req, res) => {
+  const admin = await requireFleetManagerOrAdmin(req, res);
+  if (!admin) return;
+
   const { status, battery, current_city, model } = req.body;
   const fleet = await fileDB.getFleet();
   const drone = fleet.find((d) => d.id === req.params.id);
@@ -3055,12 +3067,15 @@ router.patch('/fleet/:id', async (req, res) => {
   if (model !== undefined) updates.model = model;
 
   const updatedDrone = await fileDB.updateDrone(drone.id, updates);
-  console.log(`[Fleet] Drone ${drone.id} updated:`, updates);
+  console.log(`[Fleet] Drone ${drone.id} updated by ${admin.name}:`, updates);
   res.json({ message: `Drone ${drone.id} telemetry updated`, drone: updatedDrone });
 });
 
-// Fleet: Register new drone
+// Fleet: Register new drone (Fleet Manager or Admin only)
 router.post('/fleet', async (req, res) => {
+  const admin = await requireFleetManagerOrAdmin(req, res);
+  if (!admin) return;
+
   const { id, model, current_city, payload_capacity_kg } = req.body;
   const fleet = await fileDB.getFleet();
 
@@ -3904,6 +3919,8 @@ router.post('/feedbacks', async (req, res) => {
 
 // Admin: Update feedback (status or notes)
 router.patch('/feedbacks/:id', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
   try {
     const { id } = req.params;
     const { status, admin_notes } = req.body;
@@ -3920,6 +3937,8 @@ router.patch('/feedbacks/:id', async (req, res) => {
 
 // Admin: Delete feedback
 router.delete('/feedbacks/:id', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
   try {
     const { id } = req.params;
     await fileDB.deleteFeedback(id);
@@ -4409,7 +4428,7 @@ router.post('/pilot/login', async (req, res) => {
 
     const validPassword = user.password_hash
       ? await fileDB.verifyPassword(cleanPass, user.password_hash)
-      : (cleanPass === user.password || cleanPass === '123123');
+      : (cleanPass === user.password && user.password);
 
     if (!validPassword) {
       res.status(401).json({ success: false, error: 'Invalid password. Please check and retry.' });
@@ -4453,7 +4472,7 @@ router.post('/pilot/change-password', async (req, res) => {
     if (!user.must_change_password && oldPassword) {
       const validOld = user.password_hash
         ? await fileDB.verifyPassword(oldPassword, user.password_hash)
-        : (oldPassword === user.password || oldPassword === '123123');
+        : (oldPassword === user.password && user.password);
       if (!validOld) {
         res.status(400).json({ success: false, error: 'Incorrect existing password.' });
         return;
@@ -4534,7 +4553,6 @@ router.get('/pilot/dashboard', async (req, res) => {
         assigned_by_role: o.assigned_by_role || 'Dispatcher',
         assigned_at: o.assigned_at || o.created_at,
         pilot_acceptance_status: o.pilot_acceptance_status || (o.status === 'in-flight' ? 'accepted' : 'pending_acceptance'),
-        pilot_acceptance_otp: o.pilot_acceptance_otp || '',
         last_known_location: o.last_known_location || null,
         created_at: o.created_at
       }));
@@ -4814,8 +4832,7 @@ router.post('/pilot/request-acceptance-otp', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Acceptance OTP sent to your registered ${targetEmail ? 'email (' + targetEmail + ')' : 'phone'}`,
-      acceptance_otp: acceptanceOtp
+      message: `Acceptance OTP sent to your registered ${targetEmail ? 'email (' + targetEmail + ')' : 'phone'}`
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to dispatch acceptance OTP' });
@@ -4974,8 +4991,7 @@ router.post('/pilot/request-handover-otp', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Departure Authorization OTP dispatched to your registered ${targetEmail ? 'email (' + targetEmail + ')' : 'phone'}.`,
-      handover_otp: handoverOtp
+      message: `Departure Authorization OTP dispatched to your registered ${targetEmail ? 'email (' + targetEmail + ')' : 'phone'}.`
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to generate departure OTP' });
@@ -5323,8 +5339,7 @@ router.post('/pilot/request-customer-otp', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Delivery Verification OTP dispatched to customer (${customerTarget || 'Phone/Email'})`,
-      customer_otp: customerOtp // Returned so pilot can see during testing/fallback
+      message: `Delivery Verification OTP dispatched to customer (${customerTarget || 'Phone/Email'})`
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to request customer OTP' });
@@ -5371,8 +5386,7 @@ router.post('/pilot/request-pilot-delivery-otp', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Pilot Verification OTP dispatched to ${pilot_email || pilot_phone || 'Pilot phone/email'}`,
-      pilot_otp: pilotOtp // Returned so pilot can see during testing/fallback
+      message: `Pilot Verification OTP dispatched to ${pilot_email || pilot_phone || 'Pilot phone/email'}`
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to request pilot OTP' });

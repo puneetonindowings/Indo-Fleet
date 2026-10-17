@@ -4,11 +4,11 @@ const API_BASE = '/api';
 
 export const apiClient = {
   // Auth
-  async login(email: string): Promise<{ token: string; user: UserProfile }> {
+  async login(email: string, password = ''): Promise<{ token: string; user: UserProfile }> {
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ email, password })
     });
     if (!res.ok) {
       const err = await res.json();

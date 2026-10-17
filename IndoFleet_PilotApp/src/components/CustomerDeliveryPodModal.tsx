@@ -202,15 +202,10 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
     setRequestingCustOtp(true);
     try {
       const res = await requestCustomerDeliveryOtp(order.id);
-      if (res.customer_otp) {
-        setCustomerOtp(res.customer_otp);
-        Alert.alert(
-          'Customer OTP Dispatched',
-          `${res.message || 'Verification OTP sent to customer.'}\n\nCustomer OTP: ${res.customer_otp} (Auto-filled)`
-        );
-      } else {
-        Alert.alert('Customer OTP Dispatched', res.message || 'Delivery Verification OTP sent to customer phone and email.');
-      }
+      Alert.alert(
+        'Customer OTP Dispatched',
+        res.message || 'Delivery Verification OTP has been sent to the customer via Email/SMS. Please ask the customer for the 6-digit OTP code upon handover.'
+      );
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Could not request customer OTP.');
     } finally {
@@ -231,15 +226,10 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
         pilotUser?.phone,
         pilotUser?.name
       );
-      if (res.pilot_otp) {
-        setPilotOtp(res.pilot_otp);
-        Alert.alert(
-          'Delivery OTP Dispatched',
-          `${res.message || 'OTP sent to your registered account.'}\n\nDelivery OTP: ${res.pilot_otp} (Auto-filled)`
-        );
-      } else {
-        Alert.alert('Delivery OTP Dispatched', res.message || 'Delivery Partner Verification OTP sent to your registered account.');
-      }
+      Alert.alert(
+        'Delivery Partner OTP Dispatched',
+        res.message || 'Delivery Partner Verification OTP has been sent to your registered email/phone. Please enter the OTP to confirm handover.'
+      );
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Could not request delivery OTP.');
     } finally {
