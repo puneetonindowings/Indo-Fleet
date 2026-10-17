@@ -1,9 +1,3 @@
-/**
- * IndoFleet Enterprise High-Performance In-Memory TTL Cache
- * Provides sub-millisecond response times for read-heavy endpoints
- * preventing database connection exhaustion during high-concurrency traffic (10k+ users).
- */
-
 interface CacheEntry<T> {
   data: T;
   expiresAt: number;
@@ -12,12 +6,6 @@ interface CacheEntry<T> {
 class MemoryCache {
   private cache = new Map<string, CacheEntry<any>>();
 
-  /**
-   * Get cached item or execute fetcher and store result with TTL
-   * @param key Unique cache key
-   * @param ttlMs Time-to-live in milliseconds
-   * @param fetcher Async function to fetch data if cache misses
-   */
   async getOrSet<T>(key: string, ttlMs: number, fetcher: () => Promise<T>): Promise<T> {
     const now = Date.now();
     const existing = this.cache.get(key);
@@ -35,9 +23,6 @@ class MemoryCache {
     return freshData;
   }
 
-  /**
-   * Invalidate specific key or keys matching prefix
-   */
   invalidate(keyOrPrefix: string): void {
     for (const key of this.cache.keys()) {
       if (key === keyOrPrefix || key.startsWith(keyOrPrefix)) {
@@ -46,9 +31,6 @@ class MemoryCache {
     }
   }
 
-  /**
-   * Clear all cached keys
-   */
   clear(): void {
     this.cache.clear();
   }
