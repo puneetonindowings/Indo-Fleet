@@ -36,6 +36,7 @@ import {
 import { sendPushToUser, broadcastPushToPilots } from '../firebaseService.js';
 import { JWT_SECRET } from '../middleware/auth.js';
 import { createRateLimiter } from '../middleware/rateLimiter.js';
+import { apiCache } from '../utils/cache.js';
 
 const router = Router();
 const authLimiter = createRateLimiter(15 * 60 * 1000, 15, 'Too many login attempts. Please wait 15 minutes before retrying.');
@@ -2029,33 +2030,41 @@ router.post('/dispatch/confirm', async (req, res) => {
 });
 
 router.get('/store/products', async (_req, res) => {
-  const inventory = await fileDB.getFleet();
-  const orders = await fileDB.getOrders();
+  try {
+    const payload = await apiCache.getOrSet('delivery:store:products', 15000, async () => {
+      const inventory = await fileDB.getFleet();
+      const orders = await fileDB.getOrders();
 
-  // Find all drone IDs currently booked, reserved, or assigned in active orders
-  const activeOrders = orders.filter((o) => !['delivered', 'cancelled', 'rejected'].includes(o.status));
-  const bookedDroneIds = new Set<string>();
-  for (const o of activeOrders) {
-    if (o.assigned_drone_id) bookedDroneIds.add(String(o.assigned_drone_id).toLowerCase());
-    if (o.drone_id) bookedDroneIds.add(String(o.drone_id).toLowerCase());
-    if (Array.isArray(o.reserved_inventory_ids)) {
-      o.reserved_inventory_ids.forEach((id: any) => bookedDroneIds.add(String(id).toLowerCase()));
-    }
+      // Find all drone IDs currently booked, reserved, or assigned in active orders
+      const activeOrders = orders.filter((o) => !['delivered', 'cancelled', 'rejected'].includes(o.status));
+      const bookedDroneIds = new Set<string>();
+      for (const o of activeOrders) {
+        if (o.assigned_drone_id) bookedDroneIds.add(String(o.assigned_drone_id).toLowerCase());
+        if (o.drone_id) bookedDroneIds.add(String(o.drone_id).toLowerCase());
+        if (Array.isArray(o.reserved_inventory_ids)) {
+          o.reserved_inventory_ids.forEach((id: any) => bookedDroneIds.add(String(id).toLowerCase()));
+        }
+      }
+
+      const available = inventory.filter(
+        (d) =>
+          d.status === 'idle' &&
+          (d.qc_status === 'passed' || !d.qc_status) &&
+          !bookedDroneIds.has(String(d.id).toLowerCase()) &&
+          !bookedDroneIds.has(String(d.serial_number || '').toLowerCase())
+      );
+
+      return {
+        drones: available,
+        count: available.length,
+        products: available
+      };
+    });
+
+    res.json(payload);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to fetch available store products' });
   }
-
-  const available = inventory.filter(
-    (d) =>
-      d.status === 'idle' &&
-      (d.qc_status === 'passed' || !d.qc_status) &&
-      !bookedDroneIds.has(String(d.id).toLowerCase()) &&
-      !bookedDroneIds.has(String(d.serial_number || '').toLowerCase())
-  );
-
-  res.json({
-    drones: available,
-    count: available.length,
-    products: available
-  });
 });
 
 router.get('/store/orders', async (req, res) => {
@@ -3859,10 +3868,10 @@ router.get('/support/tickets/:id/emails/:emailId/attachments/:attachmentId', asy
 });
 
 // Feedback: Customer reviews and ratings
-// Public: Get all feedbacks
+// Public: Get all feedbacks (Cached with 20s TTL for high concurrency)
 router.get('/feedbacks', async (req, res) => {
   try {
-    const feedbacks = await fileDB.getFeedbacks();
+    const feedbacks = await apiCache.getOrSet('delivery:feedbacks', 20000, () => fileDB.getFeedbacks());
     res.json({ success: true, feedbacks });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to fetch feedbacks' });
@@ -3905,6 +3914,7 @@ router.post('/feedbacks', async (req, res) => {
     };
 
     const saved = await fileDB.saveFeedback(feedback);
+    apiCache.invalidate('delivery:feedbacks');
     console.log(`[feedback] New review from ${feedback.user_name} (${feedback.rating}★) for ${feedback.drone_name}`);
 
     res.status(201).json({
@@ -3929,6 +3939,7 @@ router.patch('/feedbacks/:id', async (req, res) => {
       res.status(404).json({ error: 'Feedback not found' });
       return;
     }
+    apiCache.invalidate('delivery:feedbacks');
     res.json({ success: true, feedback: updated });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to update feedback' });
@@ -3942,6 +3953,7 @@ router.delete('/feedbacks/:id', async (req, res) => {
   try {
     const { id } = req.params;
     await fileDB.deleteFeedback(id);
+    apiCache.invalidate('delivery:feedbacks');
     res.json({ success: true, message: 'Feedback removed' });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to delete feedback' });
