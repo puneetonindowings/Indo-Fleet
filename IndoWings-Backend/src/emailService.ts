@@ -63,7 +63,7 @@ function buildIpv4Transporter(targetIp: string, port: number) {
     },
     tls: {
       servername: smtpHost,
-      rejectUnauthorized: false
+      rejectUnauthorized: process.env.NODE_ENV === 'production'
     }
   } as any);
 }
@@ -142,7 +142,9 @@ export async function sendOtpNotification({ email, phone, otp }: { email?: strin
     }
   }
 
-  console.log(`\n========================================\n[SECURITY OTP GENERATED]\nTarget: ${targetEmail || phone}\nCode: ${otp}\n========================================\n`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[OTP DEBUG] Target: ${targetEmail || phone} | Code: ${otp}`);
+  }
   let delivered = false;
 
   if (targetEmail && targetEmail.includes('@')) {
