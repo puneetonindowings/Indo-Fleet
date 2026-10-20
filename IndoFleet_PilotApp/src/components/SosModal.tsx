@@ -9,8 +9,22 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  StatusBar,
+  ScrollView,
 } from 'react-native';
-import { AlertOctagon, X, MapPin, Mic, Radio, Send, CheckCircle2, Volume2 } from 'lucide-react-native';
+import {
+  AlertOctagon,
+  X,
+  MapPin,
+  Mic,
+  Radio,
+  Send,
+  CheckCircle2,
+  Volume2,
+  ShieldAlert,
+  RadioTower,
+  Battery,
+} from 'lucide-react-native';
 import { triggerSosEmergency } from '../services/api';
 
 interface SosModalProps {
@@ -36,7 +50,9 @@ export const SosModal: React.FC<SosModalProps> = ({
   const [isRecording, setIsRecording] = useState<boolean>(true);
   const [isDispatched, setIsDispatched] = useState<boolean>(false);
   const [sending, setSending] = useState<boolean>(false);
-  const [waveHeights, setWaveHeights] = useState<number[]>([16, 26, 38, 20, 34, 42, 24, 32, 18]);
+  const [waveHeights, setWaveHeights] = useState<number[]>([
+    18, 28, 42, 24, 36, 48, 30, 52, 34, 46, 26, 40, 22, 32, 16,
+  ]);
 
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
@@ -44,7 +60,7 @@ export const SosModal: React.FC<SosModalProps> = ({
   const mediaRecorderRef = useRef<any>(null);
   const audioChunksRef = useRef<any[]>([]);
 
-    // Automatically start countdown as soon as SOS modal opens
+  // Automatically start countdown as soon as SOS modal opens
   useEffect(() => {
     if (visible) {
       setSecondsRemaining(60);
@@ -83,20 +99,26 @@ export const SosModal: React.FC<SosModalProps> = ({
         setWaveHeights([
           Math.floor(12 + Math.random() * 20),
           Math.floor(18 + Math.random() * 25),
-          Math.floor(22 + Math.random() * 26),
+          Math.floor(22 + Math.random() * 28),
           Math.floor(14 + Math.random() * 22),
-          Math.floor(20 + Math.random() * 28),
-          Math.floor(24 + Math.random() * 24),
-          Math.floor(16 + Math.random() * 24),
-          Math.floor(20 + Math.random() * 26),
+          Math.floor(24 + Math.random() * 30),
+          Math.floor(30 + Math.random() * 26),
+          Math.floor(18 + Math.random() * 26),
+          Math.floor(34 + Math.random() * 28),
+          Math.floor(20 + Math.random() * 24),
+          Math.floor(28 + Math.random() * 28),
+          Math.floor(16 + Math.random() * 22),
+          Math.floor(24 + Math.random() * 26),
           Math.floor(14 + Math.random() * 20),
+          Math.floor(22 + Math.random() * 24),
+          Math.floor(12 + Math.random() * 18),
         ]);
-      }, 180);
+      }, 160);
       return () => clearInterval(waveInterval);
     }
   }, [visible, isRecording]);
 
-    const startAudioRecording = async () => {
+  const startAudioRecording = async () => {
     if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.mediaDevices) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -220,314 +242,602 @@ export const SosModal: React.FC<SosModalProps> = ({
     <Modal
       visible={visible}
       animationType="slide"
-      transparent={true}
+      transparent={false}
       statusBarTranslucent={true}
       hardwareAccelerated={true}
       onRequestClose={handleCancelFalseAlarm}
     >
-      <View style={styles.overlay}>
-        <View style={styles.modalCard}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.titleRow}>
-              <AlertOctagon size={24} color="#EF4444" />
-              <Text style={styles.title}>EMERGENCY SOS ACTIVE</Text>
-            </View>
-            <TouchableOpacity onPress={handleCancelFalseAlarm} style={styles.closeBtn}>
-              <X size={20} color="#64748B" />
-            </TouchableOpacity>
-          </View>
+      <View style={styles.fullScreenContainer}>
+        <StatusBar barStyle="light-content" backgroundColor="#0B0F19" />
 
-          {isDispatched ? (
-            /* Success / Dispatched Screen */
-            <View style={styles.successContainer}>
-              <View style={styles.successIconCircle}>
-                <CheckCircle2 size={48} color="#059669" />
+        {isDispatched ? (
+          /* ================= FULL SCREEN SUCCESS / DISPATCHED STATE ================= */
+          <View style={styles.successFullScreen}>
+            <View style={styles.successCard}>
+              <View style={styles.successIconOuter}>
+                <View style={styles.successIconCircle}>
+                  <CheckCircle2 size={54} color="#10B981" />
+                </View>
               </View>
-              <Text style={styles.successTitle}>SOS Dispatched to Admin</Text>
+
+              <Text style={styles.successTitle}>SOS DISPATCHED</Text>
+              <View style={styles.successBadge}>
+                <RadioTower size={14} color="#10B981" />
+                <Text style={styles.successBadgeText}>CENTRAL RESCUE BEACON ACTIVE</Text>
+              </View>
+
               <Text style={styles.successSub}>
-                Your live GPS location and 1-minute audio recording have been sent to Admin and Support team. Help is on the way!
-              </Text>
-              <TouchableOpacity style={styles.doneBtn} onPress={onClose}>
-                <Text style={styles.doneBtnText}>Close Window</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            /* Active Live Auto-Recording Screen */
-            <View style={styles.body}>
-              <Text style={styles.subtitle}>
-                Mic recording started automatically. Your live GPS coordinates and audio will be sent to Admin automatically when timer ends.
+                Your live GPS coordinates and high-fidelity 1-minute ambient audio feed have been transmitted directly to Central Operations and nearby support units.
               </Text>
 
-              {/* Countdown & Live Recording Pulse */}
-              <View style={styles.pulseBox}>
-                <View style={styles.recordingRow}>
-                  <View style={styles.blinkingDot} />
-                  <Text style={styles.recordingStatusText}>LIVE MIC RECORDING</Text>
-                </View>
-
-                {/* Big Timer */}
-                <Text style={styles.timerNumber}>{formatTime(secondsRemaining)}</Text>
-                <Text style={styles.timerSub}>Auto-sending to Admin in {secondsRemaining} seconds</Text>
-
-                {/* Live Dynamic Audio Waveform Bars */}
-                <View style={styles.waveRow}>
-                  {waveHeights.map((h, i) => (
-                    <View key={i} style={[styles.waveBar, { height: h }]} />
-                  ))}
-                </View>
-              </View>
-
-              {/* Location Box */}
-              <View style={styles.telemetryBox}>
-                <View style={styles.telemetryRow}>
-                  <MapPin size={16} color="#EF4444" />
-                  <Text style={styles.telemetryVal}>
+              <View style={styles.summaryBox}>
+                <View style={styles.summaryRow}>
+                  <MapPin size={16} color="#10B981" />
+                  <Text style={styles.summaryVal}>
                     {currentCoords
                       ? `${currentCoords.latitude.toFixed(6)}, ${currentCoords.longitude.toFixed(6)}`
-                      : 'Acquiring GPS location...'}
+                      : 'GPS Coordinates Logged'}
                   </Text>
                 </View>
-                <View style={styles.telemetryRow}>
-                  <Radio size={14} color="#3B0080" />
-                  <Text style={styles.telemetrySub}>
-                    Delivery: {pilotName} · Device Battery: {batteryPct || 85}%
+                <View style={styles.summaryRow}>
+                  <Volume2 size={16} color="#10B981" />
+                  <Text style={styles.summaryVal}>1-Min Ambient Microphone Buffer Attached</Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Radio size={16} color="#10B981" />
+                  <Text style={styles.summaryVal}>
+                    Pilot: {pilotName} · Vehicle: {vehicleId || 'IND-DL-772'}
                   </Text>
                 </View>
               </View>
 
-              {/* Action Buttons */}
-              <View style={styles.actions}>
-                <TouchableOpacity
-                  style={styles.cancelBtn}
-                  onPress={handleCancelFalseAlarm}
-                  disabled={sending}
-                >
-                  <Text style={styles.cancelBtnText}>Cancel (False Alarm)</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.sendNowBtn}
-                  onPress={handleManualSendNow}
-                  disabled={sending}
-                  activeOpacity={0.8}
-                >
-                  {sending ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
-                  ) : (
-                    <>
-                      <Send size={16} color="#FFFFFF" />
-                      <Text style={styles.sendNowBtnText}>Send Now (Skip Wait)</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={styles.returnBtn}
+                onPress={onClose}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.returnBtnText}>Return to Dashboard</Text>
+              </TouchableOpacity>
             </View>
-          )}
-        </View>
+          </View>
+        ) : (
+          /* ================= FULL SCREEN ACTIVE EMERGENCY STATE ================= */
+          <View style={styles.activeFullScreen}>
+            {/* Top Bar with notch safe-padding */}
+            <View style={styles.topBar}>
+              <View style={styles.topBarBadge}>
+                <View style={styles.blinkingBeaconDot} />
+                <Text style={styles.topBarBadgeText}>CRITICAL EMERGENCY SOS</Text>
+              </View>
+              <TouchableOpacity
+                onPress={handleCancelFalseAlarm}
+                style={styles.closeBtn}
+                activeOpacity={0.7}
+                accessibilityLabel="Close Emergency Beacon"
+              >
+                <X size={20} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
+              {/* Giant Glowing Countdown Radar */}
+              <View style={styles.radarOuterRing}>
+                <View style={styles.radarMiddleRing}>
+                  <View style={styles.radarInnerRing}>
+                    <Text style={styles.countdownTitle}>AUTO-DISPATCH IN</Text>
+                    <Text style={styles.timerDisplay}>{formatTime(secondsRemaining)}</Text>
+                    <Text style={styles.countdownSub}>SECONDS</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Live Ambient Mic Audio Waveform Card */}
+              <View style={styles.audioMonitorCard}>
+                <View style={styles.audioMonitorHeader}>
+                  <View style={styles.micRecordingBadge}>
+                    <Mic size={13} color="#EF4444" />
+                    <Text style={styles.micRecordingText}>LIVE AMBIENT MIC RECORDING</Text>
+                  </View>
+                  <Text style={styles.audioTimerText}>{60 - secondsRemaining}s / 60s</Text>
+                </View>
+
+                {/* Animated Waveform Equalizer */}
+                <View style={styles.waveformContainer}>
+                  {waveHeights.map((h, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.waveBar,
+                        {
+                          height: h,
+                          backgroundColor: i % 2 === 0 ? '#EF4444' : '#F87171',
+                        },
+                      ]}
+                    />
+                  ))}
+                </View>
+
+                <Text style={styles.audioCaption}>
+                  Capturing surroundings for rapid dispatcher situational safety analysis
+                </Text>
+              </View>
+
+              {/* Real-time GPS & Telemetry Card */}
+              <View style={styles.telemetryCard}>
+                <Text style={styles.telemetryCardHeader}>LIVE TELEMETRY BROADCAST</Text>
+
+                <View style={styles.telemetryCardRow}>
+                  <View style={styles.telemetryIconBox}>
+                    <MapPin size={18} color="#EF4444" />
+                  </View>
+                  <View style={styles.telemetryTextBox}>
+                    <Text style={styles.telemetryLabel}>GPS COORDINATES</Text>
+                    <Text style={styles.telemetryValue}>
+                      {currentCoords
+                        ? `${currentCoords.latitude.toFixed(6)}, ${currentCoords.longitude.toFixed(6)}`
+                        : 'Locking Satellite Position...'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.telemetryDivider} />
+
+                <View style={styles.telemetryDetailsRow}>
+                  <View style={styles.telemetryMiniItem}>
+                    <Text style={styles.telemetryMiniLabel}>PILOT</Text>
+                    <Text style={styles.telemetryMiniVal} numberOfLines={1}>{pilotName}</Text>
+                  </View>
+                  <View style={styles.telemetryMiniDivider} />
+                  <View style={styles.telemetryMiniItem}>
+                    <Text style={styles.telemetryMiniLabel}>VEHICLE</Text>
+                    <Text style={styles.telemetryMiniVal}>{vehicleId || 'IND-DL-772'}</Text>
+                  </View>
+                  <View style={styles.telemetryMiniDivider} />
+                  <View style={styles.telemetryMiniItem}>
+                    <Text style={styles.telemetryMiniLabel}>BATTERY</Text>
+                    <Text style={styles.telemetryMiniVal}>{batteryPct || 85}%</Text>
+                  </View>
+                </View>
+              </View>
+
+              <Text style={styles.instructionsNote}>
+                Stay calm. When the countdown ends or when you tap Send Now, this device will dispatch your live coordinates, battery level, and audio clip immediately.
+              </Text>
+            </ScrollView>
+
+            {/* Bottom Fixed Action Bar */}
+            <View style={styles.bottomBar}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={handleCancelFalseAlarm}
+                disabled={sending}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.cancelBtnText}>Cancel (False Alarm)</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.sendNowBtn}
+                onPress={handleManualSendNow}
+                disabled={sending}
+                activeOpacity={0.85}
+              >
+                {sending ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <>
+                    <Send size={18} color="#FFFFFF" />
+                    <Text style={styles.sendNowBtnText}>SEND SOS NOW</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  fullScreenContainer: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    justifyContent: 'center',
-    padding: 20,
+    backgroundColor: '#0B0F19',
   },
-  modalCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 22,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    shadowColor: '#EF4444',
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  header: {
-    flexDirection: 'row',
+  activeFullScreen: {
+    flex: 1,
+    backgroundColor: '#0B0F19',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
   },
-  titleRow: {
+  topBar: {
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 28) + 12 : 52,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: '#0B0F19',
+  },
+  topBarBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
   },
-  title: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#DC2626',
-    letterSpacing: 0.5,
-  },
-  closeBtn: {
-    padding: 6,
-    borderRadius: 8,
-    backgroundColor: '#F8FAFC',
-  },
-  body: {
-    gap: 14,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    lineHeight: 18,
-  },
-  pulseBox: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#FECACA',
-    padding: 16,
-    alignItems: 'center',
-    gap: 8,
-  },
-  recordingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#FEE2E2',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  blinkingDot: {
+  blinkingBeaconDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#EF4444',
   },
-  recordingStatusText: {
-    fontSize: 10,
+  topBarBadgeText: {
+    fontSize: 11,
     fontWeight: '900',
-    color: '#DC2626',
+    color: '#EF4444',
     letterSpacing: 0.8,
   },
-  timerNumber: {
-    fontSize: 36,
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 20,
+  },
+  radarOuterRing: {
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    backgroundColor: 'rgba(220, 38, 38, 0.06)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginVertical: 12,
+  },
+  radarMiddleRing: {
+    width: 156,
+    height: 156,
+    borderRadius: 78,
+    backgroundColor: 'rgba(220, 38, 38, 0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radarInnerRing: {
+    width: 124,
+    height: 124,
+    borderRadius: 62,
+    backgroundColor: '#1E1B4B',
+    borderWidth: 2.5,
+    borderColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#EF4444',
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  countdownTitle: {
+    fontSize: 9,
     fontWeight: '900',
-    color: '#0F172A',
+    color: '#F87171',
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  timerDisplay: {
+    fontSize: 34,
+    fontWeight: '900',
+    color: '#FFFFFF',
     fontVariant: ['tabular-nums'],
+    letterSpacing: 0.5,
   },
-  timerSub: {
-    fontSize: 11,
-    color: '#DC2626',
-    fontWeight: '700',
+  countdownSub: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.6,
+    marginTop: 2,
   },
-  waveRow: {
+  audioMonitorCard: {
+    backgroundColor: '#131927',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    marginBottom: 14,
+  },
+  audioMonitorHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    height: 44,
-    marginTop: 4,
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  micRecordingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  micRecordingText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#EF4444',
+    letterSpacing: 0.5,
+  },
+  audioTimerText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  waveformContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    height: 52,
+    marginVertical: 8,
   },
   waveBar: {
-    width: 4,
-    backgroundColor: '#EF4444',
-    borderRadius: 2,
+    width: 5,
+    borderRadius: 3,
   },
-  telemetryBox: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 12,
+  audioCaption: {
+    fontSize: 11,
+    color: '#94A3B8',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  telemetryCard: {
+    backgroundColor: '#131927',
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 6,
+    borderColor: 'rgba(148, 163, 184, 0.12)',
+    marginBottom: 14,
   },
-  telemetryRow: {
+  telemetryCardHeader: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#64748B',
+    letterSpacing: 0.8,
+    marginBottom: 10,
+  },
+  telemetryCardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  telemetryVal: {
+  telemetryIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  telemetryTextBox: {
+    flex: 1,
+  },
+  telemetryLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  telemetryValue: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#F1F5F9',
+    marginTop: 1,
+  },
+  telemetryDivider: {
+    height: 1,
+    backgroundColor: 'rgba(148, 163, 184, 0.12)',
+    marginVertical: 12,
+  },
+  telemetryDetailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  telemetryMiniItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  telemetryMiniDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: 'rgba(148, 163, 184, 0.15)',
+  },
+  telemetryMiniLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.6,
+  },
+  telemetryMiniVal: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#E2E8F0',
+    marginTop: 2,
   },
-  telemetrySub: {
+  instructionsNote: {
     fontSize: 11,
     color: '#64748B',
-    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 16,
+    paddingHorizontal: 8,
   },
-  actions: {
+  bottomBar: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 4,
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'android' ? 24 : 36,
+    backgroundColor: '#0B0F19',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(148, 163, 184, 0.1)',
   },
   cancelBtn: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-    paddingVertical: 13,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 14,
+    paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   cancelBtnText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#CBD5E1',
   },
   sendNowBtn: {
-    flex: 1.4,
+    flex: 1.5,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
     backgroundColor: '#DC2626',
-    borderRadius: 12,
-    paddingVertical: 13,
+    borderRadius: 14,
+    paddingVertical: 15,
     shadowColor: '#DC2626',
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 5,
   },
   sendNowBtnText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '900',
     color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
-  successContainer: {
+  /* Full Screen Success */
+  successFullScreen: {
+    flex: 1,
+    backgroundColor: '#0B0F19',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 16,
-    gap: 12,
+    padding: 24,
+  },
+  successCard: {
+    width: '100%',
+    backgroundColor: '#131927',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  successIconOuter: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+    marginBottom: 16,
   },
   successIconCircle: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#ECFDF5',
-    justifyContent: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#A7F3D0',
+    justifyContent: 'center',
   },
   successTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '900',
-    color: '#0F172A',
+    color: '#FFFFFF',
+    letterSpacing: 0.8,
+  },
+  successBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginTop: 8,
+    marginBottom: 14,
+  },
+  successBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#10B981',
+    letterSpacing: 0.6,
   },
   successSub: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#94A3B8',
     textAlign: 'center',
     lineHeight: 18,
-    paddingHorizontal: 8,
+    marginBottom: 16,
   },
-  doneBtn: {
-    backgroundColor: '#3B0080',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 8,
+  summaryBox: {
+    width: '100%',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    borderRadius: 14,
+    padding: 14,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.12)',
+    marginBottom: 20,
   },
-  doneBtnText: {
-    color: '#FFFFFF',
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  summaryVal: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#E2E8F0',
+  },
+  returnBtn: {
+    width: '100%',
+    backgroundColor: '#059669',
+    borderRadius: 14,
+    paddingVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#059669',
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  returnBtnText: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
 });
