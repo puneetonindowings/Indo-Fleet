@@ -1,4 +1,4 @@
-﻿import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProfile } from './types';
 
 import { Platform } from 'react-native';
@@ -116,5 +116,6 @@ export const getSupportPhone = (): string => {
 export const getDefaultDroneModel = (): string => {
   return process.env.EXPO_PUBLIC_DEFAULT_DRONE_MODEL || 'RPAV-000001';
 };
+
 
 
