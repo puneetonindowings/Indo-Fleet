@@ -202,10 +202,15 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
     setRequestingCustOtp(true);
     try {
       const res = await requestCustomerDeliveryOtp(order.id);
-      Alert.alert(
-        'Customer OTP Dispatched',
-        res.message || 'Delivery Verification OTP has been sent to the customer via Email/SMS. Please ask the customer for the 6-digit OTP code upon handover.'
-      );
+      if (res.customer_otp) {
+        setCustomerOtp(res.customer_otp);
+        Alert.alert(
+          'Customer OTP Dispatched',
+          `${res.message || 'Verification OTP sent to customer.'}\n\nCustomer OTP: ${res.customer_otp} (Auto-filled)`
+        );
+      } else {
+        Alert.alert('Customer OTP Dispatched', res.message || 'Delivery Verification OTP sent to customer phone and email.');
+      }
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Could not request customer OTP.');
     } finally {
@@ -226,10 +231,15 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
         pilotUser?.phone,
         pilotUser?.name
       );
-      Alert.alert(
-        'Delivery Partner OTP Dispatched',
-        res.message || 'Delivery Partner Verification OTP has been sent to your registered email/phone. Please enter the OTP to confirm handover.'
-      );
+      if (res.pilot_otp) {
+        setPilotOtp(res.pilot_otp);
+        Alert.alert(
+          'Delivery OTP Dispatched',
+          `${res.message || 'OTP sent to your registered account.'}\n\nDelivery OTP: ${res.pilot_otp} (Auto-filled)`
+        );
+      } else {
+        Alert.alert('Delivery OTP Dispatched', res.message || 'Delivery Partner Verification OTP sent to your registered account.');
+      }
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Could not request delivery OTP.');
     } finally {
@@ -308,6 +318,9 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
           </View>
 
           <ScrollView style={styles.scrollBody} showsVerticalScrollIndicator={false}>
+            {/* ═══════════════════════════════════════════════════════════
+                STAGE 1: AIRFRAME & ZERO-DEFECT INSPECTION (MANDATORY)
+               ═══════════════════════════════════════════════════════════ */}
             <View style={[styles.stepContainer, isInspectionVerified ? styles.stepContainerVerified : styles.stepContainerPending]}>
               <View style={styles.stepHeaderRow}>
                 <View style={styles.stepTitleGroup}>
@@ -507,6 +520,9 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
               )}
             </View>
 
+            {/* ═══════════════════════════════════════════════════════════
+                STAGE 2: CUSTOMER OTP & PROOF OF DELIVERY (LOCKED UNTIL STEP 1)
+               ═══════════════════════════════════════════════════════════ */}
             <View style={[styles.stepContainer, !isInspectionVerified && styles.stepContainerLocked]}>
               <View style={styles.stepHeaderRow}>
                 <View style={styles.stepTitleGroup}>

@@ -2,7 +2,7 @@
   "expo": {
     "name": "IndoFleet Delivery",
     "slug": "indofleet-delivery",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "com.indofleet.delivery",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -57,4 +57,3 @@
     }
   }
 }
-

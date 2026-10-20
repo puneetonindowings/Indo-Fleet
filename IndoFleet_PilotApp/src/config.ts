@@ -118,4 +118,3 @@ export const getDefaultDroneModel = (): string => {
 };
 
 
-
