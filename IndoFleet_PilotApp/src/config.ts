@@ -1,11 +1,10 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
+﻿import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProfile } from './types';
 
 import { Platform } from 'react-native';
 
 const STORAGE_KEY_SERVER_URL = '@IndoFleet_server_url';
-const STORAGE_KEY_AUTH_TOKEN = 'indofleet_auth_token';
+const STORAGE_KEY_AUTH_TOKEN = '@IndoFleet_auth_token';
 const STORAGE_KEY_USER_PROFILE = '@IndoFleet_user_profile';
 
 export const getAutoServerUrl = (): string => {
@@ -42,9 +41,6 @@ export const setServerUrl = async (url: string): Promise<void> => {
 
 export const getAuthToken = async (): Promise<string | null> => {
   try {
-    if (Platform.OS !== 'web' && (await SecureStore.isAvailableAsync())) {
-      return await SecureStore.getItemAsync(STORAGE_KEY_AUTH_TOKEN);
-    }
     return await AsyncStorage.getItem(STORAGE_KEY_AUTH_TOKEN);
   } catch {
     return null;
@@ -54,15 +50,8 @@ export const getAuthToken = async (): Promise<string | null> => {
 export const setAuthToken = async (token: string | null): Promise<void> => {
   try {
     if (token) {
-      if (Platform.OS !== 'web' && (await SecureStore.isAvailableAsync())) {
-        await SecureStore.setItemAsync(STORAGE_KEY_AUTH_TOKEN, token);
-      } else {
-        await AsyncStorage.setItem(STORAGE_KEY_AUTH_TOKEN, token);
-      }
+      await AsyncStorage.setItem(STORAGE_KEY_AUTH_TOKEN, token);
     } else {
-      if (Platform.OS !== 'web' && (await SecureStore.isAvailableAsync())) {
-        await SecureStore.deleteItemAsync(STORAGE_KEY_AUTH_TOKEN);
-      }
       await AsyncStorage.removeItem(STORAGE_KEY_AUTH_TOKEN);
     }
   } catch (err) {
