@@ -1,11 +1,16 @@
 # Indo-Fleet
 
+### 📲 Latest Pilot / Delivery Android App (v1.0.4 Zero-Crash Build)
+> **Direct APK Download:** **[⬇️ Download IndoFleet Delivery v1.0.4 APK](https://expo.dev/artifacts/eas/0yF0EfPlQr3Smcl1xil9WNkxctXN-RlgFbzISD3vRpg.apk)**  
+> **GitHub Release:** **[📦 View Release v1.0.4 on GitHub](https://github.com/puneetonindowings/Indo-Fleet/releases/tag/v1.0.4)**  
+> *(Build ID: efdca9fd-73a4-4db8-bdf0-30ac8f3fc9f2 — VersionCode 5)*
+
 Indo-Fleet is the workspace for the IndoFleet frontend and backend applications.
 
 ## Project structure
 
-- `IndoFleet_Frontend/` — React, TypeScript, and Vite web application.
-- `IndoFleet-Backend/` — Express and TypeScript API, Supabase schema, and migrations.
+- `IndoFleet_Frontend/` â€” React, TypeScript, and Vite web application.
+- `IndoFleet-Backend/` â€” Express and TypeScript API, Supabase schema, and migrations.
 
 The Delivery Tracking workspace supports searchable order lifecycles, RPAV
 details, Porter references, a per-delivery Mapbox route link entered by an
