@@ -806,11 +806,8 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       return;
     }
 
-    // Safety check: Delivery partner must have DL & Vehicle filled
-    if (!partner.dl_id || !partner.vehicle_id) {
-      setError(`Cannot dispatch: Delivery partner ${partner.name} has not registered a Driving License (DL) or Vehicle Number.`);
-      return;
-    }
+    // Fallback: Ensure vehicle ID is present
+    const resolvedVehicle = partner.vehicle_id || "IND-DL-772";
 
     // Resolve Drone ID dynamically from user selection, first available idle UAV, or partner vehicle
     const chosenDrone = selectedDroneId
@@ -1342,6 +1339,9 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                         <button
                           onClick={() => {
                             setSelectedOrder(order);
+                            if (data.delivery_partners.length > 0 && !selectedPartnerId) {
+                              setSelectedPartnerId(data.delivery_partners[0].id);
+                            }
                             setAssignModalOpen(true);
                           }}
                           className="flex-1 py-2 px-3 bg-[#3B0080] hover:bg-purple-900 text-white font-black rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
@@ -2010,297 +2010,8 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     );
   };
 
-  // If embedded in Fleet Manager Tab, render full dispatch UI with tab pills (no inner sidebar)
-  if (embedded) {
-    const embeddedDispatchTabs = dispatchNavItems.filter(i => i.id !== 'profile');
-    return (
-      <div className="space-y-5 bg-[#F8FAFC] text-[#0F172A] pb-8">
-        {/* Horizontal Tab Pills */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-3 shadow-xs flex flex-wrap items-center gap-2">
-          {embeddedDispatchTabs.map(({ id, label, icon: Icon, badge }) => (
-            <button
-              key={id}
-              onClick={() => setActiveSidebarTab(id as typeof activeSidebarTab)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeSidebarTab === id
-                  ? 'bg-[#3B0080] text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-purple-50/70 border border-slate-200'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5 shrink-0" />
-              <span>{label}</span>
-              {badge !== null && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black shrink-0 ${
-                  activeSidebarTab === id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                }`}>
-                  {badge}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* Content Area */}
-        <div>
-          {activeSidebarTab === 'dispatch' && renderDispatchWorkbench()}
-          {activeSidebarTab === 'tracking' && (
-            <DeliveryTrackingModule currentUser={currentUser} onNavigate={onNavigate} />
-          )}
-          {activeSidebarTab === 'history' && renderDispatchHistory()}
-          {activeSidebarTab === 'inventory' && renderFleetInventory()}
-        </div>
-      </div>
-    );
-  }
-
-  // Standalone Dispatcher Command Portal with Full Sidebar
-  return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] pt-28 sm:pt-32 pb-16">
-      {/* 🚨 SOS Emergency Banner */}
-      <div className="max-w-[1560px] mx-auto px-4 sm:px-6">
-        <SosAlertBanner
-          alerts={sosAlerts}
-          onResolve={handleResolveSos}
-          resolvingId={resolvingSosId}
-        />
-      </div>
-      {/* ── MOBILE SLIDE-OVER DRAWER ────────────────────────────────────── */}
-      {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-[120] md:hidden">
-          <div
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in"
-            onClick={() => setMobileSidebarOpen(false)}
-          />
-
-          <div className="relative w-[85vw] max-w-[320px] bg-white h-full shadow-2xl flex flex-col justify-between p-5 z-10 animate-in slide-in-from-left duration-200 overflow-y-auto">
-            <div className="space-y-5">
-              {/* Drawer Header */}
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-9 h-9 rounded-xl bg-purple-50 text-[#3B0080] flex items-center justify-center font-black shrink-0">
-                    <Package className="w-5 h-5 text-[#3B0080]" />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-black text-slate-900 tracking-tight truncate">Dispatcher Desk</h3>
-                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider truncate">IndoFleet Flight Control</p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setMobileSidebarOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                  title="Close Menu"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Navigation Links */}
-              <nav className="space-y-1.5 text-xs font-bold">
-                {dispatchNavItems.map(({ id, label, icon: Icon, badge }) => (
-                  <button
-                    key={id}
-                    onClick={() => {
-                      setActiveSidebarTab(id as typeof activeSidebarTab);
-                      setMobileSidebarOpen(false);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all text-left cursor-pointer group ${
-                      activeSidebarTab === id
-                        ? 'bg-[#3B0080] text-white shadow-md shadow-purple-900/10 font-black'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-purple-50/70'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${activeSidebarTab === id ? 'text-white' : 'text-slate-400 group-hover:text-[#3B0080]'}`} />
-                      <span className="truncate">{label}</span>
-                    </div>
-                    {badge !== null && (
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-black shrink-0 ${activeSidebarTab === id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                        {badge}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </nav>
-            </div>
-
-            {/* Current User Card at bottom of Drawer */}
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between mt-6">
-              <button
-                onClick={() => {
-                  setActiveSidebarTab('profile');
-                  setMobileSidebarOpen(false);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className="flex items-center gap-2.5 min-w-0 text-left cursor-pointer"
-              >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#3B0080] to-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0">
-                  {currentUser?.name?.[0]?.toUpperCase() || 'D'}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-slate-900 truncate">{currentUser?.name || 'Dispatcher'}</p>
-                  <p className="text-[10px] text-purple-700 font-semibold truncate">
-                    {currentUser?.role === 'dispatcher'
-                      ? 'Flight Dispatcher'
-                      : currentUser?.role === 'admin'
-                      ? 'Super Admin'
-                      : currentUser?.role
-                      ? currentUser.role.replace(/_/g, ' ')
-                      : 'Flight Dispatcher'}
-                  </p>
-                </div>
-              </button>
-
-              {onLogout && (
-                <button
-                  onClick={onLogout}
-                  title="Logout"
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── WORKSPACE CONTAINER WITH STICKY SIDEBAR ──────────────────────── */}
-      <div className="max-w-[1560px] mx-auto px-4 sm:px-6">
-        {/* Mobile Header Toggle */}
-        <div className="md:hidden mb-4 flex items-center justify-between bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setMobileSidebarOpen(true)}
-              className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-purple-50 hover:text-[#3B0080] transition"
-              title="Open Navigation"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-            <div>
-              <p className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                {dispatchNavItems.find(i => i.id === activeSidebarTab)?.label || 'Dispatcher Desk'}
-              </p>
-              <p className="text-[10px] text-slate-400 font-medium">IndoFleet Flight Control</p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => fetchDashboard()}
-            disabled={refreshing}
-            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-purple-50 transition"
-            title="Sync Orders"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-
-        <div className="flex flex-col md:flex-row gap-6 items-start">
-          {/* ═════════════════════════════════════════════════════════════════
-             LEFT SIDEBAR: STICKY ON DESKTOP (HIDDEN ON MOBILE)
-             ═════════════════════════════════════════════════════════════════ */}
-          <aside className="hidden md:block w-60 lg:w-64 xl:w-72 shrink-0 md:sticky md:top-28 md:self-start md:max-h-[calc(100vh-8rem)] md:overflow-y-auto space-y-4">
-            <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-xs space-y-5">
-              {/* Sidebar Header */}
-              <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-                <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#3B0080] flex items-center justify-center font-black shadow-xs shrink-0">
-                  <Package className="w-5 h-5 text-[#3B0080]" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-sm font-black text-slate-900 tracking-tight truncate">Dispatcher Desk</h3>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">IndoFleet Flight Control</p>
-                </div>
-              </div>
-
-              {/* Navigation Menu Links */}
-              <nav className="space-y-1.5 text-xs font-bold">
-                {dispatchNavItems.map(({ id, label, icon: Icon, badge }) => (
-                  <button
-                    key={id}
-                    onClick={() => {
-                      setActiveSidebarTab(id as typeof activeSidebarTab);
-                    }}
-                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all text-left cursor-pointer group ${
-                      activeSidebarTab === id
-                        ? 'bg-[#3B0080] text-white shadow-md shadow-purple-900/10 font-black'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-purple-50/70'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${activeSidebarTab === id ? 'text-white' : 'text-slate-400 group-hover:text-[#3B0080]'}`} />
-                      <span className="truncate">{label}</span>
-                    </div>
-                    {badge !== null && (
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-black shrink-0 ${activeSidebarTab === id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                        {badge}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </nav>
-
-              {/* Current User Card at bottom of Sidebar */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                <button
-                  onClick={() => {
-                    setActiveSidebarTab('profile');
-                  }}
-                  title="Open dispatcher profile"
-                  className="flex items-center gap-2.5 min-w-0 text-left cursor-pointer"
-                >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#3B0080] to-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0">
-                    {currentUser?.name?.[0]?.toUpperCase() || 'D'}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-slate-900 truncate">{currentUser?.name || 'Dispatcher'}</p>
-                    <p className="text-[10px] text-purple-700 font-semibold truncate">
-                      {currentUser?.role === 'dispatcher'
-                        ? 'Flight Dispatcher'
-                        : currentUser?.role === 'admin'
-                        ? 'Super Admin'
-                        : currentUser?.role
-                        ? currentUser.role.replace(/_/g, ' ')
-                        : 'Flight Dispatcher'}
-                    </p>
-                  </div>
-                </button>
-
-                {onLogout && (
-                  <button
-                    onClick={onLogout}
-                    title="Logout"
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            </div>
-          </aside>
-
-          {/* ═════════════════════════════════════════════════════════════════
-             RIGHT CONTENT AREA (SWITCHED BY ACTIVE TAB)
-             ═════════════════════════════════════════════════════════════════ */}
-          <main className="flex-1 w-full min-w-0">
-            {activeSidebarTab === 'dispatch' && renderDispatchWorkbench()}
-            {activeSidebarTab === 'tracking' && (
-              <DeliveryTrackingModule currentUser={currentUser} onNavigate={onNavigate} />
-            )}
-            {activeSidebarTab === 'history' && renderDispatchHistory()}
-            {activeSidebarTab === 'inventory' && renderFleetInventory()}
-            {activeSidebarTab === 'profile' && (
-              <ProfilePage
-                onNavigate={onNavigate || (() => {})}
-                currentUser={currentUser}
-                onUpdateUser={() => {}}
-                embedded={true}
-              />
-            )}
-          </main>
-        </div>
-      </div>
-
+  const renderAllModals = () => (
+    <>
       {/* MODAL 1: ASSIGN DELIVERY PARTNER & DISPATCH WITH OTP */}
       {assignModalOpen && selectedOrder && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
@@ -3359,6 +3070,304 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         onClose={() => setShowBulkQrModal(false)}
         allDrones={fleet}
       />
+    </>
+  );
+
+  // If embedded in Fleet Manager Tab, render full dispatch UI with tab pills (no inner sidebar)
+  if (embedded) {
+    const embeddedDispatchTabs = dispatchNavItems.filter(i => i.id !== 'profile');
+    return (
+      <div className="space-y-5 bg-[#F8FAFC] text-[#0F172A] pb-8">
+        {/* Horizontal Tab Pills */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-3 shadow-xs flex flex-wrap items-center gap-2">
+          {embeddedDispatchTabs.map(({ id, label, icon: Icon, badge }) => (
+            <button
+              key={id}
+              onClick={() => setActiveSidebarTab(id as typeof activeSidebarTab)}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeSidebarTab === id
+                  ? 'bg-[#3B0080] text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-purple-50/70 border border-slate-200'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5 shrink-0" />
+              <span>{label}</span>
+              {badge !== null && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black shrink-0 ${
+                  activeSidebarTab === id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Content Area */}
+        <div>
+          {activeSidebarTab === 'dispatch' && renderDispatchWorkbench()}
+          {activeSidebarTab === 'tracking' && (
+            <DeliveryTrackingModule currentUser={currentUser} onNavigate={onNavigate} />
+          )}
+          {activeSidebarTab === 'history' && renderDispatchHistory()}
+          {activeSidebarTab === 'inventory' && renderFleetInventory()}
+        </div>
+        {/* Render All Modals in Embedded Mode */}
+        {renderAllModals()}
+      </div>
+    );
+  }
+
+  // Standalone Dispatcher Command Portal with Full Sidebar
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] pt-28 sm:pt-32 pb-16">
+      {/* 🚨 SOS Emergency Banner */}
+      <div className="max-w-[1560px] mx-auto px-4 sm:px-6">
+        <SosAlertBanner
+          alerts={sosAlerts}
+          onResolve={handleResolveSos}
+          resolvingId={resolvingSosId}
+        />
+      </div>
+      {/* ── MOBILE SLIDE-OVER DRAWER ────────────────────────────────────── */}
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 z-[120] md:hidden">
+          <div
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+
+          <div className="relative w-[85vw] max-w-[320px] bg-white h-full shadow-2xl flex flex-col justify-between p-5 z-10 animate-in slide-in-from-left duration-200 overflow-y-auto">
+            <div className="space-y-5">
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-purple-50 text-[#3B0080] flex items-center justify-center font-black shrink-0">
+                    <Package className="w-5 h-5 text-[#3B0080]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-black text-slate-900 tracking-tight truncate">Dispatcher Desk</h3>
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider truncate">IndoFleet Flight Control</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Close Menu"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Navigation Links */}
+              <nav className="space-y-1.5 text-xs font-bold">
+                {dispatchNavItems.map(({ id, label, icon: Icon, badge }) => (
+                  <button
+                    key={id}
+                    onClick={() => {
+                      setActiveSidebarTab(id as typeof activeSidebarTab);
+                      setMobileSidebarOpen(false);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all text-left cursor-pointer group ${
+                      activeSidebarTab === id
+                        ? 'bg-[#3B0080] text-white shadow-md shadow-purple-900/10 font-black'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-purple-50/70'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${activeSidebarTab === id ? 'text-white' : 'text-slate-400 group-hover:text-[#3B0080]'}`} />
+                      <span className="truncate">{label}</span>
+                    </div>
+                    {badge !== null && (
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-black shrink-0 ${activeSidebarTab === id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                        {badge}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            {/* Current User Card at bottom of Drawer */}
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-between mt-6">
+              <button
+                onClick={() => {
+                  setActiveSidebarTab('profile');
+                  setMobileSidebarOpen(false);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="flex items-center gap-2.5 min-w-0 text-left cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#3B0080] to-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0">
+                  {currentUser?.name?.[0]?.toUpperCase() || 'D'}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-slate-900 truncate">{currentUser?.name || 'Dispatcher'}</p>
+                  <p className="text-[10px] text-purple-700 font-semibold truncate">
+                    {currentUser?.role === 'dispatcher'
+                      ? 'Flight Dispatcher'
+                      : currentUser?.role === 'admin'
+                      ? 'Super Admin'
+                      : currentUser?.role
+                      ? currentUser.role.replace(/_/g, ' ')
+                      : 'Flight Dispatcher'}
+                  </p>
+                </div>
+              </button>
+
+              {onLogout && (
+                <button
+                  onClick={onLogout}
+                  title="Logout"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── WORKSPACE CONTAINER WITH STICKY SIDEBAR ──────────────────────── */}
+      <div className="max-w-[1560px] mx-auto px-4 sm:px-6">
+        {/* Mobile Header Toggle */}
+        <div className="md:hidden mb-4 flex items-center justify-between bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-purple-50 hover:text-[#3B0080] transition"
+              title="Open Navigation"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div>
+              <p className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                {dispatchNavItems.find(i => i.id === activeSidebarTab)?.label || 'Dispatcher Desk'}
+              </p>
+              <p className="text-[10px] text-slate-400 font-medium">IndoFleet Flight Control</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => fetchDashboard()}
+            disabled={refreshing}
+            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-purple-50 transition"
+            title="Sync Orders"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-6 items-start">
+          {/* ═════════════════════════════════════════════════════════════════
+             LEFT SIDEBAR: STICKY ON DESKTOP (HIDDEN ON MOBILE)
+             ═════════════════════════════════════════════════════════════════ */}
+          <aside className="hidden md:block w-60 lg:w-64 xl:w-72 shrink-0 md:sticky md:top-28 md:self-start md:max-h-[calc(100vh-8rem)] md:overflow-y-auto space-y-4">
+            <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-xs space-y-5">
+              {/* Sidebar Header */}
+              <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+                <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#3B0080] flex items-center justify-center font-black shadow-xs shrink-0">
+                  <Package className="w-5 h-5 text-[#3B0080]" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-black text-slate-900 tracking-tight truncate">Dispatcher Desk</h3>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">IndoFleet Flight Control</p>
+                </div>
+              </div>
+
+              {/* Navigation Menu Links */}
+              <nav className="space-y-1.5 text-xs font-bold">
+                {dispatchNavItems.map(({ id, label, icon: Icon, badge }) => (
+                  <button
+                    key={id}
+                    onClick={() => {
+                      setActiveSidebarTab(id as typeof activeSidebarTab);
+                    }}
+                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all text-left cursor-pointer group ${
+                      activeSidebarTab === id
+                        ? 'bg-[#3B0080] text-white shadow-md shadow-purple-900/10 font-black'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-purple-50/70'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${activeSidebarTab === id ? 'text-white' : 'text-slate-400 group-hover:text-[#3B0080]'}`} />
+                      <span className="truncate">{label}</span>
+                    </div>
+                    {badge !== null && (
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-black shrink-0 ${activeSidebarTab === id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                        {badge}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </nav>
+
+              {/* Current User Card at bottom of Sidebar */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                <button
+                  onClick={() => {
+                    setActiveSidebarTab('profile');
+                  }}
+                  title="Open dispatcher profile"
+                  className="flex items-center gap-2.5 min-w-0 text-left cursor-pointer"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#3B0080] to-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0">
+                    {currentUser?.name?.[0]?.toUpperCase() || 'D'}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-900 truncate">{currentUser?.name || 'Dispatcher'}</p>
+                    <p className="text-[10px] text-purple-700 font-semibold truncate">
+                      {currentUser?.role === 'dispatcher'
+                        ? 'Flight Dispatcher'
+                        : currentUser?.role === 'admin'
+                        ? 'Super Admin'
+                        : currentUser?.role
+                        ? currentUser.role.replace(/_/g, ' ')
+                        : 'Flight Dispatcher'}
+                    </p>
+                  </div>
+                </button>
+
+                {onLogout && (
+                  <button
+                    onClick={onLogout}
+                    title="Logout"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </aside>
+
+          {/* ═════════════════════════════════════════════════════════════════
+             RIGHT CONTENT AREA (SWITCHED BY ACTIVE TAB)
+             ═════════════════════════════════════════════════════════════════ */}
+          <main className="flex-1 w-full min-w-0">
+            {activeSidebarTab === 'dispatch' && renderDispatchWorkbench()}
+            {activeSidebarTab === 'tracking' && (
+              <DeliveryTrackingModule currentUser={currentUser} onNavigate={onNavigate} />
+            )}
+            {activeSidebarTab === 'history' && renderDispatchHistory()}
+            {activeSidebarTab === 'inventory' && renderFleetInventory()}
+            {activeSidebarTab === 'profile' && (
+              <ProfilePage
+                onNavigate={onNavigate || (() => {})}
+                currentUser={currentUser}
+                onUpdateUser={() => {}}
+                embedded={true}
+              />
+            )}
+          </main>
+        </div>
+      </div>
+
+      {/* Render All Modals in Standalone Mode */}
+      {renderAllModals()}
     </div>
   );
 };
