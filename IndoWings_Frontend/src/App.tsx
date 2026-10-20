@@ -247,7 +247,7 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-[#f7f4fb] text-[#171222] font-sans antialiased w-full max-w-full">
       <SEOHead currentPage={currentPage} />
-      {currentPage !== 'login' && currentPage !== 'admin' && currentPage !== 'fleet' && currentPage !== 'support-desk' && (
+      {currentPage !== 'login' && (
         <Header
           currentUser={deliveryUser}
           onOpenCommandCenter={() => setIsCommandCenterOpen(true)}
@@ -329,7 +329,7 @@ export const App: React.FC = () => {
         </React.Suspense>
       </main>
 
-      {currentPage !== 'login' && currentPage !== 'admin' && currentPage !== 'fleet' && currentPage !== 'support-desk' && (
+      {currentPage !== 'login' && (
         <Footer onNavigate={handleNavigate} currentUser={deliveryUser} />
       )}
 
