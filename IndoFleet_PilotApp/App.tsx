@@ -258,6 +258,18 @@ function MainApp() {
         status = reqStatus;
       }
       if (status === 'granted') {
+        // Fast path: get last known cached position immediately
+        try {
+          const last = await Location.getLastKnownPositionAsync();
+          if (last?.coords) {
+            setCurrentCoords({
+              latitude: last.coords.latitude,
+              longitude: last.coords.longitude,
+            });
+          }
+        } catch {}
+
+        // Fresh accurate GPS fix
         const loc = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
@@ -269,7 +281,7 @@ function MainApp() {
           return;
         }
       }
-      // Fallback to Sector 60 Noida Hub ONLY if live GPS fix is not available
+      // Fallback only if no GPS fix available
       setCurrentCoords((prev) => prev || { latitude: 28.6037, longitude: 77.3661 });
     } catch (err) {
       console.warn('Initial location fetch error:', err);
@@ -693,6 +705,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0,
   },
   screenBody: {
     flex: 1,

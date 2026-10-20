@@ -8,8 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  Alert,
-} from 'react-native';
+  Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import {
   ShieldCheck,
   CheckCircle,
@@ -107,7 +106,7 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'android' ? 20 : 0}>
         <View style={styles.modalCard}>
           {/* Header */}
           <View style={styles.header}>
@@ -125,7 +124,7 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.scrollBody} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.scrollBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {/* Airframe & Order Details */}
             <View style={styles.droneIdCard}>
               <View style={styles.rowBetween}>
@@ -355,7 +354,7 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

@@ -1,68 +1,76 @@
 {
-    "expo":  {
-                 "name":  "IndoFleet Delivery",
-                 "slug":  "indofleet-delivery",
-                 "version":  "1.0.6",
-                 "orientation":  "portrait",
-                 "icon":  "./assets/icon.png",
-                 "userInterfaceStyle":  "light",
-                 "ios":  {
-                             "supportsTablet":  true,
-                             "infoPlist":  {
-                                               "UIBackgroundModes":  [
-                                                                         "location",
-                                                                         "fetch"
-                                                                     ],
-                                               "NSLocationWhenInUseUsageDescription":  "IndoFleet Delivery App needs location access to track real-time delivery telemetry.",
-                                               "NSLocationAlwaysAndWhenInUseUsageDescription":  "IndoFleet Delivery App requires continuous background GPS to sync delivery tracking with Command Center."
-                                           }
-                         },
-                 "android":  {
-                                 "package":  "com.indofleet.delivery",
-                                 "versionCode":  7,
-                                 "adaptiveIcon":  {
-                                                      "backgroundColor":  "#FFFFFF",
-                                                      "foregroundImage":  "./assets/android-icon-foreground.png",
-                                                      "backgroundImage":  "./assets/android-icon-background.png",
-                                                      "monochromeImage":  "./assets/android-icon-monochrome.png"
-                                                  },
-                                 "permissions":  [
-                                                     "ACCESS_COARSE_LOCATION",
-                                                     "ACCESS_FINE_LOCATION",
-                                                     "ACCESS_BACKGROUND_LOCATION",
-                                                     "FOREGROUND_SERVICE",
-                                                     "POST_NOTIFICATIONS",
-                                                     "VIBRATE",
-                                                     "CAMERA",
-                                                     "READ_MEDIA_IMAGES",
-                                                     "READ_EXTERNAL_STORAGE"
-                                                 ],
-                                 "predictiveBackGestureEnabled":  false
-                             },
-                 "plugins":  [
-                                 [
-                                     "expo-location",
-                                     {
-                                         "locationAlwaysAndWhenInUsePermission":  "Allow IndoFleet Delivery App to use your location for real-time delivery navigation and flight tracking.",
-                                         "isAndroidBackgroundLocationEnabled":  true,
-                                         "isAndroidForegroundServiceEnabled":  true
-                                     }
-                                 ],
-                                 [
-                                     "expo-image-picker",
-                                     {
-                                         "cameraPermission":  "Allow IndoFleet Delivery App to take camera photos for Proof of Delivery (POD).",
-                                         "photosPermission":  "Allow IndoFleet Delivery App to access your photos for Proof of Delivery (POD)."
-                                     }
-                                 ]
-                             ],
-                 "web":  {
-                             "favicon":  "./assets/favicon.png"
-                         },
-                 "extra":  {
-                               "eas":  {
-                                           "projectId":  "ef9b9da5-542c-43b8-809f-b0ce15f9027e"
-                                       }
-                           }
-             }
+  "expo": {
+    "name": "IndoFleet Delivery",
+    "slug": "indofleet-delivery",
+    "version": "1.0.7",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "location",
+          "fetch"
+        ],
+        "NSLocationWhenInUseUsageDescription": "IndoFleet Delivery App needs location access to track real-time delivery telemetry.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "IndoFleet Delivery App requires continuous background GPS to sync delivery tracking with Command Center."
+      }
+    },
+    "android": {
+      "package": "com.indofleet.delivery",
+      "versionCode": 8,
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "POST_NOTIFICATIONS",
+        "VIBRATE",
+        "CAMERA",
+        "READ_MEDIA_IMAGES",
+        "READ_EXTERNAL_STORAGE",
+        "RECORD_AUDIO"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow IndoFleet Delivery App to use your location for real-time delivery navigation and flight tracking.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow IndoFleet Delivery App to take camera photos for Proof of Delivery (POD).",
+          "photosPermission": "Allow IndoFleet Delivery App to access your photos for Proof of Delivery (POD)."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow IndoFleet Delivery App to record audio for emergency SOS voice transmission."
+        }
+      ],
+      "expo-asset"
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "ef9b9da5-542c-43b8-809f-b0ce15f9027e"
+      }
+    }
+  }
 }

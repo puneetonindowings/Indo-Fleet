@@ -1,3 +1,4 @@
+import { WebView } from 'react-native-webview';
 import React, { useState, useMemo } from 'react';
 import {
   View,
@@ -271,7 +272,8 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
 
   /* ───────── Google Maps-Style Web Map (Leaflet in iframe) ───────── */
   const webMapHtml = useMemo(() => {
-    if (Platform.OS !== 'web') return '';
+    // Render Google maps HTML on both Web and Native Android
+    // if (Platform.OS !== 'web') return '';
 
     const hasPilot = pilotLat != null && pilotLng != null;
     const hasTarget = hasTargetCoords;
@@ -590,10 +592,18 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
       <iframe
         title="IndoFleet live navigation map"
         srcDoc={webMapHtml}
-        style={{ width: '100%', height: full ? '100%' : 320, border: 'none', display: 'block' }}
+        style={{ width: '100%', height: full ? '100%' : 340, border: 'none', display: 'block' }}
       />
     ) : (
-      renderTacticalRadarSvg(full)
+      <WebView
+        originWhitelist={['*']}
+        source={{ html: webMapHtml }}
+        style={{ width: '100%', height: full ? '100%' : 340, backgroundColor: '#0F172A' }}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        startInLoadingState={true}
+        scalesPageToFit={true}
+      />
     );
 
   const renderMapToggle = () => (
@@ -693,9 +703,18 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
                 <Text style={styles.linkBtnText}>Google Maps</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        ) : (
-          <View style={styles.destCard}>
+              {/* Primary Google Maps Navigation Launcher Button */}
+              <TouchableOpacity
+                style={styles.navGoogleBtn}
+                onPress={handleOpenGoogleMaps}
+                activeOpacity={0.85}
+              >
+                <Navigation size={18} color="#FFFFFF" />
+                <Text style={styles.navGoogleBtnText}>Start Live Turn-by-Turn Navigation (Google Maps)</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.destCard}>
             <View style={styles.destTop}>
               <View style={styles.destTag}>
                 <View style={styles.liveDot} />
@@ -895,6 +914,28 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   destAddress: { flex: 1, fontSize: 14, lineHeight: 20, color: C.body, paddingTop: 3 },
+  navGoogleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#1A73E8',
+    borderRadius: 16,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    marginTop: 12,
+    shadowColor: '#1A73E8',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  navGoogleBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
   destFooter: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginTop: 4, paddingTop: 14, borderTopWidth: 1, borderTopColor: C.hairline,

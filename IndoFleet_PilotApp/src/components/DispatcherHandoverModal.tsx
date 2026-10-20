@@ -6,8 +6,7 @@ import {
   Modal,
   StyleSheet,
   ActivityIndicator,
-  Alert,
-} from 'react-native';
+  Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Zap, X, MapPin, User, Package, Navigation } from 'lucide-react-native';
 import { DeliveryOrder } from '../types';
 import { verifyHandoverAndStartFlight } from '../services/api';
@@ -68,7 +67,7 @@ export const DispatcherHandoverModal: React.FC<DispatcherHandoverModalProps> = (
 
   return (
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'android' ? 20 : 0}>
         <View style={styles.modalCard}>
           <View style={styles.header}>
             <View style={styles.titleRow}>
@@ -136,7 +135,7 @@ export const DispatcherHandoverModal: React.FC<DispatcherHandoverModalProps> = (
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

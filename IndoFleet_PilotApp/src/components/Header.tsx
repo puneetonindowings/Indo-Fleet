@@ -88,7 +88,7 @@ export const Header: React.FC<HeaderProps> = ({
       <Modal
         visible={profileMenuVisible}
         transparent={true}
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setProfileMenuVisible(false)}
       >
         <Pressable
@@ -96,6 +96,8 @@ export const Header: React.FC<HeaderProps> = ({
           onPress={() => setProfileMenuVisible(false)}
         >
           <Pressable style={styles.profileMenuCard} onPress={(e) => e.stopPropagation()}>
+            {/* Top Drag Handle */}
+            <View style={styles.dragHandle} />
             {/* Header / Pilot Info */}
             <View style={styles.cardHeader}>
               <View style={styles.cardAvatar}>
@@ -358,24 +360,32 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-end',
-    paddingTop: 65,
-    paddingRight: 16,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    justifyContent: 'flex-end',
   },
   profileMenuCard: {
-    width: 290,
+    width: '100%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 28,
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: -6 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
-    elevation: 12,
-    borderWidth: 1,
+    elevation: 20,
+    borderTopWidth: 1,
     borderColor: '#E2E8F0',
+  },
+  dragHandle: {
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#CBD5E1',
+    alignSelf: 'center',
+    marginBottom: 14,
   },
   cardHeader: {
     flexDirection: 'row',

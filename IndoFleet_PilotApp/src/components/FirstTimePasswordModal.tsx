@@ -7,8 +7,7 @@ import {
   Modal,
   StyleSheet,
   ActivityIndicator,
-  Alert,
-} from 'react-native';
+  Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Lock, ShieldCheck, Eye, EyeOff } from 'lucide-react-native';
 import { changePassword } from '../services/api';
 
@@ -56,7 +55,7 @@ export const FirstTimePasswordModal: React.FC<FirstTimePasswordModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="fade" transparent={true}>
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'android' ? 20 : 0}>
         <View style={styles.modalCard}>
           <View style={styles.iconCircle}>
             <ShieldCheck size={32} color="#3B0080" />
@@ -112,7 +111,7 @@ export const FirstTimePasswordModal: React.FC<FirstTimePasswordModalProps> = ({
             )}
           </TouchableOpacity>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

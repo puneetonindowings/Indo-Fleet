@@ -9,8 +9,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  Image,
-} from 'react-native';
+  Image, KeyboardAvoidingView, Platform } from 'react-native';
 import {
   CheckCircle,
   X,
@@ -299,7 +298,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
 
   return (
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'android' ? 20 : 0}>
         <View style={styles.modalCard}>
           {/* Header */}
           <View style={styles.header}>
@@ -317,7 +316,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.scrollBody} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.scrollBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {/* ═══════════════════════════════════════════════════════════
                 STAGE 1: AIRFRAME & ZERO-DEFECT INSPECTION (MANDATORY)
                ═══════════════════════════════════════════════════════════ */}
@@ -725,7 +724,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

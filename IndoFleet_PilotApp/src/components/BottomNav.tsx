@@ -4,7 +4,6 @@ import {
   Home,
   MapPin,
   AlertOctagon,
-  HelpCircle,
   User,
   Clock,
 } from 'lucide-react-native';
@@ -31,7 +30,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         <View style={[styles.iconWrap, activeScreen === 'dashboard' && styles.iconWrapActive]}>
           <Home
             size={20}
-            color={activeScreen === 'dashboard' ? '#3B0080' : '#64748B'}
+            color={activeScreen === 'dashboard' ? '#5A00B8' : '#64748B'}
           />
         </View>
         <Text
@@ -42,6 +41,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         >
           Home
         </Text>
+        {activeScreen === 'dashboard' ? <View style={styles.activeDot} /> : null}
       </TouchableOpacity>
 
       {/* 2. History Tab */}
@@ -53,7 +53,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         <View style={[styles.iconWrap, activeScreen === 'history' && styles.iconWrapActive]}>
           <Clock
             size={20}
-            color={activeScreen === 'history' ? '#3B0080' : '#64748B'}
+            color={activeScreen === 'history' ? '#5A00B8' : '#64748B'}
           />
         </View>
         <Text
@@ -64,6 +64,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         >
           History
         </Text>
+        {activeScreen === 'history' ? <View style={styles.activeDot} /> : null}
       </TouchableOpacity>
 
       {/* 3. Center Floating SOS Button */}
@@ -89,7 +90,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         <View style={[styles.iconWrap, activeScreen === 'radar' && styles.iconWrapActive]}>
           <MapPin
             size={20}
-            color={activeScreen === 'radar' ? '#3B0080' : '#64748B'}
+            color={activeScreen === 'radar' ? '#5A00B8' : '#64748B'}
           />
         </View>
         <Text
@@ -100,6 +101,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         >
           Map
         </Text>
+        {activeScreen === 'radar' ? <View style={styles.activeDot} /> : null}
       </TouchableOpacity>
 
       {/* 5. Profile Tab */}
@@ -111,7 +113,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         <View style={[styles.iconWrap, activeScreen === 'profile' && styles.iconWrapActive]}>
           <User
             size={20}
-            color={activeScreen === 'profile' ? '#3B0080' : '#64748B'}
+            color={activeScreen === 'profile' ? '#5A00B8' : '#64748B'}
           />
         </View>
         <Text
@@ -122,6 +124,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         >
           Profile
         </Text>
+        {activeScreen === 'profile' ? <View style={styles.activeDot} /> : null}
       </TouchableOpacity>
     </View>
   );
@@ -131,19 +134,21 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    height: 70,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    height: 72,
     marginHorizontal: 16,
-    marginBottom: 20,
-    borderRadius: 35,
-    shadowColor: '#3B0080',
+    marginBottom: Platform.OS === 'android' ? 14 : 22,
+    borderRadius: 36,
+    shadowColor: '#1E1B4B',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 10,
+    shadowRadius: 20,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
     position: 'absolute',
     bottom: 0,
     left: 0,
@@ -152,15 +157,16 @@ const styles = StyleSheet.create({
   navTab: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
-    width: 50,
+    paddingVertical: 2,
+    minWidth: 54,
   },
   iconWrap: {
-    width: 40,
-    height: 32,
+    width: 48,
+    height: 34,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 16,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
   },
   iconWrapActive: {
     backgroundColor: '#F3E8FF',
@@ -168,18 +174,25 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#94A3B8',
-    marginTop: 4,
+    color: '#64748B',
+    marginTop: 2,
   },
   tabLabelActive: {
-    color: '#3B0080',
+    color: '#5A00B8',
     fontWeight: '800',
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#5A00B8',
+    marginTop: 2,
   },
   centerSosContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     width: 68,
-    marginTop: -30,
+    marginTop: -26,
   },
   sosButton: {
     width: 60,
@@ -190,10 +203,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#EF4444',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.4,
     shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 4,
+    elevation: 10,
+    borderWidth: 3.5,
     borderColor: '#FFFFFF',
   },
   sosInnerGlow: {
@@ -202,13 +215,9 @@ const styles = StyleSheet.create({
   },
   sosText: {
     color: '#FFFFFF',
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.5,
     marginTop: -2,
   },
 });
-  
-
-
-
