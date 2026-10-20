@@ -21,9 +21,8 @@ import {
   Send,
   CheckCircle2,
   Volume2,
-  ShieldAlert,
   RadioTower,
-  Battery,
+  ShieldAlert,
 } from 'lucide-react-native';
 import { triggerSosEmergency } from '../services/api';
 
@@ -60,7 +59,7 @@ export const SosModal: React.FC<SosModalProps> = ({
   const mediaRecorderRef = useRef<any>(null);
   const audioChunksRef = useRef<any[]>([]);
 
-  // Automatically start countdown as soon as SOS modal opens
+  // Automatically start countdown as soon as SOS opens
   useEffect(() => {
     if (visible) {
       setSecondsRemaining(60);
@@ -248,21 +247,21 @@ export const SosModal: React.FC<SosModalProps> = ({
       onRequestClose={handleCancelFalseAlarm}
     >
       <View style={styles.fullScreenContainer}>
-        <StatusBar barStyle="light-content" backgroundColor="#0B0F19" />
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
         {isDispatched ? (
-          /* ================= FULL SCREEN SUCCESS / DISPATCHED STATE ================= */
+          /* ================= LIGHT THEME FULL SCREEN SUCCESS STATE ================= */
           <View style={styles.successFullScreen}>
             <View style={styles.successCard}>
               <View style={styles.successIconOuter}>
                 <View style={styles.successIconCircle}>
-                  <CheckCircle2 size={54} color="#10B981" />
+                  <CheckCircle2 size={54} color="#059669" />
                 </View>
               </View>
 
               <Text style={styles.successTitle}>SOS DISPATCHED</Text>
               <View style={styles.successBadge}>
-                <RadioTower size={14} color="#10B981" />
+                <RadioTower size={14} color="#059669" />
                 <Text style={styles.successBadgeText}>CENTRAL RESCUE BEACON ACTIVE</Text>
               </View>
 
@@ -272,7 +271,7 @@ export const SosModal: React.FC<SosModalProps> = ({
 
               <View style={styles.summaryBox}>
                 <View style={styles.summaryRow}>
-                  <MapPin size={16} color="#10B981" />
+                  <MapPin size={16} color="#059669" />
                   <Text style={styles.summaryVal}>
                     {currentCoords
                       ? `${currentCoords.latitude.toFixed(6)}, ${currentCoords.longitude.toFixed(6)}`
@@ -280,11 +279,11 @@ export const SosModal: React.FC<SosModalProps> = ({
                   </Text>
                 </View>
                 <View style={styles.summaryRow}>
-                  <Volume2 size={16} color="#10B981" />
+                  <Volume2 size={16} color="#059669" />
                   <Text style={styles.summaryVal}>1-Min Ambient Microphone Buffer Attached</Text>
                 </View>
                 <View style={styles.summaryRow}>
-                  <Radio size={16} color="#10B981" />
+                  <Radio size={16} color="#059669" />
                   <Text style={styles.summaryVal}>
                     Pilot: {pilotName} · Vehicle: {vehicleId || 'IND-DL-772'}
                   </Text>
@@ -301,7 +300,7 @@ export const SosModal: React.FC<SosModalProps> = ({
             </View>
           </View>
         ) : (
-          /* ================= FULL SCREEN ACTIVE EMERGENCY STATE ================= */
+          /* ================= LIGHT THEME FULL SCREEN ACTIVE EMERGENCY STATE ================= */
           <View style={styles.activeFullScreen}>
             {/* Top Bar with notch safe-padding */}
             <View style={styles.topBar}>
@@ -315,7 +314,7 @@ export const SosModal: React.FC<SosModalProps> = ({
                 activeOpacity={0.7}
                 accessibilityLabel="Close Emergency Beacon"
               >
-                <X size={20} color="#94A3B8" />
+                <X size={20} color="#475569" />
               </TouchableOpacity>
             </View>
 
@@ -339,7 +338,7 @@ export const SosModal: React.FC<SosModalProps> = ({
               <View style={styles.audioMonitorCard}>
                 <View style={styles.audioMonitorHeader}>
                   <View style={styles.micRecordingBadge}>
-                    <Mic size={13} color="#EF4444" />
+                    <Mic size={13} color="#DC2626" />
                     <Text style={styles.micRecordingText}>LIVE AMBIENT MIC RECORDING</Text>
                   </View>
                   <Text style={styles.audioTimerText}>{60 - secondsRemaining}s / 60s</Text>
@@ -354,7 +353,7 @@ export const SosModal: React.FC<SosModalProps> = ({
                         styles.waveBar,
                         {
                           height: h,
-                          backgroundColor: i % 2 === 0 ? '#EF4444' : '#F87171',
+                          backgroundColor: i % 2 === 0 ? '#DC2626' : '#EF4444',
                         },
                       ]}
                     />
@@ -372,7 +371,7 @@ export const SosModal: React.FC<SosModalProps> = ({
 
                 <View style={styles.telemetryCardRow}>
                   <View style={styles.telemetryIconBox}>
-                    <MapPin size={18} color="#EF4444" />
+                    <MapPin size={18} color="#DC2626" />
                   </View>
                   <View style={styles.telemetryTextBox}>
                     <Text style={styles.telemetryLabel}>GPS COORDINATES</Text>
@@ -446,11 +445,11 @@ export const SosModal: React.FC<SosModalProps> = ({
 const styles = StyleSheet.create({
   fullScreenContainer: {
     flex: 1,
-    backgroundColor: '#0B0F19',
+    backgroundColor: '#FFFFFF',
   },
   activeFullScreen: {
     flex: 1,
-    backgroundColor: '#0B0F19',
+    backgroundColor: '#F8FAFC',
     justifyContent: 'space-between',
   },
   topBar: {
@@ -461,41 +460,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(239, 68, 68, 0.2)',
-    backgroundColor: '#0B0F19',
+    borderBottomColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
   },
   topBarBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: '#FEF2F2',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.35)',
+    borderColor: '#FECACA',
   },
   blinkingBeaconDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#EF4444',
+    backgroundColor: '#DC2626',
   },
   topBarBadgeText: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#EF4444',
+    color: '#DC2626',
     letterSpacing: 0.8,
   },
   closeBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: '#E2E8F0',
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -506,9 +505,9 @@ const styles = StyleSheet.create({
     width: 190,
     height: 190,
     borderRadius: 95,
-    backgroundColor: 'rgba(220, 38, 38, 0.06)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 2,
+    borderColor: '#FEE2E2',
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
@@ -518,9 +517,9 @@ const styles = StyleSheet.create({
     width: 156,
     height: 156,
     borderRadius: 78,
-    backgroundColor: 'rgba(220, 38, 38, 0.12)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(239, 68, 68, 0.4)',
+    backgroundColor: '#FEE2E2',
+    borderWidth: 2,
+    borderColor: '#FECACA',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -528,44 +527,48 @@ const styles = StyleSheet.create({
     width: 124,
     height: 124,
     borderRadius: 62,
-    backgroundColor: '#1E1B4B',
-    borderWidth: 2.5,
-    borderColor: '#EF4444',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: '#DC2626',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#EF4444',
-    shadowOpacity: 0.6,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowColor: '#DC2626',
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    elevation: 6,
   },
   countdownTitle: {
     fontSize: 9,
     fontWeight: '900',
-    color: '#F87171',
+    color: '#DC2626',
     letterSpacing: 0.8,
     marginBottom: 2,
   },
   timerDisplay: {
     fontSize: 34,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontVariant: ['tabular-nums'],
     letterSpacing: 0.5,
   },
   countdownSub: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#64748B',
     letterSpacing: 0.6,
     marginTop: 2,
   },
   audioMonitorCard: {
-    backgroundColor: '#131927',
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: '#FECACA',
     marginBottom: 14,
+    shadowColor: '#EF4444',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   audioMonitorHeader: {
     flexDirection: 'row',
@@ -577,7 +580,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: '#FEF2F2',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -585,13 +588,13 @@ const styles = StyleSheet.create({
   micRecordingText: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#EF4444',
+    color: '#DC2626',
     letterSpacing: 0.5,
   },
   audioTimerText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#64748B',
   },
   waveformContainer: {
     flexDirection: 'row',
@@ -607,17 +610,21 @@ const styles = StyleSheet.create({
   },
   audioCaption: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: 16,
   },
   telemetryCard: {
-    backgroundColor: '#131927',
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.12)',
+    borderColor: '#E2E8F0',
     marginBottom: 14,
+    shadowColor: '#64748B',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   telemetryCardHeader: {
     fontSize: 10,
@@ -635,7 +642,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -645,17 +652,17 @@ const styles = StyleSheet.create({
   telemetryLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#64748B',
   },
   telemetryValue: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#F1F5F9',
+    color: '#0F172A',
     marginTop: 1,
   },
   telemetryDivider: {
     height: 1,
-    backgroundColor: 'rgba(148, 163, 184, 0.12)',
+    backgroundColor: '#F1F5F9',
     marginVertical: 12,
   },
   telemetryDetailsRow: {
@@ -670,18 +677,18 @@ const styles = StyleSheet.create({
   telemetryMiniDivider: {
     width: 1,
     height: 20,
-    backgroundColor: 'rgba(148, 163, 184, 0.15)',
+    backgroundColor: '#E2E8F0',
   },
   telemetryMiniLabel: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#94A3B8',
     letterSpacing: 0.6,
   },
   telemetryMiniVal: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#E2E8F0',
+    color: '#1E293B',
     marginTop: 2,
   },
   instructionsNote: {
@@ -697,24 +704,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'android' ? 24 : 36,
-    backgroundColor: '#0B0F19',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(148, 163, 184, 0.1)',
+    borderTopColor: '#E2E8F0',
   },
   cancelBtn: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#F1F5F9',
     borderRadius: 14,
     paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: '#E2E8F0',
   },
   cancelBtnText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#CBD5E1',
+    color: '#475569',
   },
   sendNowBtn: {
     flex: 1.5,
@@ -726,9 +733,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 15,
     shadowColor: '#DC2626',
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
   },
   sendNowBtnText: {
     fontSize: 13,
@@ -736,80 +743,86 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
-  /* Full Screen Success */
+  /* Full Screen Success (Light Theme) */
   successFullScreen: {
     flex: 1,
-    backgroundColor: '#0B0F19',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   successCard: {
     width: '100%',
-    backgroundColor: '#131927',
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 24,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: '#A7F3D0',
+    shadowColor: '#10B981',
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4,
   },
   successIconOuter: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: '#ECFDF5',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderWidth: 2,
+    borderColor: '#A7F3D0',
     marginBottom: 16,
   },
   successIconCircle: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: '#D1FAE5',
     alignItems: 'center',
     justifyContent: 'center',
   },
   successTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: '#065F46',
     letterSpacing: 0.8,
   },
   successBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: '#ECFDF5',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
     marginTop: 8,
     marginBottom: 14,
   },
   successBadgeText: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#10B981',
+    color: '#059669',
     letterSpacing: 0.6,
   },
   successSub: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#475569',
     textAlign: 'center',
     lineHeight: 18,
     marginBottom: 16,
   },
   summaryBox: {
     width: '100%',
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    backgroundColor: '#F8FAFC',
     borderRadius: 14,
     padding: 14,
     gap: 8,
     borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.12)',
+    borderColor: '#E2E8F0',
     marginBottom: 20,
   },
   summaryRow: {
@@ -820,7 +833,7 @@ const styles = StyleSheet.create({
   summaryVal: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#E2E8F0',
+    color: '#1E293B',
   },
   returnBtn: {
     width: '100%',
@@ -830,9 +843,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#059669',
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
   },
   returnBtnText: {
     fontSize: 13,
