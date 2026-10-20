@@ -1,9 +1,9 @@
 # Indo-Fleet
 
-### 📲 Latest Pilot / Delivery Android App (v1.0.7 Zero-Crash Build 8)
-> **Direct APK Download:** **[⬇️ Download IndoFleet Delivery v1.0.7 APK](https://expo.dev/artifacts/eas/-XtYnD21eP4Zd1Na8_0MEfIQ9pExlsXFY5Wf1GLvmfY.apk)**  
-> **GitHub Release:** **[📦 View Release v1.0.7 on GitHub](https://github.com/puneetonindowings/Indo-Fleet/releases/tag/v1.0.7)**  
-> *(Build ID: 624a8000-5649-4b74-a2d5-f8e8b339d136 — VersionCode 8)*
+### 📲 Latest Pilot / Delivery Android App (v1.0.8 Zero-Crash Build 9)
+> **Direct APK Download:** **[⬇️ Download IndoFleet Delivery v1.0.8 APK](https://expo.dev/artifacts/eas/XmO7VsncP_WYRUyIU2wnCjYDqAH0I8Y-XEvp2MQcGtc.apk)**  
+> **GitHub Release:** **[📦 View Release v1.0.8 on GitHub](https://github.com/puneetonindowings/Indo-Fleet/releases/tag/v1.0.8)**  
+> *(Build ID: 813f4670-bc3d-454f-a5f6-f682e0df56bc — VersionCode 9)*
 
 Indo-Fleet is the workspace for the IndoFleet frontend and backend applications.
 
