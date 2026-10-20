@@ -79,6 +79,8 @@ deduplicates event IDs in Supabase, and does not log or persist raw webhook
 bodies. Inbound processing requires Resend receiving/domain routing; configure
 that only after planning how to preserve existing Microsoft 365 mail delivery.
 
+https://expo.dev/accounts/puneet-indowings/projects/indofleet-delivery/builds/32597090-df0e-4e2f-9826-6583a4c904cd
+
 ### Frontend: `IndoFleet_Frontend/.env.local`
 
 | Variable | Purpose |
