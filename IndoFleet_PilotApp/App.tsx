@@ -56,7 +56,57 @@ import {
   setUserProfile,
 } from './src/config';
 
-export default function App() {
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class RootErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('RootErrorBoundary caught error:', error, errorInfo);
+  }
+
+  handleRestart = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, width: '100%', maxWidth: 380, alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#0F172A', shadowOpacity: 0.1, shadowRadius: 16, elevation: 6 }}>
+            <Text style={{ fontSize: 20, fontWeight: '900', color: '#0F172A', marginBottom: 8 }}>IndoFleet Delivery</Text>
+            <Text style={{ fontSize: 13, color: '#64748B', textAlign: 'center', marginBottom: 20, lineHeight: 18 }}>
+              {this.state.error?.message || 'A minor interface reset occurred. Tap restart below to continue.'}
+            </Text>
+            <TouchableOpacity
+              onPress={this.handleRestart}
+              style={{ backgroundColor: '#3B0080', paddingHorizontal: 28, paddingVertical: 14, borderRadius: 16 }}
+            >
+              <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 15 }}>Restart App</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function MainApp() {
   // Session & Auth State
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [mustChangePassword, setMustChangePassword] = useState<boolean>(false);
@@ -152,44 +202,32 @@ export default function App() {
   }, []);
 
   const bootstrapApp = async () => {
-    await checkServer();
-    const token = await getAuthToken();
-    const profile = await getUserProfile();
+    try {
+      const token = await getAuthToken();
+      const profile = await getUserProfile();
 
-    if (token && profile) {
-      setCurrentUser(profile);
-      if (profile.must_change_password) {
-        setMustChangePassword(true);
+      if (token && profile) {
+        setCurrentUser(profile);
+        if (profile.must_change_password) {
+          setMustChangePassword(true);
+        }
+        loadDashboardData(profile.id).catch((err) => console.log('Dashboard load deferred error:', err?.message));
+        fetchInitialLocation().catch(() => {});
       }
-      await loadDashboardData(profile.id);
+    } catch (err) {
+      console.warn('Bootstrap auth read notice:', err);
     }
-    await updateBatteryLevel();
-    await fetchInitialLocation();
+
+    // Non-blocking background health check and battery check
+    checkServer().catch(() => {});
+    updateBatteryLevel().catch(() => {});
   };
 
   const fetchInitialLocation = async () => {
     // 1. Direct Web Browser Standard Geolocation (for Web / Localhost / Chrome)
     if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          if (pos && pos.coords) {
-            console.log('Real Web GPS Coords:', pos.coords.latitude, pos.coords.longitude);
-            setCurrentCoords({
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-            });
-          }
-        },
-        (err) => {
-          console.warn('Browser geolocation warning:', err.message);
-          // Fallback to Sector 60 Noida Hub ONLY if GPS is unavailable
-          setCurrentCoords((prev) => prev || { latitude: 28.6037, longitude: 77.3661 });
-        },
-        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
-      );
-
       try {
-        navigator.geolocation.watchPosition(
+        navigator.geolocation.getCurrentPosition(
           (pos) => {
             if (pos && pos.coords) {
               setCurrentCoords({
@@ -198,8 +236,11 @@ export default function App() {
               });
             }
           },
-          (err) => console.warn('Browser watchPosition warning:', err.message),
-          { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 }
+          (err) => {
+            console.warn('Browser geolocation warning:', err?.message);
+            setCurrentCoords((prev) => prev || { latitude: 28.6037, longitude: 77.3661 });
+          },
+          { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
         );
       } catch {}
       return;
@@ -207,6 +248,10 @@ export default function App() {
 
     // 2. Native Mobile (Android APK / iOS)
     try {
+      if (!Location || !Location.getForegroundPermissionsAsync) {
+        setCurrentCoords((prev) => prev || { latitude: 28.6037, longitude: 77.3661 });
+        return;
+      }
       let { status } = await Location.getForegroundPermissionsAsync();
       if (status !== 'granted') {
         const { status: reqStatus } = await Location.requestForegroundPermissionsAsync();
@@ -214,7 +259,7 @@ export default function App() {
       }
       if (status === 'granted') {
         const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
+          accuracy: Location.Accuracy.Balanced,
         });
         if (loc?.coords) {
           setCurrentCoords({
@@ -372,8 +417,9 @@ export default function App() {
       setMustChangePassword(true);
     } else {
       setMustChangePassword(false);
-      await loadDashboardData(user.id);
+      loadDashboardData(user.id).catch((err) => console.log('Dashboard load notice:', err?.message));
     }
+    fetchInitialLocation().catch(() => {});
   };
 
   const handleLogout = async () => {
@@ -635,6 +681,14 @@ export default function App() {
         }}
       />
     </SafeAreaView>
+  );
+}
+
+export default function App() {
+  return (
+    <RootErrorBoundary>
+      <MainApp />
+    </RootErrorBoundary>
   );
 }
 
