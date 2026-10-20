@@ -502,12 +502,9 @@ function MainApp() {
   // If not logged in, render Login Screen
   if (!currentUser) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        <LoginScreen
-          onLoginSuccess={handleLoginSuccess}
-        />
-      </SafeAreaView>
+      <LoginScreen
+        onLoginSuccess={handleLoginSuccess}
+      />
     );
   }
 

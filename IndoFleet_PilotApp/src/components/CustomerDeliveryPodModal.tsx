@@ -154,7 +154,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
-        quality: 0.5,
+        quality: 0.3,
         base64: true,
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -181,7 +181,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
-        quality: 0.5,
+        quality: 0.3,
         base64: true,
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
