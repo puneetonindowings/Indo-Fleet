@@ -155,6 +155,30 @@ export const SosModal: React.FC<SosModalProps> = ({
     setIsRecording(false);
     setSending(true);
 
+    let audioBase64: string | undefined = undefined;
+    try {
+      if (Platform.OS === 'web') {
+        if (audioChunksRef.current && audioChunksRef.current.length > 0) {
+          const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          audioBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
+        }
+      } else if (recorder && recorder.uri) {
+        const res = await fetch(recorder.uri);
+        const blob = await res.blob();
+        audioBase64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      }
+    } catch (e) {
+      console.warn('Audio base64 conversion notice:', e);
+    }
+
     try {
       await triggerSosEmergency({
         pilot_name: pilotName,
@@ -163,6 +187,7 @@ export const SosModal: React.FC<SosModalProps> = ({
         latitude: currentCoords?.latitude || 0,
         longitude: currentCoords?.longitude || 0,
         battery_pct: batteryPct || 100,
+        audio_base64: audioBase64,
         notes: `EMERGENCY ALERT: SOS beacon triggered automatically by ${pilotName}`,
       });
 

@@ -11,13 +11,17 @@ import {
   Battery,
   User,
   Volume2,
+  VolumeX,
   RefreshCw,
   ExternalLink,
   Trash2,
   Check,
-  AlertCircle,
   Loader2,
-  CheckCheck,
+  Map,
+  Layers,
+  Play,
+  Pause,
+  Navigation,
 } from 'lucide-react';
 
 interface SosAlertItem {
@@ -56,6 +60,9 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
   const [filter, setFilter] = useState<'all' | 'active' | 'resolved'>('all');
   const [resolveModalId, setResolveModalId] = useState<string | null>(null);
   const [resolveNotes, setResolveNotes] = useState<string>('');
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const [mapLayer, setMapLayer] = useState<Record<string, 'street' | 'satellite'>>({});
+  const [showMap, setShowMap] = useState<Record<string, boolean>>({});
 
   const activeAlerts = alerts.filter((a) => a.status === 'active');
   const resolvedAlerts = alerts.filter((a) => a.status === 'resolved');
@@ -76,6 +83,43 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
     onResolve(resolveModalId, resolveNotes);
     setResolveModalId(null);
     setResolveNotes('');
+  };
+
+  // Text-to-Speech Voice Dispatch Readout
+  const handlePlayVoiceDispatch = (alert: SosAlertItem) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    if (speakingId === alert.id) {
+      window.speechSynthesis.cancel();
+      setSpeakingId(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const text = `Emergency beacon alert from pilot ${alert.pilot_name}. Vehicle ID: ${alert.vehicle_id || 'UAV SYS'}. Battery level: ${alert.battery_pct} percent. Live coordinates: ${alert.latitude.toFixed(4)} North, ${alert.longitude.toFixed(4)} East. Notes: ${alert.notes || 'Distress beacon activated'}.`;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    utterance.onstart = () => setSpeakingId(alert.id);
+    utterance.onend = () => setSpeakingId(null);
+    utterance.onerror = () => setSpeakingId(null);
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const toggleMapLayer = (alertId: string) => {
+    setMapLayer((prev) => ({
+      ...prev,
+      [alertId]: prev[alertId] === 'satellite' ? 'street' : 'satellite',
+    }));
+  };
+
+  const toggleMapVisibility = (alertId: string) => {
+    setShowMap((prev) => ({
+      ...prev,
+      [alertId]: prev[alertId] === undefined ? false : !prev[alertId],
+    }));
   };
 
   return (
@@ -109,7 +153,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
                 )}
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Real-time pilot distress beacon monitoring, emergency GPS telemetry, and audio logs
+                Real-time pilot distress beacon monitoring, live interactive GPS telemetry map, and audio logs
               </p>
             </div>
           </div>
@@ -120,7 +164,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
               className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              <span>Refresh</span>
+              <span>Refresh Telemetry</span>
             </button>
           </div>
         </div>
@@ -161,54 +205,59 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
           </button>
           <button
             onClick={() => setFilter('active')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               filter === 'active'
                 ? 'bg-red-600 text-white shadow-xs'
-                : 'bg-red-50 text-red-700 hover:bg-red-100'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            <AlertTriangle className="w-3 h-3" />
-            <span>Active Emergencies ({activeAlerts.length})</span>
+            Active Emergencies ({activeAlerts.length})
           </button>
           <button
             onClick={() => setFilter('resolved')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               filter === 'resolved'
                 ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            <CheckCheck className="w-3 h-3" />
-            <span>Resolved ({resolvedAlerts.length})</span>
+            Resolved ({resolvedAlerts.length})
           </button>
         </div>
       </div>
 
       {/* ── ALERTS LIST ────────────────────────────────────────────── */}
       {filteredAlerts.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center shadow-xs">
-          <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4">
-            <ShieldCheck className="w-8 h-8" />
+        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-xs">
+          <div className="w-14 h-14 rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+            <ShieldCheck className="w-7 h-7" />
           </div>
-          <h3 className="text-base font-black text-slate-900">
-            {filter === 'active' ? 'No Active Emergencies' : 'No SOS Records Found'}
-          </h3>
-          <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+          <h3 className="text-base font-black text-slate-900">No SOS Alerts Found</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
             {filter === 'active'
-              ? 'All delivery pilots and autonomous UAV sorties are currently operating safely without active distress alerts.'
-              : 'Distress alerts triggered by pilots in the mobile app will be catalogued and displayed here.'}
+              ? 'No active distress signals. All couriers and delivery drones are operating nominally.'
+              : 'No SOS beacon records matching the selected filter.'}
           </p>
         </div>
       ) : (
         <div className="space-y-4">
           {filteredAlerts.map((alert) => {
             const isActive = alert.status === 'active';
+            const isMapOpen = showMap[alert.id] !== false; // Open by default
+            const currentLayer = mapLayer[alert.id] || 'street';
+            const isSpeaking = speakingId === alert.id;
+
+            const mapUrl =
+              currentLayer === 'satellite'
+                ? `https://maps.google.com/maps?q=${alert.latitude},${alert.longitude}&t=k&z=17&output=embed`
+                : `https://maps.google.com/maps?q=${alert.latitude},${alert.longitude}&z=16&output=embed`;
+
             return (
               <div
                 key={alert.id}
                 className={`bg-white rounded-3xl p-5 sm:p-6 shadow-xs border-2 transition-all ${
                   isActive
-                    ? 'border-red-400 bg-red-50/20 shadow-red-500/5 ring-4 ring-red-100/50'
+                    ? 'border-red-400 bg-red-50/15 shadow-red-500/5 ring-4 ring-red-100/50'
                     : 'border-slate-200'
                 }`}
               >
@@ -259,6 +308,14 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
                       </a>
                     )}
 
+                    <button
+                      onClick={() => toggleMapVisibility(alert.id)}
+                      className="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Map className="w-3.5 h-3.5" />
+                      <span>{isMapOpen ? 'Hide Map' : 'View Live Map'}</span>
+                    </button>
+
                     {alert.latitude && alert.longitude && (
                       <a
                         href={`https://www.google.com/maps?q=${alert.latitude},${alert.longitude}`}
@@ -267,7 +324,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
                         className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                       >
                         <MapPin className="w-3.5 h-3.5 text-red-600" />
-                        <span>Map Location</span>
+                        <span>Google Maps</span>
                         <ExternalLink className="w-3 h-3 text-slate-400" />
                       </a>
                     )}
@@ -322,7 +379,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
 
                   <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                      <MapPin className="w-3 h-3" /> Live Coordinates
+                      <MapPin className="w-3 h-3" /> Live GPS Fix
                     </p>
                     <p className="text-xs font-black text-slate-900 mt-1">
                       {Number(alert.latitude).toFixed(4)}° N, {Number(alert.longitude).toFixed(4)}° E
@@ -332,26 +389,110 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
 
                   <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                      <Volume2 className="w-3 h-3" /> Audio Recording
+                      <Volume2 className="w-3 h-3" /> Audio / Voice Note
                     </p>
                     <p className="text-xs font-black text-slate-900 mt-1">
-                      {alert.has_audio || alert.audio_base64 ? 'Mic Audio Captured' : 'Transmitted without Audio'}
+                      {alert.has_audio || alert.audio_base64 ? 'Mic Audio Captured' : 'Ambient Voice Readout Ready'}
                     </p>
                     <p className="text-[11px] text-slate-500 mt-0.5">1-Min Ambient Mic Feed</p>
                   </div>
                 </div>
 
-                {/* Audio Player if base64 provided */}
-                {alert.audio_base64 && (
-                  <div className="mt-3.5 p-3 rounded-2xl bg-purple-50/60 border border-purple-100 flex items-center gap-3">
-                    <Volume2 className="w-4 h-4 text-[#5a00b8] shrink-0" />
-                    <audio
-                      controls
-                      src={alert.audio_base64}
-                      className="w-full h-8 max-w-md accent-[#5a00b8]"
-                    />
+                {/* ── REAL-TIME INTERACTIVE DRIVER MAP ───────────────────────── */}
+                {isMapOpen && alert.latitude && alert.longitude && (
+                  <div className="mt-4 rounded-2xl overflow-hidden border border-slate-200 shadow-xs relative bg-slate-900">
+                    <div className="h-64 sm:h-72 w-full">
+                      <iframe
+                        title={`Live Map for ${alert.pilot_name}`}
+                        src={mapUrl}
+                        className="w-full h-full border-none"
+                        loading="lazy"
+                      />
+                    </div>
+
+                    {/* Floating Map Overlay Badge */}
+                    <div className="absolute top-3 left-3 bg-slate-900/90 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl border border-white/20 backdrop-blur-md flex items-center gap-2 shadow-lg">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+                      <span>
+                        Live Driver: {alert.pilot_name} ({Number(alert.latitude).toFixed(5)}, {Number(alert.longitude).toFixed(5)})
+                      </span>
+                    </div>
+
+                    {/* Layer Switcher */}
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-white/95 rounded-xl p-1 shadow-md border border-slate-200">
+                      <button
+                        onClick={() => toggleMapLayer(alert.id)}
+                        className={`px-2.5 py-1 text-[10px] font-extrabold rounded-lg transition-all ${
+                          currentLayer === 'street'
+                            ? 'bg-[#5a00b8] text-white shadow-xs'
+                            : 'text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        Street
+                      </button>
+                      <button
+                        onClick={() => toggleMapLayer(alert.id)}
+                        className={`px-2.5 py-1 text-[10px] font-extrabold rounded-lg transition-all ${
+                          currentLayer === 'satellite'
+                            ? 'bg-[#5a00b8] text-white shadow-xs'
+                            : 'text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        Satellite
+                      </button>
+                    </div>
                   </div>
                 )}
+
+                {/* ── AUDIO VOICE NOTE PLAYER & AI VOICE DISPATCH ─────────────── */}
+                <div className="mt-3.5 p-3.5 rounded-2xl bg-purple-50/70 border border-purple-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      isSpeaking ? 'bg-red-600 text-white animate-pulse' : 'bg-purple-200 text-[#5a00b8]'
+                    }`}>
+                      <Volume2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-black text-slate-900">
+                        {alert.audio_base64 ? 'Recorded Pilot Audio Feed' : 'Emergency Voice Dispatch Readout'}
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        {alert.audio_base64 ? 'Play captured microphone audio' : 'Automated audio readout of distress signal & coordinates'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    {alert.audio_base64 ? (
+                      <audio
+                        controls
+                        src={alert.audio_base64}
+                        className="w-full sm:w-64 h-8 accent-[#5a00b8]"
+                      />
+                    ) : (
+                      <button
+                        onClick={() => handlePlayVoiceDispatch(alert)}
+                        className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+                          isSpeaking
+                            ? 'bg-red-600 text-white shadow-md shadow-red-500/20'
+                            : 'bg-[#5a00b8] hover:bg-[#480094] text-white shadow-md shadow-purple-500/20'
+                        }`}
+                      >
+                        {isSpeaking ? (
+                          <>
+                            <Pause className="w-3.5 h-3.5" />
+                            <span>Stop Audio Readout</span>
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-3.5 h-3.5" />
+                            <span>Listen to Voice Dispatch</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
 
                 {/* Notes & Resolution details */}
                 {alert.notes && (

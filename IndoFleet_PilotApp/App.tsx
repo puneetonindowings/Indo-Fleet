@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
+  Text,
+  TouchableOpacity,
   SafeAreaView,
   StatusBar,
   Alert,

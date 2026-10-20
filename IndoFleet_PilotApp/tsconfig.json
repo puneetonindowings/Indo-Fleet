@@ -4,6 +4,7 @@
     "strict": true,
     "skipLibCheck": true,
     "moduleResolution": "bundler",
+    "jsx": "react-native",
     "customConditions": ["react-native"]
   },
   "include": [
