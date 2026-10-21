@@ -78,14 +78,15 @@ export interface DeliveryOrder {
 export interface PilotKpis {
   total_assigned: number;
   total_delivered: number;
-  total_missed: number;
-  total_queue: number;
-  todays_total: number;
-  todays_assigned: number;
+  in_transit?: number;
+  total_missed?: number;
+  total_queue?: number;
+  todays_total?: number;
+  todays_assigned?: number;
   todays_delivered: number;
-  todays_missed: number;
-  todays_queue: number;
-  completion_rate: number;
+  todays_missed?: number;
+  todays_queue?: number;
+  completion_rate?: number;
 }
 
 export interface ChartData {

@@ -29,9 +29,9 @@ interface DashboardScreenProps {
   onInspectDrone?: (order?: DeliveryOrder) => void;
 }
 
-type FilterTab = 'all' | 'assigned' | 'in-flight' | 'queue';
+type FilterTab = 'all' | 'assigned' | 'in-flight';
 
-// Same filter rules as before, now defined once and reused for the pills, counts and empty states
+// Filter rules for tabs: All, Assigned, and In Transit (Queue and Missed removed)
 const FILTERS: {
   key: FilterTab;
   label: string;
@@ -42,16 +42,15 @@ const FILTERS: {
   {
     key: 'assigned',
     label: 'Assigned',
-    match: (o) => o.status === 'assigned' || o.pilot_acceptance_status === 'pending_acceptance',
+    match: (o) => ['pending', 'assigned'].includes(o.status) || o.pilot_acceptance_status === 'pending_acceptance',
     empty: 'No deliveries waiting for acceptance.',
   },
   {
     key: 'in-flight',
     label: 'In Transit',
-    match: (o) => o.status === 'in-flight',
+    match: (o) => ['in-flight', 'taking-off', 'out-for-delivery'].includes(o.status),
     empty: 'No deliveries currently in transit.',
   },
-  { key: 'queue', label: 'Queue', match: (o) => o.status === 'pending', empty: 'No pending deliveries in queue.' },
 ];
 
 const getGreeting = () => {
@@ -136,7 +135,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           {[
             { label: 'Assigned', value: counts.assigned },
             { label: 'In transit', value: counts['in-flight'] },
-            { label: 'In queue', value: counts.queue },
+            { label: 'Delivered', value: kpis.total_delivered },
           ].map((s) => (
             <View key={s.label} style={styles.statChip}>
               <Text style={styles.statValue}>{s.value}</Text>
@@ -146,8 +145,17 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         </View>
       </View>
 
-      {/* KPI Metrics */}
-      <KpiOverview kpis={kpis} />
+      {/* KPI Metrics: Total Delivered, Today's Delivery, Assigned, In Transit */}
+      <KpiOverview
+        kpis={{
+          ...kpis,
+          total_assigned: Math.max(kpis?.total_assigned || 0, counts.assigned),
+          in_transit: counts['in-flight'],
+          total_delivered: kpis?.total_delivered || 0,
+          todays_delivered: kpis?.todays_delivered || 0,
+        }}
+        inTransitCount={counts['in-flight']}
+      />
 
       {/* Orders header + filters */}
       <View style={styles.sortiesHeader}>

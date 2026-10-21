@@ -213,28 +213,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </TouchableOpacity>
               )}
 
-              {/* Drone Airframe Inspection (700 RPAV Quality Standard) */}
-              {onInspectDrone && (
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => {
-                    setProfileMenuVisible(false);
-                    onInspectDrone();
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.menuItemLeft}>
-                    <View style={[styles.menuItemIconWrap, { backgroundColor: '#ECFDF5' }]}>
-                      <Shield size={16} color="#059669" />
-                    </View>
-                    <View>
-                      <Text style={styles.menuItemTitle}>Post-Delivery Inspection</Text>
-                      <Text style={styles.menuItemSubtitle}>RPAV Airframe &amp; Quality Check</Text>
-                    </View>
-                  </View>
-                  <ChevronRight size={16} color="#94A3B8" />
-                </TouchableOpacity>
-              )}
+              
             </View>
 
             {/* Logout Button */}

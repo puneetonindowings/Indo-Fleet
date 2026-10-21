@@ -4520,16 +4520,24 @@ router.get('/pilot/dashboard', async (req, res) => {
       : orders;
 
     // KPI Metrics calculation
-    const totalAssigned = pilotOrders.filter((o: any) => ['assigned', 'taking-off', 'in-flight', 'out-for-delivery'].includes(o.status)).length;
+    const totalAssigned = pilotOrders.filter((o: any) => ['pending', 'assigned', 'taking-off', 'in-flight', 'out-for-delivery'].includes(o.status)).length;
     const totalDelivered = pilotOrders.filter((o: any) => o.status === 'delivered').length;
-    const totalMissed = pilotOrders.filter((o: any) => o.status === 'cancelled' || o.status === 'missed').length;
-    const totalQueue = pilotOrders.filter((o: any) => o.status === 'pending').length;
+    const totalInTransit = pilotOrders.filter((o: any) => ['taking-off', 'in-flight', 'out-for-delivery'].includes(o.status)).length;
+    const totalMissed = 0;
+    const totalQueue = 0;
 
-    const todaysOrders = pilotOrders.filter((o: any) => (o.created_at || '') >= todayStart);
-    const todaysAssigned = todaysOrders.filter((o: any) => ['assigned', 'taking-off', 'in-flight', 'out-for-delivery'].includes(o.status)).length;
-    const todaysDelivered = todaysOrders.filter((o: any) => o.status === 'delivered').length;
-    const todaysMissed = todaysOrders.filter((o: any) => o.status === 'cancelled' || o.status === 'missed').length;
-    const todaysQueue = todaysOrders.filter((o: any) => o.status === 'pending').length;
+    const currentTime = new Date();
+    const twentyFourHoursAgo = new Date(currentTime.getTime() - 24 * 60 * 60 * 1000).toISOString();
+    const isOrderToday = (o: any) => {
+      const d = o.delivered_at || o.completed_at || o.assigned_at || o.created_at || '';
+      return d >= todayStart || d >= twentyFourHoursAgo;
+    };
+
+    const todaysOrders = pilotOrders.filter(isOrderToday);
+    const todaysAssigned = totalAssigned;
+    const todaysDelivered = pilotOrders.filter((o: any) => o.status === 'delivered' && isOrderToday(o)).length;
+    const todaysMissed = 0;
+    const todaysQueue = 0;
 
     // Performance trends (hourly / completion rate)
     const completionRate = totalDelivered + totalMissed > 0
@@ -4637,8 +4645,9 @@ router.get('/pilot/dashboard', async (req, res) => {
       kpis: {
         total_assigned: totalAssigned,
         total_delivered: totalDelivered,
-        total_missed: totalMissed,
-        total_queue: totalQueue,
+        in_transit: totalInTransit,
+        total_missed: 0,
+        total_queue: 0,
         todays_total: todaysOrders.length,
         todays_assigned: todaysAssigned,
         todays_delivered: todaysDelivered,
