@@ -5758,6 +5758,8 @@ router.post('/pilot/support-ticket', async (req, res) => {
 // 15. App Release Management (Get & Publish Releases + Email Delivery Partners)
 let activeAppRelease = {
   version: 'v1.1.4',
+  build_number: 14,
+  package_size: '~82 MB',
   release_notes: 'IndoFleet v1.1.4 (Build 14): In-app QR code scanner HUD with instant transition to pre-flight inspection, native camera & video airframe verification modal with HTML5 file upload, auto-trigger acceptance OTP with live status countdown, and expressway navigation origin fix.',
   android_url: 'https://expo.dev/artifacts/eas/cIUHLk91xKvnC-lJZ15FT4bnqr_DT3Ezbs9y-bsj58o.apk',
   ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',

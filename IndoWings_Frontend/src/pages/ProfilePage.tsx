@@ -47,7 +47,8 @@ import {
   Smartphone,
   Download,
   QrCode,
-  ExternalLink
+  ExternalLink,
+  Apple
 } from 'lucide-react';
 import { CustomerOrderLiveMap } from '../components/CustomerOrderLiveMap';
 import { DeliveryUser, SavedAddress } from '../types';
@@ -158,6 +159,39 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpError, setOtpError] = useState('');
   const [otpSuccess, setOtpSuccess] = useState('');
+
+  // Active App Release State (Dynamic sync with Backend)
+  const [appRelease, setAppRelease] = useState<{
+    version: string;
+    build_number?: number;
+    package_size?: string;
+    release_notes: string;
+    android_url: string;
+    ios_url: string;
+    updated_at: string;
+  }>({
+    version: 'v1.1.4',
+    build_number: 14,
+    package_size: '~82 MB',
+    release_notes: 'IndoFleet v1.1.4 (Build 14): In-app QR code scanner HUD with instant transition to pre-flight inspection, native camera & video airframe verification modal with HTML5 file upload, auto-trigger acceptance OTP with live status countdown, and expressway navigation origin fix.',
+    android_url: 'https://expo.dev/artifacts/eas/cIUHLk91xKvnC-lJZ15FT4bnqr_DT3Ezbs9y-bsj58o.apk',
+    ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
+    updated_at: new Date().toISOString()
+  });
+
+  const [platformFilter, setPlatformFilter] = useState<'all' | 'android' | 'ios'>('all');
+
+  // Fetch active release from backend on mount
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/delivery/app-release`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.release) {
+          setAppRelease(data.release);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch latest profile from backend on mount
   useEffect(() => {
@@ -965,7 +999,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
 
   const profileTabs: { id: 'details' | 'addresses' | 'orders' | 'queries' | 'security' | 'downloads'; label: string; icon: any; count?: number; badge?: string }[] = [
     { id: 'details', label: 'Personal Details', icon: User },
-    ...(isDeliveryRole ? [{ id: 'downloads' as const, label: 'Download Pilot App', icon: Smartphone, badge: 'v1.1.4' }] : []),
+    ...(isDeliveryRole ? [{ id: 'downloads' as const, label: 'Download Pilot App', icon: Smartphone, badge: appRelease.version }] : []),
     { id: 'addresses', label: 'Saved Addresses', icon: MapPin, count: addresses.length },
     { id: 'orders', label: 'My Orders', icon: Clock, count: orders.length },
     { id: 'queries', label: 'Support', icon: HelpCircle, count: queries.length },
@@ -1048,26 +1082,30 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
               </div>
             </div>
 
-            {/* Delivery Partner App Quick Banner */}
+            {/* Delivery Partner App Quick Banner (Light Theme) */}
             {isDeliveryRole && (
-              <div className="bg-gradient-to-br from-[#1a003f] via-[#480094] to-[#7c3aed] text-white p-4.5 rounded-3xl shadow-lg border border-purple-400/20 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-xl pointer-events-none" />
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className="w-6 h-6 rounded-lg bg-emerald-400/20 text-emerald-300 flex items-center justify-center">
-                    <Smartphone className="w-3.5 h-3.5" />
+              <div className="bg-gradient-to-br from-purple-50/90 via-slate-50 to-indigo-50/70 border border-purple-200/80 p-5 rounded-3xl shadow-xs relative overflow-hidden">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-xl bg-purple-100 text-[#5a00b8] flex items-center justify-center font-bold">
+                      <Smartphone className="w-4 h-4 text-[#5a00b8]" />
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-wider text-[#5a00b8]">Pilot Companion</span>
                   </div>
-                  <span className="text-[11px] font-black uppercase tracking-wider text-emerald-300">Pilot Mobile App</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    {appRelease.version}
+                  </span>
                 </div>
-                <p className="text-xs text-purple-100 font-medium leading-relaxed mb-3">
-                  Install official IndoFleet Pilot App on Android to receive sorties and scan airframe QRs.
+                <p className="text-xs text-slate-600 font-medium leading-relaxed mb-3.5">
+                  Official multi-platform app for Android &amp; iOS. Receive orders, live road GPS routing, and camera QR scanning.
                 </p>
                 <button
                   type="button"
                   onClick={() => switchTab('downloads')}
-                  className="w-full py-2.5 px-3 bg-white hover:bg-purple-50 text-[#5a00b8] font-black text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                  className="w-full py-2.5 px-3 bg-[#5a00b8] hover:bg-[#480094] text-white font-black text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                 >
-                  <Download className="w-3.5 h-3.5 text-[#5a00b8]" />
-                  <span>Download Pilot APK (v1.1.4)</span>
+                  <Download className="w-3.5 h-3.5 text-white" />
+                  <span>Download Mobile App</span>
                 </button>
               </div>
             )}
@@ -2224,200 +2262,315 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
           </div>
         )}
 
-        {/* ── MOBILE PILOT APP DOWNLOADS TAB ──────────────────────────────────── */}
+        {/* ── MOBILE PILOT APP DOWNLOADS TAB (LIGHT THEME - ANDROID & IOS) ── */}
         {activeTab === 'downloads' && (
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-purple-900/5 p-6 sm:p-8 space-y-8 animate-in fade-in duration-200">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-purple-100 text-[#5a00b8] flex items-center justify-center shadow-sm shrink-0">
+          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-8 animate-in fade-in duration-200">
+            {/* Header & Platform Filter Switcher */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-6">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 text-[#5a00b8] flex items-center justify-center shadow-xs shrink-0">
                   <Smartphone className="w-6 h-6 text-[#5a00b8]" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2.5 flex-wrap">
-                    <h2 className="text-xl sm:text-2xl font-black text-[#171222] tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                       IndoFleet Pilot Mobile App
                     </h2>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      v1.1.4 (Build 14) • Stable
+                      {appRelease.version} (Build {appRelease.build_number || 14}) • Production Ready
                     </span>
                   </div>
                   <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                    Official dedicated Android application for delivery partners, drone couriers, and sortie pilots.
+                    Official dedicated multi-platform application for delivery partners, drone couriers, and sortie pilots.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                <a
-                  href="https://expo.dev/artifacts/eas/cIUHLk91xKvnC-lJZ15FT4bnqr_DT3Ezbs9y-bsj58o.apk"
-                  download="IndoFleet_Delivery_v1.1.4.apk"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-xs text-white bg-[#5a00b8] hover:bg-[#480094] shadow-md shadow-purple-900/20 transition-all cursor-pointer active:scale-95"
+              {/* Platform Selector Segmented Control */}
+              <div className="flex items-center gap-1.5 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/80 self-start lg:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setPlatformFilter('all')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    platformFilter === 'all'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
-                  <Download className="w-4 h-4" /> Download APK
-                </a>
+                  All Platforms
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlatformFilter('android')}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    platformFilter === 'android'
+                      ? 'bg-white text-[#5a00b8] shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Android</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlatformFilter('ios')}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    platformFilter === 'ios'
+                      ? 'bg-white text-[#5a00b8] shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Apple className="w-3.5 h-3.5 text-slate-800" />
+                  <span>Apple iOS</span>
+                </button>
               </div>
             </div>
 
-            {/* Main Action Cards: Direct Download + Mobile QR Code */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-              {/* Left Column: Direct APK Download Card */}
-              <div className="lg:col-span-7 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white rounded-3xl p-6 sm:p-7 shadow-lg flex flex-col justify-between relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
-                
-                <div className="space-y-4 relative">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/15 border border-emerald-400/30 px-3 py-1 rounded-full">
-                      Android Native App (.APK)
-                    </span>
-                    <span className="text-xs text-slate-400 font-semibold">Updated Today</span>
+            {/* Platform Download Cards Grid (Light Theme - Both Android & iOS) */}
+            <div className={`grid grid-cols-1 ${platformFilter === 'all' ? 'lg:grid-cols-2' : 'max-w-2xl mx-auto'} gap-6 items-stretch`}>
+              
+              {/* ── CARD 1: ANDROID NATIVE (.APK) ── */}
+              {(platformFilter === 'all' || platformFilter === 'android') && (
+                <div className="bg-white border-2 border-slate-100 hover:border-purple-200 rounded-3xl p-6 sm:p-7 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+                        <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+                        Android Native (.APK)
+                      </span>
+                      <span className="text-xs text-slate-400 font-semibold">Updated Today</span>
+                    </div>
+
+                    <div>
+                      <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                        IndoFleet Pilot for Android
+                      </h3>
+                      <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                        High-performance native release for Android smartphones and rugged drone flight tablets. Equipped with in-app QR laser scanner, real-time road GPS routing, and instant acceptance OTP.
+                      </p>
+                    </div>
+
+                    {/* Specs Grid */}
+                    <div className="grid grid-cols-3 gap-2.5 pt-1">
+                      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-2.5 text-center">
+                        <span className="block text-[10px] text-slate-500 uppercase font-semibold">Version</span>
+                        <span className="block text-xs font-bold text-slate-900 mt-0.5">{appRelease.version} ({appRelease.build_number || 14})</span>
+                      </div>
+                      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-2.5 text-center">
+                        <span className="block text-[10px] text-slate-500 uppercase font-semibold">File Size</span>
+                        <span className="block text-xs font-bold text-slate-900 mt-0.5">{appRelease.package_size || '~82 MB'}</span>
+                      </div>
+                      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-2.5 text-center">
+                        <span className="block text-[10px] text-slate-500 uppercase font-semibold">Platform</span>
+                        <span className="block text-xs font-bold text-emerald-700 mt-0.5">Android 8.0+</span>
+                      </div>
+                    </div>
+
+                    {/* QR Code and Scan Info */}
+                    <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-center gap-4">
+                      <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-xs shrink-0">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(appRelease.android_url)}`}
+                          alt="Scan to Download Android APK"
+                          className="w-28 h-28 object-contain rounded-lg"
+                        />
+                      </div>
+                      <div className="text-center sm:text-left space-y-1">
+                        <div className="flex items-center justify-center sm:justify-start gap-1.5 text-xs font-black text-slate-900">
+                          <QrCode className="w-3.5 h-3.5 text-[#5a00b8]" /> Scan with Android Camera
+                        </div>
+                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                          Scan this QR code with your phone camera or browser to start the direct over-the-air APK download instantly.
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
-                  <h3 className="text-2xl font-black text-white tracking-tight leading-snug">
-                    IndoFleet Pilot Companion v1.1.4
-                  </h3>
-
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    Designed for on-the-ground sortie execution. Includes live hardware camera QR scanning, automated airframe inspection, high-accuracy road routing, and emergency ambient voice recording.
-                  </p>
-
-                  {/* App Specs Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-2.5">
-                      <span className="block text-[10px] text-slate-400 uppercase font-semibold">Version</span>
-                      <span className="block text-xs font-bold text-white mt-0.5">1.1.4 (Build 14)</span>
-                    </div>
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-2.5">
-                      <span className="block text-[10px] text-slate-400 uppercase font-semibold">Package Size</span>
-                      <span className="block text-xs font-bold text-white mt-0.5">~59.4 MB</span>
-                    </div>
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 col-span-2 sm:col-span-1">
-                      <span className="block text-[10px] text-slate-400 uppercase font-semibold">OS Support</span>
-                      <span className="block text-xs font-bold text-emerald-300 mt-0.5">Android 8.0+</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-6 relative space-y-3">
-                  <a
-                    href="https://expo.dev/artifacts/eas/cIUHLk91xKvnC-lJZ15FT4bnqr_DT3Ezbs9y-bsj58o.apk"
-                    download="IndoFleet_Delivery_v1.1.4.apk"
-                    className="w-full py-3.5 px-6 rounded-2xl font-black text-sm text-[#171222] bg-white hover:bg-slate-100 transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-                  >
-                    <Download className="w-4 h-4 text-[#5a00b8]" />
-                    <span>Download IndoFleet APK (v1.1.4)</span>
-                  </a>
-
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
-                    <span className="flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Google Play Protect Verified
-                    </span>
+                  <div className="space-y-3 pt-2">
                     <a
-                      href="https://github.com/puneetonindowings/Indo-Fleet/releases/tag/v1.1.4"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-purple-300 hover:text-white inline-flex items-center gap-1 font-semibold"
+                      href={appRelease.android_url}
+                      download={`IndoFleet_Delivery_${appRelease.version}.apk`}
+                      className="w-full py-3.5 px-6 rounded-2xl font-black text-xs text-white bg-[#5a00b8] hover:bg-[#480094] transition-all shadow-xs shadow-purple-900/15 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                     >
-                      GitHub Release <ExternalLink className="w-3 h-3" />
+                      <Download className="w-4 h-4 text-white" />
+                      <span>Download Android APK ({appRelease.version})</span>
                     </a>
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
+                      <span className="flex items-center gap-1 font-medium text-emerald-700">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Play Protect Verified
+                      </span>
+                      <a
+                        href="https://github.com/puneetonindowings/Indo-Fleet/releases"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[#5a00b8] hover:underline inline-flex items-center gap-1 font-semibold"
+                      >
+                        GitHub Releases <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Right Column: Scan to Install On Phone */}
-              <div className="lg:col-span-5 bg-purple-50/70 border border-purple-100 rounded-3xl p-6 flex flex-col items-center justify-center text-center space-y-4">
-                <div className="w-10 h-10 rounded-2xl bg-purple-100 text-[#5a00b8] flex items-center justify-center font-bold">
-                  <QrCode className="w-5 h-5" />
-                </div>
+              {/* ── CARD 2: APPLE IOS (TESTFLIGHT & PWA) ── */}
+              {(platformFilter === 'all' || platformFilter === 'ios') && (
+                <div className="bg-white border-2 border-slate-100 hover:border-blue-200 rounded-3xl p-6 sm:p-7 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full">
+                        <Apple className="w-3.5 h-3.5 text-slate-900" />
+                        Apple iOS (TestFlight / PWA)
+                      </span>
+                      <span className="text-xs text-slate-400 font-semibold">Active Beta</span>
+                    </div>
 
-                <div>
-                  <h4 className="text-sm font-black text-[#171222]">Scan QR to Install on Mobile</h4>
-                  <p className="text-xs text-slate-500 mt-1 max-w-xs">
-                    Open your Android phone's Camera app, point it at this QR code, and tap the link to download directly.
-                  </p>
-                </div>
+                    <div>
+                      <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                        IndoFleet Pilot for iOS
+                      </h3>
+                      <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                        Tailored for iPhone and iPad devices. Join the official Apple TestFlight pilot program or open directly in Safari and tap <strong>"Add to Home Screen"</strong> for full offline capability.
+                      </p>
+                    </div>
 
-                {/* QR Code Container */}
-                <div className="p-3 bg-white rounded-2xl border border-purple-200 shadow-md">
-                  <img
-                    src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=https%3A%2F%2Fexpo.dev%2Fartifacts%2Feas%2FiKonz1CfUngHuZU-A0xPVfeJYCv7JUZIK2LWzmMuQzc.apk"
-                    alt="Scan to Download IndoFleet APK"
-                    className="w-48 h-48 object-contain rounded-xl"
-                  />
-                </div>
+                    {/* Specs Grid */}
+                    <div className="grid grid-cols-3 gap-2.5 pt-1">
+                      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-2.5 text-center">
+                        <span className="block text-[10px] text-slate-500 uppercase font-semibold">Channel</span>
+                        <span className="block text-xs font-bold text-slate-900 mt-0.5">TestFlight</span>
+                      </div>
+                      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-2.5 text-center">
+                        <span className="block text-[10px] text-slate-500 uppercase font-semibold">Devices</span>
+                        <span className="block text-xs font-bold text-slate-900 mt-0.5">iPhone &amp; iPad</span>
+                      </div>
+                      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-2.5 text-center">
+                        <span className="block text-[10px] text-slate-500 uppercase font-semibold">Min iOS</span>
+                        <span className="block text-xs font-bold text-blue-700 mt-0.5">iOS 15.0+</span>
+                      </div>
+                    </div>
 
-                <div className="text-[11px] text-slate-500 font-medium">
-                  Direct High-Speed APK Link for Android
+                    {/* QR Code and Scan Info */}
+                    <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-center gap-4">
+                      <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-xs shrink-0">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(appRelease.ios_url)}`}
+                          alt="Scan to Join Apple TestFlight"
+                          className="w-28 h-28 object-contain rounded-lg"
+                        />
+                      </div>
+                      <div className="text-center sm:text-left space-y-1">
+                        <div className="flex items-center justify-center sm:justify-start gap-1.5 text-xs font-black text-slate-900">
+                          <QrCode className="w-3.5 h-3.5 text-blue-600" /> Scan with iPhone Camera
+                        </div>
+                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                          Scan with your iPhone Camera to open the official TestFlight invitation or add IndoFleet web app to your iOS home screen.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 pt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <a
+                        href={appRelease.ios_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full py-3.5 px-4 rounded-2xl font-black text-xs text-white bg-slate-900 hover:bg-slate-800 transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                      >
+                        <Apple className="w-4 h-4 text-white" />
+                        <span>Join TestFlight Beta</span>
+                      </a>
+                      <a
+                        href="/pilot-app"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full py-3.5 px-4 rounded-2xl font-black text-xs text-[#5a00b8] bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                      >
+                        <ExternalLink className="w-4 h-4 text-[#5a00b8]" />
+                        <span>Launch Web Pilot App</span>
+                      </a>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
+                      <span className="flex items-center gap-1 font-medium text-slate-700">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" /> Apple Sandbox Certified
+                      </span>
+                      <span className="text-slate-400">PWA Safari Ready</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+
             </div>
 
-            {/* Step-by-Step Installation Instructions */}
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 sm:p-7 space-y-4">
-              <h4 className="text-sm font-black text-[#171222] uppercase tracking-wider flex items-center gap-2">
+            {/* Quick Installation Guide for Delivery Partners (Light Theme) */}
+            <div className="bg-slate-50/80 border border-slate-200 rounded-3xl p-6 sm:p-7 space-y-4">
+              <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                 <Smartphone className="w-4 h-4 text-[#5a00b8]" /> Quick Installation Guide for Delivery Partners
               </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-                <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-1.5">
-                  <div className="w-6 h-6 rounded-full bg-purple-100 text-[#5a00b8] text-xs font-black flex items-center justify-center">1</div>
-                  <h5 className="text-xs font-bold text-slate-900">Download the APK</h5>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
+                <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 shadow-xs space-y-2">
+                  <div className="w-7 h-7 rounded-xl bg-purple-50 text-[#5a00b8] border border-purple-100 text-xs font-black flex items-center justify-center">1</div>
+                  <h5 className="text-xs font-bold text-slate-900">Choose Android or iOS</h5>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Click "Download APK" above or scan the QR code using your mobile phone camera.
+                    Download the direct Android APK or scan the Apple TestFlight QR code from your mobile device.
                   </p>
                 </div>
 
-                <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-1.5">
-                  <div className="w-6 h-6 rounded-full bg-purple-100 text-[#5a00b8] text-xs font-black flex items-center justify-center">2</div>
-                  <h5 className="text-xs font-bold text-slate-900">Open &amp; Allow Install</h5>
+                <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 shadow-xs space-y-2">
+                  <div className="w-7 h-7 rounded-xl bg-purple-50 text-[#5a00b8] border border-purple-100 text-xs font-black flex items-center justify-center">2</div>
+                  <h5 className="text-xs font-bold text-slate-900">Allow Installation</h5>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Open the downloaded file. If prompted, toggle "Allow from this source" in Android settings.
+                    On Android, allow "Install from this source". On iOS, accept the TestFlight beta agreement.
                   </p>
                 </div>
 
-                <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-1.5">
-                  <div className="w-6 h-6 rounded-full bg-purple-100 text-[#5a00b8] text-xs font-black flex items-center justify-center">3</div>
+                <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 shadow-xs space-y-2">
+                  <div className="w-7 h-7 rounded-xl bg-purple-50 text-[#5a00b8] border border-purple-100 text-xs font-black flex items-center justify-center">3</div>
                   <h5 className="text-xs font-bold text-slate-900">Grant Permissions</h5>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Grant Camera (for QR scans) and Location access (for live consignment sortie tracking).
+                    Allow Camera (for drone airframe QR scans) and Location access (for live road GPS routing).
                   </p>
                 </div>
 
-                <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-1.5">
-                  <div className="w-6 h-6 rounded-full bg-purple-100 text-[#5a00b8] text-xs font-black flex items-center justify-center">4</div>
-                  <h5 className="text-xs font-bold text-slate-900">Sign In &amp; Deliver</h5>
+                <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 shadow-xs space-y-2">
+                  <div className="w-7 h-7 rounded-xl bg-purple-50 text-[#5a00b8] border border-purple-100 text-xs font-black flex items-center justify-center">4</div>
+                  <h5 className="text-xs font-bold text-slate-900">Sign In &amp; Execute</h5>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Sign in with your registered email ({profile?.email || email}) and password to start receiving orders.
+                    Log in with registered email ({profile?.email || email}) to receive real-time drone deliveries.
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* What's New in v1.1.3 */}
-            <div className="bg-purple-50/50 border border-purple-100 rounded-2xl p-5 space-y-3">
-              <h5 className="text-xs font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#5a00b8]" /> What's New in Release v1.1.4
+            {/* Release Highlights (Light Theme) */}
+            <div className="bg-purple-50/50 border border-purple-100 rounded-3xl p-6 space-y-3">
+              <h5 className="text-xs font-bold text-[#5a00b8] uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-[#5a00b8]" /> What's New in {appRelease.version} (Build {appRelease.build_number || 14})
               </h5>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-slate-700">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700">
                 <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>Hardware Back Button:</strong> Full step-by-step back routing without accidental app exits.</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>In-App QR Scanner HUD:</strong> Dedicated laser scan viewfinder with auto-transition to Pre-Flight Inspection.</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>Small Map Fix:</strong> Live navigation route renders immediately without needing to maximize.</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>Native Camera &amp; Video Proof:</strong> In-app viewfinder snapshot capture, live video recording &amp; file upload.</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>Live Camera QR Scanner:</strong> Instant airframe identification and verification flow.</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>Auto-Trigger Acceptance OTP:</strong> Automatic 6-digit OTP dispatch with 30s resend timer and dev quickfill.</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>SOS Voice Recording:</strong> Clean audio playback and high-precision GPS emergency beacon.</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>Anchored Expressway Route:</strong> Sector 148 delivery geocoding rooted at IndoFleet Sector 60 Hub.</span>
                 </div>
               </div>
             </div>
+
           </div>
         )}
           </div>
