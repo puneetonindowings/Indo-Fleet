@@ -28,6 +28,7 @@ import { ProfileScreen } from './src/screens/ProfileScreen';
 import { SupportScreen } from './src/screens/SupportScreen';
 import { OrderHistoryScreen } from './src/screens/OrderHistoryScreen';
 import { InspectionScreen } from './src/screens/InspectionScreen';
+import { QrScannerScreen } from './src/screens/QrScannerScreen';
 import { NotFoundScreen } from './src/screens/NotFoundScreen';
 
 import {
@@ -462,9 +463,10 @@ function MainApp() {
     setHandoverModalOpen(true);
   };
 
-  const handleOpenPodModal = (order: DeliveryOrder) => {
+  const handleStartQrInspectionFlow = (order: DeliveryOrder) => {
     setSelectedOrder(order);
-    setPodModalOpen(true);
+    setInspectionOrder(order);
+    setActiveScreen('scanner');
   };
 
   const handleFlightStarted = async () => {
@@ -551,7 +553,7 @@ function MainApp() {
             onRefresh={() => loadDashboardData()}
             onAcceptOrder={handleOpenAcceptModal}
             onStartFlight={handleOpenStartFlightModal}
-            onCompletePod={handleOpenPodModal}
+            onCompletePod={handleStartQrInspectionFlow}
             onViewRadar={(order) => {
               setSelectedOrder(order);
               setActiveScreen('radar');
@@ -582,7 +584,7 @@ function MainApp() {
             onRefreshLocation={fetchInitialLocation}
             onUpdateLocation={(coords) => setCurrentCoords(coords)}
             onBackToDashboard={() => setActiveScreen('dashboard')}
-            onCompletePod={handleOpenPodModal}
+            onCompletePod={handleStartQrInspectionFlow}
             onStopTracking={async () => {
               await stopTracking();
               if (foregroundWatcherRef.current) {
@@ -603,12 +605,31 @@ function MainApp() {
 
         {activeScreen === 'support' && <SupportScreen user={currentUser} />}
 
+        {activeScreen === 'scanner' && (
+          <QrScannerScreen
+            order={inspectionOrder || selectedOrder}
+            onBack={() => setActiveScreen(selectedOrder ? 'radar' : 'dashboard')}
+            onScannedSuccess={(_code) => {
+              setActiveScreen('inspection');
+            }}
+          />
+        )}
+
         {activeScreen === 'inspection' && (
           <InspectionScreen
             order={inspectionOrder || selectedOrder}
             pilotUser={currentUser}
+            currentCoords={currentCoords}
             onBack={() => setActiveScreen('dashboard')}
-            onSuccess={() => {
+            onSuccess={async () => {
+              await stopTracking();
+              if (foregroundWatcherRef.current) {
+                foregroundWatcherRef.current.remove();
+                foregroundWatcherRef.current = null;
+              }
+              setIsTracking(false);
+              setSelectedOrder(null);
+              setInspectionOrder(null);
               setActiveScreen('dashboard');
               loadDashboardData();
             }}
@@ -619,7 +640,7 @@ function MainApp() {
           <NotFoundScreen onNavigate={(screen) => setActiveScreen(screen)} />
         )}
 
-        {!['dashboard', 'history', 'radar', 'profile', 'support', 'sos', 'inspection', '404'].includes(activeScreen) && (
+        {!['dashboard', 'history', 'radar', 'profile', 'support', 'sos', 'inspection', 'scanner', '404'].includes(activeScreen) && (
           <NotFoundScreen onNavigate={(screen) => setActiveScreen(screen)} />
         )}
 
@@ -675,19 +696,6 @@ function MainApp() {
         onFlightStarted={handleFlightStarted}
       />
 
-      <CustomerDeliveryPodModal
-        visible={podModalOpen}
-        order={selectedOrder}
-        pilotUser={currentUser}
-        currentCoords={currentCoords}
-        onClose={() => setPodModalOpen(false)}
-        onDelivered={handlePodDelivered}
-        onOpenFullScreenInspection={() => {
-          setPodModalOpen(false);
-          setInspectionOrder(selectedOrder);
-          setActiveScreen('inspection');
-        }}
-      />
 
       <SosModal
         visible={sosModalOpen}

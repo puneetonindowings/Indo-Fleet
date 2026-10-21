@@ -28,14 +28,25 @@ import {
   FileText,
   QrCode,
   Flame,
+  KeyRound,
+  User,
+  Lock,
+  Unlock,
+  RefreshCw,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { DeliveryOrder, UserProfile } from '../types';
-import { submitPostDeliveryInspection } from '../services/api';
+import {
+  submitPostDeliveryInspection,
+  completeDeliveryHandover,
+  requestCustomerDeliveryOtp,
+  requestPilotDeliveryOtp,
+} from '../services/api';
 
 interface InspectionScreenProps {
   order: DeliveryOrder | null;
   pilotUser: UserProfile | null;
+  currentCoords?: { latitude: number; longitude: number } | null;
   onBack: () => void;
   onSuccess: (inspectionId?: string) => void;
 }
@@ -51,11 +62,13 @@ interface MediaItem {
 export const InspectionScreen: React.FC<InspectionScreenProps> = ({
   order,
   pilotUser,
+  currentCoords,
   onBack,
   onSuccess,
 }) => {
   const defaultDrone = order?.assigned_drone_id || order?.drone_id || 'RPAV-000001';
-  const [droneId, setDroneId] = useState<string>(defaultDrone);
+  const cleanDroneName = defaultDrone.includes('@') ? 'IndoWings 700 RPAV' : defaultDrone;
+  const [droneId, setDroneId] = useState<string>(cleanDroneName);
 
   // Field Verification Specific Checklist (Delivery Person)
   const [cargoBayCondition, setCargoBayCondition] = useState<string>('CLEAN_RELEASE');
@@ -65,6 +78,14 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
   const [zeroDefectCertified, setZeroDefectCertified] = useState<boolean>(true);
   const [fieldNotes, setFieldNotes] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+
+  // Handover Verification States
+  const [recipientName, setRecipientName] = useState<string>(order?.recipient_name || order?.customer_name || '');
+  const [customerOtp, setCustomerOtp] = useState<string>('');
+  const [pilotOtp, setPilotOtp] = useState<string>('');
+  const [podPhoto, setPodPhoto] = useState<string | null>(null);
+  const [requestingCustOtp, setRequestingCustOtp] = useState<boolean>(false);
+  const [requestingPilotOtp, setRequestingPilotOtp] = useState<boolean>(false);
 
   // Photo & Video Media Evidence
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
@@ -169,10 +190,85 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
     setMediaItems((prev) => prev.filter((item) => item.id !== id));
   };
 
+  const handleRequestCustOtp = async () => {
+    if (!order) return;
+    setRequestingCustOtp(true);
+    try {
+      const res = await requestCustomerDeliveryOtp(order.id);
+      Alert.alert(
+        'Customer OTP Dispatched',
+        res.message || 'Verification code sent to customer registered contact.'
+      );
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Could not request customer OTP.');
+    } finally {
+      setRequestingCustOtp(false);
+    }
+  };
+
+  const handleRequestPilotOtp = async () => {
+    if (!order) return;
+    setRequestingPilotOtp(true);
+    try {
+      const res = await requestPilotDeliveryOtp(
+        order.id,
+        pilotUser?.email,
+        pilotUser?.phone,
+        pilotUser?.name
+      );
+      Alert.alert(
+        'Delivery OTP Dispatched',
+        res.message || 'Delivery Partner OTP sent to your registered email.'
+      );
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Could not request delivery OTP.');
+    } finally {
+      setRequestingPilotOtp(false);
+    }
+  };
+
+  const handleTakePodPhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Camera Permission Required', 'Please enable camera access to take POD photo.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.4,
+        base64: true,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const base64Data = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        setPodPhoto(base64Data);
+      }
+    } catch (err: any) {
+      Alert.alert('Camera Error', err.message || 'Could not take POD photo.');
+    }
+  };
+
   const handleSubmit = async () => {
     const targetDrone = (droneId || defaultDrone).trim();
     if (!targetDrone) {
       Alert.alert('Drone ID Required', 'Please enter or confirm the drone airframe ID.');
+      return;
+    }
+
+    if (!recipientName.trim()) {
+      Alert.alert('Recipient Name Required', 'Please enter the name of the recipient taking delivery.');
+      return;
+    }
+
+    if (!customerOtp.trim()) {
+      Alert.alert('Customer OTP Required', 'Please enter the 6-digit verification OTP provided by the customer.');
+      return;
+    }
+
+    if (!pilotOtp.trim()) {
+      Alert.alert('Delivery Partner OTP Required', 'Please enter your 6-digit Delivery Partner verification OTP.');
       return;
     }
 
@@ -202,6 +298,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
 
     setLoading(true);
     try {
+      // 1. Submit Post-Delivery Airframe & Payload Inspection Report
       const res = await submitPostDeliveryInspection({
         drone_id: targetDrone,
         delivery_id: order?.id,
@@ -229,18 +326,34 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
 
       const inspectionId = res?.inspection_id || 'INS-VERIFIED';
 
+      // 2. Complete Delivery Handover & Customer POD in Database
+      if (order?.id) {
+        await completeDeliveryHandover({
+          order_id: order.id,
+          customer_otp: customerOtp.trim(),
+          pilot_otp: pilotOtp.trim(),
+          recipient_name: recipientName.trim(),
+          pod_photo: podPhoto || undefined,
+          final_latitude: currentCoords?.latitude,
+          final_longitude: currentCoords?.longitude,
+          delivery_notes: fieldNotes.trim() || 'Verified via Drone Field Check, Customer OTP & Delivery Partner OTP',
+          pilot_name: pilotUser?.name || 'Delivery Partner',
+          inspection_id: inspectionId,
+        });
+      }
+
       Alert.alert(
-        zeroDefectCertified ? 'Inspection Verified & Recorded' : 'Inspection Recorded (Defect Flagged)',
-        `Airframe ${targetDrone} inspection report archived.\nEvidence attached: ${photoRefs.length} Photo(s), ${videoRefs.length} Video(s).\nVerdict: ${overallVerdict}`,
+        'Delivery Completed Successfully',
+        `Order #${order?.order_number || ''} marked as Delivered.\nAirframe Inspection, Customer OTP & Delivery Partner OTP verified and archived in flight logs.`,
         [
           {
-            text: 'Continue',
+            text: 'Return to Dashboard',
             onPress: () => onSuccess(inspectionId),
           },
         ]
       );
     } catch (err: any) {
-      Alert.alert('Inspection Error', err.message || 'Failed to submit inspection. Please try again.');
+      Alert.alert('Delivery Submission Error', err.message || 'Failed to complete delivery. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -568,6 +681,121 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
           </View>
         </TouchableOpacity>
 
+        {/* ── STEP 3: CUSTOMER DELIVERY HANDOVER & OTP VERIFICATION ── */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.iconCircle, { backgroundColor: '#ECFDF5' }]}>
+              <CheckCircle size={18} color="#059669" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>Customer Delivery Handover & OTP</Text>
+              <Text style={styles.cardSubtitle}>
+                Verify recipient name and collect customer & partner OTPs
+              </Text>
+            </View>
+          </View>
+
+          {/* Recipient Name */}
+          <View style={styles.formItem}>
+            <Text style={styles.formItemLabel}>Recipient Name *</Text>
+            <View style={styles.inputFieldRow}>
+              <User size={16} color="#64748B" />
+              <TextInput
+                style={styles.textInputMain}
+                value={recipientName}
+                onChangeText={setRecipientName}
+                placeholder="Name of person receiving package"
+                placeholderTextColor="#94A3B8"
+              />
+            </View>
+          </View>
+
+          {/* Customer OTP */}
+          <View style={styles.formItem}>
+            <View style={styles.formItemHeaderRow}>
+              <Text style={styles.formItemLabel}>Customer Verification OTP *</Text>
+              <TouchableOpacity
+                onPress={handleRequestCustOtp}
+                disabled={requestingCustOtp}
+                style={styles.otpActionBtn}
+              >
+                {requestingCustOtp ? (
+                  <ActivityIndicator size="small" color="#5A00B8" />
+                ) : (
+                  <>
+                    <RefreshCw size={11} color="#5A00B8" />
+                    <Text style={styles.otpActionBtnText}>Send Customer OTP</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+            <View style={styles.inputFieldRow}>
+              <KeyRound size={16} color="#64748B" />
+              <TextInput
+                style={styles.textInputMain}
+                value={customerOtp}
+                onChangeText={setCustomerOtp}
+                placeholder="Enter 6-digit Customer OTP"
+                placeholderTextColor="#94A3B8"
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+            </View>
+          </View>
+
+          {/* Delivery Partner OTP */}
+          <View style={styles.formItem}>
+            <View style={styles.formItemHeaderRow}>
+              <Text style={styles.formItemLabel}>Delivery Partner OTP *</Text>
+              <TouchableOpacity
+                onPress={handleRequestPilotOtp}
+                disabled={requestingPilotOtp}
+                style={styles.otpActionBtn}
+              >
+                {requestingPilotOtp ? (
+                  <ActivityIndicator size="small" color="#5A00B8" />
+                ) : (
+                  <>
+                    <RefreshCw size={11} color="#5A00B8" />
+                    <Text style={styles.otpActionBtnText}>Send to My Email</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+            <View style={styles.inputFieldRow}>
+              <ShieldCheck size={16} color="#64748B" />
+              <TextInput
+                style={styles.textInputMain}
+                value={pilotOtp}
+                onChangeText={setPilotOtp}
+                placeholder="Enter 6-digit Partner OTP"
+                placeholderTextColor="#94A3B8"
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+            </View>
+          </View>
+
+          {/* POD Photo Capture */}
+          <View style={styles.formItem}>
+            <Text style={styles.formItemLabel}>Proof of Delivery (POD) Photo (Optional)</Text>
+            {podPhoto ? (
+              <View style={styles.podPhotoPreviewWrap}>
+                <Image source={{ uri: podPhoto }} style={styles.podPhotoPreview} />
+                <TouchableOpacity onPress={() => setPodPhoto(null)} style={styles.removePodBtn}>
+                  <Trash2 size={14} color="#FFFFFF" />
+                  <Text style={styles.removePodBtnText}>Retake Photo</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity onPress={handleTakePodPhoto} style={styles.capturePodBtn}>
+                <Camera size={16} color="#059669" />
+                <Text style={styles.capturePodBtnText}>Snap Customer Package POD Photo</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
         {/* ── INSPECTION NOTES ────────────────────────────────────── */}
         <View style={styles.card}>
           <Text style={styles.sectionHeading}>Handover Notes & Remarks</Text>
@@ -593,8 +821,8 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <>
-              <ShieldCheck size={20} color="#FFFFFF" />
-              <Text style={styles.submitBtnText}>Submit & Verify Inspection</Text>
+              <CheckCircle size={20} color="#FFFFFF" />
+              <Text style={styles.submitBtnText}>CONFIRM & COMPLETE DELIVERY</Text>
             </>
           )}
         </TouchableOpacity>
@@ -980,10 +1208,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#5a00b8',
+    backgroundColor: '#059669',
     paddingVertical: 14,
     borderRadius: 16,
-    shadowColor: '#5a00b8',
+    shadowColor: '#059669',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
@@ -994,7 +1222,102 @@ const styles = StyleSheet.create({
   },
   submitBtnText: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  formItem: {
+    marginBottom: 12,
+  },
+  formItemHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  formItemLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  otpActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  otpActionBtnText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#5A00B8',
+  },
+  inputFieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 12,
+    marginTop: 4,
+  },
+  textInputMain: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    fontSize: 13,
+    color: '#0F172A',
+    fontWeight: '600',
+  },
+  capturePodBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#ECFDF5',
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderStyle: 'dashed',
+    marginTop: 4,
+  },
+  capturePodBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  podPhotoPreviewWrap: {
+    position: 'relative',
+    borderRadius: 12,
+    overflow: 'hidden',
+    height: 140,
+    backgroundColor: '#0F172A',
+    marginTop: 4,
+  },
+  podPhotoPreview: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  removePodBtn: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(220, 38, 38, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  removePodBtnText: {
+    fontSize: 10,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
 });

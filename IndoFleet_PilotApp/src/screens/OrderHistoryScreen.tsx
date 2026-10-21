@@ -205,7 +205,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
           <View>
             <Text style={styles.screenTitle}>Order History</Text>
             <Text style={styles.screenSubtitle}>
-              Completed deliveries &amp; handover log
+              Completed deliveries & handover log
             </Text>
           </View>
           <View style={styles.countBadge}>
@@ -411,7 +411,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
 
                 {/* Recipient & Customer Details */}
                 <View style={styles.modalSectionCard}>
-                  <Text style={styles.sectionHeading}>Recipient &amp; Drop Info</Text>
+                  <Text style={styles.sectionHeading}>Recipient & Drop Info</Text>
 
                   <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Recipient Name:</Text>

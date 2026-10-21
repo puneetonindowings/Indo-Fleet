@@ -198,7 +198,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               activeOpacity={0.85}
             >
               <QrCode size={18} color="#FFFFFF" />
-              <Text style={styles.podPrimaryBtnText}>Scan Drone QR &amp; Complete</Text>
+              <Text style={styles.podPrimaryBtnText}>Scan Drone QR & Complete</Text>
             </TouchableOpacity>
 
             <View style={styles.inFlightSubRow}>

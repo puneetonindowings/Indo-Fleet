@@ -38,6 +38,7 @@ import {
   Minimize2,
   LocateFixed,
   Layers,
+  QrCode,
 } from 'lucide-react-native';
 import { DeliveryOrder, TelemetryStats } from '../types';
 import { getRoutingApiUrl } from '../config';
@@ -278,11 +279,11 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     const address = encodeURIComponent(target?.drop_address || target?.delivery_address || 'Delivery Destination');
     const destCoords = `${targetLat},${targetLng}`;
 
-    // Always launch Google Maps turn-by-turn driving route with real origin & destination coordinates
-    const url = `https://www.google.com/maps/dir/?api=1&origin=${pilotLat},${pilotLng}&destination=${destCoords}&travelmode=driving`;
+    // Launch Google Maps navigation directly to destination (Google Maps uses current device GPS as origin automatically)
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${destCoords}&travelmode=driving`;
     Linking.openURL(url).catch(() => {
       Linking.openURL(`geo:${targetLat},${targetLng}?q=${destCoords}(${address})`).catch(() => {
-        Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${destCoords}&travelmode=driving`);
+        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${destCoords}`);
       });
     });
   };
@@ -321,8 +322,8 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     if (baseHub) {
       markers += `
         L.marker([${baseHub.latitude}, ${baseHub.longitude}], {
-          icon: L.divIcon({ className: '', html: '${esc(pill('#059669', 'Dispatch Hub'))}', iconSize: [110, 28], iconAnchor: [55, 14] })
-        }).addTo(map).bindPopup("<b>${esc(baseHub.name)}</b><br>Central Dispatch Depot");`;
+          icon: L.divIcon({ className: '', html: '${esc(pill('#0284C7', 'Hub'))}', iconSize: [60, 26], iconAnchor: [30, 13] })
+        }).addTo(map).bindPopup("<b>Hub</b>");`;
     }
 
     if (hasPilot) {
@@ -335,10 +336,11 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     const targetOrder = activeOrder || order;
 
     if (hasTarget) {
+      const homeMarkerHtml = '<div style="background:#DC2626;color:#FFF;width:34px;height:34px;border-radius:17px;border:2.5px solid #FFFFFF;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 3px 10px rgba(0,0,0,0.35);">🏠</div>';
       markers += `
         L.marker([${targetLat}, ${targetLng}], {
-          icon: L.divIcon({ className: '', html: '${esc(pill('#DC2626', '📍 Drop-off: ' + (targetOrder?.customer_name || 'Customer')))}', iconSize: [160, 28], iconAnchor: [80, 14] })
-        }).addTo(map).bindPopup("<b>${esc(targetOrder?.customer_name || 'Drop-off')}</b><br>${esc(targetOrder?.drop_address || targetOrder?.delivery_address || 'Delivery point')}");`;
+          icon: L.divIcon({ className: '', html: '${esc(homeMarkerHtml)}', iconSize: [34, 34], iconAnchor: [17, 17] })
+        }).addTo(map).bindPopup("<b>Home 🏠</b><br>${esc(targetOrder?.drop_address || targetOrder?.delivery_address || 'Delivery point')}");`;
 
       if (hasPilot) {
         markers += `
@@ -366,8 +368,8 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
                 var distKm = (d.routes[0].distance / 1000).toFixed(1);
                 var durMin = Math.max(1, Math.round(d.routes[0].duration / 60));
                 var banner = document.createElement('div');
-                banner.className = 'gmap-eta-badge';
-                banner.innerHTML = '<span style="color:#60A5FA;font-weight:900">🚗 ' + durMin + ' min</span> <span>(' + distKm + ' km)</span> <span style="color:#A7F3D0;font-size:10px">• Fastest Route</span>';
+                banner.className = 'gmap-bottom-trip-card';
+                banner.innerHTML = '<div style="display:flex;align-items:center;gap:10px;"><div style="background:#1E293B;padding:5px 9px;border-radius:10px;border:1px solid #334155;display:flex;align-items:center;gap:6px;"><span style="color:#38BDF8;font-weight:900;font-size:13px;">🚗 ' + durMin + ' min</span><span style="color:#94A3B8;font-size:12px;">(' + distKm + ' km)</span></div><div style="font-size:11px;color:#CBD5E1;font-weight:700;">Hub ➔ Home 🏠</div></div><span style="background:#0284C7;color:#FFF;padding:4px 8px;border-radius:6px;font-size:9px;font-weight:800;letter-spacing:0.5px;">FASTEST</span>';
                 document.body.appendChild(banner);
               } else {
                 drawFallbackLine();
@@ -426,22 +428,21 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
       align-items: center;
       gap: 5px;
     }
-    .gmap-eta-badge {
+    .gmap-bottom-trip-card {
       position: absolute;
-      top: 10px;
-      left: 52px;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
       z-index: 999;
-      background: rgba(15, 23, 42, 0.92);
+      background: rgba(15, 23, 42, 0.94);
       color: #FFFFFF;
-      padding: 7px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: 14px;
       display: flex;
       align-items: center;
-      gap: 8px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
-      border: 1px solid rgba(255,255,255,0.15);
+      justify-content: space-between;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+      border: 1px solid rgba(255,255,255,0.14);
       backdrop-filter: blur(8px);
     }
     .leaflet-popup-content-wrapper {
@@ -729,16 +730,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
                 <Text style={styles.linkBtnText}>Google Maps</Text>
               </TouchableOpacity>
             </View>
-              {/* Primary Google Maps Navigation Launcher Button */}
-              <TouchableOpacity
-                style={styles.navGoogleBtn}
-                onPress={handleOpenGoogleMaps}
-                activeOpacity={0.85}
-              >
-                <Navigation size={18} color="#FFFFFF" />
-                <Text style={styles.navGoogleBtnText}>Start Live Turn-by-Turn Navigation (Google Maps)</Text>
-              </TouchableOpacity>
-            </View>
+          </View>
           ) : (
             <View style={styles.destCard}>
             <View style={styles.destTop}>
@@ -871,8 +863,8 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
         {(order || activeOrder) && (
           <View style={styles.actions}>
             <TouchableOpacity style={styles.primaryBtn} onPress={() => onCompletePod(order || activeOrder!)} activeOpacity={0.85}>
-              <CheckCircle size={19} color="#FFFFFF" />
-              <Text style={styles.primaryBtnText}>Confirm Delivery Handover</Text>
+              <QrCode size={19} color="#FFFFFF" />
+              <Text style={styles.primaryBtnText}>Scan Drone QR & Complete</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.secondaryBtn} onPress={handleOpenGoogleMaps} activeOpacity={0.85}>

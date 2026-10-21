@@ -182,8 +182,8 @@ export const Header: React.FC<HeaderProps> = ({
                       <Clock size={16} color="#6B21A8" />
                     </View>
                     <View>
-                      <Text style={styles.menuItemTitle}>Order History &amp; Logs</Text>
-                      <Text style={styles.menuItemSubtitle}>Completed deliveries &amp; PODs</Text>
+                      <Text style={styles.menuItemTitle}>Order History & Logs</Text>
+                      <Text style={styles.menuItemSubtitle}>Completed deliveries & PODs</Text>
                     </View>
                   </View>
                   <ChevronRight size={16} color="#94A3B8" />
@@ -205,8 +205,8 @@ export const Header: React.FC<HeaderProps> = ({
                       <HelpCircle size={16} color="#2563EB" />
                     </View>
                     <View>
-                      <Text style={styles.menuItemTitle}>Help &amp; Support Desk</Text>
-                      <Text style={styles.menuItemSubtitle}>24/7 Operations &amp; Dispatcher Help</Text>
+                      <Text style={styles.menuItemTitle}>Help & Support Desk</Text>
+                      <Text style={styles.menuItemSubtitle}>24/7 Operations & Dispatcher Help</Text>
                     </View>
                   </View>
                   <ChevronRight size={16} color="#94A3B8" />

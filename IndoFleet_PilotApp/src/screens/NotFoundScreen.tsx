@@ -36,7 +36,7 @@ export const NotFoundScreen: React.FC<NotFoundScreenProps> = ({ onNavigate }) =>
           activeOpacity={0.7}
         >
           <HelpCircle size={16} color="#3B0080" />
-          <Text style={styles.secondaryBtnText}>Help &amp; Support</Text>
+          <Text style={styles.secondaryBtnText}>Help & Support</Text>
         </TouchableOpacity>
       </View>
     </View>

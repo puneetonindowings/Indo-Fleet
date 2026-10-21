@@ -78,10 +78,32 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
 
   const activeFilter = FILTERS.find((f) => f.key === filterTab) || FILTERS[0];
 
-  const filteredOrders = useMemo(
-    () => orders.filter(activeFilter.match),
-    [orders, activeFilter]
-  );
+  const filteredOrders = useMemo(() => {
+    const list = orders.filter(activeFilter.match);
+    return list.slice().sort((a, b) => {
+      const isPendingA =
+        ['pending', 'assigned'].includes(a.status) ||
+        a.pilot_acceptance_status === 'pending_acceptance';
+      const isPendingB =
+        ['pending', 'assigned'].includes(b.status) ||
+        b.pilot_acceptance_status === 'pending_acceptance';
+
+      // 1. Pending & newly assigned orders always first
+      if (isPendingA && !isPendingB) return -1;
+      if (!isPendingA && isPendingB) return 1;
+
+      // 2. Active in-flight orders next
+      const isInFlightA = ['in-flight', 'taking-off', 'out-for-delivery'].includes(a.status);
+      const isInFlightB = ['in-flight', 'taking-off', 'out-for-delivery'].includes(b.status);
+      if (isInFlightA && !isInFlightB) return -1;
+      if (!isInFlightA && isInFlightB) return 1;
+
+      // 3. Newest first
+      const timeA = new Date(a.created_at || 0).getTime();
+      const timeB = new Date(b.created_at || 0).getTime();
+      return timeB - timeA;
+    });
+  }, [orders, activeFilter]);
 
   // Real counts from the orders list
   const counts = useMemo(() => {
