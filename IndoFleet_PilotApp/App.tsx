@@ -420,6 +420,19 @@ function MainApp() {
       if (data.chart_data) setChartData(data.chart_data);
       if (Array.isArray(data.active_orders)) {
         setOrders(data.active_orders);
+        const hubSync: Record<string, string[]> = {};
+        const custSync: Record<string, string[]> = {};
+        data.active_orders.forEach((ord: DeliveryOrder) => {
+          if (Array.isArray(ord.hub_inspected_drone_ids) && ord.hub_inspected_drone_ids.length > 0) {
+            hubSync[ord.id] = ord.hub_inspected_drone_ids;
+          }
+          if (Array.isArray(ord.inspected_drone_ids) && ord.inspected_drone_ids.length > 0) {
+            custSync[ord.id] = ord.inspected_drone_ids;
+          }
+        });
+        setOrderHubInspectedDrones((prev) => ({ ...hubSync, ...prev }));
+        setOrderInspectedDrones((prev) => ({ ...custSync, ...prev }));
+
         if (selectedOrder) {
           const updated = data.active_orders.find((o) => o.id === selectedOrder.id);
           if (updated) setSelectedOrder(updated);

@@ -64,8 +64,13 @@ export const SortieDronesScreen: React.FC<SortieDronesScreenProps> = ({
     1
   );
 
+  const isHubStage = stage === 'hub_pickup';
+
   const inspectedList = Array.from(
-    new Set([...inspectedDroneIds, ...(order.inspected_drone_ids || [])])
+    new Set([
+      ...inspectedDroneIds,
+      ...(isHubStage ? (order.hub_inspected_drone_ids || []) : (order.inspected_drone_ids || []))
+    ])
   );
 
   const verifiedCount = inspectedList.length;
@@ -77,8 +82,6 @@ export const SortieDronesScreen: React.FC<SortieDronesScreenProps> = ({
       Linking.openURL(`tel:${order.customer_phone}`).catch(() => {});
     }
   };
-
-  const isHubStage = stage === 'hub_pickup';
 
   return (
     <View style={styles.container}>

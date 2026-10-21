@@ -206,18 +206,58 @@ const orderColumns = [
   'scheduled_time', 'estimated_delivery', 'items', 'reserved_inventory_ids',
   'timeline', 'handover_details', 'feedback_submitted', 'cancelled_at',
   'cancellation_reason', 'delivered_at', 'inspection_id', 'inspection_status',
-  'created_at', 'updated_at'
+  'created_at', 'updated_at',
+  'depot_inspection_id', 'depot_inspected_drone_ids',
+  'hub_inspection_id', 'hub_inspected_drone_ids',
+  'allocated_drone_ids', 'inspected_drone_ids',
+  'assigned_drone_id', 'assigned_drone_ids'
 ];
 
 function fromOrder(row: JsonRecord) {
   const { delivery_data, ...columns } = row;
-  return { ...(delivery_data || {}), ...columns };
+  const meta = (typeof delivery_data === 'object' && delivery_data !== null) ? delivery_data : {};
+
+  const cleanList = (colVal: any, metaVal: any) => {
+    const list1 = Array.isArray(colVal) ? colVal : [];
+    const list2 = Array.isArray(metaVal) ? metaVal : [];
+    return Array.from(new Set([...list1, ...list2].map(String).map(s => s.trim()).filter(Boolean)));
+  };
+
+  const inspected = cleanList(columns.inspected_drone_ids, meta.inspected_drone_ids);
+  const hubInspected = cleanList(columns.hub_inspected_drone_ids, meta.hub_inspected_drone_ids);
+  const depotInspected = cleanList(columns.depot_inspected_drone_ids, meta.depot_inspected_drone_ids);
+
+  return {
+    ...meta,
+    ...columns,
+    inspected_drone_ids: inspected,
+    hub_inspected_drone_ids: hubInspected,
+    depot_inspected_drone_ids: depotInspected,
+  };
 }
 
 function toOrder(order: JsonRecord) {
   const { row, metadata } = splitMetadata(order, orderColumns);
   if (row.fare !== undefined && row.fare_inr === undefined) row.fare_inr = row.fare;
   delete row.fare;
+
+  const existingDeliveryData = typeof order.delivery_data === 'object' && order.delivery_data !== null
+    ? { ...order.delivery_data }
+    : {};
+  delete existingDeliveryData.delivery_data;
+
+  const mergedMetadata = {
+    ...existingDeliveryData,
+    ...metadata
+  };
+  delete mergedMetadata.delivery_data;
+
+  const ensureStringArray = (val: any) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return Array.from(new Set(val.map(String).map(s => s.trim()).filter(Boolean)));
+    return [String(val).trim()].filter(Boolean);
+  };
+
   return {
     ...row,
     order_type: row.order_type || 'delivery',
@@ -236,10 +276,15 @@ function toOrder(order: JsonRecord) {
     payment_method: row.payment_method || 'none',
     status: row.status || 'pending',
     items: row.items || [],
-    reserved_inventory_ids: row.reserved_inventory_ids || [],
+    reserved_inventory_ids: ensureStringArray(row.reserved_inventory_ids),
+    assigned_drone_ids: ensureStringArray(row.assigned_drone_ids || row.reserved_inventory_ids),
+    inspected_drone_ids: ensureStringArray(row.inspected_drone_ids),
+    hub_inspected_drone_ids: ensureStringArray(row.hub_inspected_drone_ids),
+    depot_inspected_drone_ids: ensureStringArray(row.depot_inspected_drone_ids),
+    allocated_drone_ids: ensureStringArray(row.allocated_drone_ids),
     timeline: row.timeline || [],
     feedback_submitted: Boolean(row.feedback_submitted),
-    delivery_data: metadata,
+    delivery_data: mergedMetadata,
     created_at: row.created_at || new Date().toISOString(),
     updated_at: row.updated_at || new Date().toISOString()
   };
@@ -496,7 +541,46 @@ export const deliveryStore = {
   async getOrders() {
     const { data, error } = await db().from('delivery_orders').select('*').order('created_at', { ascending: false });
     fail('list delivery orders', error);
-    return (data || []).map(fromOrder);
+    const orders = (data || []).map(fromOrder);
+
+    // Cross-verify with inspections table to guarantee complete real-time sync
+    try {
+      const { data: insList } = await db().from('inspections').select('inspection_id,delivery_id,drone_id,stage,inspection_type,overall_inspection');
+      if (Array.isArray(insList) && insList.length > 0) {
+        const byOrd = new Map<string, any[]>();
+        for (const ins of insList) {
+          if (!ins.delivery_id) continue;
+          const items = byOrd.get(ins.delivery_id) || [];
+          items.push(ins);
+          byOrd.set(ins.delivery_id, items);
+        }
+        for (const ord of orders) {
+          const match = byOrd.get(ord.id);
+          if (match && match.length > 0) {
+            for (const ins of match) {
+              const d = String(ins.drone_id || '').trim();
+              if (!d) continue;
+              const isHub = ins.stage === 'hub_pickup' || ins.inspection_type === 'HUB_PRE_FLIGHT_CHECK';
+              const isDepot = ins.stage === 'depot_dispatch' || ins.inspection_type === 'DEPOT_MAINTENANCE';
+              if (isHub) {
+                ord.hub_inspected_drone_ids = Array.from(new Set([...(ord.hub_inspected_drone_ids || []), d]));
+                if (!ord.hub_inspection_id) ord.hub_inspection_id = ins.inspection_id;
+              } else if (isDepot) {
+                ord.depot_inspected_drone_ids = Array.from(new Set([...(ord.depot_inspected_drone_ids || []), d]));
+                if (!ord.depot_inspection_id) ord.depot_inspection_id = ins.inspection_id;
+              } else {
+                ord.inspected_drone_ids = Array.from(new Set([...(ord.inspected_drone_ids || []), d]));
+                if (!ord.inspection_id) ord.inspection_id = ins.inspection_id;
+              }
+            }
+          }
+        }
+      }
+    } catch (e: any) {
+      console.warn('[OrdersInspectionMerge] Notice:', e?.message);
+    }
+
+    return orders;
   },
   async findOrderById(id: string) {
     if (!id || typeof id !== 'string') return undefined;
@@ -508,16 +592,49 @@ export const deliveryStore = {
       .limit(1)
       .maybeSingle();
     fail('find delivery order', error);
-    if (data) return fromOrder(data);
+    let resolvedOrder = data ? fromOrder(data) : undefined;
 
-    const normalized = cleanId.toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
-    if (!normalized) return undefined;
-    const { data: fuzzyData } = await db().from('delivery_orders')
-      .select('*')
-      .ilike('id', `%${normalized}%`)
-      .limit(1)
-      .maybeSingle();
-    return fuzzyData ? fromOrder(fuzzyData) : undefined;
+    if (!resolvedOrder) {
+      const normalized = cleanId.toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
+      if (normalized) {
+        const { data: fuzzyData } = await db().from('delivery_orders')
+          .select('*')
+          .ilike('id', `%${normalized}%`)
+          .limit(1)
+          .maybeSingle();
+        if (fuzzyData) resolvedOrder = fromOrder(fuzzyData);
+      }
+    }
+
+    if (resolvedOrder) {
+      try {
+        const { data: insList } = await db().from('inspections')
+          .select('inspection_id,delivery_id,drone_id,stage,inspection_type,overall_inspection')
+          .eq('delivery_id', resolvedOrder.id);
+        if (Array.isArray(insList) && insList.length > 0) {
+          for (const ins of insList) {
+            const d = String(ins.drone_id || '').trim();
+            if (!d) continue;
+            const isHub = ins.stage === 'hub_pickup' || ins.inspection_type === 'HUB_PRE_FLIGHT_CHECK';
+            const isDepot = ins.stage === 'depot_dispatch' || ins.inspection_type === 'DEPOT_MAINTENANCE';
+            if (isHub) {
+              resolvedOrder.hub_inspected_drone_ids = Array.from(new Set([...(resolvedOrder.hub_inspected_drone_ids || []), d]));
+              if (!resolvedOrder.hub_inspection_id) resolvedOrder.hub_inspection_id = ins.inspection_id;
+            } else if (isDepot) {
+              resolvedOrder.depot_inspected_drone_ids = Array.from(new Set([...(resolvedOrder.depot_inspected_drone_ids || []), d]));
+              if (!resolvedOrder.depot_inspection_id) resolvedOrder.depot_inspection_id = ins.inspection_id;
+            } else {
+              resolvedOrder.inspected_drone_ids = Array.from(new Set([...(resolvedOrder.inspected_drone_ids || []), d]));
+              if (!resolvedOrder.inspection_id) resolvedOrder.inspection_id = ins.inspection_id;
+            }
+          }
+        }
+      } catch (e: any) {
+        console.warn('[OrderInspectionLink] Notice:', e?.message);
+      }
+    }
+
+    return resolvedOrder;
   },
   async addOrder(order: JsonRecord) {
     const { data, error } = await db().from('delivery_orders').insert(toOrder(order)).select('*').single();
@@ -967,19 +1084,22 @@ export const deliveryStore = {
     }
 
     // 3. State Transition for Drone Master:
-    // If PASSED -> status: 'ready' (AVAILABLE), current_condition: 'GOOD'
+    // If PASSED -> status: 'ready' (AVAILABLE), current_condition: 'GOOD', is_verified: true
     // If FAILED -> status: 'maintenance', current_condition: 'NEEDS_REVIEW'
-    // If PENDING -> status: 'maintenance', current_condition: 'NEEDS_REVIEW'
     try {
-      const droneStatus = record.overall_inspection === 'PASSED' ? 'ready' : 'maintenance';
-      const currentCondition = record.overall_inspection === 'PASSED' ? 'GOOD' : 'NEEDS_REVIEW';
+      const isPassed = record.overall_inspection === 'PASSED';
+      const droneStatus = isPassed ? 'ready' : 'maintenance';
+      const currentCondition = isPassed ? 'GOOD' : 'NEEDS_REVIEW';
       await this.updateDrone(record.drone_id, {
         status: droneStatus,
         current_condition: currentCondition,
         last_inspection_id: id,
         last_inspection_type: record.inspection_type,
         last_inspection_result: record.overall_inspection,
-        last_inspected_at: now
+        last_inspected_at: now,
+        is_verified: isPassed,
+        verification_status: isPassed ? 'verified' : 'unverified',
+        qc_status: isPassed ? 'passed' : 'failed'
       });
     } catch (droneErr: any) {
       console.warn('[DroneUpdate] Non-blocking drone update warning:', droneErr?.message);
@@ -990,18 +1110,31 @@ export const deliveryStore = {
       try {
         const order = await this.findOrderById(record.delivery_id);
         if (order) {
-          const existingData = order.delivery_data || {};
-          await this.updateOrder(record.delivery_id, {
+          const cleanDrone = String(record.drone_id || '').trim();
+          const isHub = stage === 'hub_pickup' || record.inspection_type === 'HUB_PRE_FLIGHT_CHECK';
+          const isDepot = stage === 'depot_dispatch' || stage === 'depot' || record.inspection_type === 'DEPOT_MAINTENANCE';
+
+          const prevInspected = Array.isArray(order.inspected_drone_ids) ? order.inspected_drone_ids : [];
+          const prevHub = Array.isArray(order.hub_inspected_drone_ids) ? order.hub_inspected_drone_ids : [];
+          const prevDepot = Array.isArray(order.depot_inspected_drone_ids) ? order.depot_inspected_drone_ids : [];
+
+          const updatedHub = isHub && cleanDrone ? Array.from(new Set([...prevHub, cleanDrone])) : prevHub;
+          const updatedDepot = isDepot && cleanDrone ? Array.from(new Set([...prevDepot, cleanDrone])) : prevDepot;
+          const updatedInspected = (!isHub && !isDepot && cleanDrone) ? Array.from(new Set([...prevInspected, cleanDrone])) : prevInspected;
+
+          const orderUpdates: JsonRecord = {
             inspection_id: id,
             inspection_status: record.overall_inspection,
-            delivery_data: {
-              ...existingData,
-              ...(isDeliveryPerson
-                ? { delivery_person_inspection: record }
-                : { depot_inspection: record }),
-              post_delivery_inspection: record
-            }
-          });
+            post_delivery_inspection: record,
+            inspected_drone_ids: updatedInspected,
+            hub_inspected_drone_ids: updatedHub,
+            depot_inspected_drone_ids: updatedDepot,
+          };
+
+          if (isHub) orderUpdates.hub_inspection_id = id;
+          if (isDepot) orderUpdates.depot_inspection_id = id;
+
+          await this.updateOrder(record.delivery_id, orderUpdates);
         }
       } catch (orderErr: any) {
         console.warn('[OrderUpdate] Non-blocking order inspection warning:', orderErr?.message);

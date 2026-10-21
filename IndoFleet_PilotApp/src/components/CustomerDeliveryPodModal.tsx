@@ -63,6 +63,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
   // Pre-Handover Airframe & Zero-Defect Inspection State (Step 1 - Mandatory)
   const existingInspection = Boolean(
     order?.inspection_id ||
+    (Array.isArray(order?.inspected_drone_ids) && order.inspected_drone_ids.length > 0) ||
     order?.delivery_data?.post_delivery_inspection ||
     order?.delivery_data?.delivery_person_inspection
   );
