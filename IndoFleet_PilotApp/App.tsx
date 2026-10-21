@@ -335,20 +335,9 @@ function MainApp() {
               });
             }
           },
-          async (err) => {
-            console.warn('Browser geolocation warning:', err?.message);
-            try {
-              const ipRes = await fetch('https://ipapi.co/json/');
-              const ipData = await ipRes.json();
-              if (ipData && typeof ipData.latitude === 'number' && typeof ipData.longitude === 'number') {
-                setCurrentCoords({
-                  latitude: ipData.latitude,
-                  longitude: ipData.longitude,
-                });
-                return;
-              }
-            } catch {}
-            setCurrentCoords((prev) => prev || { latitude: 28.6037, longitude: 77.3661 });
+          (err) => {
+            console.warn('Browser geolocation denied or unavailable; defaulting to IndoWings Central Hub Noida:', err?.message);
+            setCurrentCoords({ latitude: 28.6037, longitude: 77.3661 });
           },
           { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
         );

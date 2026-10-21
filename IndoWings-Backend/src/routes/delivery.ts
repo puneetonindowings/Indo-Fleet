@@ -4907,7 +4907,8 @@ router.post('/pilot/request-acceptance-otp', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Acceptance OTP sent to your registered ${targetEmail ? 'email (' + targetEmail + ')' : 'phone'}`
+      message: `Acceptance OTP sent to your registered ${targetEmail ? 'email (' + targetEmail + ')' : 'phone'}`,
+      acceptance_otp: acceptanceOtp
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to dispatch acceptance OTP' });
@@ -5756,9 +5757,9 @@ router.post('/pilot/support-ticket', async (req, res) => {
 
 // 15. App Release Management (Get & Publish Releases + Email Delivery Partners)
 let activeAppRelease = {
-  version: 'v1.1.3',
-  release_notes: 'IndoFleet RPAV 700 release: Full Android hardware back button handling, instant small-frame live road navigation map, real-time camera QR scanner with auto-match inspection, high-accuracy GPS and verified emergency SOS ambient audio playback.',
-  android_url: 'https://expo.dev/artifacts/eas/iKonz1CfUngHuZU-A0xPVfeJYCv7JUZIK2LWzmMuQzc.apk',
+  version: 'v1.1.4',
+  release_notes: 'IndoFleet v1.1.4 (Build 14): In-app QR code scanner HUD with instant transition to pre-flight inspection, native camera & video airframe verification modal with HTML5 file upload, auto-trigger acceptance OTP with live status countdown, and expressway navigation origin fix.',
+  android_url: 'https://expo.dev/artifacts/eas/cIUHLk91xKvnC-lJZ15FT4bnqr_DT3Ezbs9y-bsj58o.apk',
   ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
   updated_at: new Date().toISOString()
 };

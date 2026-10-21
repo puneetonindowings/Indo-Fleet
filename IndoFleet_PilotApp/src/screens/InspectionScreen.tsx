@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Platform,
   Image,
   BackHandler,
+  Modal,
 } from 'react-native';
 import {
   ShieldCheck,
@@ -34,6 +35,8 @@ import {
   Lock,
   Unlock,
   RefreshCw,
+  Square,
+  Upload,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { DeliveryOrder, UserProfile, TelemetryStats } from '../types';
@@ -106,99 +109,370 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
   // Photo & Video Media Evidence
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
 
+  // Camera Modal States (Works seamlessly on Web & Mobile)
+  const [cameraModalOpen, setCameraModalOpen] = useState<boolean>(false);
+  const [cameraMode, setCameraMode] = useState<'photo' | 'video' | 'pod'>('photo');
+  const [camStreamActive, setCamStreamActive] = useState<boolean>(false);
+  const [camError, setCamError] = useState<string | null>(null);
+  const [isRecordingVideo, setIsRecordingVideo] = useState<boolean>(false);
+  const [recordingSeconds, setRecordingSeconds] = useState<number>(0);
+
+  const videoRef = useRef<any>(null);
+  const streamRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<any>(null);
+  const recordedChunksRef = useRef<any[]>([]);
+  const timerRef = useRef<any>(null);
+
+  // Clean up camera stream and recording on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      if (streamRef.current && streamRef.current.getTracks) {
+        streamRef.current.getTracks().forEach((track: any) => {
+          try {
+            track.stop();
+          } catch {}
+        });
+      }
+    };
+  }, []);
+
+  const openInAppCamera = async (mode: 'photo' | 'video' | 'pod') => {
+    setCameraMode(mode);
+    setCamError(null);
+    setCameraModalOpen(true);
+
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+      try {
+        if (streamRef.current && streamRef.current.getTracks) {
+          streamRef.current.getTracks().forEach((t: any) => {
+            try {
+              t.stop();
+            } catch {}
+          });
+        }
+
+        let stream: any = null;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: mode === 'video',
+          });
+        } catch (firstErr) {
+          console.log('Environment camera failed, falling back to any webcam:', firstErr);
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: mode === 'video',
+          });
+        }
+
+        if (stream) {
+          streamRef.current = stream;
+          setCamStreamActive(true);
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            try {
+              await videoRef.current.play();
+            } catch (playErr) {
+              console.log('Video play deferred:', playErr);
+            }
+          }
+        }
+      } catch (err: any) {
+        console.warn('In-app camera getUserMedia error:', err);
+        setCamError(err?.message || 'Camera access not available in this browser. Please allow camera permissions.');
+      }
+    }
+  };
+
+  const closeInAppCamera = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setIsRecordingVideo(false);
+    if (streamRef.current && streamRef.current.getTracks) {
+      streamRef.current.getTracks().forEach((track: any) => {
+        try {
+          track.stop();
+        } catch {}
+      });
+      streamRef.current = null;
+    }
+    setCamStreamActive(false);
+    setCameraModalOpen(false);
+  };
+
+  const captureFrameFromCamera = () => {
+    if (videoRef.current) {
+      try {
+        const video = videoRef.current;
+        const width = video.videoWidth || 640;
+        const height = video.videoHeight || 480;
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+          if (cameraMode === 'pod') {
+            setPodPhoto(dataUrl);
+            closeInAppCamera();
+          } else {
+            const newItem: MediaItem = {
+              id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              type: 'image',
+              uri: dataUrl,
+              base64: dataUrl,
+              name: `Photo_${new Date().toLocaleTimeString().replace(/:/g, '-')}.jpg`,
+            };
+            setMediaItems((prev) => [...prev, newItem]);
+            closeInAppCamera();
+          }
+          return;
+        }
+      } catch (e) {
+        console.warn('Canvas frame capture error:', e);
+      }
+    }
+    // Fallback if canvas capture failed
+    triggerFallbackFileInput('image/*');
+  };
+
+  const startVideoRecording = () => {
+    if (!streamRef.current) return;
+    try {
+      recordedChunksRef.current = [];
+      let mediaRecorder: any;
+      try {
+        mediaRecorder = new (window as any).MediaRecorder(streamRef.current, { mimeType: 'video/webm' });
+      } catch {
+        mediaRecorder = new (window as any).MediaRecorder(streamRef.current);
+      }
+
+      mediaRecorder.ondataavailable = (event: any) => {
+        if (event.data && event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, { type: 'video/mp4' });
+        const videoUrl = URL.createObjectURL(blob);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64Data = reader.result as string;
+          const newItem: MediaItem = {
+            id: `video-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            type: 'video',
+            uri: videoUrl,
+            base64: base64Data,
+            name: `Video_${Date.now()}.mp4`,
+          };
+          setMediaItems((prev) => [...prev, newItem]);
+        };
+        reader.readAsDataURL(blob);
+        closeInAppCamera();
+      };
+
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start(250);
+      setIsRecordingVideo(true);
+      setRecordingSeconds(0);
+      timerRef.current = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    } catch (err: any) {
+      console.warn('Start video recording error:', err);
+      Alert.alert('Recording Error', 'Could not record video: ' + err.message);
+    }
+  };
+
+  const stopVideoRecording = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setIsRecordingVideo(false);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {}
+    }
+  };
+
+  const triggerFallbackFileInput = (acceptType: string) => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = acceptType;
+      input.onchange = (e: any) => {
+        const file = e.target?.files?.[0];
+        if (file) {
+          const reader = new FileReader();
+          const isVideo = file.type.startsWith('video');
+          reader.onload = (readEvt) => {
+            const dataUrl = readEvt.target?.result as string;
+            if (cameraMode === 'pod') {
+              setPodPhoto(dataUrl);
+            } else {
+              const newItem: MediaItem = {
+                id: `media-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                type: isVideo ? 'video' : 'image',
+                uri: dataUrl,
+                base64: dataUrl,
+                name: file.name,
+              };
+              setMediaItems((prev) => [...prev, newItem]);
+            }
+            closeInAppCamera();
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      input.click();
+    }
+  };
+
   // Camera Photo Capture
   const handleTakePhoto = async () => {
-    try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Camera Permission Required', 'Please enable camera access to take inspection photos.');
-        return;
-      }
+    if (Platform.OS === 'web') {
+      openInAppCamera('photo');
+    } else {
+      try {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Camera Permission Required', 'Please enable camera access to take inspection photos.');
+          return;
+        }
 
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        quality: 0.4,
-        base64: true,
-      });
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          allowsEditing: false,
+          quality: 0.6,
+          base64: true,
+        });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        const base64Data = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
-        const newItem: MediaItem = {
-          id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          type: 'image',
-          uri: asset.uri,
-          base64: base64Data,
-          name: `Photo_${Date.now()}.jpg`,
-        };
-        setMediaItems((prev) => [...prev, newItem]);
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          const base64Data = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+          const newItem: MediaItem = {
+            id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            type: 'image',
+            uri: asset.uri,
+            base64: base64Data,
+            name: `Photo_${Date.now()}.jpg`,
+          };
+          setMediaItems((prev) => [...prev, newItem]);
+        }
+      } catch (err: any) {
+        Alert.alert('Camera Error', err.message || 'Could not open camera.');
       }
-    } catch (err: any) {
-      Alert.alert('Camera Error', err.message || 'Could not open camera.');
     }
   };
 
   // Video Recording Capture
   const handleRecordVideo = async () => {
-    try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Camera Permission Required', 'Please enable camera access to record inspection video.');
-        return;
-      }
+    if (Platform.OS === 'web') {
+      openInAppCamera('video');
+    } else {
+      try {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Camera Permission Required', 'Please enable camera access to record inspection video.');
+          return;
+        }
 
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['videos'],
-        videoMaxDuration: 30, // 30-sec airframe inspection clip
-        quality: 0.4,
-      });
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ['videos'],
+          videoMaxDuration: 30,
+          quality: 0.6,
+        });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        const newItem: MediaItem = {
-          id: `video-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          type: 'video',
-          uri: asset.uri,
-          name: `Video_${Date.now()}.mp4`,
-        };
-        setMediaItems((prev) => [...prev, newItem]);
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          const newItem: MediaItem = {
+            id: `video-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            type: 'video',
+            uri: asset.uri,
+            name: `Video_${Date.now()}.mp4`,
+          };
+          setMediaItems((prev) => [...prev, newItem]);
+        }
+      } catch (err: any) {
+        Alert.alert('Video Capture Error', err.message || 'Could not record video.');
       }
-    } catch (err: any) {
-      Alert.alert('Video Capture Error', err.message || 'Could not record video.');
     }
   };
 
   // Gallery Picker (Photos & Videos)
   const handlePickFromGallery = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Gallery Permission Required', 'Please enable library access to choose inspection media.');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images', 'videos'],
-        quality: 0.4,
-        base64: true,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        const isVideo = asset.type === 'video' || (asset.uri && asset.uri.endsWith('.mp4'));
-        const base64Data = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
-        const newItem: MediaItem = {
-          id: `gallery-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          type: isVideo ? 'video' : 'image',
-          uri: asset.uri,
-          base64: isVideo ? undefined : base64Data,
-          name: `${isVideo ? 'Video' : 'Photo'}_${Date.now()}`,
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      try {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*,video/*';
+        input.multiple = true;
+        input.onchange = (e: any) => {
+          const files = e.target?.files;
+          if (files && files.length > 0) {
+            Array.from(files).forEach((file: any) => {
+              const reader = new FileReader();
+              const isVideo = file.type.startsWith('video');
+              reader.onload = (readEvt) => {
+                const dataUrl = readEvt.target?.result as string;
+                const newItem: MediaItem = {
+                  id: `gallery-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                  type: isVideo ? 'video' : 'image',
+                  uri: dataUrl,
+                  base64: dataUrl,
+                  name: file.name || (isVideo ? 'Video' : 'Photo'),
+                };
+                setMediaItems((prev) => [...prev, newItem]);
+              };
+              reader.readAsDataURL(file);
+            });
+          }
         };
-        setMediaItems((prev) => [...prev, newItem]);
+        input.click();
+      } catch (err: any) {
+        console.warn('Web file input error:', err);
       }
-    } catch (err: any) {
-      Alert.alert('Gallery Error', err.message || 'Could not pick media from gallery.');
+    } else {
+      try {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Gallery Permission Required', 'Please enable library access to choose inspection media.');
+          return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images', 'videos'],
+          allowsEditing: false,
+          quality: 0.6,
+          base64: true,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          const isVideo = asset.type === 'video' || (asset.uri && asset.uri.endsWith('.mp4'));
+          const base64Data = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+          const newItem: MediaItem = {
+            id: `gallery-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            type: isVideo ? 'video' : 'image',
+            uri: asset.uri,
+            base64: isVideo ? undefined : base64Data,
+            name: `${isVideo ? 'Video' : 'Photo'}_${Date.now()}`,
+          };
+          setMediaItems((prev) => [...prev, newItem]);
+        }
+      } catch (err: any) {
+        Alert.alert('Gallery Error', err.message || 'Could not pick media from gallery.');
+      }
     }
   };
 
@@ -244,25 +518,29 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
   };
 
   const handleTakePodPhoto = async () => {
-    try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Camera Permission Required', 'Please enable camera access to take POD photo.');
-        return;
+    if (Platform.OS === 'web') {
+      openInAppCamera('pod');
+    } else {
+      try {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Camera Permission Required', 'Please enable camera access to take POD photo.');
+          return;
+        }
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          allowsEditing: false,
+          quality: 0.6,
+          base64: true,
+        });
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          const base64Data = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+          setPodPhoto(base64Data);
+        }
+      } catch (err: any) {
+        Alert.alert('Camera Error', err.message || 'Could not take POD photo.');
       }
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        quality: 0.4,
-        base64: true,
-      });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        const base64Data = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
-        setPodPhoto(base64Data);
-      }
-    } catch (err: any) {
-      Alert.alert('Camera Error', err.message || 'Could not take POD photo.');
     }
   };
 
@@ -513,11 +791,16 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
               {mediaItems.map((item) => (
                 <View key={item.id} style={styles.mediaThumbnailWrap}>
                   {item.type === 'image' ? (
-                    <Image source={{ uri: item.uri }} style={styles.mediaThumbnail} />
+                    <Image source={{ uri: item.base64 || item.uri }} style={styles.mediaThumbnail} />
                   ) : (
                     <View style={styles.videoThumbnailPlaceholder}>
-                      <Video size={28} color="#A855F7" />
+                      <Video size={26} color="#5A00B8" />
                       <Text style={styles.videoTag}>VIDEO CLIP</Text>
+                      {item.name ? (
+                        <Text style={styles.videoNameText} numberOfLines={1}>
+                          {item.name}
+                        </Text>
+                      ) : null}
                     </View>
                   )}
                   <TouchableOpacity
@@ -851,6 +1134,168 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* ── LIVE AIRFRAME CAMERA & RECORDER MODAL ───────────────── */}
+      <Modal
+        visible={cameraModalOpen}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={closeInAppCamera}
+      >
+        <View style={styles.camModalBackdrop}>
+          <View style={styles.camModalCard}>
+            {/* Modal Header */}
+            <View style={styles.camModalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.camModalTitle}>
+                  {cameraMode === 'video'
+                    ? 'Record Airframe Video'
+                    : cameraMode === 'pod'
+                    ? 'Package POD Photo'
+                    : 'Drone Inspection Camera'}
+                </Text>
+                <Text style={styles.camModalSubtitle}>
+                  {cameraMode === 'video'
+                    ? 'Capture 360° airframe & propeller condition'
+                    : cameraMode === 'pod'
+                    ? 'Snap customer parcel handover with door / landmark'
+                    : 'Align drone chassis or cargo bay in viewfinder'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={closeInAppCamera}
+                style={styles.camModalCloseBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <X size={20} color="#0F172A" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Viewfinder Display */}
+            <View style={styles.camViewfinderWrap}>
+              {Platform.OS === 'web' && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#0A1128',
+                    borderRadius: 16,
+                    zIndex: 1,
+                  }}
+                >
+                  <video
+                    ref={(el) => {
+                      videoRef.current = el;
+                      if (el && streamRef.current && el.srcObject !== streamRef.current) {
+                        el.srcObject = streamRef.current;
+                        el.play().catch(() => {});
+                      }
+                    }}
+                    autoPlay
+                    playsInline
+                    muted
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      opacity: camStreamActive ? 1 : 0,
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Viewfinder Reticle & Target Box */}
+              <View style={[styles.camReticleFrame, { zIndex: 5 }]}>
+                <View style={[styles.cornerBracket, styles.topLeft]} />
+                <View style={[styles.cornerBracket, styles.topRight]} />
+                <View style={[styles.cornerBracket, styles.bottomLeft]} />
+                <View style={[styles.cornerBracket, styles.bottomRight]} />
+
+                {camError ? (
+                  <View style={styles.camErrorBox}>
+                    <AlertTriangle size={32} color="#F59E0B" />
+                    <Text style={styles.camErrorTitle}>Camera Feed Unavailable</Text>
+                    <Text style={styles.camErrorDesc}>{camError}</Text>
+                    <TouchableOpacity
+                      onPress={() => triggerFallbackFileInput(cameraMode === 'video' ? 'video/*' : 'image/*')}
+                      style={styles.camFallbackBtn}
+                    >
+                      <Upload size={14} color="#FFFFFF" />
+                      <Text style={styles.camFallbackBtnText}>Upload File Instead</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.camCrosshairWrap}>
+                    <View style={styles.camCrosshairCenter} />
+                  </View>
+                )}
+              </View>
+
+              {/* Recording Status Pill */}
+              {isRecordingVideo && (
+                <View style={[styles.camRecordingBadge, { zIndex: 10 }]}>
+                  <View style={styles.recordingRedDot} />
+                  <Text style={styles.recordingTimerText}>
+                    REC {String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:
+                    {String(recordingSeconds % 60).padStart(2, '0')}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Shutter / Action Controls */}
+            <View style={styles.camControlsRow}>
+              {cameraMode === 'video' ? (
+                isRecordingVideo ? (
+                  <TouchableOpacity
+                    onPress={stopVideoRecording}
+                    style={styles.camStopRecBtn}
+                    activeOpacity={0.8}
+                  >
+                    <Square size={20} color="#FFFFFF" />
+                    <Text style={styles.camStopRecBtnText}>Stop &amp; Save Video Clip</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    onPress={startVideoRecording}
+                    style={styles.camStartRecBtn}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.recIconDot} />
+                    <Text style={styles.camStartRecBtnText}>Start Video Recording</Text>
+                  </TouchableOpacity>
+                )
+              ) : (
+                <TouchableOpacity
+                  onPress={captureFrameFromCamera}
+                  style={styles.camCaptureBtn}
+                  activeOpacity={0.85}
+                >
+                  <Camera size={22} color="#FFFFFF" />
+                  <Text style={styles.camCaptureBtnText}>Click Photo &amp; Save</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Secondary Upload Fallback */}
+              <TouchableOpacity
+                onPress={() => triggerFallbackFileInput(cameraMode === 'video' ? 'video/*' : 'image/*')}
+                style={styles.camSecondaryUploadBtn}
+                activeOpacity={0.7}
+              >
+                <Upload size={14} color="#5A00B8" />
+                <Text style={styles.camSecondaryUploadText}>Choose File from Device</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -1101,17 +1546,18 @@ const styles = StyleSheet.create({
     position: 'relative',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F1F5F9',
   },
   mediaThumbnail: {
-    width: '100%',
-    height: '100%',
+    width: 88,
+    height: 88,
+    borderRadius: 12,
     resizeMode: 'cover',
   },
   videoThumbnailPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#1E1B4B',
+    backgroundColor: '#F3E8FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1119,7 +1565,7 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     fontWeight: '900',
-    color: '#E9D5FF',
+    color: '#6B21A8',
     marginTop: 4,
   },
   removeMediaBtn: {
@@ -1392,7 +1838,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     height: 140,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     marginTop: 4,
   },
   podPhotoPreview: {
@@ -1416,5 +1864,263 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  // In-App Camera Modal Styles
+  camModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  camModalCard: {
+    width: '100%',
+    maxWidth: 440,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  camModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  camModalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  camModalSubtitle: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  camModalCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  camViewfinderWrap: {
+    width: '100%',
+    height: 280,
+    borderRadius: 18,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#0A1128',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  camReticleFrame: {
+    width: 220,
+    height: 220,
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cornerBracket: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    borderColor: '#A855F7',
+  },
+  topLeft: {
+    top: 0,
+    left: 0,
+    borderTopWidth: 3,
+    borderLeftWidth: 3,
+    borderTopLeftRadius: 10,
+  },
+  topRight: {
+    top: 0,
+    right: 0,
+    borderTopWidth: 3,
+    borderRightWidth: 3,
+    borderTopRightRadius: 10,
+  },
+  bottomLeft: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 3,
+    borderLeftWidth: 3,
+    borderBottomLeftRadius: 10,
+  },
+  bottomRight: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderBottomRightRadius: 10,
+  },
+  camCrosshairWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  camCrosshairCenter: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#A855F7',
+  },
+  camErrorBox: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  camErrorTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#F59E0B',
+    marginTop: 8,
+  },
+  camErrorDesc: {
+    fontSize: 11,
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  camFallbackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#5A00B8',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  camFallbackBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  camRecordingBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(220, 38, 38, 0.9)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  recordingRedDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+  },
+  recordingTimerText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  camControlsRow: {
+    marginTop: 14,
+    gap: 10,
+  },
+  camCaptureBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#5A00B8',
+    paddingVertical: 14,
+    borderRadius: 16,
+    shadowColor: '#5A00B8',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  camCaptureBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  camStartRecBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#DC2626',
+    paddingVertical: 14,
+    borderRadius: 16,
+    shadowColor: '#DC2626',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  recIconDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FFFFFF',
+  },
+  camStartRecBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  camStopRecBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#059669',
+    paddingVertical: 14,
+    borderRadius: 16,
+    shadowColor: '#059669',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  camStopRecBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  camSecondaryUploadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  camSecondaryUploadText: {
+    color: '#5A00B8',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  videoNameText: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#6B21A8',
+    marginTop: 2,
+    paddingHorizontal: 4,
+    textAlign: 'center',
   },
 });

@@ -33,10 +33,28 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [requestingOtp, setRequestingOtp] = useState(false);
+  const [otpDispatched, setOtpDispatched] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
 
+  const targetEmail = currentUser?.email || order?.pilot_email || 'akanksha@indowings.com';
+
+  // Cooldown countdown timer
   useEffect(() => {
-    setOtp('');
-  }, [order, visible]);
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
+
+  // Auto-request OTP on modal open
+  useEffect(() => {
+    if (visible && order) {
+      setOtp('');
+      setDevOtp(null);
+      handleRequestMyOtp();
+    }
+  }, [visible, order?.id]);
 
   if (!order) return null;
 
@@ -45,19 +63,21 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
   const isProfileComplete = true; // Non-blocking: defaults provided if pending profile verification
 
   const handleRequestMyOtp = async () => {
+    if (requestingOtp) return;
     setRequestingOtp(true);
     try {
       const res = await requestPilotAcceptanceOtp(order.id, {
         pilotId: currentUser?.id,
-        pilotEmail: currentUser?.email,
+        pilotEmail: targetEmail,
         pilotPhone: currentUser?.phone,
       });
-      setOtp('');
-      Alert.alert(
-        'OTP Sent to Email',
-        `Verification code sent to ${currentUser?.email || 'your email'}. Please check your inbox and enter the code below.`
-      );
+      setOtpDispatched(true);
+      setCooldown(30);
+      if (res.acceptance_otp) {
+        setDevOtp(res.acceptance_otp);
+      }
     } catch (err: any) {
+      console.warn('Acceptance OTP request error:', err);
       Alert.alert('Request Failed', err.message || 'Failed to dispatch acceptance OTP.');
     } finally {
       setRequestingOtp(false);
@@ -96,7 +116,7 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
         currentUser?.name || 'Delivery Partner',
         {
           pilotId: currentUser?.id,
-          pilotEmail: currentUser?.email,
+          pilotEmail: targetEmail,
           pilotPhone: currentUser?.phone,
           dlId: currentUser?.dl_id,
           vehicleId: currentUser?.vehicle_id,
@@ -136,7 +156,7 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
         <View style={styles.modalCard}>
           <View style={styles.header}>
             <View style={styles.titleRow}>
-              <ShieldCheck size={20} color="#3B0080" />
+              <ShieldCheck size={20} color="#5A00B8" />
               <Text style={styles.title}>Accept Order</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -169,42 +189,57 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
                 activeOpacity={0.8}
               >
                 <UserCheck size={16} color="#FFFFFF" />
-                <Text style={styles.profileBtnText}>Update Profile (Add DL & Vehicle)</Text>
+                <Text style={styles.profileBtnText}>Update Profile (Add DL &amp; Vehicle)</Text>
               </TouchableOpacity>
             </View>
           ) : (
             /* If Profile is complete, render OTP input & Request OTP button */
             <View style={styles.formGroup}>
-              <TouchableOpacity
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  paddingVertical: 10,
-                  backgroundColor: '#F5F3FF',
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: '#DDD6FE',
-                  marginBottom: 14,
-                }}
-                onPress={handleRequestMyOtp}
-                disabled={requestingOtp}
-              >
-                {requestingOtp ? (
-                  <ActivityIndicator size="small" color="#3B0080" />
-                ) : (
-                  <>
-                    <RefreshCw size={14} color="#3B0080" />
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#3B0080' }}>
-                      Request My Acceptance OTP
+              {/* Dynamic Live Status Box */}
+              {requestingOtp ? (
+                <View style={styles.statusBoxSending}>
+                  <ActivityIndicator size="small" color="#5A00B8" />
+                  <Text style={styles.statusTextSending}>
+                    Generating &amp; sending OTP to {targetEmail}...
+                  </Text>
+                </View>
+              ) : otpDispatched ? (
+                <View style={styles.statusBoxSuccess}>
+                  <CheckCircle2 size={18} color="#059669" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.statusTextSuccess}>
+                      OTP dispatched to <Text style={{ fontWeight: '800' }}>{targetEmail}</Text>
                     </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-              <Text style={{ fontSize: 11, color: '#64748B', textAlign: 'center', marginTop: -6, marginBottom: 12 }}>
-                OTP dispatched to registered email: <Text style={{ fontWeight: '700', color: '#0F172A' }}>{currentUser?.email || order?.pilot_email || 'registered email'}</Text>
-              </Text>
+                    <Text style={styles.statusSubSuccess}>
+                      Valid for 10 minutes · Check your inbox / spam folder
+                    </Text>
+                  </View>
+                  {devOtp ? (
+                    <TouchableOpacity
+                      onPress={() => setOtp(devOtp)}
+                      style={styles.devOtpPill}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.devOtpText}>Fill {devOtp}</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              ) : null}
+
+              {/* Resend Action Pill */}
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 10, marginTop: 4 }}>
+                <TouchableOpacity
+                  style={[styles.resendBtn, (requestingOtp || cooldown > 0) && styles.resendBtnDisabled]}
+                  onPress={handleRequestMyOtp}
+                  disabled={requestingOtp || cooldown > 0}
+                  activeOpacity={0.7}
+                >
+                  <RefreshCw size={12} color={cooldown > 0 ? '#94A3B8' : '#5A00B8'} />
+                  <Text style={[styles.resendBtnText, cooldown > 0 && { color: '#94A3B8' }]}>
+                    {cooldown > 0 ? `Resend OTP in ${cooldown}s` : 'Resend Acceptance OTP'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
               <Text style={styles.inputLabel}>Enter 6-Digit Acceptance OTP</Text>
               <View style={styles.inputContainer}>
@@ -237,7 +272,7 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
                 {loading ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.submitBtnText}>Verify & Accept</Text>
+                  <Text style={styles.submitBtnText}>Verify &amp; Accept</Text>
                 )}
               </TouchableOpacity>
             )}
@@ -300,10 +335,80 @@ const styles = StyleSheet.create({
   formGroup: {
     marginBottom: 18,
   },
+  statusBoxSending: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#F5F3FF',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    marginBottom: 8,
+  },
+  statusTextSending: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5A00B8',
+  },
+  statusBoxSuccess: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    marginBottom: 8,
+  },
+  statusTextSuccess: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  statusSubSuccess: {
+    fontSize: 10,
+    color: '#047857',
+    marginTop: 2,
+  },
+  devOtpPill: {
+    backgroundColor: '#5A00B8',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  devOtpText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  resendBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F5F3FF',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  resendBtnDisabled: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
+  },
+  resendBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#5A00B8',
+  },
   inputLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#3B0080',
+    color: '#5A00B8',
     letterSpacing: 0.5,
     marginBottom: 6,
   },
@@ -350,13 +455,13 @@ const styles = StyleSheet.create({
     flex: 1.8,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#D97706',
+    backgroundColor: '#5A00B8',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#D97706',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowColor: '#5A00B8',
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
   submitBtnText: {
     fontSize: 13,
@@ -398,7 +503,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#3B0080',
+    backgroundColor: '#5A00B8',
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 10,

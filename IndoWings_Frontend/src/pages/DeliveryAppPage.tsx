@@ -33,9 +33,9 @@ export const DeliveryAppPage: React.FC<DeliveryAppPageProps> = ({
   onLogout,
 }) => {
   const [release, setRelease] = useState<AppReleaseInfo>({
-    version: 'v1.1.3',
-    release_notes: 'Full Android hardware back button routing, live road navigation small map fix, real-time camera QR scanner, and emergency SOS audio playback.',
-    android_url: 'https://expo.dev/artifacts/eas/iKonz1CfUngHuZU-A0xPVfeJYCv7JUZIK2LWzmMuQzc.apk',
+    version: 'v1.1.4',
+    release_notes: 'IndoFleet v1.1.4 (Build 14): In-app QR code scanner HUD with instant transition to pre-flight inspection, native camera & video airframe verification modal with HTML5 file upload, auto-trigger acceptance OTP with live status countdown, and expressway navigation origin fix.',
+    android_url: 'https://expo.dev/artifacts/eas/cIUHLk91xKvnC-lJZ15FT4bnqr_DT3Ezbs9y-bsj58o.apk',
     ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
     updated_at: new Date().toISOString(),
   });

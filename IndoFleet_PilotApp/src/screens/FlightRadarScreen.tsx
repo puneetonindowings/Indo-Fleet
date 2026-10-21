@@ -198,7 +198,8 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   }, [activeOrder, order]);
 
   const hasLiveGpsFix = Boolean(
-    currentCoords &&
+    isTracking &&
+      currentCoords &&
       Number.isFinite(currentCoords.latitude) &&
       Number.isFinite(currentCoords.longitude) &&
       (currentCoords.latitude !== 0 || currentCoords.longitude !== 0)
@@ -207,14 +208,56 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   const pilotLat: number = hasLiveGpsFix ? currentCoords!.latitude : baseHub?.latitude ?? 28.6037;
   const pilotLng: number = hasLiveGpsFix ? currentCoords!.longitude : baseHub?.longitude ?? 77.3661;
 
-  // Determine Target Drop Location coordinates (with reliable Noida Sector 62 fallback if unpinned)
+  // Intelligent Noida / Delhi NCR Sector Resolver from Address String
+  const resolveAddressCoords = (addressStr?: string): { latitude: number; longitude: number } | null => {
+    if (!addressStr || typeof addressStr !== 'string') return null;
+    const lower = addressStr.toLowerCase();
+
+    // Sector 148, Noida / Expressway (Near Gold's Gym / Metro)
+    if (lower.includes('148')) return { latitude: 28.4779, longitude: 77.4815 };
+    // Sector 142 / Advant Navis
+    if (lower.includes('142')) return { latitude: 28.5028, longitude: 77.4172 };
+    // Sector 137 / Felix Hospital / Paras Tierea
+    if (lower.includes('137')) return { latitude: 28.5132, longitude: 77.4046 };
+    // Sector 128 / Jaypee Wish Town
+    if (lower.includes('128')) return { latitude: 28.5283, longitude: 77.3753 };
+    // Sector 62 / Electronic City
+    if (lower.includes('62')) return { latitude: 28.6280, longitude: 77.3750 };
+    // Sector 63
+    if (lower.includes('63')) return { latitude: 28.6234, longitude: 77.3824 };
+    // Sector 60 Central Hub
+    if (lower.includes('60')) return { latitude: 28.6037, longitude: 77.3661 };
+    // Sector 18 / Atta Market / DLF Mall of India
+    if (lower.includes('18')) return { latitude: 28.5708, longitude: 77.3260 };
+    // Sector 16 / Film City
+    if (lower.includes('16') || lower.includes('film city')) return { latitude: 28.5672, longitude: 77.3211 };
+    // Greater Noida / Pari Chowk / Knowledge Park
+    if (lower.includes('pari chowk') || lower.includes('greater noida')) return { latitude: 28.4744, longitude: 77.5040 };
+    // Connaught Place / Central Delhi
+    if (lower.includes('connaught') || lower.includes('cp')) return { latitude: 28.6315, longitude: 77.2167 };
+    // Gurgaon / Cyber City
+    if (lower.includes('cyber city') || lower.includes('gurgaon') || lower.includes('gurugram')) return { latitude: 28.4950, longitude: 77.0890 };
+
+    const secMatch = lower.match(/sector\s*([0-9]{1,3})/);
+    if (secMatch && secMatch[1]) {
+      const num = parseInt(secMatch[1], 10);
+      if (num >= 130) {
+        return { latitude: 28.5000 - ((num - 130) * 0.002), longitude: 77.4100 + ((num - 130) * 0.0035) };
+      }
+    }
+    return null;
+  };
+
+  // Determine Target Drop Location coordinates (with intelligent address parsing)
   const targetLat: number = useMemo(() => {
     const target = activeOrder || order;
     const lat = target?.destination_location?.latitude ?? target?.delivery_lat ?? target?.drop_lat;
     if (typeof lat === 'number' && Number.isFinite(lat) && lat !== 0) {
       return lat;
     }
-    return 28.6280; // Sector 62, Noida (approx 2.8km from Sector 60 Central Hub)
+    const resolved = resolveAddressCoords(target?.drop_address || target?.delivery_address);
+    if (resolved) return resolved.latitude;
+    return 28.6280; // Sector 62, Noida default
   }, [activeOrder, order]);
 
   const targetLng: number = useMemo(() => {
@@ -223,7 +266,9 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     if (typeof lng === 'number' && Number.isFinite(lng) && lng !== 0) {
       return lng;
     }
-    return 77.3750; // Sector 62, Noida
+    const resolved = resolveAddressCoords(target?.drop_address || target?.delivery_address);
+    if (resolved) return resolved.longitude;
+    return 77.3750; // Sector 62, Noida default
   }, [activeOrder, order]);
 
   const hasTargetCoords = true;
