@@ -151,6 +151,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
   const [fullscreen, setFullscreen] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const [totalRoadDistanceKm, setTotalRoadDistanceKm] = useState<number | null>(null);
   const [roadDistanceKm, setRoadDistanceKm] = useState<number | null>(null);
   const [roadDurationMin, setRoadDurationMin] = useState<number | null>(null);
 
@@ -284,29 +285,23 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     return Number((Rk * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(1));
   };
 
-  // Direct geodetic calculation between Hub and Drop-off point (Total Distance)
-  const totalHubToDropDist = useMemo(() => {
-    if (baseHub && hasTargetCoords) {
-      return calculateDist(baseHub.latitude, baseHub.longitude, targetLat, targetLng);
+  // Fetch Total Road Distance from Hub to Customer Drop
+  React.useEffect(() => {
+    if (baseHub && targetLat != null && targetLng != null) {
+      const hubRoutingUrl = `${getRoutingApiUrl().replace(/\/+$/, '')}/route/v1/driving/${baseHub.longitude},${baseHub.latitude};${targetLng},${targetLat}?overview=false`;
+      fetch(hubRoutingUrl)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d && d.routes && d.routes[0]) {
+            const dist = parseFloat((d.routes[0].distance / 1000).toFixed(1));
+            setTotalRoadDistanceKm(dist);
+          }
+        })
+        .catch(() => {});
     }
-    return 4.3;
-  }, [baseHub, targetLat, targetLng, hasTargetCoords]);
+  }, [baseHub, targetLat, targetLng]);
 
-  // Remaining / Rest distance from pilot's live location to Drop-off point
-  const remainingDist = useMemo(() => {
-    if (roadDistanceKm != null && Number.isFinite(roadDistanceKm)) {
-      return roadDistanceKm;
-    }
-    if (pilotLat != null && pilotLng != null && hasTargetCoords) {
-      return calculateDist(pilotLat, pilotLng, targetLat, targetLng);
-    }
-    return totalHubToDropDist;
-  }, [roadDistanceKm, pilotLat, pilotLng, targetLat, targetLng, hasTargetCoords, totalHubToDropDist]);
-
-  const displayTotal = totalHubToDropDist.toFixed(1);
-  const displayRemaining = remainingDist.toFixed(1);
-
-  // Direct fetch road route details for instant metric display outside the map
+  // Fetch Remaining Road Distance from Pilot's current position to Customer Drop
   React.useEffect(() => {
     if (pilotLat != null && pilotLng != null && targetLat != null && targetLng != null) {
       const routingUrl = `${getRoutingApiUrl().replace(/\/+$/, '')}/route/v1/driving/${pilotLng},${pilotLat};${targetLng},${targetLat}?overview=false`;
@@ -323,6 +318,38 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
         .catch(() => {});
     }
   }, [pilotLat, pilotLng, targetLat, targetLng]);
+
+  // Total trip distance: Use total road route from Hub to Drop (e.g. 4.3 km)
+  const totalTripDist = useMemo(() => {
+    if (totalRoadDistanceKm != null && Number.isFinite(totalRoadDistanceKm)) {
+      return totalRoadDistanceKm;
+    }
+    if (roadDistanceKm != null && Number.isFinite(roadDistanceKm)) {
+      return roadDistanceKm;
+    }
+    if (baseHub && hasTargetCoords) {
+      const crowDist = calculateDist(baseHub.latitude, baseHub.longitude, targetLat, targetLng);
+      return Number((crowDist * 1.4).toFixed(1));
+    }
+    return 4.3;
+  }, [totalRoadDistanceKm, roadDistanceKm, baseHub, targetLat, targetLng, hasTargetCoords]);
+
+  // Remaining / Rest distance from pilot's live location to Drop-off point (Cannot exceed totalTripDist)
+  const remainingDist = useMemo(() => {
+    let currentRemaining: number;
+    if (roadDistanceKm != null && Number.isFinite(roadDistanceKm)) {
+      currentRemaining = roadDistanceKm;
+    } else if (pilotLat != null && pilotLng != null && hasTargetCoords) {
+      const crowDist = calculateDist(pilotLat, pilotLng, targetLat, targetLng);
+      currentRemaining = Number((crowDist * 1.4).toFixed(1));
+    } else {
+      currentRemaining = totalTripDist;
+    }
+    return Number(Math.min(currentRemaining, totalTripDist).toFixed(1));
+  }, [roadDistanceKm, pilotLat, pilotLng, targetLat, targetLng, hasTargetCoords, totalTripDist]);
+
+  const displayTotal = totalTripDist.toFixed(1);
+  const displayRemaining = remainingDist.toFixed(1);
 
   const handleOpenGoogleMaps = () => {
     const target = activeOrder || order;
@@ -657,13 +684,13 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
       <iframe
         title="IndoFleet live navigation map"
         srcDoc={webMapHtml}
-        style={{ width: '100%', height: full ? '100%' : 340, border: 'none', display: 'block' }}
+        style={{ width: '100%', height: full ? '100%' : 250, border: 'none', display: 'block' }}
       />
     ) : (
       <WebView
         originWhitelist={['*']}
         source={{ html: webMapHtml }}
-        style={{ width: '100%', height: full ? '100%' : 340, backgroundColor: '#0F172A' }}
+        style={{ width: '100%', height: full ? '100%' : 250, backgroundColor: '#0F172A' }}
         javaScriptEnabled={true}
         domStorageEnabled={true}
         startInLoadingState={true}
@@ -957,7 +984,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
 /* ───────────────────────── Styles ───────────────────────── */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 16, paddingBottom: 120, gap: 14 },
+  content: { padding: 14, paddingBottom: 190, gap: 12 },
 
   /* nav */
   navRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -991,6 +1018,7 @@ const styles = StyleSheet.create({
   orderChip: {
     paddingVertical: 4, paddingHorizontal: 10, borderRadius: R.pill,
     backgroundColor: C.brandSoft,
+    maxWidth: '52%',
   },
   orderChipText: { fontSize: 11, fontWeight: '800', color: C.brand },
   destName: { fontSize: 20, fontWeight: '900', color: C.ink, letterSpacing: -0.3 },
@@ -1186,11 +1214,11 @@ const styles = StyleSheet.create({
   listDist: { fontSize: 13, fontWeight: '800', color: C.ok },
 
   /* actions */
-  actions: { gap: 10, marginTop: 4 },
+  actions: { gap: 10, marginTop: 8, marginBottom: 16 },
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    height: 56, borderRadius: R.lg, backgroundColor: C.ok,
-    shadowColor: C.ok, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.28, shadowRadius: 14, elevation: 5,
+    height: 52, borderRadius: R.lg, backgroundColor: C.ok,
+    shadowColor: C.ok, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 4,
   },
   primaryBtnText: { fontSize: 16, fontWeight: '900', color: '#FFFFFF' },
   secondaryBtn: {
