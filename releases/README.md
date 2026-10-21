@@ -1,39 +1,33 @@
 # IndoFleet Delivery Mobile App - Android Releases
 
-## Latest Release: v1.1.4 (In-App Camera HUD, Airframe Inspection Light Mode, Auto Acceptance OTP & Anchored Route)
+## Latest Release: v1.1.5 (Strict Drone Matching & Mismatch Error, Pre-Scan Hiding, No Dummy Verification)
 
-- **Version:** 1.1.4 (Build Code 14)
-- **EAS Build ID:** `54b2c216-547a-4411-8259-168f587c552f`
+- **Version:** 1.1.5 (Build Code 15)
+- **EAS Build ID:** `aa7798f1-0f39-4333-933a-7f93d8d875d9`
 - **Date:** October 21, 2026
 - **Architecture:** Android (arm64-v8a, armeabi-v7a, x86_64)
 
 ### Direct Download Links:
-1. **Direct High-Speed Expo CDN:** [Download IndoFleet v1.1.4 Release APK](https://expo.dev/artifacts/eas/cIUHLk91xKvnC-lJZ15FT4bnqr_DT3Ezbs9y-bsj58o.apk)
-2. **GitHub Release Tag:** [GitHub Release v1.1.4](https://github.com/puneetonindowings/Indo-Fleet/releases/tag/v1.1.4)
-3. **Repository Binary:** [`releases/IndoFleet_Delivery_v1.1.4.apk`](./IndoFleet_Delivery_v1.1.4.apk)
+1. **Direct High-Speed Expo CDN:** [Download IndoFleet v1.1.5 Release APK](https://expo.dev/artifacts/eas/RM4izCdJkVINYAKjKwzUUQQzv7p4yPdKeI-Pl_sJNB4.apk)
+2. **GitHub Release Tag:** [GitHub Release v1.1.5](https://github.com/puneetonindowings/Indo-Fleet/releases/tag/v1.1.5)
+3. **Repository Binary:** [`releases/IndoFleet_Delivery_v1.1.5.apk`](./IndoFleet_Delivery_v1.1.5.apk)
 
-### What Was Fixed & Added in v1.1.4:
-- **In-App QR Scanner HUD & Viewfinder:**
-  - Removed intrusive OS photo shutter popup on screen entry.
-  - Added dedicated high-tech HUD scanner viewfinder with live laser targeting animation and manual code verification fallback.
-  - Automatically verifies drone QR codes and triggers instant transition to the Pre-Flight Inspection screen upon match.
-- **Dedicated Camera & Video Airframe Verification Modal:**
-  - Replaced erratic system file picker popups with an interactive in-app camera modal.
-  - Supports live snapshot capture, live video recording with real-time timer, and reliable HTML5/native gallery uploads.
-  - Clear visual badges and responsive image/video preview thumbnails that persist across the inspection flow.
-- **Consistent Clean Light Theme:**
-  - Standardized `QrScannerScreen` and `InspectionScreen` into a unified enterprise light aesthetic (`#FFFFFF`, `#F8FAFC`, `#5A00B8`, slate typography).
-- **Auto-Trigger Acceptance OTP with Live Status:**
-  - Opening the order acceptance modal automatically triggers the dispatch of the 6-digit acceptance OTP to the pilot's email.
-  - Displays dynamic live feedback ("Dispatching..." -> "✓ Dispatched to pilot email"), a 30s resend cooldown countdown, and a 1-tap dev autofill pill for effortless local testing.
-- **Anchored Pilot Origin & Expressway Delivery Geocoding:**
-  - Eliminated ISP broadband IP gateway fallback (`ipapi.co`) which previously caused routes to snap north to Delhi (`28.6668`).
-  - Anchored pilot origin strictly at IndoFleet Hub Sector 60 (`28.6037, 77.3661`).
-  - Added Noida sector address geocoding (`Sector 148` -> `28.4779, 77.4815`), rendering the authentic ~20 km expressway route down the Noida-Greater Noida Expressway.
+### What Was Fixed & Added in v1.1.5:
+- **Strict Drone Airframe QR Matching & Mismatch Error Modal:**
+  - When scanning any QR code or entering a drone serial, the app checks against the drone assigned to that specific order.
+  - If a wrong drone is scanned, an unmistakable **Red Mismatch Error Alert** blocks progression, showing both the scanned ID and expected assigned ID.
+  - Only when the physical QR code on the drone matches the assigned drone will the app unlock Pre-Flight Inspection.
+- **Pre-Scan Drone ID Security Hiding:**
+  - Before scanning, the drone ID and model are **completely hidden**. The pilot only sees their Order ID (`Order #IW-...`), preventing premature leakage or guessing.
+- **Removed Fake/Dummy "Instant Verify":**
+  - Completely removed the dummy "Instant Verify" bypass button. Verification is now 100% authentic through the real optical laser scanner, mobile camera photo capture, gallery upload, or physical serial number matching.
+- **Enhanced Mobile Camera Hardware Autofocus & jsQR Engine:**
+  - Bundled pure client-side `jsQR` engine for instant QR decoding directly from live video frames and photographed snapshots.
 
 ---
 
 ## Previous Builds:
+- **v1.1.4 (Build 14):** [Download IndoFleet v1.1.4 APK](https://expo.dev/artifacts/eas/cIUHLk91xKvnC-lJZ15FT4bnqr_DT3Ezbs9y-bsj58o.apk)
 - **v1.1.3 (Build 13):** [Download IndoFleet v1.1.3 APK](https://expo.dev/artifacts/eas/iKonz1CfUngHuZU-A0xPVfeJYCv7JUZIK2LWzmMuQzc.apk)
 - **v1.1.2 (Build 12):** [Download IndoFleet v1.1.2 APK](https://expo.dev/artifacts/eas/nUAvL1XJk-3INzKf9f3To-5WNfP9opTTOxBaOBJLuro.apk)
 - **v1.1.0 (Build 11):** [Download IndoFleet v1.1.0 APK](https://expo.dev/artifacts/eas/b06S-XdlAjc0dYgen3Gnsw8tTY7PmV18fdvo-p5eoLQ.apk)
