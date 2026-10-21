@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Pressable, Platform, Animated, Easing } from 'react-native';
 import {
   Home,
   MapPin,
@@ -14,118 +14,186 @@ interface BottomNavProps {
   onTriggerSos: () => void;
 }
 
+const ACTIVE = '#5A00B8';
+const INACTIVE = '#64748B';
+
+const TABS = [
+  { key: 'dashboard', label: 'Home', icon: Home },
+  { key: 'history', label: 'History', icon: Clock },
+  { key: 'radar', label: 'Map', icon: MapPin },
+  { key: 'profile', label: 'Profile', icon: User },
+] as const;
+
+type Tab = (typeof TABS)[number];
+
+/* ── Single tab with an animated pill, icon cross-fade and press spring ────── */
+const TabButton: React.FC<{ tab: Tab; active: boolean; onPress: () => void }> = ({
+  tab,
+  active,
+  onPress,
+}) => {
+  const progress = useRef(new Animated.Value(active ? 1 : 0)).current;
+  const press = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.spring(progress, {
+      toValue: active ? 1 : 0,
+      friction: 7,
+      tension: 90,
+      useNativeDriver: true,
+    }).start();
+  }, [active, progress]);
+
+  const springTo = (value: number) =>
+    Animated.spring(press, {
+      toValue: value,
+      friction: 6,
+      tension: 220,
+      useNativeDriver: true,
+    }).start();
+
+  const Icon = tab.icon;
+
+  return (
+    <Pressable
+      style={styles.navTab}
+      onPress={onPress}
+      onPressIn={() => springTo(0.9)}
+      onPressOut={() => springTo(1)}
+      hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
+      accessibilityLabel={tab.label}
+    >
+      <Animated.View style={{ alignItems: 'center', transform: [{ scale: press }] }}>
+        <View style={styles.iconWrap}>
+          {/* Purple pill grows in behind the icon */}
+          <Animated.View
+            style={[
+              styles.pill,
+              {
+                opacity: progress,
+                transform: [
+                  { scaleX: progress.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) },
+                  { scaleY: progress.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) },
+                ],
+              },
+            ]}
+          />
+          {/* Grey icon fades out while the purple one fades in */}
+          <Animated.View style={[styles.iconLayer, { opacity: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
+            <Icon size={20} color={INACTIVE} />
+          </Animated.View>
+          <Animated.View
+            style={[
+              styles.iconLayer,
+              {
+                opacity: progress,
+                transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [3, 0] }) }],
+              },
+            ]}
+          >
+            <Icon size={20} color={ACTIVE} />
+          </Animated.View>
+        </View>
+
+        <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{tab.label}</Text>
+
+        <Animated.View
+          style={[
+            styles.activeDot,
+            {
+              opacity: progress,
+              transform: [{ scale: progress }],
+            },
+          ]}
+        />
+      </Animated.View>
+    </Pressable>
+  );
+};
+
 export const BottomNav: React.FC<BottomNavProps> = ({
   activeScreen,
   onNavigate,
   onTriggerSos,
 }) => {
+  // SOS: soft pulsing ring + press spring
+  const pulse = useRef(new Animated.Value(0)).current;
+  const sosPress = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(pulse, {
+        toValue: 1,
+        duration: 2200,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+
+  const sosSpring = (value: number) =>
+    Animated.spring(sosPress, {
+      toValue: value,
+      friction: 6,
+      tension: 220,
+      useNativeDriver: true,
+    }).start();
+
+  const left = TABS.slice(0, 2);
+  const right = TABS.slice(2);
+
   return (
-    <View style={styles.container}>
-      {/* 1. Home / Dashboard Tab */}
-      <TouchableOpacity
-        style={styles.navTab}
-        onPress={() => onNavigate('dashboard')}
-        activeOpacity={0.7}
-      >
-        <View style={[styles.iconWrap, activeScreen === 'dashboard' && styles.iconWrapActive]}>
-          <Home
-            size={20}
-            color={activeScreen === 'dashboard' ? '#5A00B8' : '#64748B'}
-          />
-        </View>
-        <Text
-          style={[
-            styles.tabLabel,
-            activeScreen === 'dashboard' && styles.tabLabelActive,
-          ]}
-        >
-          Home
-        </Text>
-        {activeScreen === 'dashboard' ? <View style={styles.activeDot} /> : null}
-      </TouchableOpacity>
+    <View style={styles.container} accessibilityRole="tablist">
+      {left.map((tab) => (
+        <TabButton
+          key={tab.key}
+          tab={tab}
+          active={activeScreen === tab.key}
+          onPress={() => onNavigate(tab.key)}
+        />
+      ))}
 
-      {/* 2. History Tab */}
-      <TouchableOpacity
-        style={styles.navTab}
-        onPress={() => onNavigate('history')}
-        activeOpacity={0.7}
-      >
-        <View style={[styles.iconWrap, activeScreen === 'history' && styles.iconWrapActive]}>
-          <Clock
-            size={20}
-            color={activeScreen === 'history' ? '#5A00B8' : '#64748B'}
-          />
-        </View>
-        <Text
-          style={[
-            styles.tabLabel,
-            activeScreen === 'history' && styles.tabLabelActive,
-          ]}
-        >
-          History
-        </Text>
-        {activeScreen === 'history' ? <View style={styles.activeDot} /> : null}
-      </TouchableOpacity>
-
-      {/* 3. Center Floating SOS Button */}
+      {/* Center floating SOS button */}
       <View style={styles.centerSosContainer}>
-        <TouchableOpacity
-          style={styles.sosButton}
-          onPress={onTriggerSos}
-          activeOpacity={0.85}
-        >
-          <View style={styles.sosInnerGlow}>
-            <AlertOctagon size={24} color="#FFFFFF" />
-            <Text style={styles.sosText}>SOS</Text>
-          </View>
-        </TouchableOpacity>
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.sosPulse,
+            {
+              opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0] }),
+              transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] }) }],
+            },
+          ]}
+        />
+        <Animated.View style={{ transform: [{ scale: sosPress }] }}>
+          <Pressable
+            style={styles.sosButton}
+            onPress={onTriggerSos}
+            onPressIn={() => sosSpring(0.92)}
+            onPressOut={() => sosSpring(1)}
+            accessibilityRole="button"
+            accessibilityLabel="Trigger SOS emergency alert"
+          >
+            <View style={styles.sosInnerGlow}>
+              <AlertOctagon size={24} color="#FFFFFF" />
+              <Text style={styles.sosText}>SOS</Text>
+            </View>
+          </Pressable>
+        </Animated.View>
       </View>
 
-      {/* 4. Map Tab */}
-      <TouchableOpacity
-        style={styles.navTab}
-        onPress={() => onNavigate('radar')}
-        activeOpacity={0.7}
-      >
-        <View style={[styles.iconWrap, activeScreen === 'radar' && styles.iconWrapActive]}>
-          <MapPin
-            size={20}
-            color={activeScreen === 'radar' ? '#5A00B8' : '#64748B'}
-          />
-        </View>
-        <Text
-          style={[
-            styles.tabLabel,
-            activeScreen === 'radar' && styles.tabLabelActive,
-          ]}
-        >
-          Map
-        </Text>
-        {activeScreen === 'radar' ? <View style={styles.activeDot} /> : null}
-      </TouchableOpacity>
-
-      {/* 5. Profile Tab */}
-      <TouchableOpacity
-        style={styles.navTab}
-        onPress={() => onNavigate('profile')}
-        activeOpacity={0.7}
-      >
-        <View style={[styles.iconWrap, activeScreen === 'profile' && styles.iconWrapActive]}>
-          <User
-            size={20}
-            color={activeScreen === 'profile' ? '#5A00B8' : '#64748B'}
-          />
-        </View>
-        <Text
-          style={[
-            styles.tabLabel,
-            activeScreen === 'profile' && styles.tabLabelActive,
-          ]}
-        >
-          Profile
-        </Text>
-        {activeScreen === 'profile' ? <View style={styles.activeDot} /> : null}
-      </TouchableOpacity>
+      {right.map((tab) => (
+        <TabButton
+          key={tab.key}
+          tab={tab}
+          active={activeScreen === tab.key}
+          onPress={() => onNavigate(tab.key)}
+        />
+      ))}
     </View>
   );
 };
@@ -165,27 +233,34 @@ const styles = StyleSheet.create({
     height: 34,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 20,
-    backgroundColor: 'transparent',
   },
-  iconWrapActive: {
+  pill: {
+    position: 'absolute',
+    width: 48,
+    height: 34,
+    borderRadius: 20,
     backgroundColor: '#F3E8FF',
+  },
+  iconLayer: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#64748B',
+    color: INACTIVE,
     marginTop: 2,
   },
   tabLabelActive: {
-    color: '#5A00B8',
+    color: ACTIVE,
     fontWeight: '800',
   },
   activeDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#5A00B8',
+    backgroundColor: ACTIVE,
     marginTop: 2,
   },
   centerSosContainer: {
@@ -193,6 +268,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 68,
     marginTop: -26,
+  },
+  sosPulse: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#EF4444',
   },
   sosButton: {
     width: 60,
