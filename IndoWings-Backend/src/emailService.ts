@@ -166,13 +166,8 @@ export async function sendOtpNotification({ email, phone, otp }: { email?: strin
 </div>
     `.trim();
 
-    // If target is an @indowings.com test account, also CC/deliver to SMTP_USER so testing user receives it in their Gmail!
-    const adminSmtp = (process.env.SMTP_USER || '').toLowerCase().trim();
-    const recipientList = [targetEmail];
-    if (adminSmtp && adminSmtp.includes('@') && targetEmail.endsWith('@indowings.com') && targetEmail !== adminSmtp) {
-      recipientList.push(adminSmtp);
-    }
-    delivered = await sendEmail({ to: recipientList.join(', '), subject, text, html });
+    // Send directly and strictly to the account's registered email address
+    delivered = await sendEmail({ to: targetEmail, subject, text, html });
     if (delivered) {
       console.log(`[mail] Verification code delivered via Nodemailer to ${targetEmail}`);
     } else {
