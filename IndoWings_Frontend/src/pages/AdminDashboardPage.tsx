@@ -2380,7 +2380,34 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                               {o.client_name || o.customer_name || 'Enterprise Client'}
                               {o.recipient_phone && <p className="text-[10px] text-slate-400 font-normal">{o.recipient_phone}</p>}
                             </td>
-                            <td className="py-3 px-4 font-bold text-slate-900">{o.drones_shipped || o.package_type || 'UAV Units'}</td>
+                              <td className="py-3 px-4">
+                                {(() => {
+                                  const orderDrones = getDronesForOrder(o, drones);
+                                  return (
+                                    <div className="space-y-1">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="font-bold text-slate-900 text-xs">{o.drones_shipped || o.package_type || 'UAV Units'}</span>
+                                        <span className="text-[10px] font-black bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded border border-purple-200">
+                                          {orderDrones.length > 0 ? `${orderDrones.length} Unit${orderDrones.length > 1 ? 's' : ''}` : `${o.units_count || 1} Unit`}
+                                        </span>
+                                      </div>
+                                      {orderDrones.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 pt-0.5">
+                                          {orderDrones.map((d) => (
+                                            <span
+                                              key={d.id}
+                                              className="text-[10px] font-mono font-bold bg-slate-100 hover:bg-purple-100 text-slate-800 hover:text-purple-900 px-1.5 py-0.5 rounded border border-slate-200 transition-colors shadow-2xs"
+                                              title={`Model: ${d.model_name || d.model || '700 RPAV'}`}
+                                            >
+                                              {d.id}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                              </td>
                             <td className="py-3 px-4 text-slate-600 truncate max-w-[200px]">{o.destination_address || o.drop_address}</td>
                             <td className="py-3 px-4 text-slate-500 font-medium">{o.carrier || 'IndoFleet Fleet Van'}</td>
                             <td className="py-3 px-4">

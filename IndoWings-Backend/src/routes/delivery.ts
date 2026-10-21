@@ -5238,6 +5238,17 @@ router.post('/pilot/verify-handover-and-start-flight', async (req, res) => {
       } : {})
     });
 
+    // Update all assigned drones to 'in-flight' in fleet inventory (removes from idle depot inventory)
+    const departureDrones = Array.isArray(order.reserved_inventory_ids) && order.reserved_inventory_ids.length > 0
+      ? order.reserved_inventory_ids
+      : [effectiveFlightDroneId].filter(Boolean);
+
+    for (const dId of departureDrones) {
+      try {
+        await fileDB.updateDrone(dId, { status: 'in-flight', assigned_order: order_id });
+      } catch (dErr) {}
+    }
+
     const trackingBaseUrl = (process.env.PUBLIC_TRACKING_URL || process.env.FRONTEND_URL || 'https://indo-fleet.vercel.app').replace(/\/+$/, '');
     const trackingUrl = `${trackingBaseUrl}/track?orderId=${order_id}`;
     if (order.customer_email || order.recipient_email) {
@@ -5792,6 +5803,22 @@ router.post('/pilot/complete-delivery', async (req, res) => {
         has_pod_photo: Boolean(pod_photo)
       }
     });
+
+    // Update all assigned drones to 'delivered' in fleet inventory (permanently archived with handover history)
+    const completedDrones = Array.isArray(order.reserved_inventory_ids) && order.reserved_inventory_ids.length > 0
+      ? order.reserved_inventory_ids
+      : [order.drone_id].filter(Boolean);
+
+    for (const dId of completedDrones) {
+      try {
+        await fileDB.updateDrone(dId, {
+          status: 'delivered',
+          assigned_order: order_id,
+          delivered_to: recipient_name.trim(),
+          delivered_at: now
+        });
+      } catch (dErr) {}
+    }
 
     // Notify Admin and Operations Desk with proof of delivery
     const adminEmail = process.env.ADMIN_ALERT_EMAIL || process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'admin@indowings.com';

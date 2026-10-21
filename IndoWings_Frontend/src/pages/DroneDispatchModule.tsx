@@ -90,6 +90,10 @@ interface DispatchOrder {
   pilot_assigned?: string;
   pilot_phone?: string;
   drone_id?: string;
+  units_count?: number;
+  drone_model?: string;
+  reserved_inventory_ids?: string[] | string;
+  assigned_drone_ids?: string[] | string;
   dl_id?: string;
   pilot_acceptance_status?: 'pending_acceptance' | 'accepted' | string;
   pilot_acceptance_otp?: string;
@@ -1231,6 +1235,40 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                         <span className="truncate">Amount: <strong className="text-emerald-700 font-black">₹{Number(order.total_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong></span>
                       </div>
                     </div>
+
+                    {/* Consignment Drone Units Allocation */}
+                    {(() => {
+                      const orderDrones = getDronesForOrder(order, fleet);
+                      return (
+                        <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-extrabold text-[10px] uppercase tracking-wider text-slate-400">
+                              Consignment Drones ({orderDrones.length > 0 ? orderDrones.length : (order.units_count || 1)} Units)
+                            </span>
+                            <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200">
+                              {order.drone_model || '700 RPAV'}
+                            </span>
+                          </div>
+                          {orderDrones.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {orderDrones.map((d) => (
+                                <span
+                                  key={d.id}
+                                  className="inline-flex items-center gap-1 text-[11px] font-mono font-bold bg-slate-100 text-slate-800 px-2 py-0.5 rounded-md border border-slate-200 shadow-2xs"
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                  {d.id}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-slate-400 font-mono">
+                              Airframe: {order.drone_id || 'Auto-allocated on dispatch'}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Column 2: Route & Addresses */}
@@ -2101,6 +2139,39 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Pre-allocated Order Drones Banner */}
+              {(() => {
+                const bookedDrones = getDronesForOrder(selectedOrder, fleet);
+                if (bookedDrones.length === 0) return null;
+                return (
+                  <div className="p-3.5 bg-purple-50/80 border border-purple-200 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-purple-950 uppercase tracking-wider">
+                        Pre-Allocated Order Aircraft ({bookedDrones.length} Units)
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
+                        Locked for Consignment
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {bookedDrones.map((d, i) => (
+                        <div
+                          key={d.id}
+                          className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-purple-200 text-xs font-mono font-bold text-slate-900 shadow-2xs"
+                        >
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                          <span>Drone {i + 1}: <strong>{d.id}</strong></span>
+                          <span className="text-[10px] text-slate-400 font-sans font-medium">({d.model_name || d.model || '700 RPAV'})</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-purple-800 leading-tight">
+                      These {bookedDrones.length} airframe units are locked for Order #{selectedOrder?.order_number || selectedOrder?.id}.
+                    </p>
+                  </div>
+                );
+              })()}
 
               {/* UAV Hardware Unit Selection */}
               <div className="pt-3 border-t border-slate-100">
