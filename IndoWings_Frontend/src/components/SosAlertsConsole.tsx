@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   AlertTriangle,
   ShieldAlert,
@@ -57,7 +57,8 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
   resolvingId,
   onRefresh,
 }) => {
-  const [filter, setFilter] = useState<'all' | 'active' | 'resolved'>('all');
+  const hasActiveInitially = alerts.some((a) => a.status === 'active');
+  const [filter, setFilter] = useState<'all' | 'active' | 'resolved'>(hasActiveInitially ? 'active' : 'all');
   const [resolveModalId, setResolveModalId] = useState<string | null>(null);
   const [resolveNotes, setResolveNotes] = useState<string>('');
   const [speakingId, setSpeakingId] = useState<string | null>(null);
@@ -67,11 +68,29 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
   const activeAlerts = alerts.filter((a) => a.status === 'active');
   const resolvedAlerts = alerts.filter((a) => a.status === 'resolved');
 
-  const filteredAlerts = alerts.filter((a) => {
-    if (filter === 'active') return a.status === 'active';
-    if (filter === 'resolved') return a.status === 'resolved';
-    return true;
-  });
+  // If new active alert arrives, auto-surface active tab
+  useEffect(() => {
+    if (activeAlerts.length > 0 && filter === 'resolved') {
+      setFilter('active');
+    }
+  }, [activeAlerts.length]);
+
+  // Priority sorting: Active / Pending emergencies always at top, then newest first
+  const sortedAlerts: SosAlertItem[] = useMemo(() => {
+    return [...alerts].sort((a: SosAlertItem, b: SosAlertItem) => {
+      if (a.status === 'active' && b.status !== 'active') return -1;
+      if (a.status !== 'active' && b.status === 'active') return 1;
+      return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime();
+    });
+  }, [alerts]);
+
+  const filteredAlerts: SosAlertItem[] = useMemo(() => {
+    return sortedAlerts.filter((a: SosAlertItem) => {
+      if (filter === 'active') return a.status === 'active';
+      if (filter === 'resolved') return a.status === 'resolved';
+      return true;
+    });
+  }, [sortedAlerts, filter]);
 
   const handleOpenResolveModal = (id: string) => {
     setResolveModalId(id);
@@ -236,6 +255,17 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
         {/* Filter Tabs */}
         <div className="flex items-center gap-2 mt-5 pt-4 border-t border-slate-100">
           <button
+            onClick={() => setFilter('active')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              filter === 'active'
+                ? 'bg-red-600 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            {activeAlerts.length > 0 && <span className="w-2 h-2 rounded-full bg-white animate-ping" />}
+            <span>Active Emergencies ({activeAlerts.length})</span>
+          </button>
+          <button
             onClick={() => setFilter('all')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               filter === 'all'
@@ -244,16 +274,6 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
             }`}
           >
             All Signals ({alerts.length})
-          </button>
-          <button
-            onClick={() => setFilter('active')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              filter === 'active'
-                ? 'bg-red-600 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            Active Emergencies ({activeAlerts.length})
           </button>
           <button
             onClick={() => setFilter('resolved')}
@@ -283,7 +303,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredAlerts.map((alert) => {
+          {filteredAlerts.map((alert: SosAlertItem) => {
             const isActive = alert.status === 'active';
             const isMapOpen = showMap[alert.id] !== false; // Open by default
             const currentLayer = mapLayer[alert.id] || 'street';
