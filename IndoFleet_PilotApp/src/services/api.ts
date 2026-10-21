@@ -473,16 +473,41 @@ export async function verifyDroneForOrder(orderId: string, droneId: string): Pro
   order_number?: string;
   already_inspected?: boolean;
 }> {
-  const baseUrl = await getServerUrl();
-  const res = await fetch(`${baseUrl}/api/delivery/pilot/verify-drone-order`, {
-    method: 'POST',
-    headers: await getHeaders(),
-    body: JSON.stringify({ order_id: orderId, drone_id: droneId }),
-  });
+  try {
+    const baseUrl = await getServerUrl();
+    const res = await fetch(`${baseUrl}/api/delivery/pilot/verify-drone-order`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify({ order_id: orderId, drone_id: droneId }),
+    });
 
-  const data = await res.json();
-  if (!res.ok || !data.success) {
-    throw new Error(data.error || 'Drone does not match this order.');
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      // Non-JSON response (e.g. server HTML error / cold start)
+      return {
+        success: false,
+        matched: false,
+        drone_id: droneId,
+        order_id: orderId,
+      };
+    }
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      return {
+        success: false,
+        matched: false,
+        drone_id: droneId,
+        order_id: orderId,
+      };
+    }
+    return data;
+  } catch (err: any) {
+    return {
+      success: false,
+      matched: false,
+      drone_id: droneId,
+      order_id: orderId,
+    };
   }
-  return data;
 }

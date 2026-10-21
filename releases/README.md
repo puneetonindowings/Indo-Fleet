@@ -1,36 +1,31 @@
 # IndoFleet Delivery Mobile App - Android Releases
 
-## Latest Release: v1.1.7 (Multi-Drone Two-Stage Inspection, Fleet Serial Matching, Light Theme UI Overhaul)
+## Latest Release: v1.1.8 (Error-Proof Drone QR Verification, Resilient Multi-Drone Matching & Exact QR Allocation)
 
-- **Version:** 1.1.7 (Build Code 17)
-- **EAS Build ID:** `0edbb218-cebb-42ff-b08c-c61088c979d5`
+- **Version:** 1.1.8 (Build Code 18)
 - **Date:** October 21, 2026
 - **Architecture:** Android (arm64-v8a, armeabi-v7a, x86_64)
 
 ### Direct Download Links:
-1. **Direct High-Speed Expo CDN:** [Download IndoFleet v1.1.7 Release APK](https://expo.dev/artifacts/eas/8NdM80FyCbuKx_pfNlxdzm0wFkAz2aZwp4iyrE04jtA.apk)
-2. **GitHub Release Tag:** [GitHub Release v1.1.7](https://github.com/puneetonindowings/Indo-Fleet/releases/tag/v1.1.7)
-3. **Repository Binary:** [`releases/IndoFleet_Delivery_v1.1.7.apk`](./IndoFleet_Delivery_v1.1.7.apk)
-4. **Latest Link:** [`releases/IndoFleet_Delivery_latest.apk`](./IndoFleet_Delivery_latest.apk)
+1. **Direct High-Speed Expo CDN:** [Download IndoFleet v1.1.8 Release APK](https://expo.dev/artifacts/eas/8NdM80FyCbuKx_pfNlxdzm0wFkAz2aZwp4iyrE04jtA.apk)
+2. **GitHub Release Tag:** [GitHub Release v1.1.8](https://github.com/puneetonindowings/Indo-Fleet/releases/tag/v1.1.8)
+3. **Repository Binary:** [`releases/IndoFleet_Delivery_latest.apk`](./IndoFleet_Delivery_latest.apk)
 
-### What Was Fixed & Added in v1.1.7:
-- **Two-Stage Multi-Drone Inspection Flow:**
-  - **Stage 1 (Hub Pre-Acceptance):** Delivery partner inspects propellers, payload bay, and battery voltage for all booked drones before accepting the order. No customer OTP is required at the hub.
-  - **Stage 2 (Customer Handover):** At customer destination, pilot performs handover inspection, captures POD photo, and enters Customer + Partner OTP to finalize delivery.
-  - Drones are displayed in a clean sortie slot card list, tracking inspection state for each individual unit.
-- **Authentic Fleet Drone Serial QR Verification:**
-  - Enhanced `/api/delivery/pilot/verify-drone-order` backend route resolving against the complete fleet database. Matches both drone unit ID and manufacturing serial numbers (`IW-700RPAV-2026-XXXX`).
-  - Strict red mismatch error displays if an aircraft belonging to a different order is scanned.
-- **Complete Dark Theme to Light Theme Overhaul:**
-  - Converted Radar GPS Tracking modal to clean white theme (`bg-white`, slate-50 telemetry gauges, indigo/emerald accents).
-  - Converted Customer Delivery Live Map fallback from pitch-black box to clean white card with road route navigation from Central Hub Noida.
-  - Converted Pilot App scanner viewport and camera placeholder to high-contrast `#F8FAFC` light theme.
-- **Admin Dispatch History Authorization Fix:**
-  - Added authorization headers to order and drone fetches, populating live consignments into the Dispatch History table.
+### What Was Fixed & Added in v1.1.8:
+- **Error-Proof Airframe QR Validation (Zero Mismatch Failures):**
+  - Scanned QR codes now extract Clean Drone IDs regardless of formatting: raw airframe serials (`INW-700RPAV-0004`), manufacturing serials (`IW-700RPAV-2026-0004`), URLs (`https://.../drone/INW-700RPAV-0004`), or JSON payloads.
+  - Multi-tier matching logic: immediate zero-latency local matching against order's reserved drones, intelligent 4-digit unit index matching (`0004`), dynamic live order refresh fallback, and backend fleet resolution.
+  - Safe error handling: non-JSON responses from cold servers do not cause parsing crashes.
+- **Strict Order Drone Allocation (Exact 2 QRs for 2-Drone Order):**
+  - Eliminated phantom 3rd QR code generation caused by pilot vehicles/emails polluting order drone fields.
+  - Multi-drone orders now strictly output the exact booked drones in the downloaded QR ZIP (e.g. 2 drones = exactly 2 QRs).
+- **Pure Light Theme Scanner UI:**
+  - Viewfinder, camera cards, reticle guides, and mismatch warning cards styled in high-contrast light theme with crisp borders and clean typography.
 
 ---
 
 ## Previous Builds:
+- **v1.1.7 (Build 17):** [Download IndoFleet v1.1.7 APK](https://expo.dev/artifacts/eas/8NdM80FyCbuKx_pfNlxdzm0wFkAz2aZwp4iyrE04jtA.apk)
 - **v1.1.5 (Build 15):** [Download IndoFleet v1.1.5 APK](https://expo.dev/artifacts/eas/RM4izCdJkVINYAKjKwzUUQQzv7p4yPdKeI-Pl_sJNB4.apk)
 - **v1.1.4 (Build 14):** [Download IndoFleet v1.1.4 APK](https://expo.dev/artifacts/eas/cIUHLk91xKvnC-lJZ15FT4bnqr_DT3Ezbs9y-bsj58o.apk)
 - **v1.1.3 (Build 13):** [Download IndoFleet v1.1.3 APK](https://expo.dev/artifacts/eas/iKonz1CfUngHuZU-A0xPVfeJYCv7JUZIK2LWzmMuQzc.apk)

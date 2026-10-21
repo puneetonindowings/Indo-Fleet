@@ -29,7 +29,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import jsQR from 'jsqr';
 import { DeliveryOrder } from '../types';
-import { verifyDroneForOrder } from '../services/api';
+import { verifyDroneForOrder, fetchPilotDashboard } from '../services/api';
 
 interface QrScannerScreenProps {
   order: DeliveryOrder | null;
@@ -65,6 +65,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
   const [mismatchError, setMismatchError] = useState<{
     scanned: string;
     message?: string;
+    expectedList?: string[];
   } | null>(null);
 
   // Manual code entry state
@@ -90,23 +91,47 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     const addClean = (val: any) => {
       if (!val || typeof val !== 'string') return;
       const s = val.trim();
-      if (!s || s.length < 2) return;
-      if (s.includes('@') || s.includes('.com') || s.includes('.app') || s.includes('/') || s.includes('http')) return;
+      if (!s || s.length < 3) return;
+      const lower = s.toLowerCase();
+      if (
+        lower.includes('@') ||
+        lower.includes('.com') ||
+        lower.includes('_com') ||
+        lower.includes('.in') ||
+        lower.includes('.app') ||
+        lower.includes('/') ||
+        lower.includes('http') ||
+        lower.startsWith('delivery') ||
+        lower.startsWith('pilot') ||
+        lower.startsWith('user') ||
+        lower.startsWith('admin') ||
+        lower.startsWith('ind-dl') ||
+        lower.startsWith('dl-') ||
+        lower === 'uav-sys-01' ||
+        lower === 'vehicle-01'
+      ) return;
       ids.add(s);
     };
 
-    if (Array.isArray(order.reserved_inventory_ids)) {
+    // 1. Reserved inventory units (exact booking allocation)
+    if (Array.isArray(order.reserved_inventory_ids) && order.reserved_inventory_ids.length > 0) {
       order.reserved_inventory_ids.forEach(addClean);
     }
-    if (Array.isArray(order.assigned_drone_ids)) {
+    // 2. Explicit assigned_drone_ids array
+    if (Array.isArray(order.assigned_drone_ids) && order.assigned_drone_ids.length > 0) {
       order.assigned_drone_ids.forEach(addClean);
     }
-    if (Array.isArray(order.drones)) {
+    // 3. Drones array
+    if (Array.isArray(order.drones) && order.drones.length > 0) {
       order.drones.forEach(addClean);
     }
-    addClean(order.assigned_drone_id);
-    addClean(order.drone_id);
-    if (Array.isArray(order.items)) {
+    // 4. Fallback only if no multi-drone array exists: single drone field
+    if (ids.size === 0) {
+      addClean(order.assigned_drone_id);
+      addClean(order.drone_id);
+    }
+    // 5. Fallback items list
+    if (ids.size === 0 && Array.isArray(order.items)) {
       order.items.forEach((it) => {
         addClean(it.serial_number || it.serial || it.drone_id || it.id);
       });
@@ -320,23 +345,30 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
 
   // Extract Clean Drone Serial from Scanned Text (URLs, JSON, or plain text)
   const extractDroneId = (text: string): string => {
+    if (!text) return '';
     let raw = text.trim();
     // Case 1: JSON payload
     if (raw.startsWith('{') && raw.endsWith('}')) {
       try {
         const parsed = JSON.parse(raw);
-        if (parsed.drone_id || parsed.id || parsed.serial) {
-          return String(parsed.drone_id || parsed.id || parsed.serial).trim();
+        if (parsed.drone_id || parsed.id || parsed.serial || parsed.serial_number) {
+          return String(parsed.drone_id || parsed.id || parsed.serial || parsed.serial_number).trim();
         }
       } catch {}
     }
-    // Case 2: URL like https://indofleet.com/drone/RPAV-700-01
+    // Case 2: URL like https://indo-fleet.vercel.app/drone/INW-700RPAV-0004
     if (raw.includes('/drone/')) {
       const parts = raw.split('/drone/');
-      if (parts[1]) return parts[1].split(/[?#&/]/)[0].trim();
+      if (parts[1]) {
+        try {
+          return decodeURIComponent(parts[1].split(/[?#&/]/)[0].trim());
+        } catch {
+          return parts[1].split(/[?#&/]/)[0].trim();
+        }
+      }
     }
     // Case 3: Prefixed format INDOFLEET:DRONE:RPAV-700-01
-    if (raw.includes(':')) {
+    if (raw.includes(':') && !raw.startsWith('http')) {
       const parts = raw.split(':');
       const last = parts[parts.length - 1];
       if (last) return last.trim();
@@ -355,15 +387,48 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     setMismatchError(null);
 
     // Normalization for comparison
-    const normScanned = extractedCode.toUpperCase().replace(/[^A-Z0-9-]/g, '');
-    const expectedList = getExpectedDroneIds();
+    const normScanned = extractedCode.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    let expectedList = getExpectedDroneIds();
+
+    // If expected list in memory is still empty, dynamically fetch active orders
+    if (expectedList.length === 0 && order?.id) {
+      try {
+        const fresh = await fetchPilotDashboard();
+        const found = (fresh.active_orders || []).find(
+          (o: any) => o.id === order.id || o.order_number === order.id
+        );
+        if (found) {
+          const freshSet = new Set<string>();
+          const addC = (val: any) => {
+            if (!val || typeof val !== 'string') return;
+            const s = val.trim();
+            const lower = s.toLowerCase();
+            if (lower.includes('@') || lower.includes('.com') || lower.includes('_com') || lower.includes('delivery')) return;
+            freshSet.add(s);
+          };
+          (found.reserved_inventory_ids || []).forEach(addC);
+          (found.assigned_drone_ids || []).forEach(addC);
+          (found.drones || []).forEach(addC);
+          if (found.assigned_drone_id) addC(found.assigned_drone_id);
+          if (found.drone_id) addC(found.drone_id);
+          expectedList = Array.from(freshSet);
+        }
+      } catch {}
+    }
 
     let matchedId: string | null = null;
 
     // 1. Direct comparison with order assigned / reserved drones
     for (const exp of expectedList) {
-      const normExp = exp.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+      const normExp = exp.toUpperCase().replace(/[^A-Z0-9]/g, '');
       if (normScanned === normExp || normScanned.includes(normExp) || normExp.includes(normScanned)) {
+        matchedId = exp;
+        break;
+      }
+      // Tail 4-digit unit check (e.g. 0004 from INW-700RPAV-0004 matches IW-700RPAV-2026-0004)
+      const scannedDigits = normScanned.match(/\d{4}$/)?.[0];
+      const expDigits = normExp.match(/\d{4}$/)?.[0];
+      if (scannedDigits && expDigits && scannedDigits === expDigits) {
         matchedId = exp;
         break;
       }
@@ -377,7 +442,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
           matchedId = verifyRes.drone_id || extractedCode;
         }
       } catch (backendErr: any) {
-        console.log('Drone order validation notice:', backendErr.message);
+        console.log('Drone order validation notice:', backendErr?.message);
       }
     }
 
@@ -410,6 +475,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
       setMismatchError({
         scanned: extractedCode,
         message: `Airframe "${extractedCode}" is not assigned to Order #${cleanOrderNumber}. It does not match any of the booked drones in this order.`,
+        expectedList,
       });
     }
   };
@@ -728,6 +794,13 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
                 <Text style={styles.mismatchValueScanned}>{mismatchError.scanned}</Text>
                 <Text style={styles.mismatchSubScanned}>❌ Did not match order requirements</Text>
               </View>
+              {mismatchError.expectedList && mismatchError.expectedList.length > 0 && (
+                <View style={[styles.mismatchBoxExpected, { flex: 1 }]}>
+                  <Text style={styles.mismatchLabel}>Expected in Order:</Text>
+                  <Text style={styles.mismatchValueExpected}>{mismatchError.expectedList.join(', ')}</Text>
+                  <Text style={styles.mismatchSubExpected}>✓ Scan any of these assigned drones</Text>
+                </View>
+              )}
             </View>
             <TouchableOpacity
               style={styles.mismatchResetBtn}

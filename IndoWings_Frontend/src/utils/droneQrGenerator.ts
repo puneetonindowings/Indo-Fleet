@@ -153,26 +153,69 @@ export async function downloadDronesAsZip(
  * Extracts and maps all drone objects associated with a specific order.
  * Works seamlessly whether an order has a single assigned drone or multiple reserved units.
  */
-const isValidDroneId = (val: any): boolean => {
+const isValidDroneId = (val: any, fleetList?: any[]): boolean => {
   if (!val || typeof val !== 'string') return false;
   const s = val.trim();
-  if (!s || s.length < 2) return false;
-  if (s.includes('@') || s.includes('.com') || s.includes('.app') || s.includes('http:') || s.includes('https:') || s.includes('/')) return false;
-  return true;
+  if (!s || s.length < 3) return false;
+
+  // Strict check: reject emails, URLs, web paths, delivery/pilot emails
+  if (
+    s.includes('@') ||
+    s.includes('.com') ||
+    s.includes('_com') ||
+    s.includes('.in') ||
+    s.includes('.app') ||
+    s.includes('.org') ||
+    s.includes('http:') ||
+    s.includes('https:') ||
+    s.includes('/') ||
+    s.includes('\\')
+  ) {
+    return false;
+  }
+
+  const lower = s.toLowerCase();
+  // Reject usernames, roles, vehicle plates
+  if (
+    lower.startsWith('delivery') ||
+    lower.startsWith('pilot') ||
+    lower.startsWith('user') ||
+    lower.startsWith('admin') ||
+    lower.startsWith('ind-dl') ||
+    lower.startsWith('dl-') ||
+    lower.startsWith('dl_') ||
+    lower === 'uav-sys-01' ||
+    lower === 'vehicle-01'
+  ) {
+    return false;
+  }
+
+  // If found in fleet database, it's valid
+  if (
+    fleetList &&
+    fleetList.some(
+      (d) =>
+        String(d.id || '').toLowerCase() === lower ||
+        String(d.serial_number || '').toLowerCase() === lower
+    )
+  ) {
+    return true;
+  }
+
+  // Standard drone identifier patterns (INW-, 700RPAV, UAV-, DRONE-, IW-)
+  if (/^(INW|IW|700RPAV|UAV|DRONE)[-_A-Z0-9]+/i.test(s)) return true;
+
+  // Monospace alphanumeric drone code (e.g. RPAV-01, 700-01)
+  if (/^[A-Z0-9]+[-_][A-Z0-9-]+$/i.test(s)) return true;
+
+  return false;
 };
 
 export function getDronesForOrder(order: any, fleetList?: any[]): DroneQRInfo[] {
   if (!order) return [];
   const ids = new Set<string>();
 
-  if (isValidDroneId(order.assigned_drone_id)) {
-    ids.add(order.assigned_drone_id.trim());
-  }
-  if (isValidDroneId(order.drone_id)) {
-    ids.add(order.drone_id.trim());
-  }
-
-  // Handle reserved_inventory_ids (can be array or JSON string)
+  // 1. First priority: Multiple reserved inventory units (exact booking allocation)
   let reserved = order.reserved_inventory_ids;
   if (typeof reserved === 'string') {
     try {
@@ -181,16 +224,34 @@ export function getDronesForOrder(order: any, fleetList?: any[]): DroneQRInfo[] 
       reserved = reserved.split(',').map((s: string) => s.trim());
     }
   }
-  if (Array.isArray(reserved)) {
+  if (Array.isArray(reserved) && reserved.length > 0) {
     reserved.forEach((item: any) => {
       const candidate = typeof item === 'string' ? item : item?.id;
-      if (isValidDroneId(candidate)) {
+      if (isValidDroneId(candidate, fleetList)) {
         ids.add(String(candidate).trim());
       }
     });
   }
 
-  // Handle order.items
+  // 2. Second priority: Explicit assigned_drone_ids array
+  let assignedIds = order.assigned_drone_ids;
+  if (typeof assignedIds === 'string') {
+    try {
+      assignedIds = JSON.parse(assignedIds);
+    } catch {
+      assignedIds = assignedIds.split(',').map((s: string) => s.trim());
+    }
+  }
+  if (Array.isArray(assignedIds) && assignedIds.length > 0) {
+    assignedIds.forEach((item: any) => {
+      const candidate = typeof item === 'string' ? item : item?.id;
+      if (isValidDroneId(candidate, fleetList)) {
+        ids.add(String(candidate).trim());
+      }
+    });
+  }
+
+  // 3. Fallback: Order items array (only if no reserved inventory was mapped)
   let items = order.items;
   if (typeof items === 'string') {
     try {
@@ -199,13 +260,21 @@ export function getDronesForOrder(order: any, fleetList?: any[]): DroneQRInfo[] 
       items = [];
     }
   }
-  if (Array.isArray(items)) {
+  if (Array.isArray(items) && ids.size === 0) {
     items.forEach((item: any) => {
-      if (isValidDroneId(item?.drone_id)) ids.add(String(item.drone_id).trim());
-      if (isValidDroneId(item?.id) && (String(item.id).startsWith('INW-') || String(item.id).startsWith('DRONE-') || String(item.id).startsWith('UAV-') || String(item.id).startsWith('IW-'))) {
-        ids.add(String(item.id).trim());
-      }
+      if (isValidDroneId(item?.drone_id, fleetList)) ids.add(String(item.drone_id).trim());
+      if (isValidDroneId(item?.id, fleetList)) ids.add(String(item.id).trim());
+      if (isValidDroneId(item?.serial_number, fleetList)) ids.add(String(item.serial_number).trim());
     });
+  }
+
+  // 4. Fallback ONLY if no multiple drones were found: single assigned_drone_id or drone_id
+  if (ids.size === 0) {
+    if (isValidDroneId(order.assigned_drone_id, fleetList)) {
+      ids.add(order.assigned_drone_id.trim());
+    } else if (isValidDroneId(order.drone_id, fleetList)) {
+      ids.add(order.drone_id.trim());
+    }
   }
 
   return Array.from(ids).map((id) => {
@@ -218,7 +287,7 @@ export function getDronesForOrder(order: any, fleetList?: any[]): DroneQRInfo[] 
       id,
       model: match?.model || match?.model_name || order.drone_model || order.model || '700 RPAV',
       model_name: match?.model_name || match?.model || order.drone_model || order.model || '700 RPAV',
-      serial_number: match?.serial_number || id
+      serial_number: match?.serial_number || id,
     };
   });
 }

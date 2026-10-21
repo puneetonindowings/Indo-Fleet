@@ -33,8 +33,8 @@ export const DeliveryAppPage: React.FC<DeliveryAppPageProps> = ({
   onLogout,
 }) => {
   const [release, setRelease] = useState<AppReleaseInfo>({
-    version: 'v1.1.7',
-    release_notes: 'IndoFleet v1.1.7 (Build 17): Multi-drone two-stage inspection (Hub Pre-Acceptance & Customer Handover), fleet-wide serial QR verification against booked orders, light theme UI overhaul, and live radar tracking maps.',
+    version: 'v1.1.8',
+    release_notes: 'IndoFleet v1.1.8 (Build 18): Error-proof QR airframe verification with instant local matching, exact order-drone allocation (strictly 2 QRs for 2 drones), and pure light-theme scanner UI.',
     android_url: 'https://expo.dev/artifacts/eas/8NdM80FyCbuKx_pfNlxdzm0wFkAz2aZwp4iyrE04jtA.apk',
     ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
     updated_at: new Date().toISOString(),

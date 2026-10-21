@@ -4992,12 +4992,18 @@ router.post('/pilot/accept-order', async (req, res) => {
       return;
     }
 
+    // Preserve actual drone airframe ID: DO NOT overwrite drone_id with pilot vehicle if order has reserved drones
+    const effectiveDroneId = (Array.isArray(order.reserved_inventory_ids) && order.reserved_inventory_ids.length > 0)
+      ? order.reserved_inventory_ids[0]
+      : (order.drone_id && !order.drone_id.includes('@') && !order.drone_id.includes('delivery') ? order.drone_id : finalPartnerVehicle);
+
     const updated = await fileDB.updateOrder(order_id, {
       pilot_acceptance_status: 'accepted',
       accepted_at: new Date().toISOString(),
       pilot_assigned: pilot_name || deliveryUser?.name || order.pilot_assigned || 'Delivery Partner',
       pilot_phone: deliveryUser?.phone || order.pilot_phone || '',
-      drone_id: finalPartnerVehicle,
+      drone_id: effectiveDroneId,
+      vehicle_id: finalPartnerVehicle,
       dl_id: finalPartnerDl
     });
 
@@ -5214,13 +5220,18 @@ router.post('/pilot/verify-handover-and-start-flight', async (req, res) => {
     }
 
     const now = new Date().toISOString();
+    const effectiveFlightDroneId = (Array.isArray(order.reserved_inventory_ids) && order.reserved_inventory_ids.length > 0)
+      ? order.reserved_inventory_ids[0]
+      : (order.drone_id && !order.drone_id.includes('@') && !order.drone_id.includes('delivery') ? order.drone_id : (vehicle_id || 'INW-700RPAV-0001'));
+
     const updated = await fileDB.updateOrder(order_id, {
       status: 'in-flight',
       location_is_live: true,
       dispatched_at: now,
       pilot_assigned: pilot_name || order.pilot_assigned || 'IndoFleet Pilot',
       pilot_phone: pilot_phone || order.pilot_phone || '',
-      drone_id: vehicle_id || order.drone_id || 'UAV-SYS-01',
+      drone_id: effectiveFlightDroneId,
+      vehicle_id: vehicle_id || order.vehicle_id || 'IND-DL-772',
       ...(initial_lat && initial_lng ? {
         last_known_location: `${initial_lat}, ${initial_lng}`,
         current_location_coords: { lat: initial_lat, lng: initial_lng }
@@ -5887,10 +5898,10 @@ router.post('/pilot/support-ticket', async (req, res) => {
 
 // 15. App Release Management (Get & Publish Releases + Email Delivery Partners)
 let activeAppRelease = {
-  version: 'v1.1.7',
-  build_number: 17,
+  version: 'v1.1.8',
+  build_number: 18,
   package_size: '~83 MB',
-  release_notes: 'IndoFleet v1.1.7 (Build 17): Multi-drone two-stage inspection (Hub Pre-Acceptance & Customer Handover), fleet-wide serial QR verification against booked orders, light theme UI overhaul, and live radar tracking maps.',
+  release_notes: 'IndoFleet v1.1.8 (Build 18): Error-proof QR airframe verification with instant local matching, exact order-drone allocation (strictly 2 QRs for 2 drones), and pure light-theme scanner UI.',
   android_url: 'https://expo.dev/artifacts/eas/8NdM80FyCbuKx_pfNlxdzm0wFkAz2aZwp4iyrE04jtA.apk',
   ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
   updated_at: new Date().toISOString()
