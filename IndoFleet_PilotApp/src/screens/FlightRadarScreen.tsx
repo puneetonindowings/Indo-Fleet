@@ -429,7 +429,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     .gmap-eta-badge {
       position: absolute;
       top: 10px;
-      left: 10px;
+      left: 52px;
       z-index: 999;
       background: rgba(15, 23, 42, 0.92);
       color: #FFFFFF;
