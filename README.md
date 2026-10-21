@@ -1,10 +1,10 @@
 # Indo-Fleet
 
-### 📲 Latest Pilot / Delivery Android App (v1.1.9 Production Build 19)
-> **Direct APK Download:** **[⬇️ Download IndoFleet Delivery v1.1.9 APK](https://expo.dev/artifacts/eas/M-Za3pWi-ZageaWq6gSA00M0wYa5maSz_tHeiKeBp1c.apk)**  
-> **EAS Build Page:** **[🚀 View Build 19 on Expo](https://expo.dev/accounts/puneet-indowingss-team/projects/indofleet-delivery/builds/4cd62e6d-6eae-4d3a-a5df-a42775d4cf54)**  
-> **GitHub Release Tag:** **[📦 View Release v1.1.9 on GitHub](https://github.com/puneetonindowings/Indo-Fleet/releases/tag/v1.1.9)**  
-> *(Build ID: 4cd62e6d-6eae-4d3a-a5df-a42775d4cf54 — VersionCode 19)*
+### 📲 Latest Pilot / Delivery Android App (v1.2.0 Production Build 20)
+> **Direct APK Download:** **[⬇️ Download IndoFleet Delivery v1.2.0 APK](https://expo.dev/artifacts/eas/ky_DWar8qpMmInwY2aYzMC9ZibSC48cc5GJcsAbt-bA.apk)**  
+> **EAS Build Page:** **[🚀 View Build 20 on Expo](https://expo.dev/accounts/puneet-indowingss-team/projects/indofleet-delivery/builds/c5897df6-6078-42c5-ac8e-dd12aca51fa5)**  
+> **GitHub Release Tag:** **[📦 View Release v1.2.0 on GitHub](https://github.com/puneetonindowings/Indo-Fleet/releases/tag/v1.2.0)**  
+> *(Build ID: c5897df6-6078-42c5-ac8e-dd12aca51fa5 — VersionCode 20)*
 
 Indo-Fleet is the workspace for the IndoFleet frontend and backend applications.
 

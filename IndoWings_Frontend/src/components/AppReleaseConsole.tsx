@@ -14,12 +14,12 @@ import {
 import { API_BASE_URL } from '../config/api';
 
 export const AppReleaseConsole: React.FC = () => {
-  const [version, setVersion] = useState('v1.1.9');
+  const [version, setVersion] = useState('v1.2.0');
   const [releaseNotes, setReleaseNotes] = useState(
-    'IndoFleet v1.1.9 (Build 19): Direct camera shutter trigger, transparent HUD reticle viewfinder, responsive order card badges, and full multi-stage depot & delivery airframe inspection.'
+    'IndoFleet v1.2.0 (Build 20): Permanent drone inspection persistence to Supabase, verified multi-session state sync, zero Hindi UI, transparent HUD reticle viewfinder, and animated navigation tabs.'
   );
   const [androidUrl, setAndroidUrl] = useState(
-    'https://expo.dev/artifacts/eas/M-Za3pWi-ZageaWq6gSA00M0wYa5maSz_tHeiKeBp1c.apk'
+    'https://expo.dev/artifacts/eas/ky_DWar8qpMmInwY2aYzMC9ZibSC48cc5GJcsAbt-bA.apk'
   );
   const [iosUrl, setIosUrl] = useState(
     'https://testflight.apple.com/join/IndoFleetDeliveryApp'
