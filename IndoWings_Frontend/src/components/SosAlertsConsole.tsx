@@ -85,8 +85,41 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
     setResolveNotes('');
   };
 
+  // Play Web Audio Beep / Siren Alarm + Voice Dispatch Readout
+  const playEmergencyTone = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    } catch (e) {
+      console.warn('Tone notice:', e);
+    }
+  };
+
+  const formatAudioUri = (raw?: string | null): string => {
+    if (!raw) return '';
+    if (raw.startsWith('data:audio') || raw.startsWith('blob:') || raw.startsWith('http')) {
+      return raw;
+    }
+    // Default to mp4 audio data URI for expo-audio recorded blobs
+    return `data:audio/mp4;base64,${raw}`;
+  };
+
   // Text-to-Speech Voice Dispatch Readout
   const handlePlayVoiceDispatch = (alert: SosAlertItem) => {
+    playEmergencyTone();
+
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
     if (speakingId === alert.id) {
@@ -101,9 +134,18 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
 
+    // Prevent garbage collection bug in Chrome
+    (window as any)._activeSosUtterance = utterance;
+
     utterance.onstart = () => setSpeakingId(alert.id);
-    utterance.onend = () => setSpeakingId(null);
-    utterance.onerror = () => setSpeakingId(null);
+    utterance.onend = () => {
+      setSpeakingId(null);
+      (window as any)._activeSosUtterance = null;
+    };
+    utterance.onerror = () => {
+      setSpeakingId(null);
+      (window as any)._activeSosUtterance = null;
+    };
 
     window.speechSynthesis.speak(utterance);
   };
@@ -462,35 +504,34 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
-                    {alert.audio_base64 ? (
+                  <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+                    {alert.audio_base64 && (
                       <audio
                         controls
-                        src={alert.audio_base64}
-                        className="w-full sm:w-64 h-8 accent-[#5a00b8]"
+                        src={formatAudioUri(alert.audio_base64)}
+                        className="w-full sm:w-56 h-8 accent-[#5a00b8]"
                       />
-                    ) : (
-                      <button
-                        onClick={() => handlePlayVoiceDispatch(alert)}
-                        className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
-                          isSpeaking
-                            ? 'bg-red-600 text-white shadow-md shadow-red-500/20'
-                            : 'bg-[#5a00b8] hover:bg-[#480094] text-white shadow-md shadow-purple-500/20'
-                        }`}
-                      >
-                        {isSpeaking ? (
-                          <>
-                            <Pause className="w-3.5 h-3.5" />
-                            <span>Stop Audio Readout</span>
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-3.5 h-3.5" />
-                            <span>Listen to Voice Dispatch</span>
-                          </>
-                        )}
-                      </button>
                     )}
+                    <button
+                      onClick={() => handlePlayVoiceDispatch(alert)}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                        isSpeaking
+                          ? 'bg-red-600 text-white shadow-md shadow-red-500/20'
+                          : 'bg-[#5a00b8] hover:bg-[#480094] text-white shadow-md shadow-purple-500/20'
+                      }`}
+                    >
+                      {isSpeaking ? (
+                        <>
+                          <Pause className="w-3.5 h-3.5" />
+                          <span>Stop Readout</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-3.5 h-3.5" />
+                          <span>Voice Dispatch</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
 

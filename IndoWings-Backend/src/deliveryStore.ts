@@ -800,6 +800,8 @@ export const deliveryStore = {
       overall_inspection: inspection.overall_inspection || 'PASSED',
       remarks: inspection.remarks || '',
       photo_references: Array.isArray(inspection.photo_references) ? inspection.photo_references : [],
+      video_references: Array.isArray(inspection.video_references) ? inspection.video_references : [],
+      media_evidence: Array.isArray(inspection.media_evidence) ? inspection.media_evidence : [],
       inspected_at: inspection.inspected_at || now,
       inspected_by: inspection.inspected_by || 'system',
       inspector_name: inspection.inspector_name || (isDeliveryPerson ? 'Delivery Partner' : 'Operations Inspector'),

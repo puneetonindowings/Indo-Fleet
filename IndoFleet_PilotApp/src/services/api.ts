@@ -444,6 +444,9 @@ export async function submitPostDeliveryInspection(payload: {
   landing_gear_condition?: string;
   overall_inspection: string;
   remarks?: string;
+  photo_references?: string[];
+  video_references?: string[];
+  media_evidence?: { type: 'image' | 'video'; uri: string; name?: string }[];
 }): Promise<any> {
   const baseUrl = await getServerUrl();
   const res = await fetch(`${baseUrl}/api/delivery/inspections`, {

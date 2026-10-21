@@ -62,6 +62,8 @@ export interface DeliveryOrder {
   assigned_by_name?: string;
   assigned_by_role?: string;
   assigned_at?: string;
+  pilot_email?: string;
+  pilot_phone?: string;
   pilot_acceptance_status?: 'pending_acceptance' | 'accepted';
   pilot_acceptance_otp?: string;
   last_known_location?: string | null;

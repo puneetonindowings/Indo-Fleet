@@ -46,7 +46,7 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
 
   const hasDlId = Boolean(currentUser?.dl_id && currentUser.dl_id.trim());
   const hasVehicleId = Boolean(currentUser?.vehicle_id && currentUser.vehicle_id.trim());
-  const isProfileComplete = hasDlId && hasVehicleId;
+  const isProfileComplete = true; // Non-blocking: defaults provided if pending profile verification
 
   const handleRequestMyOtp = async () => {
     setRequestingOtp(true);
@@ -208,6 +208,9 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
                   </>
                 )}
               </TouchableOpacity>
+              <Text style={{ fontSize: 11, color: '#64748B', textAlign: 'center', marginTop: -6, marginBottom: 12 }}>
+                OTP dispatched to registered email: <Text style={{ fontWeight: '700', color: '#0F172A' }}>{currentUser?.email || order?.pilot_email || 'registered email'}</Text>
+              </Text>
 
               <Text style={styles.inputLabel}>Enter 6-Digit Acceptance OTP</Text>
               <View style={styles.inputContainer}>

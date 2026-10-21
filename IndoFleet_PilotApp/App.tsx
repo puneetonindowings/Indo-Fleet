@@ -27,6 +27,7 @@ import { FlightRadarScreen } from './src/screens/FlightRadarScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { SupportScreen } from './src/screens/SupportScreen';
 import { OrderHistoryScreen } from './src/screens/OrderHistoryScreen';
+import { InspectionScreen } from './src/screens/InspectionScreen';
 import { NotFoundScreen } from './src/screens/NotFoundScreen';
 
 import {
@@ -501,16 +502,16 @@ function MainApp() {
     setActiveScreen('dashboard');
     await loadDashboardData();
 
-    // Prompt for Post-Delivery Airframe Inspection (700 RPAV Quality Standard)
+    // Transition to dedicated Full-Screen Airframe Inspection (700 RPAV Standard)
     if (targetOrder) {
       setInspectionOrder(targetOrder);
-      setInspectionModalOpen(true);
+      setActiveScreen('inspection');
     }
   };
 
   const handleOpenInspection = (order?: DeliveryOrder) => {
     setInspectionOrder(order || selectedOrder || (orders.length > 0 ? orders[0] : null));
-    setInspectionModalOpen(true);
+    setActiveScreen('inspection');
   };
 
   // If not logged in, render Login Screen
@@ -602,11 +603,23 @@ function MainApp() {
 
         {activeScreen === 'support' && <SupportScreen user={currentUser} />}
 
+        {activeScreen === 'inspection' && (
+          <InspectionScreen
+            order={inspectionOrder || selectedOrder}
+            pilotUser={currentUser}
+            onBack={() => setActiveScreen('dashboard')}
+            onSuccess={() => {
+              setActiveScreen('dashboard');
+              loadDashboardData();
+            }}
+          />
+        )}
+
         {activeScreen === '404' && (
           <NotFoundScreen onNavigate={(screen) => setActiveScreen(screen)} />
         )}
 
-        {!['dashboard', 'history', 'radar', 'profile', 'support', 'sos', '404'].includes(activeScreen) && (
+        {!['dashboard', 'history', 'radar', 'profile', 'support', 'sos', 'inspection', '404'].includes(activeScreen) && (
           <NotFoundScreen onNavigate={(screen) => setActiveScreen(screen)} />
         )}
 
@@ -669,6 +682,11 @@ function MainApp() {
         currentCoords={currentCoords}
         onClose={() => setPodModalOpen(false)}
         onDelivered={handlePodDelivered}
+        onOpenFullScreenInspection={() => {
+          setPodModalOpen(false);
+          setInspectionOrder(selectedOrder);
+          setActiveScreen('inspection');
+        }}
       />
 
       <SosModal

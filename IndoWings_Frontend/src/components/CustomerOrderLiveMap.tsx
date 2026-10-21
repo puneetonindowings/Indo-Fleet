@@ -113,36 +113,50 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
   const isPending = order?.status === 'pending';
   const isActiveInFlight = ['in-flight', 'in-transit', 'taking-off', 'approaching', 'out-for-delivery', 'assigned'].includes(order?.status);
 
+  // Helper to extract live coordinates robustly across formats (numbers, objects, comma-separated strings)
+  const extractVehicleCoords = (o: any): [number, number] | null => {
+    if (!o) return null;
+    const cLng = Number(o.current_lng ?? o.pilot_lng ?? o.longitude);
+    const cLat = Number(o.current_lat ?? o.pilot_lat ?? o.latitude);
+    if (Number.isFinite(cLng) && Number.isFinite(cLat) && (cLng !== 0 || cLat !== 0)) {
+      return [cLng, cLat];
+    }
+    const loc = o.last_known_location || o.current_location_coords || o.live_location;
+    if (loc && typeof loc === 'object') {
+      const lng = Number(loc.lng ?? loc.longitude);
+      const lat = Number(loc.lat ?? loc.latitude);
+      if (Number.isFinite(lng) && Number.isFinite(lat) && (lng !== 0 || lat !== 0)) {
+        return [lng, lat];
+      }
+    }
+    if (typeof loc === 'string') {
+      const parts = loc.split(',').map((s: string) => parseFloat(s.trim()));
+      if (parts.length >= 2 && Number.isFinite(parts[0]) && Number.isFinite(parts[1])) {
+        let lat = parts[0];
+        let lng = parts[1];
+        if (lat > 60 && lng < 40) {
+          const tmp = lat; lat = lng; lng = tmp;
+        }
+        return [lng, lat];
+      }
+    }
+    return null;
+  };
+
   const hasRealLiveGps = useMemo(() => {
-    const loc = order?.last_known_location || order?.current_location_coords || order?.live_location;
-    if (typeof loc === 'object' && loc !== null && Number.isFinite(loc.lng) && Number.isFinite(loc.lat)) {
-      return true;
-    }
-    if (Number.isFinite(order?.current_lng) && Number.isFinite(order?.current_lat)) {
-      return true;
-    }
-    if (Number.isFinite(order?.pilot_lng) && Number.isFinite(order?.pilot_lat)) {
-      return true;
-    }
-    return false;
-  }, [order?.last_known_location, order?.current_location_coords, order?.live_location, order?.current_lng, order?.current_lat, order?.pilot_lng, order?.pilot_lat]);
+    return Boolean(extractVehicleCoords(order));
+  }, [order]);
 
   const currentVehicleCoords: [number, number] | null = useMemo(() => {
     if (isDelivered && dropCoords) return dropCoords;
     if ((isCancelled || isPending) && pickupCoords) return pickupCoords;
 
-    const loc = order?.last_known_location || order?.current_location_coords || order?.live_location;
-    if (typeof loc === 'object' && loc !== null && Number.isFinite(loc.lng) && Number.isFinite(loc.lat)) {
-      return [Number(loc.lng), Number(loc.lat)];
-    }
-    if (Number.isFinite(order?.current_lng) && Number.isFinite(order?.current_lat)) {
-      return [Number(order.current_lng), Number(order.current_lat)];
-    }
-    if (Number.isFinite(order?.pilot_lng) && Number.isFinite(order?.pilot_lat)) {
-      return [Number(order.pilot_lng), Number(order.pilot_lat)];
+    const extracted = extractVehicleCoords(order);
+    if (extracted) {
+      return extracted;
     }
     return pickupCoords;
-  }, [order?.last_known_location, order?.current_location_coords, order?.live_location, order?.current_lng, order?.current_lat, order?.pilot_lng, order?.pilot_lat, isCancelled, isDelivered, isPending, pickupCoords, dropCoords]);
+  }, [order, isCancelled, isDelivered, isPending, pickupCoords, dropCoords]);
 
   // 2. Fetch Real Road-by-Road Route from OSRM
   const [roadCoordinates, setRoadCoordinates] = useState<[number, number][]>([]);

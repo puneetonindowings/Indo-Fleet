@@ -48,6 +48,7 @@ interface CustomerDeliveryPodModalProps {
   currentCoords?: { latitude: number; longitude: number } | null;
   onClose: () => void;
   onDelivered: (completedOrder: DeliveryOrder) => void;
+  onOpenFullScreenInspection?: () => void;
 }
 
 export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> = ({
@@ -57,6 +58,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
   currentCoords,
   onClose,
   onDelivered,
+  onOpenFullScreenInspection,
 }) => {
   // Pre-Handover Airframe & Zero-Defect Inspection State (Step 1 - Mandatory)
   const existingInspection = Boolean(
@@ -359,6 +361,16 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                         <Check size={14} color="#059669" />
                         <Text style={{ fontSize: 11, fontWeight: '700', color: '#059669' }}>Physical QR Scanned &amp; Verified on Consignment</Text>
                       </View>
+                      {onOpenFullScreenInspection && (
+                        <TouchableOpacity
+                          onPress={onOpenFullScreenInspection}
+                          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#5a00b8', paddingVertical: 10, borderRadius: 10, marginTop: 8 }}
+                          activeOpacity={0.85}
+                        >
+                          <Camera size={14} color="#FFFFFF" />
+                          <Text style={{ fontSize: 11, fontWeight: '800', color: '#FFFFFF' }}>Open Full-Screen Photo &amp; Video Inspection</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
 

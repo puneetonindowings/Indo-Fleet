@@ -68,8 +68,17 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
         const data = await res.json();
         const list = data.orders || [];
         setOrders(list);
-        if (list.length > 0 && !selectedOrder) {
-          setSelectedOrder(list[0]);
+        if (list.length > 0) {
+          setSelectedOrder((prev: any) => {
+            if (!prev) return list[0];
+            const updated = list.find((o: any) => o.id === prev.id);
+            return updated || prev;
+          });
+          setFullScreenOrder((prev: any) => {
+            if (!prev) return null;
+            const updated = list.find((o: any) => o.id === prev.id);
+            return updated || prev;
+          });
         }
       }
     } catch (err) {
@@ -82,6 +91,8 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
 
   useEffect(() => {
     fetchOrders();
+    const interval = setInterval(fetchOrders, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   // Filtered Orders List

@@ -19,7 +19,10 @@ import {
   ExternalLink,
   ChevronRight,
   Eye,
-  FileText
+  FileText,
+  Camera,
+  Video,
+  X
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 import { DeliveryUser } from '../types';
@@ -43,7 +46,9 @@ interface InspectionLog {
   ready_for_next_sortie?: boolean;
   overall_inspection: string; // 'PASSED' | 'FAILED' | 'PENDING'
   remarks?: string;
-  photo_references?: string[];
+  photo_references?: any[];
+  video_references?: any[];
+  media_evidence?: { type: 'image' | 'video'; uri: string; name?: string }[];
   inspected_by?: string;
   inspector_name?: string;
   inspector_role?: string;
@@ -70,6 +75,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
   const [statusFilter, setStatusFilter] = useState<'all' | 'passed' | 'defect'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeLogDetail, setActiveLogDetail] = useState<InspectionLog | null>(null);
+  const [previewMedia, setPreviewMedia] = useState<{ type: 'image' | 'video'; url: string } | null>(null);
 
   const token = localStorage.getItem('iw_delivery_token') || '';
   const authHeaders = { Authorization: `Bearer ${token}` };
@@ -492,12 +498,107 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                       </p>
                     </div>
                   )}
+
+                  {/* Photo & Video Evidence Gallery */}
+                  {(() => {
+                    const photos: string[] = [];
+                    const videos: string[] = [];
+
+                    if (Array.isArray(item.photo_references)) {
+                      item.photo_references.forEach((p: any) => {
+                        const uri = typeof p === 'string' ? p : (p?.url || p?.uri || '');
+                        if (uri) photos.push(uri);
+                      });
+                    }
+                    if (Array.isArray(item.video_references)) {
+                      item.video_references.forEach((v: any) => {
+                        const uri = typeof v === 'string' ? v : (v?.url || v?.uri || '');
+                        if (uri) videos.push(uri);
+                      });
+                    }
+                    if (Array.isArray(item.media_evidence)) {
+                      item.media_evidence.forEach((m: any) => {
+                        if (m?.type === 'video' && m?.uri) videos.push(m.uri);
+                        else if (m?.uri) photos.push(m.uri);
+                      });
+                    }
+
+                    if (photos.length === 0 && videos.length === 0) return null;
+
+                    return (
+                      <div className="mt-3 pt-3 border-t border-slate-200/60">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                            Inspection Media Evidence
+                          </span>
+                          <span className="text-[10px] font-black bg-purple-100 text-[#5a00b8] px-2 py-0.5 rounded-full">
+                            {photos.length > 0 && `${photos.length} Photo${photos.length > 1 ? 's' : ''}`}
+                            {photos.length > 0 && videos.length > 0 && ' · '}
+                            {videos.length > 0 && `${videos.length} Video${videos.length > 1 ? 's' : ''}`}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-3 overflow-x-auto pb-2">
+                          {photos.map((src, idx) => (
+                            <div
+                              key={`img-${idx}`}
+                              onClick={() => setPreviewMedia({ type: 'image', url: src })}
+                              className="group relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shrink-0 cursor-pointer shadow-xs hover:border-[#5a00b8] transition-all"
+                            >
+                              <img src={src} alt="Inspection proof" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors flex items-center justify-center">
+                                <Camera className="w-4 h-4 text-white opacity-80 group-hover:opacity-100" />
+                              </div>
+                            </div>
+                          ))}
+
+                          {videos.map((src, idx) => (
+                            <div
+                              key={`vid-${idx}`}
+                              onClick={() => setPreviewMedia({ type: 'video', url: src })}
+                              className="group relative w-28 h-20 rounded-xl overflow-hidden border border-purple-200 bg-slate-900 shrink-0 cursor-pointer shadow-xs hover:border-[#5a00b8] transition-all flex items-center justify-center"
+                            >
+                              <Video className="w-6 h-6 text-purple-400 group-hover:scale-110 transition-transform" />
+                              <div className="absolute bottom-1 right-1 bg-black/70 text-white text-[9px] font-mono px-1.5 py-0.5 rounded">
+                                VIDEO
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             );
           })
         )}
       </div>
+
+      {/* Media Lightbox Modal */}
+      {previewMedia && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/20 rounded-2xl max-w-2xl w-full p-4 relative shadow-2xl">
+            <button
+              onClick={() => setPreviewMedia(null)}
+              className="absolute top-3 right-3 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="text-white text-xs font-bold mb-3 flex items-center gap-2">
+              {previewMedia.type === 'video' ? <Video className="w-4 h-4 text-purple-400" /> : <Camera className="w-4 h-4 text-purple-400" />}
+              <span>Inspection Evidence Preview ({previewMedia.type.toUpperCase()})</span>
+            </div>
+            <div className="flex items-center justify-center max-h-[75vh] overflow-hidden rounded-xl bg-black">
+              {previewMedia.type === 'video' ? (
+                <video src={previewMedia.url} controls autoPlay className="max-h-[70vh] w-full rounded-xl" />
+              ) : (
+                <img src={previewMedia.url} alt="Full inspection evidence" className="max-h-[70vh] w-auto object-contain rounded-xl" />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
