@@ -1,30 +1,33 @@
 # IndoFleet Delivery Mobile App - Android Releases
 
-## Latest Release: v1.1.8 (Error-Proof Drone QR Verification, Resilient Multi-Drone Matching & Exact QR Allocation)
+## Latest Release: v1.1.9 (Permanent Database Persistence, Zero Hindi UI, Professional English Templates & Camera HUD Reticle)
 
-- **Version:** 1.1.8 (Build Code 18)
+- **Version:** 1.1.9 (Build Code 19)
 - **Date:** October 21, 2026
 - **Architecture:** Android (arm64-v8a, armeabi-v7a, x86_64)
 
 ### Direct Download Links:
-1. **Direct High-Speed Expo CDN:** [Download IndoFleet v1.1.8 Release APK](https://expo.dev/artifacts/eas/8NdM80FyCbuKx_pfNlxdzm0wFkAz2aZwp4iyrE04jtA.apk)
-2. **GitHub Release Tag:** [GitHub Release v1.1.8](https://github.com/puneetonindowings/Indo-Fleet/releases/tag/v1.1.8)
-3. **Repository Binary:** [`releases/IndoFleet_Delivery_latest.apk`](./IndoFleet_Delivery_latest.apk)
+1. **Direct High-Speed Expo CDN:** [Download IndoFleet v1.1.9 Release APK](https://expo.dev/artifacts/eas/M-Za3pWi-ZageaWq6gSA00M0wYa5maSz_tHeiKeBp1c.apk)
+2. **EAS Build Dashboard:** [IndoFleet Delivery v1.1.9 Build 19](https://expo.dev/accounts/puneet-indowingss-team/projects/indofleet-delivery/builds/4cd62e6d-6eae-4d3a-a5df-a42775d4cf54)
+3. **GitHub Release Tag:** [GitHub Release v1.1.9](https://github.com/puneetonindowings/Indo-Fleet/releases/tag/v1.1.9)
 
-### What Was Fixed & Added in v1.1.8:
-- **Error-Proof Airframe QR Validation (Zero Mismatch Failures):**
-  - Scanned QR codes now extract Clean Drone IDs regardless of formatting: raw airframe serials (`INW-700RPAV-0004`), manufacturing serials (`IW-700RPAV-2026-0004`), URLs (`https://.../drone/INW-700RPAV-0004`), or JSON payloads.
-  - Multi-tier matching logic: immediate zero-latency local matching against order's reserved drones, intelligent 4-digit unit index matching (`0004`), dynamic live order refresh fallback, and backend fleet resolution.
-  - Safe error handling: non-JSON responses from cold servers do not cause parsing crashes.
-- **Strict Order Drone Allocation (Exact 2 QRs for 2-Drone Order):**
-  - Eliminated phantom 3rd QR code generation caused by pilot vehicles/emails polluting order drone fields.
-  - Multi-drone orders now strictly output the exact booked drones in the downloaded QR ZIP (e.g. 2 drones = exactly 2 QRs).
-- **Pure Light Theme Scanner UI:**
-  - Viewfinder, camera cards, reticle guides, and mismatch warning cards styled in high-contrast light theme with crisp borders and clean typography.
+### What Was Fixed & Added in v1.1.9:
+- **Bulletproof DB Persistence for Drone Verifications & Inspections:**
+  - Resolved serialization bug in `deliveryStore.ts` where inspected drone IDs were omitted from top-level order columns.
+  - Multi-stage inspections (Hub Pre-Acceptance, In-Flight Transit, Customer Delivery) now permanently persist to Supabase PostgreSQL.
+  - Retains verified status across phone restarts, cache clears, and browser sessions.
+- **Zero Hindi & 100% Professional Corporate English:**
+  - Removed all Devanagari subtitles and parentheses across inspection consoles and action triggers.
+  - Rewrote transactional email copy (including account provisioning and OTP verification) to corporate enterprise English.
+- **Enhanced Camera Viewfinder & Reticle Alignment:**
+  - Replaced milky-white overlay with a transparent HUD reticle with emerald corner targets.
+  - Fixed mobile browser shutter integration (`accept="image/*" capture="environment"`).
+  - Responsive order cards with flex wrapping preventing badge overflow.
 
 ---
 
 ## Previous Builds:
+- **v1.1.8 (Build 18):** [Download IndoFleet v1.1.8 APK](https://expo.dev/artifacts/eas/8NdM80FyCbuKx_pfNlxdzm0wFkAz2aZwp4iyrE04jtA.apk)
 - **v1.1.7 (Build 17):** [Download IndoFleet v1.1.7 APK](https://expo.dev/artifacts/eas/8NdM80FyCbuKx_pfNlxdzm0wFkAz2aZwp4iyrE04jtA.apk)
 - **v1.1.5 (Build 15):** [Download IndoFleet v1.1.5 APK](https://expo.dev/artifacts/eas/RM4izCdJkVINYAKjKwzUUQQzv7p4yPdKeI-Pl_sJNB4.apk)
 - **v1.1.4 (Build 14):** [Download IndoFleet v1.1.4 APK](https://expo.dev/artifacts/eas/cIUHLk91xKvnC-lJZ15FT4bnqr_DT3Ezbs9y-bsj58o.apk)
