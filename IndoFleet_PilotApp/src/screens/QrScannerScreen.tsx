@@ -309,29 +309,35 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
         img.crossOrigin = 'anonymous';
         img.onload = () => {
           try {
-            const canvas = document.createElement('canvas');
-            const maxDim = 800;
-            let w = img.width;
-            let h = img.height;
-            if (w > maxDim || h > maxDim) {
-              if (w > h) {
-                h = Math.round((h * maxDim) / w);
-                w = maxDim;
-              } else {
-                w = Math.round((w * maxDim) / h);
-                h = maxDim;
-              }
+            // Pass 1: Native Image Scale
+            const canvas1 = document.createElement('canvas');
+            canvas1.width = img.width;
+            canvas1.height = img.height;
+            const ctx1 = canvas1.getContext('2d');
+            if (ctx1) {
+              ctx1.drawImage(img, 0, 0, img.width, img.height);
+              const data1 = ctx1.getImageData(0, 0, img.width, img.height);
+              const code1 = jsQR(data1.data, data1.width, data1.height, {
+                inversionAttempts: 'attemptBoth',
+              });
+              if (code1?.data) return resolve(code1.data.trim());
             }
-            canvas.width = w;
-            canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return resolve(null);
-            ctx.drawImage(img, 0, 0, w, h);
-            const imgData = ctx.getImageData(0, 0, w, h);
-            const code = jsQR(imgData.data, imgData.width, imgData.height, {
-              inversionAttempts: 'attemptBoth',
-            });
-            resolve(code?.data ? code.data.trim() : null);
+
+            // Pass 2: Normalized 600x600 Scale (High tolerance for centered logo badges)
+            const canvas2 = document.createElement('canvas');
+            canvas2.width = 600;
+            canvas2.height = 600;
+            const ctx2 = canvas2.getContext('2d');
+            if (ctx2) {
+              ctx2.drawImage(img, 0, 0, 600, 600);
+              const data2 = ctx2.getImageData(0, 0, 600, 600);
+              const code2 = jsQR(data2.data, data2.width, data2.height, {
+                inversionAttempts: 'attemptBoth',
+              });
+              if (code2?.data) return resolve(code2.data.trim());
+            }
+
+            resolve(null);
           } catch (e) {
             resolve(null);
           }
@@ -483,6 +489,35 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
   // Take photo of drone QR with phone camera
   const handleTakePhotoScan = async () => {
     try {
+      if (Platform.OS === 'web') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.setAttribute('capture', 'environment');
+        input.onchange = async (e: any) => {
+          const file = e.target?.files?.[0];
+          if (!file) return;
+          const url = URL.createObjectURL(file);
+          setIsVerifying(true);
+          const decoded = await decodeQrFromUri(url);
+          setIsVerifying(false);
+          if (decoded) {
+            handleValidateScannedCode(decoded);
+          } else {
+            Alert.alert(
+              'QR Not Recognized',
+              'Could not clearly detect a QR code in the captured photo. Please try uploading the image or entering the Drone ID manually.',
+              [
+                { text: 'Try Again', onPress: handleTakePhotoScan },
+                { text: 'Enter ID Manually', onPress: () => setShowManualInput(true) },
+              ]
+            );
+          }
+        };
+        input.click();
+        return;
+      }
+
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Camera Permission Required', 'Please enable camera access to scan QR code.');
@@ -523,6 +558,30 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
   // Upload QR photo from gallery
   const handleUploadPhotoScan = async () => {
     try {
+      if (Platform.OS === 'web') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (e: any) => {
+          const file = e.target?.files?.[0];
+          if (!file) return;
+          const url = URL.createObjectURL(file);
+          setIsVerifying(true);
+          const decoded = await decodeQrFromUri(url);
+          setIsVerifying(false);
+          if (decoded) {
+            handleValidateScannedCode(decoded);
+          } else {
+            Alert.alert(
+              'QR Not Found',
+              'No QR code detected in this image. Please select a clear picture of the drone airframe QR sticker.'
+            );
+          }
+        };
+        input.click();
+        return;
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: false,
@@ -595,6 +654,20 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
               <Text style={styles.webcamNoticeTitle}>No Hardware Camera Detected</Text>
               <Text style={styles.webcamNoticeDesc}>{cameraError}</Text>
             </View>
+            <TouchableOpacity
+              onPress={startCamera}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                backgroundColor: '#FEF3C7',
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#FDE68A',
+                alignSelf: 'center',
+              }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: '800', color: '#B45309' }}>Retry</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -672,21 +745,12 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
               </div>
             )}
 
-            {/* Dark optical viewfinder backdrop (shown only before camera starts) */}
-            <View
-              style={[
-                styles.cameraPlaceholder,
-                {
-                  zIndex:
-                    (Platform.OS === 'web' && cameraActive) ||
-                    (Platform.OS !== 'web' && cameraPermission?.granted)
-                      ? 0
-                      : 2,
-                },
-              ]}
-            >
-              <View style={styles.simulatedGrid} />
-            </View>
+            {/* Optical viewfinder backdrop (shown only before camera starts) */}
+            {!cameraActive && !(Platform.OS !== 'web' && cameraPermission?.granted) && (
+              <View style={[styles.cameraPlaceholder, { zIndex: 2 }]}>
+                <View style={styles.simulatedGrid} />
+              </View>
+            )}
 
             {/* Viewfinder Top HUD */}
             <View style={[styles.scannerTopHud, { zIndex: 12 }]}>
@@ -756,7 +820,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
                       <ActivityIndicator size="large" color="#7C3AED" />
                       <Text style={[styles.activeScanningText, { color: '#6D28D9' }]}>Verifying Airframe QR...</Text>
                     </View>
-                  ) : (
+                  ) : !cameraActive ? (
                     <View style={styles.activeScanningWrap}>
                       <View style={styles.qrTargetCircle}>
                         <QrCode size={40} color="#A855F7" />
@@ -764,7 +828,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
                       <Text style={styles.activeScanningText}>Align Drone QR Within Frame</Text>
                       <Text style={styles.activeScanningSub}>Point camera at physical drone sticker</Text>
                     </View>
-                  )}
+                  ) : null}
                 </View>
               </View>
             </View>
@@ -820,9 +884,9 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
           {/* Order Details Card (Only Order info, NO pre-revealed drone ID) */}
           <View style={styles.orderCard}>
             <View style={styles.orderCardHeader}>
-              <View>
+              <View style={{ flex: 1, minWidth: 140, marginRight: 6 }}>
                 <Text style={styles.orderLabel}>DELIVERY DISPATCH ORDER</Text>
-                <Text style={styles.orderValue}>Order #{cleanOrderNumber}</Text>
+                <Text style={styles.orderValue} numberOfLines={1} ellipsizeMode="tail">Order #{cleanOrderNumber}</Text>
               </View>
               <View style={styles.statusPill}>
                 <Text style={styles.statusPillText}>Awaiting Airframe Match</Text>
@@ -1102,9 +1166,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.65)',
-    borderWidth: 1,
-    borderColor: 'rgba(124, 58, 237, 0.25)',
+    backgroundColor: 'transparent',
+    borderWidth: 0,
   },
   reticleBoxSuccess: {
     borderColor: '#10B981',
@@ -1346,6 +1409,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    overflow: 'hidden',
     shadowColor: '#64748B',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -1355,8 +1419,10 @@ const styles = StyleSheet.create({
   },
   orderCardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   orderLabel: {
     fontSize: 10,
@@ -1372,11 +1438,12 @@ const styles = StyleSheet.create({
   },
   statusPill: {
     backgroundColor: '#FEF3C7',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#FDE68A',
+    alignSelf: 'flex-start',
   },
   statusPillText: {
     fontSize: 10,

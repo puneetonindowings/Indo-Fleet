@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../supabase.js';
-import { fileDB, loadSosAlertsFromFile, saveSosAlertToFile } from '../db.js';
+import { fileDB, loadSosAlertsFromFile, saveSosAlertToFile, deleteSosAlertFromFile } from '../db.js';
 import { buildAnalyticsPayload } from '../analytics.js';
 import {
   sendOtpNotification,
@@ -5602,6 +5602,12 @@ router.delete('/admin/sos-alerts/:id', async (req, res) => {
     if (idx !== -1) {
       activeSosAlerts.splice(idx, 1);
     }
+    deleteSosAlertFromFile(id);
+    try {
+      if (supabase) {
+        await supabase.from('sos_alerts').delete().eq('id', id);
+      }
+    } catch {}
     res.json({ success: true, message: 'Alert removed' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

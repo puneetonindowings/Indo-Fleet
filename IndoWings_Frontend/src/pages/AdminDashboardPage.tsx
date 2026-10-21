@@ -382,6 +382,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   };
 
   const handleDeleteSos = async (id: string) => {
+    setSosAlerts((prev) => prev.filter((a) => a.id !== id));
+    setActiveSosCount((prev) => {
+      const match = sosAlerts.find((a) => a.id === id);
+      return match && match.status === 'active' ? Math.max(0, prev - 1) : prev;
+    });
     try {
       const res = await fetch(`${API_BASE_URL}/api/delivery/admin/sos-alerts/${id}`, {
         method: 'DELETE',
@@ -392,9 +397,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
       if (res.ok) {
         showToast('SOS record removed.');
         await fetchSosAlerts();
+      } else {
+        showToast('Could not delete SOS alert.');
+        await fetchSosAlerts();
       }
     } catch {
       showToast('Could not delete SOS alert.');
+      await fetchSosAlerts();
     }
   };
 

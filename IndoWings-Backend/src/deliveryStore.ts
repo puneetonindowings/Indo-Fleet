@@ -35,6 +35,17 @@ export function saveSosAlertToFile(alert: JsonRecord) {
   }
 }
 
+export function deleteSosAlertFromFile(id: string) {
+  try {
+    ensureDataDir();
+    const existing = loadSosAlertsFromFile();
+    const filtered = existing.filter(a => a.id !== id);
+    fs.writeFileSync(SOS_ALERTS_FILE, JSON.stringify(filtered, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[SOS] Failed to delete alert from file:', err);
+  }
+}
+
 function ensureDataDir() {
   const dir = path.dirname(INSPECTIONS_FILE);
   if (!fs.existsSync(dir)) {
