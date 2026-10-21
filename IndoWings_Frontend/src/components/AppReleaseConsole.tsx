@@ -19,7 +19,7 @@ export const AppReleaseConsole: React.FC = () => {
     'IndoFleet v1.1.9 (Build 19): Direct camera shutter trigger, transparent HUD reticle viewfinder, responsive order card badges, and full multi-stage depot & delivery airframe inspection.'
   );
   const [androidUrl, setAndroidUrl] = useState(
-    'https://expo.dev/artifacts/eas/8NdM80FyCbuKx_pfNlxdzm0wFkAz2aZwp4iyrE04jtA.apk'
+    'https://expo.dev/artifacts/eas/M-Za3pWi-ZageaWq6gSA00M0wYa5maSz_tHeiKeBp1c.apk'
   );
   const [iosUrl, setIosUrl] = useState(
     'https://testflight.apple.com/join/IndoFleetDeliveryApp'
