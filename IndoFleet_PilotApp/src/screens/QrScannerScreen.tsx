@@ -458,9 +458,30 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
       // Check if already inspected
       const alreadyInspected = (inspectedDroneIds || []).includes(matchedId);
       if (alreadyInspected) {
+        const finalId = matchedId;
         Alert.alert(
-          'Already Inspected',
-          `Drone "${matchedId}" has already been verified and inspected for this order. Please scan the remaining uninspected drone(s).`
+          'Re-verify Airframe',
+          `Airframe "${matchedId}" has already been verified and inspected for Order #${cleanOrderNumber}.\n\nWould you like to re-verify and update its inspection report?`,
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+              onPress: () => {
+                setIsVerifying(false);
+              },
+            },
+            {
+              text: 'Re-verify Airframe',
+              onPress: () => {
+                setVerifiedDroneId(finalId);
+                setVerifiedSuccess(true);
+                setMismatchError(null);
+                setTimeout(() => {
+                  onScannedSuccess(finalId);
+                }, 400);
+              },
+            },
+          ]
         );
         return;
       }

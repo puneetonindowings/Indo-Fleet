@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Linking,
   Platform,
+  Alert,
 } from 'react-native';
 import {
   ArrowLeft,
@@ -30,6 +31,7 @@ interface SortieDronesScreenProps {
   stage?: 'hub_pickup' | 'customer_delivery';
   onBack: () => void;
   onScanDrone: (slotIndex: number) => void;
+  onReinspectDrone?: (droneId: string, slotIndex: number) => void;
   onCompleteHandover: (order: DeliveryOrder) => void;
   onAcceptOrder?: (order: DeliveryOrder) => void;
 }
@@ -40,6 +42,7 @@ export const SortieDronesScreen: React.FC<SortieDronesScreenProps> = ({
   stage = 'customer_delivery',
   onBack,
   onScanDrone,
+  onReinspectDrone,
   onCompleteHandover,
   onAcceptOrder,
 }) => {
@@ -81,6 +84,30 @@ export const SortieDronesScreen: React.FC<SortieDronesScreenProps> = ({
     if (order.customer_phone) {
       Linking.openURL(`tel:${order.customer_phone}`).catch(() => {});
     }
+  };
+
+  const handleReinspect = (droneId: string, slotIndex: number) => {
+    Alert.alert(
+      'Re-verify Airframe',
+      `Airframe "${droneId}" is already verified for Order #${cleanOrderNumber}.\n\nChoose an action:`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Scan QR Again',
+          onPress: () => onScanDrone(slotIndex),
+        },
+        {
+          text: 'Open Inspection Form',
+          onPress: () => {
+            if (onReinspectDrone) {
+              onReinspectDrone(droneId, slotIndex);
+            } else {
+              onScanDrone(slotIndex);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (

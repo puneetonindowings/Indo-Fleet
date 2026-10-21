@@ -801,6 +801,16 @@ function MainApp() {
               const targetOrd = inspectionOrder || selectedOrder;
               if (targetOrd) handleStartQrInspectionFlow(targetOrd, slotIndex, inspectionStage);
             }}
+            onReinspectDrone={(droneId, slotIndex) => {
+              const targetOrd = inspectionOrder || selectedOrder;
+              if (targetOrd) {
+                setSelectedOrder(targetOrd);
+                setInspectionOrder(targetOrd);
+                setTargetDroneSlotIndex(slotIndex);
+                setActiveInspectingDroneId(droneId);
+                navigateTo('inspection');
+              }
+            }}
             onCompleteHandover={(ord) => {
               handleOpenInspection(ord);
             }}

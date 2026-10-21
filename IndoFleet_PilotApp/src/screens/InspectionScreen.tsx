@@ -684,6 +684,21 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
 
       const inspectionId = res?.inspection_id || 'INS-VERIFIED';
 
+      const isReinspection = prevInspectedList.includes(targetDrone);
+      if (isReinspection) {
+        Alert.alert(
+          'Airframe Re-verified',
+          `Airframe "${targetDrone}" inspection report updated and recorded successfully in database.`,
+          [
+            {
+              text: 'Return to Manifest',
+              onPress: () => onSuccess(targetDrone, isHub ? true : (prevInspectedList.length >= totalDronesCount), inspectionId),
+            },
+          ]
+        );
+        return;
+      }
+
       if (!isFinalDrone) {
         // Multi-Drone: intermediate drone passed inspection!
         const remaining = totalDronesCount - (prevInspectedList.length + 1);

@@ -207,10 +207,6 @@ const orderColumns = [
   'timeline', 'handover_details', 'feedback_submitted', 'cancelled_at',
   'cancellation_reason', 'delivered_at', 'inspection_id', 'inspection_status',
   'created_at', 'updated_at',
-  'depot_inspection_id', 'depot_inspected_drone_ids',
-  'hub_inspection_id', 'hub_inspected_drone_ids',
-  'allocated_drone_ids', 'inspected_drone_ids',
-  'assigned_drone_id', 'assigned_drone_ids'
 ];
 
 function fromOrder(row: JsonRecord) {
@@ -226,6 +222,8 @@ function fromOrder(row: JsonRecord) {
   const inspected = cleanList(columns.inspected_drone_ids, meta.inspected_drone_ids);
   const hubInspected = cleanList(columns.hub_inspected_drone_ids, meta.hub_inspected_drone_ids);
   const depotInspected = cleanList(columns.depot_inspected_drone_ids, meta.depot_inspected_drone_ids);
+  const allocated = cleanList(columns.allocated_drone_ids, meta.allocated_drone_ids);
+  const assigned = cleanList(columns.assigned_drone_ids, meta.assigned_drone_ids || columns.reserved_inventory_ids);
 
   return {
     ...meta,
@@ -233,6 +231,11 @@ function fromOrder(row: JsonRecord) {
     inspected_drone_ids: inspected,
     hub_inspected_drone_ids: hubInspected,
     depot_inspected_drone_ids: depotInspected,
+    allocated_drone_ids: allocated,
+    assigned_drone_ids: assigned.length > 0 ? assigned : (columns.reserved_inventory_ids || []),
+    assigned_drone_id: columns.assigned_drone_id || meta.assigned_drone_id || columns.drone_id || null,
+    hub_inspection_id: columns.hub_inspection_id || meta.hub_inspection_id || null,
+    depot_inspection_id: columns.depot_inspection_id || meta.depot_inspection_id || null,
   };
 }
 
@@ -258,6 +261,30 @@ function toOrder(order: JsonRecord) {
     return [String(val).trim()].filter(Boolean);
   };
 
+  mergedMetadata.assigned_drone_ids = ensureStringArray(order.assigned_drone_ids || mergedMetadata.assigned_drone_ids || row.reserved_inventory_ids);
+  mergedMetadata.inspected_drone_ids = ensureStringArray(order.inspected_drone_ids || mergedMetadata.inspected_drone_ids);
+  mergedMetadata.hub_inspected_drone_ids = ensureStringArray(order.hub_inspected_drone_ids || mergedMetadata.hub_inspected_drone_ids);
+  mergedMetadata.depot_inspected_drone_ids = ensureStringArray(order.depot_inspected_drone_ids || mergedMetadata.depot_inspected_drone_ids);
+  mergedMetadata.allocated_drone_ids = ensureStringArray(order.allocated_drone_ids || mergedMetadata.allocated_drone_ids);
+  if (order.assigned_drone_id || mergedMetadata.assigned_drone_id) {
+    mergedMetadata.assigned_drone_id = order.assigned_drone_id || mergedMetadata.assigned_drone_id;
+  }
+  if (order.hub_inspection_id || mergedMetadata.hub_inspection_id) {
+    mergedMetadata.hub_inspection_id = order.hub_inspection_id || mergedMetadata.hub_inspection_id;
+  }
+  if (order.depot_inspection_id || mergedMetadata.depot_inspection_id) {
+    mergedMetadata.depot_inspection_id = order.depot_inspection_id || mergedMetadata.depot_inspection_id;
+  }
+
+  delete (row as any).assigned_drone_ids;
+  delete (row as any).assigned_drone_id;
+  delete (row as any).inspected_drone_ids;
+  delete (row as any).hub_inspected_drone_ids;
+  delete (row as any).depot_inspected_drone_ids;
+  delete (row as any).allocated_drone_ids;
+  delete (row as any).hub_inspection_id;
+  delete (row as any).depot_inspection_id;
+
   return {
     ...row,
     order_type: row.order_type || 'delivery',
@@ -277,11 +304,6 @@ function toOrder(order: JsonRecord) {
     status: row.status || 'pending',
     items: row.items || [],
     reserved_inventory_ids: ensureStringArray(row.reserved_inventory_ids),
-    assigned_drone_ids: ensureStringArray(row.assigned_drone_ids || row.reserved_inventory_ids),
-    inspected_drone_ids: ensureStringArray(row.inspected_drone_ids),
-    hub_inspected_drone_ids: ensureStringArray(row.hub_inspected_drone_ids),
-    depot_inspected_drone_ids: ensureStringArray(row.depot_inspected_drone_ids),
-    allocated_drone_ids: ensureStringArray(row.allocated_drone_ids),
     timeline: row.timeline || [],
     feedback_submitted: Boolean(row.feedback_submitted),
     delivery_data: mergedMetadata,
