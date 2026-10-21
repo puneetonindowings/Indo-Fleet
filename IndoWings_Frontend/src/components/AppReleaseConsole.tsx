@@ -59,8 +59,8 @@ export const AppReleaseConsole: React.FC = () => {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, setUrl: (url: string) => void) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const fakeUrl = `https://indofleet.com/downloads/${file.name}`;
-    setUrl(fakeUrl);
+    const artifactUrl = `/downloads/${file.name}`;
+    setUrl(artifactUrl);
     setMessage(`Selected file "${file.name}" for release build.`);
   };
 

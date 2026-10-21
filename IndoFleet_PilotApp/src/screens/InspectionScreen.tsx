@@ -39,6 +39,7 @@ import {
   Upload,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { DeliveryOrder, UserProfile, TelemetryStats } from '../types';
 import {
   submitPostDeliveryInspection,
@@ -49,11 +50,14 @@ import {
 
 interface InspectionScreenProps {
   order: DeliveryOrder | null;
+  inspectedDroneId?: string;
+  inspectedDroneIds?: string[];
+  stage?: 'hub_pickup' | 'customer_delivery';
   pilotUser: UserProfile | null;
   currentCoords?: { latitude: number; longitude: number } | null;
   telemetry?: TelemetryStats;
   onBack: () => void;
-  onSuccess: (inspectionId?: string) => void;
+  onSuccess: (droneId: string, isAllCompleted: boolean, inspectionId?: string) => void;
 }
 
 interface MediaItem {
@@ -66,18 +70,43 @@ interface MediaItem {
 
 export const InspectionScreen: React.FC<InspectionScreenProps> = ({
   order,
+  inspectedDroneId,
+  inspectedDroneIds = [],
+  stage = 'customer_delivery',
   pilotUser,
   currentCoords,
   telemetry,
   onBack,
   onSuccess,
 }) => {
-  const rawDroneId = (order?.assigned_drone_id || order?.drone_id || '').trim();
-  const cleanDroneSerial = rawDroneId && !rawDroneId.includes('@') ? rawDroneId : 'RPAV-700-01';
-  const cleanDroneModel = order?.drone_model && !order.drone_model.includes('@') ? order.drone_model : 'IndoWings 700 RPAV';
+  const isHub = stage === 'hub_pickup';
+  const rawDroneId = (inspectedDroneId || order?.assigned_drone_id || order?.drone_id || '').trim();
+  const cleanDroneSerial = rawDroneId && !rawDroneId.includes('@') ? rawDroneId : '';
+  const cleanDroneModel = order?.drone_model && !order.drone_model.includes('@') ? order.drone_model : (order?.drone_model || 'Drone RPAV');
   const cleanOrderNumber = order?.order_number || order?.id || 'DELIVERY';
-  const autoBatteryPct = telemetry?.batteryPct != null && telemetry.batteryPct > 0 ? telemetry.batteryPct : 88;
+  const autoBatteryPct = telemetry?.batteryPct != null && telemetry.batteryPct > 0 ? telemetry.batteryPct : 0;
   const [droneId, setDroneId] = useState<string>(cleanDroneSerial);
+
+  useEffect(() => {
+    if (inspectedDroneId) {
+      setDroneId(inspectedDroneId);
+    }
+  }, [inspectedDroneId]);
+
+  const totalDronesCount = Math.max(
+    order?.units_count || 1,
+    (order?.reserved_inventory_ids || []).length,
+    (order?.items || []).length,
+    1
+  );
+
+  const prevInspectedList = Array.from(new Set([
+    ...(inspectedDroneIds || []),
+    ...(order?.inspected_drone_ids || [])
+  ]));
+
+  const currentDroneNumber = Math.min(prevInspectedList.length + 1, totalDronesCount);
+  const isFinalDrone = (prevInspectedList.length + 1) >= totalDronesCount;
 
   // Hardware Back Button
   useEffect(() => {
@@ -90,11 +119,11 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
   }, [onBack]);
 
   // Field Verification Specific Checklist (Delivery Person)
-  const [cargoBayCondition, setCargoBayCondition] = useState<string>('CLEAN_RELEASE');
-  const [landingSurface, setLandingSurface] = useState<string>('SAFE_FLAT');
-  const [propellerCheck, setPropellerCheck] = useState<string>('SPINS_FREE_NO_DEBRIS');
-  const [fieldBattery, setFieldBattery] = useState<string>('78');
-  const [zeroDefectCertified, setZeroDefectCertified] = useState<boolean>(true);
+  const [cargoBayCondition, setCargoBayCondition] = useState<string>('');
+  const [landingSurface, setLandingSurface] = useState<string>('');
+  const [propellerCheck, setPropellerCheck] = useState<string>('');
+  const [fieldBattery, setFieldBattery] = useState<string>(telemetry?.batteryPct ? String(telemetry.batteryPct) : '');
+  const [zeroDefectCertified, setZeroDefectCertified] = useState<boolean>(false);
   const [fieldNotes, setFieldNotes] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -118,10 +147,14 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
   const [recordingSeconds, setRecordingSeconds] = useState<number>(0);
 
   const videoRef = useRef<any>(null);
+  const nativeCameraRef = useRef<any>(null);
   const streamRef = useRef<any>(null);
   const mediaRecorderRef = useRef<any>(null);
   const recordedChunksRef = useRef<any[]>([]);
   const timerRef = useRef<any>(null);
+
+  // Native Camera Permissions
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
   // Clean up camera stream and recording on unmount
   useEffect(() => {
@@ -144,6 +177,20 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
     setCamError(null);
     setCameraModalOpen(true);
 
+    if (Platform.OS !== 'web') {
+      if (!cameraPermission || !cameraPermission.granted) {
+        try {
+          const res = await requestCameraPermission();
+          if (!res.granted) {
+            setCamError('Camera permission required. Please grant camera access.');
+          }
+        } catch (permErr: any) {
+          setCamError(permErr.message || 'Camera permission request failed');
+        }
+      }
+      return;
+    }
+
     if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
       try {
         if (streamRef.current && streamRef.current.getTracks) {
@@ -161,7 +208,6 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
             audio: mode === 'video',
           });
         } catch (firstErr) {
-          console.log('Environment camera failed, falling back to any webcam:', firstErr);
           stream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: mode === 'video',
@@ -205,8 +251,43 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
     setCameraModalOpen(false);
   };
 
-  const captureFrameFromCamera = () => {
-    if (videoRef.current) {
+  const captureFrameFromCamera = async () => {
+    // 1. Native Mobile Capture via expo-camera CameraView
+    if (Platform.OS !== 'web') {
+      if (nativeCameraRef.current) {
+        try {
+          const photo = await nativeCameraRef.current.takePictureAsync({
+            quality: 0.7,
+            base64: true,
+            skipProcessing: false,
+          });
+          if (photo?.uri) {
+            const base64Data = photo.base64 ? `data:image/jpeg;base64,${photo.base64}` : photo.uri;
+            if (cameraMode === 'pod') {
+              setPodPhoto(base64Data);
+              closeInAppCamera();
+            } else {
+              const newItem: MediaItem = {
+                id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                type: 'image',
+                uri: photo.uri,
+                base64: base64Data,
+                name: `Photo_${Date.now()}.jpg`,
+              };
+              setMediaItems((prev) => [...prev, newItem]);
+              closeInAppCamera();
+            }
+            return;
+          }
+        } catch (camErr: any) {
+          Alert.alert('Camera Capture Error', camErr.message || 'Could not snap photo.');
+        }
+      }
+      return;
+    }
+
+    // 2. Web Browser Canvas Capture
+    if (videoRef.current && typeof document !== 'undefined') {
       try {
         const video = videoRef.current;
         const width = video.videoWidth || 640;
@@ -243,7 +324,35 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
     triggerFallbackFileInput('image/*');
   };
 
-  const startVideoRecording = () => {
+  const startVideoRecording = async () => {
+    // 1. Native Mobile Video Recording via expo-camera CameraView
+    if (Platform.OS !== 'web') {
+      if (nativeCameraRef.current) {
+        setIsRecordingVideo(true);
+        setRecordingSeconds(0);
+        timerRef.current = setInterval(() => {
+          setRecordingSeconds((prev) => prev + 1);
+        }, 1000);
+
+        try {
+          const videoResult = await nativeCameraRef.current.recordAsync({ maxDuration: 60 });
+          if (videoResult?.uri) {
+            const newItem: MediaItem = {
+              id: `video-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              type: 'video',
+              uri: videoResult.uri,
+              name: `Video_${Date.now()}.mp4`,
+            };
+            setMediaItems((prev) => [...prev, newItem]);
+          }
+        } catch (err: any) {
+          console.warn('Native video record error:', err);
+        }
+      }
+      return;
+    }
+
+    // 2. Web Browser MediaRecorder
     if (!streamRef.current) return;
     try {
       recordedChunksRef.current = [];
@@ -298,6 +407,17 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
       timerRef.current = null;
     }
     setIsRecordingVideo(false);
+
+    if (Platform.OS !== 'web') {
+      if (nativeCameraRef.current) {
+        try {
+          nativeCameraRef.current.stopRecording();
+        } catch {}
+      }
+      closeInAppCamera();
+      return;
+    }
+
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       try {
         mediaRecorderRef.current.stop();
@@ -338,78 +458,17 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
     }
   };
 
-  // Camera Photo Capture
-  const handleTakePhoto = async () => {
-    if (Platform.OS === 'web') {
-      openInAppCamera('photo');
-    } else {
-      try {
-        const { status } = await ImagePicker.requestCameraPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert('Camera Permission Required', 'Please enable camera access to take inspection photos.');
-          return;
-        }
-
-        const result = await ImagePicker.launchCameraAsync({
-          mediaTypes: ['images'],
-          allowsEditing: false,
-          quality: 0.6,
-          base64: true,
-        });
-
-        if (!result.canceled && result.assets && result.assets.length > 0) {
-          const asset = result.assets[0];
-          const base64Data = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
-          const newItem: MediaItem = {
-            id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-            type: 'image',
-            uri: asset.uri,
-            base64: base64Data,
-            name: `Photo_${Date.now()}.jpg`,
-          };
-          setMediaItems((prev) => [...prev, newItem]);
-        }
-      } catch (err: any) {
-        Alert.alert('Camera Error', err.message || 'Could not open camera.');
-      }
-    }
+  // Camera Photo Capture (In-App live viewfinder for instant capture & auto-save)
+  const handleTakePhoto = () => {
+    openInAppCamera('photo');
   };
 
-  // Video Recording Capture
-  const handleRecordVideo = async () => {
-    if (Platform.OS === 'web') {
-      openInAppCamera('video');
-    } else {
-      try {
-        const { status } = await ImagePicker.requestCameraPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert('Camera Permission Required', 'Please enable camera access to record inspection video.');
-          return;
-        }
-
-        const result = await ImagePicker.launchCameraAsync({
-          mediaTypes: ['videos'],
-          videoMaxDuration: 30,
-          quality: 0.6,
-        });
-
-        if (!result.canceled && result.assets && result.assets.length > 0) {
-          const asset = result.assets[0];
-          const newItem: MediaItem = {
-            id: `video-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-            type: 'video',
-            uri: asset.uri,
-            name: `Video_${Date.now()}.mp4`,
-          };
-          setMediaItems((prev) => [...prev, newItem]);
-        }
-      } catch (err: any) {
-        Alert.alert('Video Capture Error', err.message || 'Could not record video.');
-      }
-    }
+  // Video Recording Capture (In-App 360° video recorder with live timer)
+  const handleRecordVideo = () => {
+    openInAppCamera('video');
   };
 
-  // Gallery Picker (Photos & Videos)
+  // Gallery Picker (Photos & Videos with multi-selection support)
   const handlePickFromGallery = async () => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       try {
@@ -446,29 +505,30 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
       try {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert('Gallery Permission Required', 'Please enable library access to choose inspection media.');
+          Alert.alert('Gallery Permission Required', 'Please enable photo library access to choose inspection media.');
           return;
         }
 
         const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images', 'videos'],
-          allowsEditing: false,
-          quality: 0.6,
+          mediaTypes: ImagePicker.MediaTypeOptions.All,
+          allowsMultipleSelection: true,
+          quality: 0.7,
           base64: true,
         });
 
         if (!result.canceled && result.assets && result.assets.length > 0) {
-          const asset = result.assets[0];
-          const isVideo = asset.type === 'video' || (asset.uri && asset.uri.endsWith('.mp4'));
-          const base64Data = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
-          const newItem: MediaItem = {
-            id: `gallery-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-            type: isVideo ? 'video' : 'image',
-            uri: asset.uri,
-            base64: isVideo ? undefined : base64Data,
-            name: `${isVideo ? 'Video' : 'Photo'}_${Date.now()}`,
-          };
-          setMediaItems((prev) => [...prev, newItem]);
+          result.assets.forEach((asset) => {
+            const isVideo = asset.type === 'video' || (asset.uri && asset.uri.toLowerCase().endsWith('.mp4'));
+            const base64Data = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+            const newItem: MediaItem = {
+              id: `gallery-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              type: isVideo ? 'video' : 'image',
+              uri: asset.uri,
+              base64: isVideo ? undefined : base64Data,
+              name: `${isVideo ? 'Video' : 'Photo'}_${Date.now()}`,
+            };
+            setMediaItems((prev) => [...prev, newItem]);
+          });
         }
       } catch (err: any) {
         Alert.alert('Gallery Error', err.message || 'Could not pick media from gallery.');
@@ -517,49 +577,56 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
     }
   };
 
-  const handleTakePodPhoto = async () => {
-    if (Platform.OS === 'web') {
-      openInAppCamera('pod');
-    } else {
-      try {
-        const { status } = await ImagePicker.requestCameraPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert('Camera Permission Required', 'Please enable camera access to take POD photo.');
-          return;
-        }
-        const result = await ImagePicker.launchCameraAsync({
-          mediaTypes: ['images'],
-          allowsEditing: false,
-          quality: 0.6,
-          base64: true,
-        });
-        if (!result.canceled && result.assets && result.assets.length > 0) {
-          const asset = result.assets[0];
-          const base64Data = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
-          setPodPhoto(base64Data);
-        }
-      } catch (err: any) {
-        Alert.alert('Camera Error', err.message || 'Could not take POD photo.');
-      }
-    }
+  // POD Photo Capture (In-App Camera)
+  const handleTakePodPhoto = () => {
+    openInAppCamera('pod');
   };
 
   const handleSubmit = async () => {
-    const targetDrone = cleanDroneSerial;
+    const targetDrone = (droneId || cleanDroneSerial || inspectedDroneId || 'DRONE').trim();
 
-    if (!recipientName.trim()) {
-      Alert.alert('Recipient Name Required', 'Please enter the name of the recipient taking delivery.');
+    // Airframe checks are required for every individual drone
+    if (!cargoBayCondition) {
+      Alert.alert('Cargo Bay Check Required', 'Please select the cargo bay condition.');
       return;
     }
 
-    if (!customerOtp.trim()) {
-      Alert.alert('Customer OTP Required', 'Please enter the 6-digit verification OTP provided by the customer.');
+    if (!landingSurface) {
+      Alert.alert('Landing Surface Check Required', 'Please select the landing surface condition.');
       return;
     }
 
-    if (!pilotOtp.trim()) {
-      Alert.alert('Delivery Partner OTP Required', 'Please enter your 6-digit Delivery Partner verification OTP.');
+    if (!propellerCheck) {
+      Alert.alert('Propeller Check Required', 'Please verify the propeller status.');
       return;
+    }
+
+    if (!fieldBattery.trim()) {
+      Alert.alert('Battery Reading Required', 'Please enter the current drone battery percentage.');
+      return;
+    }
+
+    if (!zeroDefectCertified) {
+      Alert.alert('Airframe Certification Required', 'Please check the box to certify zero critical airframe defects.');
+      return;
+    }
+
+    // Customer OTP is only mandatory when certifying the final drone for customer handover (never at hub)
+    if (!isHub && isFinalDrone) {
+      if (!recipientName.trim()) {
+        Alert.alert('Recipient Name Required', 'Please enter the name of the recipient taking delivery.');
+        return;
+      }
+
+      if (!customerOtp.trim()) {
+        Alert.alert('Customer OTP Required', 'Please enter the 6-digit verification OTP provided by the customer.');
+        return;
+      }
+
+      if (!pilotOtp.trim()) {
+        Alert.alert('Delivery Partner OTP Required', 'Please enter your 6-digit Delivery Partner verification OTP.');
+        return;
+      }
     }
 
     const hasAnyDefect =
@@ -588,11 +655,12 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
 
     setLoading(true);
     try {
-      // 1. Submit Post-Delivery Airframe & Payload Inspection Report
+      // 1. Submit Airframe & Payload Inspection Report for this drone
       const res = await submitPostDeliveryInspection({
         drone_id: targetDrone,
         delivery_id: order?.id,
-        inspection_type: 'DELIVERY_PERSON_CHECK',
+        stage: isHub ? 'hub_pickup' : 'customer_delivery',
+        inspection_type: isHub ? 'HUB_PRE_FLIGHT_CHECK' : 'DELIVERY_PERSON_CHECK',
         cargo_bay_condition: cargoBayCondition,
         landing_surface: landingSurface,
         propeller_debris_check: propellerCheck,
@@ -607,8 +675,8 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
         remarks:
           fieldNotes.trim() ||
           (zeroDefectCertified
-            ? 'Delivery completed with 0 defects. Drone verified and media captured.'
-            : 'Field defect flagged during delivery handover inspection.'),
+            ? (isHub ? 'Hub pre-acceptance inspection passed with zero defects.' : 'Delivery completed with 0 defects. Drone verified.')
+            : 'Defect flagged during airframe inspection.'),
         photo_references: photoRefs,
         video_references: videoRefs,
         media_evidence: mediaEvidence,
@@ -616,7 +684,38 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
 
       const inspectionId = res?.inspection_id || 'INS-VERIFIED';
 
-      // 2. Complete Delivery Handover & Customer POD in Database
+      if (!isFinalDrone) {
+        // Multi-Drone: intermediate drone passed inspection!
+        const remaining = totalDronesCount - (prevInspectedList.length + 1);
+        Alert.alert(
+          isHub ? 'Hub Airframe Certified' : 'Airframe Inspection Certified',
+          `Drone "${targetDrone}" ${isHub ? 'Hub verification' : 'inspection'} submitted successfully.\n\n${remaining} more drone(s) remaining for Order #${cleanOrderNumber}. Please scan and inspect the next drone.`,
+          [
+            {
+              text: 'Scan Next Drone',
+              onPress: () => onSuccess(targetDrone, false, inspectionId),
+            },
+          ]
+        );
+        return;
+      }
+
+      // Final Drone:
+      if (isHub) {
+        Alert.alert(
+          'Hub Inspection Completed Successfully',
+          `All ${totalDronesCount} drone(s) for Order #${cleanOrderNumber} inspected & approved at Hub.\nYou can now proceed to accept the order.`,
+          [
+            {
+              text: 'Proceed to Accept Order',
+              onPress: () => onSuccess(targetDrone, true, inspectionId),
+            },
+          ]
+        );
+        return;
+      }
+
+      // 2. Final Drone at Customer Location: Complete Delivery Handover & Customer POD in Database
       if (order?.id) {
         await completeDeliveryHandover({
           order_id: order.id,
@@ -634,11 +733,11 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
 
       Alert.alert(
         'Delivery Completed Successfully',
-        `Order #${order?.order_number || ''} marked as Delivered.\nAirframe Inspection, Customer OTP & Delivery Partner OTP verified and archived in flight logs.`,
+        `All ${totalDronesCount} drone(s) in Order #${cleanOrderNumber} inspected & certified.\nCustomer OTP & Delivery Partner OTP verified and recorded.`,
         [
           {
             text: 'Return to Dashboard',
-            onPress: () => onSuccess(inspectionId),
+            onPress: () => onSuccess(targetDrone, true, inspectionId),
           },
         ]
       );
@@ -692,14 +791,14 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
               <QrCode size={18} color="#5a00b8" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>Assigned Airframe Asset</Text>
+              <Text style={styles.cardTitle}>Airframe Safety Inspection</Text>
               <Text style={styles.cardSubtitle}>
-                Auto-fetched & verified against digital flight manifest
+                Sortie Aircraft #{currentDroneNumber} of {totalDronesCount} · Order #{cleanOrderNumber}
               </Text>
             </View>
             <View style={styles.verifiedTag}>
               <CheckCircle size={12} color="#059669" />
-              <Text style={styles.verifiedTagText}>VERIFIED</Text>
+              <Text style={styles.verifiedTagText}>QR VERIFIED</Text>
             </View>
           </View>
 
@@ -710,7 +809,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
             </View>
             <View style={styles.serialPill}>
               <Text style={styles.serialLabel}>AIRFRAME ID:</Text>
-              <Text style={styles.serialValue}>{cleanDroneSerial}</Text>
+              <Text style={styles.serialValue}>{droneId || cleanDroneSerial}</Text>
             </View>
           </View>
 
@@ -986,120 +1085,155 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
           </View>
         </TouchableOpacity>
 
-        {/* ── STEP 3: CUSTOMER DELIVERY HANDOVER & OTP VERIFICATION ── */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.iconCircle, { backgroundColor: '#ECFDF5' }]}>
-              <CheckCircle size={18} color="#059669" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>Customer Delivery Handover & OTP</Text>
-              <Text style={styles.cardSubtitle}>
-                Verify recipient name and collect customer & partner OTPs
-              </Text>
-            </View>
-          </View>
-
-          {/* Recipient Name */}
-          <View style={styles.formItem}>
-            <Text style={styles.formItemLabel}>Recipient Name *</Text>
-            <View style={styles.inputFieldRow}>
-              <User size={16} color="#64748B" />
-              <TextInput
-                style={styles.textInputMain}
-                value={recipientName}
-                onChangeText={setRecipientName}
-                placeholder="Name of person receiving package"
-                placeholderTextColor="#94A3B8"
-              />
-            </View>
-          </View>
-
-          {/* Customer OTP */}
-          <View style={styles.formItem}>
-            <View style={styles.formItemHeaderRow}>
-              <Text style={styles.formItemLabel}>Customer Verification OTP *</Text>
-              <TouchableOpacity
-                onPress={handleRequestCustOtp}
-                disabled={requestingCustOtp}
-                style={styles.otpActionBtn}
-              >
-                {requestingCustOtp ? (
-                  <ActivityIndicator size="small" color="#5A00B8" />
-                ) : (
-                  <>
-                    <RefreshCw size={11} color="#5A00B8" />
-                    <Text style={styles.otpActionBtnText}>Send Customer OTP</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
-            <View style={styles.inputFieldRow}>
-              <KeyRound size={16} color="#64748B" />
-              <TextInput
-                style={styles.textInputMain}
-                value={customerOtp}
-                onChangeText={setCustomerOtp}
-                placeholder="Enter 6-digit Customer OTP"
-                placeholderTextColor="#94A3B8"
-                keyboardType="number-pad"
-                maxLength={6}
-              />
-            </View>
-          </View>
-
-          {/* Delivery Partner OTP */}
-          <View style={styles.formItem}>
-            <View style={styles.formItemHeaderRow}>
-              <Text style={styles.formItemLabel}>Delivery Partner OTP *</Text>
-              <TouchableOpacity
-                onPress={handleRequestPilotOtp}
-                disabled={requestingPilotOtp}
-                style={styles.otpActionBtn}
-              >
-                {requestingPilotOtp ? (
-                  <ActivityIndicator size="small" color="#5A00B8" />
-                ) : (
-                  <>
-                    <RefreshCw size={11} color="#5A00B8" />
-                    <Text style={styles.otpActionBtnText}>Send to My Email</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
-            <View style={styles.inputFieldRow}>
-              <ShieldCheck size={16} color="#64748B" />
-              <TextInput
-                style={styles.textInputMain}
-                value={pilotOtp}
-                onChangeText={setPilotOtp}
-                placeholder="Enter 6-digit Partner OTP"
-                placeholderTextColor="#94A3B8"
-                keyboardType="number-pad"
-                maxLength={6}
-              />
-            </View>
-          </View>
-
-          {/* POD Photo Capture */}
-          <View style={styles.formItem}>
-            <Text style={styles.formItemLabel}>Proof of Delivery (POD) Photo (Optional)</Text>
-            {podPhoto ? (
-              <View style={styles.podPhotoPreviewWrap}>
-                <Image source={{ uri: podPhoto }} style={styles.podPhotoPreview} />
-                <TouchableOpacity onPress={() => setPodPhoto(null)} style={styles.removePodBtn}>
-                  <Trash2 size={14} color="#FFFFFF" />
-                  <Text style={styles.removePodBtnText}>Retake Photo</Text>
-                </TouchableOpacity>
+        {/* ── STEP 3: CUSTOMER DELIVERY HANDOVER & OTP VERIFICATION (Only for destination delivery handover) ── */}
+        {!isHub && (
+          isFinalDrone ? (
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={[styles.iconCircle, { backgroundColor: '#ECFDF5' }]}>
+                  <CheckCircle size={18} color="#059669" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardTitle}>Customer Delivery Handover & OTP</Text>
+                  <Text style={styles.cardSubtitle}>
+                    All Airframes Verified — Verify recipient name and collect customer & partner OTPs
+                  </Text>
+                </View>
               </View>
-            ) : (
-              <TouchableOpacity onPress={handleTakePodPhoto} style={styles.capturePodBtn}>
-                <Camera size={16} color="#059669" />
-                <Text style={styles.capturePodBtnText}>Snap Customer Package POD Photo</Text>
-              </TouchableOpacity>
-            )}
+
+              {/* Recipient Name */}
+              <View style={styles.formItem}>
+                <Text style={styles.formItemLabel}>Recipient Name *</Text>
+                <View style={styles.inputFieldRow}>
+                  <User size={16} color="#64748B" />
+                  <TextInput
+                    style={styles.textInputMain}
+                    value={recipientName}
+                    onChangeText={setRecipientName}
+                    placeholder="Name of person receiving package"
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+              </View>
+
+              {/* Customer OTP */}
+              <View style={styles.formItem}>
+                <View style={styles.formItemHeaderRow}>
+                  <Text style={styles.formItemLabel}>Customer Verification OTP *</Text>
+                  <TouchableOpacity
+                    onPress={handleRequestCustOtp}
+                    disabled={requestingCustOtp}
+                    style={styles.otpActionBtn}
+                  >
+                    {requestingCustOtp ? (
+                      <ActivityIndicator size="small" color="#5A00B8" />
+                    ) : (
+                      <>
+                        <RefreshCw size={11} color="#5A00B8" />
+                        <Text style={styles.otpActionBtnText}>Send Customer OTP</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.inputFieldRow}>
+                  <KeyRound size={16} color="#64748B" />
+                  <TextInput
+                    style={styles.textInputMain}
+                    value={customerOtp}
+                    onChangeText={setCustomerOtp}
+                    placeholder="Enter 6-digit Customer OTP"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="number-pad"
+                    maxLength={6}
+                  />
+                </View>
+              </View>
+
+              {/* Delivery Partner OTP */}
+              <View style={styles.formItem}>
+                <View style={styles.formItemHeaderRow}>
+                  <Text style={styles.formItemLabel}>Delivery Partner OTP *</Text>
+                  <TouchableOpacity
+                    onPress={handleRequestPilotOtp}
+                    disabled={requestingPilotOtp}
+                    style={styles.otpActionBtn}
+                  >
+                    {requestingPilotOtp ? (
+                      <ActivityIndicator size="small" color="#5A00B8" />
+                    ) : (
+                      <>
+                        <RefreshCw size={11} color="#5A00B8" />
+                        <Text style={styles.otpActionBtnText}>Send to My Email</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.inputFieldRow}>
+                  <ShieldCheck size={16} color="#64748B" />
+                  <TextInput
+                    style={styles.textInputMain}
+                    value={pilotOtp}
+                    onChangeText={setPilotOtp}
+                    placeholder="Enter 6-digit Partner OTP"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="number-pad"
+                    maxLength={6}
+                  />
+                </View>
+              </View>
+
+              {/* POD Photo Capture */}
+              <View style={styles.formItem}>
+                <Text style={styles.formItemLabel}>Proof of Delivery (POD) Photo (Optional)</Text>
+                {podPhoto ? (
+                  <View style={styles.podPhotoPreviewWrap}>
+                    <Image source={{ uri: podPhoto }} style={styles.podPhotoPreview} />
+                    <TouchableOpacity onPress={() => setPodPhoto(null)} style={styles.removePodBtn}>
+                      <Trash2 size={14} color="#FFFFFF" />
+                      <Text style={styles.removePodBtnText}>Retake Photo</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity onPress={handleTakePodPhoto} style={styles.capturePodBtn}>
+                    <Camera size={16} color="#059669" />
+                    <Text style={styles.capturePodBtnText}>Snap Customer Package POD Photo</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          ) : (
+            <View style={[styles.card, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
+              <View style={styles.cardHeader}>
+                <View style={[styles.iconCircle, { backgroundColor: '#F1F5F9' }]}>
+                  <Lock size={18} color="#64748B" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardTitle}>Customer Delivery Handover & OTP (Step 3)</Text>
+                  <Text style={styles.cardSubtitle}>
+                    Multi-Drone Sortie: Airframe #{currentDroneNumber} of {totalDronesCount}. Customer OTP handover will unlock once all {totalDronesCount} aircraft have been inspected.
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )
+        )}
+
+        {/* Hub Pre-Acceptance Confirmation Card */}
+        {isHub && (
+          <View style={[styles.card, { backgroundColor: '#F5F3FF', borderColor: '#DDD6FE' }]}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.iconCircle, { backgroundColor: '#EDE9FE' }]}>
+                <ShieldCheck size={18} color="#5A00B8" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.cardTitle, { color: '#3B0080' }]}>Hub Pre-Acceptance Safety Verification</Text>
+                <Text style={styles.cardSubtitle}>
+                  Inspecting Airframe #{currentDroneNumber} of {totalDronesCount} at Dispatch Hub. Once all {totalDronesCount} aircraft are certified, order acceptance will unlock.
+                </Text>
+              </View>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* ── INSPECTION NOTES ────────────────────────────────────── */}
         <View style={styles.card}>
@@ -1127,7 +1261,15 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
           ) : (
             <>
               <CheckCircle size={20} color="#FFFFFF" />
-              <Text style={styles.submitBtnText}>CONFIRM & COMPLETE DELIVERY</Text>
+              <Text style={styles.submitBtnText}>
+                {isHub
+                  ? (isFinalDrone
+                    ? 'COMPLETE HUB VERIFICATION'
+                    : `CERTIFY HUB DRONE #${currentDroneNumber} & SCAN NEXT`)
+                  : (isFinalDrone
+                    ? 'CONFIRM & COMPLETE DELIVERY'
+                    : `CERTIFY DRONE #${currentDroneNumber} & SCAN NEXT`)}
+              </Text>
             </>
           )}
         </TouchableOpacity>
@@ -1173,6 +1315,33 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
 
             {/* Viewfinder Display */}
             <View style={styles.camViewfinderWrap}>
+              {/* Native Mobile CameraView */}
+              {Platform.OS !== 'web' && (
+                cameraPermission?.granted ? (
+                  <CameraView
+                    ref={nativeCameraRef}
+                    style={StyleSheet.absoluteFill}
+                    facing="back"
+                    mode={cameraMode === 'video' ? 'video' : 'picture'}
+                  />
+                ) : (
+                  <View style={styles.camErrorBox}>
+                    <AlertTriangle size={32} color="#F59E0B" />
+                    <Text style={styles.camErrorTitle}>Camera Permission Required</Text>
+                    <Text style={styles.camErrorDesc}>
+                      Please grant camera access to capture airframe inspection photos and video.
+                    </Text>
+                    <TouchableOpacity
+                      onPress={requestCameraPermission}
+                      style={styles.camFallbackBtn}
+                    >
+                      <Text style={styles.camFallbackBtnText}>Grant Camera Access</Text>
+                    </TouchableOpacity>
+                  </View>
+                )
+              )}
+
+              {/* HTML5 live camera video element for Web */}
               {Platform.OS === 'web' && (
                 <div
                   style={{
@@ -1185,7 +1354,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: '#0A1128',
+                    backgroundColor: '#F8FAFC',
                     borderRadius: 16,
                     zIndex: 1,
                   }}
@@ -1917,7 +2086,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#0A1128',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
   },

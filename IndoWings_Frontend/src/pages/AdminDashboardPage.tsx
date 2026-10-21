@@ -297,8 +297,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
       const authHeaders = { Authorization: `Bearer ${localStorage.getItem('iw_delivery_token') || ''}` };
       const [uRes, dRes, oRes, sRes, insRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/delivery/users`, { headers: authHeaders }),
-        fetch(`${API_BASE_URL}/api/delivery/drones`),
-        fetch(`${API_BASE_URL}/api/delivery/orders`),
+        fetch(`${API_BASE_URL}/api/delivery/drones`, { headers: authHeaders }).catch(() => fetch(`${API_BASE_URL}/api/delivery/drones`)),
+        fetch(`${API_BASE_URL}/api/delivery/orders`, { headers: authHeaders }),
         fetch(`${API_BASE_URL}/api/delivery/support/expert-requests`, { headers: authHeaders }).catch(() => null),
         fetch(`${API_BASE_URL}/api/delivery/inspections/stats`, { headers: authHeaders }).catch(() => null)
       ]);

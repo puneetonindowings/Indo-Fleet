@@ -40,6 +40,8 @@ import {
   LocateFixed,
   Layers,
   QrCode,
+  ShieldCheck,
+  Camera,
 } from 'lucide-react-native';
 import { DeliveryOrder, TelemetryStats } from '../types';
 import { getRoutingApiUrl } from '../config';
@@ -47,12 +49,14 @@ import { getRoutingApiUrl } from '../config';
 interface FlightRadarScreenProps {
   order: DeliveryOrder | null;
   allOrders?: DeliveryOrder[];
+  orderInspectedDrones?: Record<string, string[]>;
   onSelectOrder?: (order: DeliveryOrder) => void;
   isTracking: boolean;
   telemetry: TelemetryStats;
   currentCoords: { latitude: number; longitude: number } | null;
   onBackToDashboard: () => void;
   onCompletePod: (order: DeliveryOrder) => void;
+  onOpenSortieDrones?: (order: DeliveryOrder) => void;
   onStopTracking: () => void;
   onRefreshLocation?: () => void;
   onUpdateLocation?: (coords: { latitude: number; longitude: number }) => void;
@@ -137,12 +141,14 @@ const MeterCard: React.FC<{
 export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   order,
   allOrders = [],
+  orderInspectedDrones = {},
   onSelectOrder,
   isTracking,
   telemetry,
   currentCoords,
   onBackToDashboard,
   onCompletePod,
+  onOpenSortieDrones,
   onStopTracking,
   onRefreshLocation,
   onUpdateLocation,
@@ -1075,26 +1081,76 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
         )}
 
         {/* Actions */}
-        {(order || activeOrder) && (
-          <View style={styles.actions}>
-            <TouchableOpacity style={styles.primaryBtn} onPress={() => onCompletePod(order || activeOrder!)} activeOpacity={0.85}>
-              <QrCode size={19} color="#FFFFFF" />
-              <Text style={styles.primaryBtnText}>Scan Drone QR & Complete</Text>
-            </TouchableOpacity>
+        {(order || activeOrder) && (() => {
+          const currentOrd = (order || activeOrder)!;
+          const totalDroneCount = Math.max(
+            currentOrd.units_count || 1,
+            (currentOrd.reserved_inventory_ids || []).length,
+            (currentOrd.items || []).length,
+            1
+          );
+          const inspectedList = Array.from(new Set([
+            ...(orderInspectedDrones?.[currentOrd.id] || []),
+            ...(currentOrd.inspected_drone_ids || [])
+          ]));
+          const isAllInspected = inspectedList.length >= totalDroneCount;
 
-            <TouchableOpacity style={styles.secondaryBtn} onPress={handleOpenGoogleMaps} activeOpacity={0.85}>
-              <ExternalLink size={16} color={C.brandDeep} />
-              <Text style={styles.secondaryBtnText}>Open Driving Route (Google Maps)</Text>
-            </TouchableOpacity>
+          return (
+            <View style={styles.actions}>
+              {/* Sortie Airframes Inspection Summary Card (Navigates to Dedicated Screen) */}
+              <View style={styles.sortieSummaryCard}>
+                <View style={styles.sortieSummaryHeader}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
+                    <ShieldCheck size={16} color="#4F46E5" />
+                    <Text style={styles.sortieSummaryTitle} numberOfLines={1}>
+                      Sortie Drones ({inspectedList.length}/{totalDroneCount})
+                    </Text>
+                  </View>
+                  <View style={[styles.sortieBadge, isAllInspected ? styles.sortieBadgeReady : styles.sortieBadgePending]}>
+                    <Text style={[styles.sortieBadgeText, isAllInspected ? styles.sortieBadgeTextReady : styles.sortieBadgeTextPending]} numberOfLines={1}>
+                      {isAllInspected ? 'Ready ✓' : 'Inspection Pending'}
+                    </Text>
+                  </View>
+                </View>
 
-            {isTracking && (
-              <TouchableOpacity style={styles.ghostBtn} onPress={handleStopAlert} activeOpacity={0.7}>
-                <PauseCircle size={15} color={C.body} />
-                <Text style={styles.ghostBtnText}>Pause Location Sharing</Text>
+                <TouchableOpacity
+                  style={styles.openSortieBtn}
+                  onPress={() => (onOpenSortieDrones ? onOpenSortieDrones(currentOrd) : onCompletePod(currentOrd))}
+                  activeOpacity={0.85}
+                >
+                  <Camera size={15} color="#FFFFFF" />
+                  <Text style={styles.openSortieBtnText} numberOfLines={1}>
+                    {isAllInspected
+                      ? 'View Inspected Drones & POD'
+                      : `Verify Drones & Inspection (${inspectedList.length}/${totalDroneCount})`}
+                  </Text>
+                  <ChevronRight size={15} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+
+              {isAllInspected && (
+                <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: '#059669' }]} onPress={() => onCompletePod(currentOrd)} activeOpacity={0.85}>
+                  <CheckCircle size={19} color="#FFFFFF" />
+                  <Text style={styles.primaryBtnText}>
+                    Complete Handover & POD
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity style={styles.secondaryBtn} onPress={handleOpenGoogleMaps} activeOpacity={0.85}>
+                <ExternalLink size={16} color={C.brandDeep} />
+                <Text style={styles.secondaryBtnText}>Open Driving Route (Google Maps)</Text>
               </TouchableOpacity>
-            )}
-          </View>
-        )}
+
+              {isTracking && (
+                <TouchableOpacity style={styles.ghostBtn} onPress={handleStopAlert} activeOpacity={0.7}>
+                  <PauseCircle size={15} color={C.body} />
+                  <Text style={styles.ghostBtnText}>Pause Location Sharing</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          );
+        })()}
       </ScrollView>
     </View>
   );
@@ -1370,4 +1426,72 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 40,
   },
   ghostBtnText: { fontSize: 13, fontWeight: '700', color: C.body },
+  sortieSummaryCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    marginBottom: 10,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  sortieSummaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 8,
+  },
+  sortieSummaryTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+    flexShrink: 1,
+  },
+  sortieBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    flexShrink: 0,
+  },
+  sortieBadgePending: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  sortieBadgeReady: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  sortieBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  sortieBadgeTextPending: {
+    color: '#B45309',
+  },
+  sortieBadgeTextReady: {
+    color: '#047857',
+  },
+  openSortieBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4F46E5',
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    gap: 8,
+  },
+  openSortieBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    flex: 1,
+    textAlign: 'center',
+  },
 });

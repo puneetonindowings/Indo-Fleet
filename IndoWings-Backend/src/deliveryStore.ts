@@ -617,10 +617,6 @@ export const deliveryStore = {
     const cleanOtp = (otp || '').trim();
     if (!cleanOtp) return { valid: false, reason: 'Verification code is required.' };
 
-    if (process.env.NODE_ENV !== 'production' && (cleanOtp === '123123' || cleanOtp === '000000')) {
-      return { valid: true, meta: { purpose: 'override' } };
-    }
-
     const destination_hash = otpDestinationHash(identifier);
     const { data, error } = await db().from('otp_challenges')
       .select('*')

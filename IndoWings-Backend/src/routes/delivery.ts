@@ -4572,8 +4572,14 @@ router.get('/pilot/dashboard', async (req, res) => {
         pickup_lng: Number(o.pickup_lng) || (o.pickup_location?.longitude) || 77.3661,
         drone_model: o.drone_model || 'UAV',
         drone_id: o.drone_id || (o.reserved_inventory_ids || [])[0] || '',
+        assigned_drone_id: o.assigned_drone_id || o.drone_id || (o.reserved_inventory_ids || [])[0] || '',
+        reserved_inventory_ids: Array.isArray(o.reserved_inventory_ids) ? o.reserved_inventory_ids : [],
+        assigned_drone_ids: Array.isArray(o.assigned_drone_ids) ? o.assigned_drone_ids : (Array.isArray(o.reserved_inventory_ids) ? o.reserved_inventory_ids : []),
+        drones: Array.isArray(o.reserved_inventory_ids) && o.reserved_inventory_ids.length > 0 ? o.reserved_inventory_ids : [o.assigned_drone_id || o.drone_id].filter(Boolean),
+        hub_inspected_drone_ids: Array.isArray(o.hub_inspected_drone_ids) ? o.hub_inspected_drone_ids : [],
+        inspected_drone_ids: Array.isArray(o.inspected_drone_ids) ? o.inspected_drone_ids : [],
         status: o.status,
-        units_count: o.units_count || 1,
+        units_count: o.units_count || (o.reserved_inventory_ids || []).length || 1,
         weight_kg: o.weight_kg || 0,
         fare_inr: o.fare_inr || 0,
         payment_status: o.payment_status || 'Prepaid',
@@ -4615,8 +4621,14 @@ router.get('/pilot/dashboard', async (req, res) => {
         pickup_lng: Number(o.pickup_lng) || (o.pickup_location?.longitude) || 77.3661,
         drone_model: o.drone_model || '700RPAV',
         drone_id: o.drone_id || (o.reserved_inventory_ids || [])[0] || '',
+        assigned_drone_id: o.assigned_drone_id || o.drone_id || (o.reserved_inventory_ids || [])[0] || '',
+        reserved_inventory_ids: Array.isArray(o.reserved_inventory_ids) ? o.reserved_inventory_ids : [],
+        assigned_drone_ids: Array.isArray(o.assigned_drone_ids) ? o.assigned_drone_ids : (Array.isArray(o.reserved_inventory_ids) ? o.reserved_inventory_ids : []),
+        drones: Array.isArray(o.reserved_inventory_ids) && o.reserved_inventory_ids.length > 0 ? o.reserved_inventory_ids : [o.assigned_drone_id || o.drone_id].filter(Boolean),
+        hub_inspected_drone_ids: Array.isArray(o.hub_inspected_drone_ids) ? o.hub_inspected_drone_ids : [],
+        inspected_drone_ids: Array.isArray(o.inspected_drone_ids) ? o.inspected_drone_ids : [],
         status: o.status,
-        units_count: o.units_count || 1,
+        units_count: o.units_count || (o.reserved_inventory_ids || []).length || 1,
         weight_kg: o.weight_kg || 0,
         fare_inr: o.fare_inr || 0,
         payment_status: o.payment_status || 'Prepaid',
@@ -4727,8 +4739,14 @@ router.get('/pilot/history', async (req, res) => {
         pickup_lng: Number(o.pickup_lng) || (o.pickup_location?.longitude) || 77.3661,
         drone_model: o.drone_model || '700RPAV',
         drone_id: o.drone_id || (o.reserved_inventory_ids || [])[0] || '',
+        assigned_drone_id: o.assigned_drone_id || o.drone_id || (o.reserved_inventory_ids || [])[0] || '',
+        reserved_inventory_ids: Array.isArray(o.reserved_inventory_ids) ? o.reserved_inventory_ids : [],
+        assigned_drone_ids: Array.isArray(o.assigned_drone_ids) ? o.assigned_drone_ids : (Array.isArray(o.reserved_inventory_ids) ? o.reserved_inventory_ids : []),
+        drones: Array.isArray(o.reserved_inventory_ids) && o.reserved_inventory_ids.length > 0 ? o.reserved_inventory_ids : [o.assigned_drone_id || o.drone_id].filter(Boolean),
+        hub_inspected_drone_ids: Array.isArray(o.hub_inspected_drone_ids) ? o.hub_inspected_drone_ids : [],
+        inspected_drone_ids: Array.isArray(o.inspected_drone_ids) ? o.inspected_drone_ids : [],
         status: o.status,
-        units_count: o.units_count || 1,
+        units_count: o.units_count || (o.reserved_inventory_ids || []).length || 1,
         weight_kg: o.weight_kg || 0,
         fare_inr: o.fare_inr || 0,
         payment_status: o.payment_status || 'Prepaid',
@@ -5065,6 +5083,118 @@ router.post('/pilot/request-handover-otp', async (req, res) => {
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to generate departure OTP' });
+  }
+});
+
+// 6.5 Verify Scanned Drone QR against Order Drones Fleet
+router.post('/pilot/verify-drone-order', async (req, res) => {
+  try {
+    const { order_id, drone_id } = req.body;
+    if (!order_id || !drone_id) {
+      res.status(400).json({ success: false, error: 'order_id and drone_id are required' });
+      return;
+    }
+
+    const cleanOrderId = String(order_id).trim();
+    const cleanDroneId = String(drone_id).trim();
+
+    const order = await fileDB.findOrderById(cleanOrderId);
+    if (!order) {
+      res.status(404).json({ success: false, error: `Order #${cleanOrderId} not found.` });
+      return;
+    }
+
+    // Normalization
+    const normScanned = cleanDroneId.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+
+    // Collect all expected drone IDs & serial numbers for this order
+    const fleet = await fileDB.getFleet();
+    const expected = new Set<string>();
+    const candidateIds = new Set<string>();
+
+    if (Array.isArray(order.reserved_inventory_ids)) {
+      order.reserved_inventory_ids.forEach((id: string) => candidateIds.add(String(id).trim()));
+    }
+    if (Array.isArray(order.assigned_drone_ids)) {
+      order.assigned_drone_ids.forEach((id: string) => candidateIds.add(String(id).trim()));
+    }
+    if (order.assigned_drone_id) candidateIds.add(String(order.assigned_drone_id).trim());
+    if (order.drone_id) candidateIds.add(String(order.drone_id).trim());
+    if (Array.isArray(order.items)) {
+      order.items.forEach((it: any) => {
+        const sn = String(it.serial_number || it.serial || it.drone_id || it.id || '').trim();
+        if (sn) candidateIds.add(sn);
+      });
+    }
+
+    // Expand candidate IDs with matching fleet units (both ID and Serial Number)
+    candidateIds.forEach((c) => {
+      const clean = c.trim();
+      if (!clean) return;
+      expected.add(clean);
+      const fleetItem = fleet.find(d =>
+        String(d.id).toLowerCase() === clean.toLowerCase() ||
+        String(d.serial_number || '').toLowerCase() === clean.toLowerCase()
+      );
+      if (fleetItem) {
+        if (fleetItem.id) expected.add(String(fleetItem.id).trim());
+        if (fleetItem.serial_number) expected.add(String(fleetItem.serial_number).trim());
+      }
+    });
+
+    // Check match
+    let matchedDroneId: string | null = null;
+    for (const exp of Array.from(expected)) {
+      const normExp = exp.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+      if (normExp === normScanned || normExp.includes(normScanned) || normScanned.includes(normExp)) {
+        matchedDroneId = exp;
+        break;
+      }
+    }
+
+    // If expected list was empty but order exists, check if drone exists in fleet
+    if (!matchedDroneId && expected.size === 0) {
+      const fleet = await fileDB.getFleet();
+      const inFleet = fleet.find(d => 
+        String(d.id).toUpperCase() === normScanned || 
+        String(d.serial_number || '').toUpperCase() === normScanned
+      );
+      if (inFleet) {
+        matchedDroneId = inFleet.id || inFleet.serial_number;
+        // Associate with order
+        await fileDB.updateOrder(order.id, {
+          reserved_inventory_ids: [matchedDroneId],
+          drone_id: matchedDroneId
+        });
+      }
+    }
+
+    if (!matchedDroneId) {
+      res.status(400).json({
+        success: false,
+        matched: false,
+        error: `QR Mismatch: Drone '${cleanDroneId}' is not assigned to Order #${order.order_number || order.id}. This aircraft does not match the order.`
+      });
+      return;
+    }
+
+    // Fetch drone details from fleet
+    const droneRecord = fleet.find(d => 
+      String(d.id).toLowerCase() === matchedDroneId!.toLowerCase() || 
+      String(d.serial_number || '').toLowerCase() === matchedDroneId!.toLowerCase()
+    );
+
+    res.json({
+      success: true,
+      matched: true,
+      drone_id: matchedDroneId,
+      model_name: droneRecord?.model || droneRecord?.model_name || order.drone_model || 'IndoWings 700 RPAV',
+      order_id: order.id,
+      order_number: order.order_number || order.id,
+      already_inspected: Array.isArray(order.inspected_drone_ids) && order.inspected_drone_ids.includes(matchedDroneId)
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to verify drone for order' });
   }
 });
 
@@ -5891,11 +6021,30 @@ router.post('/inspections', async (req, res) => {
 
     if (delivery_id) {
       try {
-        await fileDB.updateOrder(String(delivery_id).trim(), {
-          inspection_id: saved.inspection_id,
-          post_delivery_inspection: saved,
-          drone_inspection_status: saved.overall_inspection
-        });
+        const orderToUpdate = await fileDB.findOrderById(String(delivery_id).trim());
+        const cleanDrone = String(drone_id).trim();
+        const stage = req.body.stage || (inspection_type === 'pre-flight' ? 'hub_pickup' : 'customer_delivery');
+
+        let updatePayload: any = {};
+        if (stage === 'hub_pickup' || stage === 'hub' || inspection_type === 'pre-flight') {
+          const prevHub = Array.isArray(orderToUpdate?.hub_inspected_drone_ids) ? orderToUpdate.hub_inspected_drone_ids : [];
+          const updatedHub = Array.from(new Set([...prevHub, cleanDrone]));
+          updatePayload = {
+            hub_inspection_id: saved.inspection_id,
+            hub_inspected_drone_ids: updatedHub,
+          };
+        } else {
+          const prevInspected = Array.isArray(orderToUpdate?.inspected_drone_ids) ? orderToUpdate.inspected_drone_ids : [];
+          const updatedInspected = Array.from(new Set([...prevInspected, cleanDrone]));
+          updatePayload = {
+            inspection_id: saved.inspection_id,
+            post_delivery_inspection: saved,
+            drone_inspection_status: saved.overall_inspection,
+            inspected_drone_ids: updatedInspected,
+          };
+        }
+
+        await fileDB.updateOrder(String(delivery_id).trim(), updatePayload);
       } catch (linkErr: any) {
         console.warn('[InspectionLink] Non-blocking order link notice:', linkErr?.message);
       }

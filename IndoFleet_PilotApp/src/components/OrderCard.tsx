@@ -19,23 +19,33 @@ import {
   CheckCircle,
   Zap,
   QrCode,
+  Camera,
+  ChevronRight,
 } from 'lucide-react-native';
 import { DeliveryOrder } from '../types';
 
 interface OrderCardProps {
   order: DeliveryOrder;
+  hubInspectedDroneIds?: string[];
+  inspectedDroneIds?: string[];
   onAcceptPress: (order: DeliveryOrder) => void;
   onStartFlightPress: (order: DeliveryOrder) => void;
   onCompletePodPress: (order: DeliveryOrder) => void;
+  onStartQrScanPress?: (order: DeliveryOrder, slotIndex?: number, stage?: 'hub_pickup' | 'customer_delivery') => void;
+  onOpenSortieDrones?: (order: DeliveryOrder, stage?: 'hub_pickup' | 'customer_delivery') => void;
   onViewRadarPress: (order: DeliveryOrder) => void;
   onInspectPress?: (order: DeliveryOrder) => void;
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({
   order,
+  hubInspectedDroneIds = [],
+  inspectedDroneIds = [],
   onAcceptPress,
   onStartFlightPress,
   onCompletePodPress,
+  onStartQrScanPress,
+  onOpenSortieDrones,
   onViewRadarPress,
   onInspectPress,
 }) => {
@@ -43,6 +53,25 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   const isAccepted = order.pilot_acceptance_status === 'accepted' && order.status !== 'in-flight' && order.status !== 'delivered';
   const isInFlight = order.status === 'in-flight';
   const isDelivered = order.status === 'delivered';
+
+  const totalDroneCount = Math.max(
+    order.units_count || 1,
+    (order.reserved_inventory_ids || []).length,
+    (order.items || []).length,
+    1
+  );
+
+  const hubInspectedList = Array.from(new Set([
+    ...(hubInspectedDroneIds || []),
+    ...(order.hub_inspected_drone_ids || [])
+  ]));
+  const isAllHubInspected = hubInspectedList.length >= totalDroneCount;
+
+  const inspectedList = Array.from(new Set([
+    ...(inspectedDroneIds || []),
+    ...(order.inspected_drone_ids || [])
+  ]));
+  const isAllInspected = inspectedList.length >= totalDroneCount;
 
   const handleCallCustomer = () => {
     if (order.customer_phone) {
@@ -158,14 +187,69 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       {/* Action Buttons Section */}
       <View style={styles.actionsContainer}>
         {isPendingAcceptance && (
-          <TouchableOpacity
-            style={styles.acceptBtn}
-            onPress={() => onAcceptPress(order)}
-            activeOpacity={0.8}
-          >
-            <ShieldCheck size={16} color="#FFFFFF" />
-            <Text style={styles.acceptBtnText}>Accept Order (Enter OTP)</Text>
-          </TouchableOpacity>
+          <View style={styles.inFlightActionStack}>
+            {/* Hub Pre-Acceptance Drone Inspection Block */}
+            <View style={styles.sortieSummaryCard}>
+              <View style={styles.sortieSummaryHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
+                  <ShieldCheck size={16} color="#4F46E5" />
+                  <Text style={styles.sortieSummaryTitle} numberOfLines={1}>
+                    Hub Inspection ({hubInspectedList.length}/{totalDroneCount})
+                  </Text>
+                </View>
+                <View style={[styles.sortieBadge, isAllHubInspected ? styles.sortieBadgeReady : styles.sortieBadgePending]}>
+                  <Text style={[styles.sortieBadgeText, isAllHubInspected ? styles.sortieBadgeTextReady : styles.sortieBadgeTextPending]} numberOfLines={1}>
+                    {isAllHubInspected ? 'Hub Verified ✓' : 'Inspection Required'}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.openSortieBtn}
+                onPress={() => (onOpenSortieDrones ? onOpenSortieDrones(order, 'hub_pickup') : onAcceptPress(order))}
+                activeOpacity={0.85}
+              >
+                <Camera size={15} color="#FFFFFF" />
+                <Text style={styles.openSortieBtnText} numberOfLines={1}>
+                  {isAllHubInspected
+                    ? 'View Hub Inspected Drones'
+                    : `Hub Drone Inspection (${hubInspectedList.length}/${totalDroneCount})`}
+                </Text>
+                <ChevronRight size={15} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Accept Order Action */}
+            <TouchableOpacity
+              style={[
+                styles.acceptBtn,
+                !isAllHubInspected && { backgroundColor: '#475569' }
+              ]}
+              onPress={() => {
+                if (!isAllHubInspected) {
+                  Alert.alert(
+                    'Hub Drone Inspection Required',
+                    `Please inspect all ${totalDroneCount} cargo drone airframes at the Hub before accepting the order.`,
+                    [
+                      {
+                        text: 'Inspect at Hub',
+                        onPress: () => onOpenSortieDrones && onOpenSortieDrones(order, 'hub_pickup'),
+                      },
+                      { text: 'Cancel', style: 'cancel' }
+                    ]
+                  );
+                  return;
+                }
+                onAcceptPress(order);
+              }}
+              activeOpacity={0.8}
+            >
+              <ShieldCheck size={16} color="#FFFFFF" />
+              <Text style={styles.acceptBtnText}>
+                {isAllHubInspected ? 'Accept Order (Enter OTP)' : `Accept Order (${hubInspectedList.length}/${totalDroneCount} Hub Verified)`}
+              </Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {isAccepted && (
@@ -192,14 +276,50 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
         {isInFlight && (
           <View style={styles.inFlightActionStack}>
-            <TouchableOpacity
-              style={styles.podPrimaryBtn}
-              onPress={() => onCompletePodPress(order)}
-              activeOpacity={0.85}
-            >
-              <QrCode size={18} color="#FFFFFF" />
-              <Text style={styles.podPrimaryBtnText}>Scan Drone QR & Complete</Text>
-            </TouchableOpacity>
+            {/* Sortie Airframes Inspection Summary Card (Navigates to Dedicated Screen) */}
+            <View style={styles.sortieSummaryCard}>
+              <View style={styles.sortieSummaryHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
+                  <ShieldCheck size={16} color="#4F46E5" />
+                  <Text style={styles.sortieSummaryTitle} numberOfLines={1}>
+                    Sortie Drones ({inspectedList.length}/{totalDroneCount})
+                  </Text>
+                </View>
+                <View style={[styles.sortieBadge, isAllInspected ? styles.sortieBadgeReady : styles.sortieBadgePending]}>
+                  <Text style={[styles.sortieBadgeText, isAllInspected ? styles.sortieBadgeTextReady : styles.sortieBadgeTextPending]} numberOfLines={1}>
+                    {isAllInspected ? 'Ready ✓' : 'Inspection Pending'}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.openSortieBtn}
+                onPress={() => (onOpenSortieDrones ? onOpenSortieDrones(order) : onStartQrScanPress ? onStartQrScanPress(order) : onCompletePodPress(order))}
+                activeOpacity={0.85}
+              >
+                <Camera size={15} color="#FFFFFF" />
+                <Text style={styles.openSortieBtnText} numberOfLines={1}>
+                  {isAllInspected
+                    ? 'View Inspected Drones & POD'
+                    : `Verify Drones & Inspection (${inspectedList.length}/${totalDroneCount})`}
+                </Text>
+                <ChevronRight size={15} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            {/* If all inspected, show direct Complete Handover button */}
+            {isAllInspected && (
+              <TouchableOpacity
+                style={[styles.podPrimaryBtn, { backgroundColor: '#059669', marginTop: 4 }]}
+                onPress={() => onCompletePodPress(order)}
+                activeOpacity={0.85}
+              >
+                <CheckCircle size={18} color="#FFFFFF" />
+                <Text style={styles.podPrimaryBtnText}>
+                  Complete Handover & POD
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <View style={styles.inFlightSubRow}>
               <TouchableOpacity
@@ -539,5 +659,69 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: '#1D4ED8',
+  },
+  sortieSummaryCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    marginBottom: 10,
+  },
+  sortieSummaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 8,
+  },
+  sortieSummaryTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+    flexShrink: 1,
+  },
+  sortieBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    flexShrink: 0,
+  },
+  sortieBadgePending: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  sortieBadgeReady: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  sortieBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  sortieBadgeTextPending: {
+    color: '#B45309',
+  },
+  sortieBadgeTextReady: {
+    color: '#047857',
+  },
+  openSortieBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4F46E5',
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    gap: 8,
+  },
+  openSortieBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    flex: 1,
+    textAlign: 'center',
   },
 });

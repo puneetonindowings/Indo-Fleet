@@ -19,11 +19,15 @@ interface DashboardScreenProps {
   kpis: PilotKpis;
   chartData: ChartData;
   orders: DeliveryOrder[];
+  orderInspectedDrones?: Record<string, string[]>;
+  orderHubInspectedDrones?: Record<string, string[]>;
   refreshing: boolean;
   onRefresh: () => void;
   onAcceptOrder: (order: DeliveryOrder) => void;
   onStartFlight: (order: DeliveryOrder) => void;
   onCompletePod: (order: DeliveryOrder) => void;
+  onStartQrScan?: (order: DeliveryOrder, slotIndex?: number, stage?: 'hub_pickup' | 'customer_delivery') => void;
+  onOpenSortieDrones?: (order: DeliveryOrder, stage?: 'hub_pickup' | 'customer_delivery') => void;
   onViewRadar: (order: DeliveryOrder) => void;
   onViewHistory?: () => void;
   onInspectDrone?: (order?: DeliveryOrder) => void;
@@ -65,11 +69,15 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   kpis,
   chartData,
   orders,
+  orderInspectedDrones = {},
+  orderHubInspectedDrones = {},
   refreshing,
   onRefresh,
   onAcceptOrder,
   onStartFlight,
   onCompletePod,
+  onStartQrScan,
+  onOpenSortieDrones,
   onViewRadar,
   onViewHistory,
   onInspectDrone,
@@ -121,14 +129,18 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
     ({ item }: { item: DeliveryOrder }) => (
       <OrderCard
         order={item}
+        hubInspectedDroneIds={orderHubInspectedDrones?.[item.id] || item.hub_inspected_drone_ids || []}
+        inspectedDroneIds={orderInspectedDrones?.[item.id] || item.inspected_drone_ids || []}
         onAcceptPress={onAcceptOrder}
         onStartFlightPress={onStartFlight}
         onCompletePodPress={onCompletePod}
+        onStartQrScanPress={onStartQrScan}
+        onOpenSortieDrones={onOpenSortieDrones}
         onViewRadarPress={onViewRadar}
         onInspectPress={onInspectDrone}
       />
     ),
-    [onAcceptOrder, onStartFlight, onCompletePod, onViewRadar, onInspectDrone]
+    [orderHubInspectedDrones, orderInspectedDrones, onAcceptOrder, onStartFlight, onCompletePod, onStartQrScan, onOpenSortieDrones, onViewRadar, onInspectDrone]
   );
 
   // Passed as an element (not a component function) so the header is not remounted on every render

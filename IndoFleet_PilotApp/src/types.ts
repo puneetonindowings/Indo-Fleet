@@ -53,6 +53,11 @@ export interface DeliveryOrder {
   drone_model?: string;
   drone_id?: string;
   assigned_drone_id?: string;
+  reserved_inventory_ids?: string[];
+  assigned_drone_ids?: string[];
+  drones?: string[];
+  hub_inspected_drone_ids?: string[];
+  inspected_drone_ids?: string[];
   status: 'pending' | 'assigned' | 'taking-off' | 'in-flight' | 'out-for-delivery' | 'delivered' | 'cancelled' | string;
   units_count?: number;
   weight_kg?: number;

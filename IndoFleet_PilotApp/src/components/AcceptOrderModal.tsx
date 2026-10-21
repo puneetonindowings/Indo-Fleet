@@ -35,9 +35,8 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
   const [requestingOtp, setRequestingOtp] = useState(false);
   const [otpDispatched, setOtpDispatched] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-  const [devOtp, setDevOtp] = useState<string | null>(null);
 
-  const targetEmail = currentUser?.email || order?.pilot_email || 'akanksha@indowings.com';
+  const targetEmail = (currentUser?.email || order?.pilot_email || '').trim();
 
   // Cooldown countdown timer
   useEffect(() => {
@@ -51,7 +50,6 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
   useEffect(() => {
     if (visible && order) {
       setOtp('');
-      setDevOtp(null);
       handleRequestMyOtp();
     }
   }, [visible, order?.id]);
@@ -73,9 +71,6 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
       });
       setOtpDispatched(true);
       setCooldown(30);
-      if (res.acceptance_otp) {
-        setDevOtp(res.acceptance_otp);
-      }
     } catch (err: any) {
       console.warn('Acceptance OTP request error:', err);
       Alert.alert('Request Failed', err.message || 'Failed to dispatch acceptance OTP.');
@@ -214,15 +209,6 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
                       Valid for 10 minutes · Check your inbox / spam folder
                     </Text>
                   </View>
-                  {devOtp ? (
-                    <TouchableOpacity
-                      onPress={() => setOtp(devOtp)}
-                      style={styles.devOtpPill}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.devOtpText}>Fill {devOtp}</Text>
-                    </TouchableOpacity>
-                  ) : null}
                 </View>
               ) : null}
 

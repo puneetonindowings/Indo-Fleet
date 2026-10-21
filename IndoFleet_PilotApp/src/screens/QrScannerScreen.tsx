@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -26,17 +26,23 @@ import {
   Scan,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import jsQR from 'jsqr';
 import { DeliveryOrder } from '../types';
+import { verifyDroneForOrder } from '../services/api';
 
 interface QrScannerScreenProps {
   order: DeliveryOrder | null;
+  targetDroneSlot?: number;
+  inspectedDroneIds?: string[];
   onBack: () => void;
   onScannedSuccess: (droneId: string) => void;
 }
 
 export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
   order,
+  targetDroneSlot,
+  inspectedDroneIds = [],
   onBack,
   onScannedSuccess,
 }) => {
@@ -44,10 +50,21 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
   const [verifiedSuccess, setVerifiedSuccess] = useState(false);
   const [verifiedDroneId, setVerifiedDroneId] = useState<string | null>(null);
 
+  // Native Camera Permissions
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      if (!cameraPermission || !cameraPermission.granted) {
+        requestCameraPermission().catch(() => {});
+      }
+    }
+  }, [cameraPermission]);
+
   // Mismatch Error Modal state
   const [mismatchError, setMismatchError] = useState<{
     scanned: string;
-    expected: string;
+    message?: string;
   } | null>(null);
 
   // Manual code entry state
@@ -64,11 +81,38 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
 
   const scanAnim = useRef(new Animated.Value(0)).current;
 
-  // Expected Drone assigned to this order (hidden from screen until verified match)
-  const rawExpectedId = (order?.assigned_drone_id || order?.drone_id || '').trim();
-  const expectedDroneId = rawExpectedId && !rawExpectedId.includes('@') ? rawExpectedId : 'RPAV-700-01';
-  const expectedDroneModel = order?.drone_model && !order.drone_model.includes('@') ? order.drone_model : 'IndoWings 700 RPAV';
   const cleanOrderNumber = order?.order_number || order?.id || 'DELIVERY';
+
+  // Collect all valid expected drone IDs for this order (hidden from pre-scan UI)
+  const getExpectedDroneIds = useCallback((): string[] => {
+    if (!order) return [];
+    const ids = new Set<string>();
+    const addClean = (val: any) => {
+      if (!val || typeof val !== 'string') return;
+      const s = val.trim();
+      if (!s || s.length < 2) return;
+      if (s.includes('@') || s.includes('.com') || s.includes('.app') || s.includes('/') || s.includes('http')) return;
+      ids.add(s);
+    };
+
+    if (Array.isArray(order.reserved_inventory_ids)) {
+      order.reserved_inventory_ids.forEach(addClean);
+    }
+    if (Array.isArray(order.assigned_drone_ids)) {
+      order.assigned_drone_ids.forEach(addClean);
+    }
+    if (Array.isArray(order.drones)) {
+      order.drones.forEach(addClean);
+    }
+    addClean(order.assigned_drone_id);
+    addClean(order.drone_id);
+    if (Array.isArray(order.items)) {
+      order.items.forEach((it) => {
+        addClean(it.serial_number || it.serial || it.drone_id || it.id);
+      });
+    }
+    return Array.from(ids);
+  }, [order]);
 
   // Hardware Back Button
   useEffect(() => {
@@ -300,8 +344,8 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     return raw;
   };
 
-  // Main Validation: Compare Scanned Drone ID vs Order's Assigned Drone ID
-  const handleValidateScannedCode = (scannedRaw: string) => {
+  // Main Validation: Compare Scanned Drone ID vs Order's Assigned Drones Fleet
+  const handleValidateScannedCode = async (scannedRaw: string) => {
     if (isVerifying || verifiedSuccess) return;
 
     const extractedCode = extractDroneId(scannedRaw);
@@ -312,32 +356,62 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
 
     // Normalization for comparison
     const normScanned = extractedCode.toUpperCase().replace(/[^A-Z0-9-]/g, '');
-    const normExpected = expectedDroneId.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    const expectedList = getExpectedDroneIds();
 
-    const isMatch = normScanned === normExpected || normScanned.includes(normExpected) || normExpected.includes(normScanned);
+    let matchedId: string | null = null;
 
-    setTimeout(() => {
-      setIsVerifying(false);
-
-      if (isMatch) {
-        // MATCH SUCCESS!
-        setVerifiedDroneId(expectedDroneId);
-        setVerifiedSuccess(true);
-        setMismatchError(null);
-
-        // Proceed to Pre-Flight Inspection after confirmation feedback
-        setTimeout(() => {
-          onScannedSuccess(expectedDroneId);
-        }, 900);
-      } else {
-        // MISMATCH ERROR! DO NOT PROCEED!
-        setVerifiedSuccess(false);
-        setMismatchError({
-          scanned: extractedCode,
-          expected: expectedDroneId,
-        });
+    // 1. Direct comparison with order assigned / reserved drones
+    for (const exp of expectedList) {
+      const normExp = exp.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+      if (normScanned === normExp || normScanned.includes(normExp) || normExp.includes(normScanned)) {
+        matchedId = exp;
+        break;
       }
-    }, 400);
+    }
+
+    // 2. If not matched locally or expected list empty, verify with backend API
+    if (!matchedId && order?.id) {
+      try {
+        const verifyRes = await verifyDroneForOrder(order.id, extractedCode);
+        if (verifyRes.success && verifyRes.matched) {
+          matchedId = verifyRes.drone_id || extractedCode;
+        }
+      } catch (backendErr: any) {
+        console.log('Drone order validation notice:', backendErr.message);
+      }
+    }
+
+    setIsVerifying(false);
+
+    if (matchedId) {
+      // Check if already inspected
+      const alreadyInspected = (inspectedDroneIds || []).includes(matchedId);
+      if (alreadyInspected) {
+        Alert.alert(
+          'Already Inspected',
+          `Drone "${matchedId}" has already been verified and inspected for this order. Please scan the remaining uninspected drone(s).`
+        );
+        return;
+      }
+
+      // MATCH SUCCESS!
+      setVerifiedDroneId(matchedId);
+      setVerifiedSuccess(true);
+      setMismatchError(null);
+
+      // Proceed to Pre/Post-Flight Inspection for this specific drone
+      const finalId = matchedId;
+      setTimeout(() => {
+        onScannedSuccess(finalId);
+      }, 800);
+    } else {
+      // MISMATCH ERROR! DO NOT PROCEED!
+      setVerifiedSuccess(false);
+      setMismatchError({
+        scanned: extractedCode,
+        message: `Airframe "${extractedCode}" is not assigned to Order #${cleanOrderNumber}. It does not match any of the booked drones in this order.`,
+      });
+    }
   };
 
   // Take photo of drone QR with phone camera
@@ -447,10 +521,52 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32 }}>
+        {/* Notice for web / emulator without physical webcam */}
+        {Boolean(cameraError) && (
+          <View style={styles.webcamNoticeBanner}>
+            <AlertTriangle size={16} color="#B45309" style={{ marginTop: 1 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.webcamNoticeTitle}>No Hardware Camera Detected</Text>
+              <Text style={styles.webcamNoticeDesc}>{cameraError}</Text>
+            </View>
+          </View>
+        )}
+
         {/* ── Scanner Viewport Container ─────────────────────────── */}
         <View style={styles.scannerWrapper}>
           <View style={styles.viewfinderCard}>
-            {/* HTML5 live camera video element */}
+            {/* Native Mobile Live CameraView */}
+            {Platform.OS !== 'web' && (
+              cameraPermission?.granted ? (
+                <CameraView
+                  style={StyleSheet.absoluteFill}
+                  facing="back"
+                  barcodeScannerSettings={{
+                    barcodeTypes: ['qr'],
+                  }}
+                  onBarcodeScanned={({ data }) => {
+                    if (data && !isVerifying && !verifiedSuccess) {
+                      handleValidateScannedCode(data);
+                    }
+                  }}
+                />
+              ) : (
+                <View style={styles.permissionPromptWrap}>
+                  <AlertTriangle size={36} color="#F59E0B" />
+                  <Text style={styles.permissionPromptTitle}>Camera Access Required</Text>
+                  <Text style={styles.permissionPromptSub}>IndoFleet needs camera access to scan drone QR codes</Text>
+                  <TouchableOpacity
+                    style={styles.permissionPromptBtn}
+                    onPress={requestCameraPermission}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.permissionPromptBtnText}>Grant Camera Access</Text>
+                  </TouchableOpacity>
+                </View>
+              )
+            )}
+
+            {/* HTML5 live camera video element for Web */}
             {Platform.OS === 'web' && (
               <div
                 style={{
@@ -463,7 +579,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: '#070B14',
+                  backgroundColor: '#F8FAFC',
                   borderRadius: 24,
                   zIndex: 1,
                 }}
@@ -490,8 +606,19 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
               </div>
             )}
 
-            {/* Dark optical viewfinder backdrop */}
-            <View style={[styles.cameraPlaceholder, { zIndex: cameraActive && Platform.OS === 'web' ? 0 : 2 }]}>
+            {/* Dark optical viewfinder backdrop (shown only before camera starts) */}
+            <View
+              style={[
+                styles.cameraPlaceholder,
+                {
+                  zIndex:
+                    (Platform.OS === 'web' && cameraActive) ||
+                    (Platform.OS !== 'web' && cameraPermission?.granted)
+                      ? 0
+                      : 2,
+                },
+              ]}
+            >
               <View style={styles.simulatedGrid} />
             </View>
 
@@ -560,8 +687,8 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
                     </View>
                   ) : isVerifying ? (
                     <View style={styles.activeScanningWrap}>
-                      <ActivityIndicator size="large" color="#A855F7" />
-                      <Text style={[styles.activeScanningText, { color: '#E9D5FF' }]}>Verifying Airframe QR...</Text>
+                      <ActivityIndicator size="large" color="#7C3AED" />
+                      <Text style={[styles.activeScanningText, { color: '#6D28D9' }]}>Verifying Airframe QR...</Text>
                     </View>
                   ) : (
                     <View style={styles.activeScanningWrap}>
@@ -593,18 +720,13 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
               <Text style={styles.mismatchTitle}>AIRFRAME MISMATCH ERROR!</Text>
             </View>
             <Text style={styles.mismatchDesc}>
-              The scanned drone does not match the drone assigned for this delivery sortie:
+              {mismatchError.message || `The scanned drone does not match the aircraft assigned to Order #${cleanOrderNumber}.`}
             </Text>
             <View style={styles.mismatchCompareGrid}>
-              <View style={styles.mismatchBoxScanned}>
-                <Text style={styles.mismatchLabel}>Scanned Airframe:</Text>
+              <View style={[styles.mismatchBoxScanned, { flex: 1 }]}>
+                <Text style={styles.mismatchLabel}>Scanned Airframe ID:</Text>
                 <Text style={styles.mismatchValueScanned}>{mismatchError.scanned}</Text>
-                <Text style={styles.mismatchSubScanned}>❌ Incorrect Drone</Text>
-              </View>
-              <View style={styles.mismatchBoxExpected}>
-                <Text style={styles.mismatchLabel}>Assigned for Order:</Text>
-                <Text style={styles.mismatchValueExpected}>{mismatchError.expected}</Text>
-                <Text style={styles.mismatchSubExpected}>✓ Required Drone</Text>
+                <Text style={styles.mismatchSubScanned}>❌ Did not match order requirements</Text>
               </View>
             </View>
             <TouchableOpacity
@@ -718,7 +840,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
                 <View style={{ flex: 1 }}>
                   <Text style={styles.verifiedSuccessTitle}>✓ Airframe Authenticated!</Text>
                   <Text style={styles.verifiedSuccessDesc}>
-                    Drone <Text style={{ fontWeight: '800' }}>{verifiedDroneId}</Text> ({expectedDroneModel}) matches Order #{cleanOrderNumber}. Opening Pre-Flight Inspection...
+                    Drone <Text style={{ fontWeight: '800' }}>{verifiedDroneId}</Text> matches Order #{cleanOrderNumber}. Opening Airframe Safety Inspection...
                   </Text>
                 </View>
               </View>
@@ -789,6 +911,29 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#5A00B8',
   },
+  webcamNoticeBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    padding: 12,
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  webcamNoticeTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#92400E',
+    marginBottom: 2,
+  },
+  webcamNoticeDesc: {
+    fontSize: 11,
+    color: '#B45309',
+    lineHeight: 15,
+  },
   scannerWrapper: {
     padding: 16,
     alignItems: 'center',
@@ -801,16 +946,16 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#0A1128',
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    shadowColor: '#1E1B4B',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    shadowColor: '#64748B',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 16,
-    elevation: 4,
+    elevation: 3,
   },
   cameraPlaceholder: {
     position: 'absolute',
@@ -818,7 +963,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#070B14',
+    backgroundColor: '#F1F5F9',
   },
   simulatedGrid: {
     position: 'absolute',
@@ -826,8 +971,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    opacity: 0.15,
-    backgroundColor: '#1E293B',
+    opacity: 0.25,
+    backgroundColor: '#E2E8F0',
   },
   scannerTopHud: {
     position: 'absolute',
@@ -841,12 +986,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: '#CBD5E1',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   scannerLiveDot: {
     width: 7,
@@ -863,7 +1013,7 @@ const styles = StyleSheet.create({
   scannerLiveText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#0F172A',
     letterSpacing: 0.6,
   },
   reticleContainer: {
@@ -879,7 +1029,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 16,
-    backgroundColor: 'rgba(10, 17, 40, 0.25)',
+    backgroundColor: 'rgba(255, 255, 255, 0.65)',
+    borderWidth: 1,
+    borderColor: 'rgba(124, 58, 237, 0.25)',
   },
   reticleBoxSuccess: {
     borderColor: '#10B981',
@@ -887,13 +1039,13 @@ const styles = StyleSheet.create({
   },
   reticleBoxError: {
     borderColor: '#EF4444',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
   },
   cornerBracket: {
     position: 'absolute',
     width: 26,
     height: 26,
-    borderColor: '#C084FC',
+    borderColor: '#7C3AED',
   },
   bracketSuccess: {
     borderColor: '#10B981',
@@ -935,8 +1087,8 @@ const styles = StyleSheet.create({
     left: 8,
     right: 8,
     height: 2,
-    backgroundColor: '#C084FC',
-    shadowColor: '#C084FC',
+    backgroundColor: '#7C3AED',
+    shadowColor: '#7C3AED',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
     shadowRadius: 6,
@@ -951,9 +1103,9 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(168, 85, 247, 0.15)',
+    backgroundColor: 'rgba(124, 58, 237, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(168, 85, 247, 0.35)',
+    borderColor: 'rgba(124, 58, 237, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
@@ -965,12 +1117,12 @@ const styles = StyleSheet.create({
   activeScanningText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0F172A',
     textAlign: 'center',
   },
   activeScanningSub: {
     fontSize: 10,
-    color: '#CBD5E1',
+    color: '#64748B',
     marginTop: 4,
     textAlign: 'center',
   },
@@ -988,7 +1140,7 @@ const styles = StyleSheet.create({
   successSubtext: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#E2E8F0',
+    color: '#0F172A',
   },
   errorCenterWrap: {
     alignItems: 'center',
@@ -1002,7 +1154,7 @@ const styles = StyleSheet.create({
   },
   errorCenterSub: {
     fontSize: 10,
-    color: '#FCA5A5',
+    color: '#DC2626',
   },
   viewfinderBottomHud: {
     position: 'absolute',
@@ -1013,8 +1165,15 @@ const styles = StyleSheet.create({
   },
   viewfinderBottomText: {
     fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.65)',
+    color: '#64748B',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     textAlign: 'center',
+    overflow: 'hidden',
   },
   mismatchBanner: {
     marginHorizontal: 16,
@@ -1267,5 +1426,41 @@ const styles = StyleSheet.create({
     color: '#047857',
     marginTop: 2,
     lineHeight: 18,
+  },
+  permissionPromptWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    zIndex: 5,
+  },
+  permissionPromptTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+    marginTop: 12,
+  },
+  permissionPromptSub: {
+    color: '#94A3B8',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  permissionPromptBtn: {
+    backgroundColor: '#3B0080',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  permissionPromptBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
   },
 });

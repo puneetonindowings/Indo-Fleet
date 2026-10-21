@@ -431,6 +431,7 @@ export async function submitSupportTicket(payload: {
 export async function submitPostDeliveryInspection(payload: {
   drone_id: string;
   delivery_id?: string;
+  stage?: string;
   inspection_type?: string;
   cargo_bay_condition?: string;
   landing_surface?: string;
@@ -460,4 +461,28 @@ export async function submitPostDeliveryInspection(payload: {
     throw new Error(data.error || 'Failed to submit inspection');
   }
   return data.inspection;
+}
+
+// 12. Verify Drone QR belongs to Order
+export async function verifyDroneForOrder(orderId: string, droneId: string): Promise<{
+  success: boolean;
+  matched: boolean;
+  drone_id: string;
+  model_name?: string;
+  order_id: string;
+  order_number?: string;
+  already_inspected?: boolean;
+}> {
+  const baseUrl = await getServerUrl();
+  const res = await fetch(`${baseUrl}/api/delivery/pilot/verify-drone-order`, {
+    method: 'POST',
+    headers: await getHeaders(),
+    body: JSON.stringify({ order_id: orderId, drone_id: droneId }),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || 'Drone does not match this order.');
+  }
+  return data;
 }

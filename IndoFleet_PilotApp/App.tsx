@@ -31,6 +31,7 @@ import { SupportScreen } from './src/screens/SupportScreen';
 import { OrderHistoryScreen } from './src/screens/OrderHistoryScreen';
 import { InspectionScreen } from './src/screens/InspectionScreen';
 import { QrScannerScreen } from './src/screens/QrScannerScreen';
+import { SortieDronesScreen } from './src/screens/SortieDronesScreen';
 import { NotFoundScreen } from './src/screens/NotFoundScreen';
 
 import {
@@ -144,6 +145,11 @@ function MainApp() {
   const [podModalOpen, setPodModalOpen] = useState<boolean>(false);
   const [inspectionModalOpen, setInspectionModalOpen] = useState<boolean>(false);
   const [inspectionOrder, setInspectionOrder] = useState<DeliveryOrder | null>(null);
+  const [activeInspectingDroneId, setActiveInspectingDroneId] = useState<string>('');
+  const [targetDroneSlotIndex, setTargetDroneSlotIndex] = useState<number | undefined>(undefined);
+  const [inspectionStage, setInspectionStage] = useState<'hub_pickup' | 'customer_delivery'>('customer_delivery');
+  const [orderHubInspectedDrones, setOrderHubInspectedDrones] = useState<Record<string, string[]>>({});
+  const [orderInspectedDrones, setOrderInspectedDrones] = useState<Record<string, string[]>>({});
 
   // Android Hardware / Swipe Back Button Handler
   const handleHardwareBack = useCallback(() => {
@@ -171,10 +177,14 @@ function MainApp() {
 
     // 2. Specific Screen Back Routing
     if (activeScreen === 'scanner') {
-      navigateTo(selectedOrder ? 'radar' : 'dashboard');
+      navigateTo(screenHistory.includes('sortie_drones') ? 'sortie_drones' : (selectedOrder ? 'radar' : 'dashboard'));
       return true;
     }
     if (activeScreen === 'inspection') {
+      navigateTo(screenHistory.includes('sortie_drones') ? 'sortie_drones' : (selectedOrder ? 'radar' : 'dashboard'));
+      return true;
+    }
+    if (activeScreen === 'sortie_drones') {
       navigateTo(selectedOrder ? 'radar' : 'dashboard');
       return true;
     }
@@ -558,10 +568,73 @@ function MainApp() {
     setHandoverModalOpen(true);
   };
 
-  const handleStartQrInspectionFlow = (order: DeliveryOrder) => {
+  const handleOpenSortieDrones = (order: DeliveryOrder, stage?: 'hub_pickup' | 'customer_delivery') => {
+    const computedStage = stage || (order.pilot_acceptance_status === 'pending_acceptance' && order.status !== 'in-flight' ? 'hub_pickup' : 'customer_delivery');
+    setInspectionStage(computedStage);
     setSelectedOrder(order);
     setInspectionOrder(order);
+    navigateTo('sortie_drones');
+  };
+
+  const handleStartQrInspectionFlow = (order: DeliveryOrder, slotIndex?: number, stage?: 'hub_pickup' | 'customer_delivery') => {
+    if (stage) setInspectionStage(stage);
+    setSelectedOrder(order);
+    setInspectionOrder(order);
+    setTargetDroneSlotIndex(slotIndex);
     navigateTo('scanner');
+  };
+
+  const handleQrScannedSuccess = (matchedDroneId: string) => {
+    setActiveInspectingDroneId(matchedDroneId);
+    navigateTo('inspection');
+  };
+
+  const handleInspectionSuccess = async (droneId: string, isAllCompleted: boolean, _inspectionId?: string) => {
+    const currentOrd = inspectionOrder || selectedOrder;
+    if (currentOrd) {
+      if (inspectionStage === 'hub_pickup') {
+        setOrderHubInspectedDrones((prev) => {
+          const existing = prev[currentOrd.id] || currentOrd.hub_inspected_drone_ids || [];
+          return {
+            ...prev,
+            [currentOrd.id]: Array.from(new Set([...existing, droneId])),
+          };
+        });
+      } else {
+        setOrderInspectedDrones((prev) => {
+          const existing = prev[currentOrd.id] || currentOrd.inspected_drone_ids || [];
+          return {
+            ...prev,
+            [currentOrd.id]: Array.from(new Set([...existing, droneId])),
+          };
+        });
+      }
+    }
+
+    if (!isAllCompleted) {
+      // Return to sortie drones list so pilot can scan next drone easily
+      navigateTo('sortie_drones');
+      loadDashboardData().catch(() => {});
+    } else {
+      if (inspectionStage === 'hub_pickup') {
+        // Return to sortie drones screen where Proceed to Accept Order button is now active
+        navigateTo('sortie_drones');
+        loadDashboardData().catch(() => {});
+      } else {
+        // All customer handover inspections completed: finish mission
+        await stopTracking();
+        if (foregroundWatcherRef.current) {
+          foregroundWatcherRef.current.remove();
+          foregroundWatcherRef.current = null;
+        }
+        setIsTracking(false);
+        setSelectedOrder(null);
+        setInspectionOrder(null);
+        setActiveInspectingDroneId('');
+        navigateTo('dashboard');
+        loadDashboardData().catch(() => {});
+      }
+    }
   };
 
   const handleFlightStarted = async () => {
@@ -644,11 +717,15 @@ function MainApp() {
             kpis={kpis}
             chartData={chartData}
             orders={orders}
+            orderInspectedDrones={orderInspectedDrones}
+            orderHubInspectedDrones={orderHubInspectedDrones}
             refreshing={refreshing}
             onRefresh={() => loadDashboardData()}
             onAcceptOrder={handleOpenAcceptModal}
             onStartFlight={handleOpenStartFlightModal}
             onCompletePod={handleStartQrInspectionFlow}
+            onStartQrScan={handleStartQrInspectionFlow}
+            onOpenSortieDrones={handleOpenSortieDrones}
             onViewRadar={(order) => {
               setSelectedOrder(order);
               navigateTo('radar');
@@ -672,6 +749,7 @@ function MainApp() {
           <FlightRadarScreen
             order={selectedOrder}
             allOrders={orders}
+            orderInspectedDrones={orderInspectedDrones}
             onSelectOrder={(ord) => setSelectedOrder(ord)}
             isTracking={isTracking}
             telemetry={telemetry}
@@ -680,6 +758,7 @@ function MainApp() {
             onUpdateLocation={(coords) => setCurrentCoords(coords)}
             onBackToDashboard={() => navigateTo('dashboard')}
             onCompletePod={handleStartQrInspectionFlow}
+            onOpenSortieDrones={handleOpenSortieDrones}
             onStopTracking={async () => {
               await stopTracking();
               if (foregroundWatcherRef.current) {
@@ -687,6 +766,33 @@ function MainApp() {
                 foregroundWatcherRef.current = null;
               }
               setIsTracking(false);
+            }}
+          />
+        )}
+
+        {activeScreen === 'sortie_drones' && (
+          <SortieDronesScreen
+            order={inspectionOrder || selectedOrder}
+            stage={inspectionStage}
+            inspectedDroneIds={
+              inspectionStage === 'hub_pickup'
+                ? (orderHubInspectedDrones[(inspectionOrder || selectedOrder)?.id || ''] ||
+                   (inspectionOrder || selectedOrder)?.hub_inspected_drone_ids ||
+                   [])
+                : (orderInspectedDrones[(inspectionOrder || selectedOrder)?.id || ''] ||
+                   (inspectionOrder || selectedOrder)?.inspected_drone_ids ||
+                   [])
+            }
+            onBack={() => navigateTo(selectedOrder ? 'radar' : 'dashboard')}
+            onScanDrone={(slotIndex) => {
+              const targetOrd = inspectionOrder || selectedOrder;
+              if (targetOrd) handleStartQrInspectionFlow(targetOrd, slotIndex, inspectionStage);
+            }}
+            onCompleteHandover={(ord) => {
+              handleOpenInspection(ord);
+            }}
+            onAcceptOrder={(ord) => {
+              handleOpenAcceptModal(ord);
             }}
           />
         )}
@@ -703,32 +809,40 @@ function MainApp() {
         {activeScreen === 'scanner' && (
           <QrScannerScreen
             order={inspectionOrder || selectedOrder}
-            onBack={() => navigateTo(selectedOrder ? 'radar' : 'dashboard')}
-            onScannedSuccess={(_code) => {
-              navigateTo('inspection');
-            }}
+            targetDroneSlot={targetDroneSlotIndex}
+            inspectedDroneIds={
+              inspectionStage === 'hub_pickup'
+                ? (orderHubInspectedDrones[(inspectionOrder || selectedOrder)?.id || ''] ||
+                   (inspectionOrder || selectedOrder)?.hub_inspected_drone_ids ||
+                   [])
+                : (orderInspectedDrones[(inspectionOrder || selectedOrder)?.id || ''] ||
+                   (inspectionOrder || selectedOrder)?.inspected_drone_ids ||
+                   [])
+            }
+            onBack={() => navigateTo(screenHistory.includes('sortie_drones') ? 'sortie_drones' : (selectedOrder ? 'radar' : 'dashboard'))}
+            onScannedSuccess={handleQrScannedSuccess}
           />
         )}
 
         {activeScreen === 'inspection' && (
           <InspectionScreen
             order={inspectionOrder || selectedOrder}
+            stage={inspectionStage}
+            inspectedDroneId={activeInspectingDroneId}
+            inspectedDroneIds={
+              inspectionStage === 'hub_pickup'
+                ? (orderHubInspectedDrones[(inspectionOrder || selectedOrder)?.id || ''] ||
+                   (inspectionOrder || selectedOrder)?.hub_inspected_drone_ids ||
+                   [])
+                : (orderInspectedDrones[(inspectionOrder || selectedOrder)?.id || ''] ||
+                   (inspectionOrder || selectedOrder)?.inspected_drone_ids ||
+                   [])
+            }
             pilotUser={currentUser}
             currentCoords={currentCoords}
             telemetry={telemetry}
-            onBack={() => navigateTo('dashboard')}
-            onSuccess={async () => {
-              await stopTracking();
-              if (foregroundWatcherRef.current) {
-                foregroundWatcherRef.current.remove();
-                foregroundWatcherRef.current = null;
-              }
-              setIsTracking(false);
-              setSelectedOrder(null);
-              setInspectionOrder(null);
-              navigateTo('dashboard');
-              loadDashboardData();
-            }}
+            onBack={() => navigateTo(screenHistory.includes('sortie_drones') ? 'sortie_drones' : (selectedOrder ? 'radar' : 'dashboard'))}
+            onSuccess={handleInspectionSuccess}
           />
         )}
 
@@ -736,7 +850,7 @@ function MainApp() {
           <NotFoundScreen onNavigate={(screen) => navigateTo(screen)} />
         )}
 
-        {!['dashboard', 'history', 'radar', 'profile', 'support', 'sos', 'inspection', 'scanner', '404'].includes(activeScreen) && (
+        {!['dashboard', 'history', 'radar', 'profile', 'support', 'sos', 'inspection', 'scanner', 'sortie_drones', '404'].includes(activeScreen) && (
           <NotFoundScreen onNavigate={(screen) => navigateTo(screen)} />
         )}
 
@@ -754,8 +868,8 @@ function MainApp() {
           </View>
         )}
       </View>
-      {/* Modern Bottom Navigation Menu with Center SOS Button (hidden during QR scanning & post-flight inspection) */}
-      {!['scanner', 'inspection'].includes(activeScreen) && (
+      {/* Modern Bottom Navigation Menu with Center SOS Button (hidden during QR scanning, inspection & sortie verification) */}
+      {!['scanner', 'inspection', 'sortie_drones'].includes(activeScreen) && (
         <BottomNav
           activeScreen={activeScreen}
           onNavigate={(screen) => navigateTo(screen)}

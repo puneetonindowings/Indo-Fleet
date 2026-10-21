@@ -2206,17 +2206,17 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
 
       {/* MODAL 2: LIVE RADAR & GPS MAP DRAWER */}
       {liveMapModalOpen && selectedOrder && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-slate-900 text-white rounded-2xl max-w-2xl w-full border border-slate-800 shadow-2xl overflow-hidden animate-in fade-in">
-            <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white text-slate-900 rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in">
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-2.5">
-                <Radio className="w-5 h-5 text-cyan-400 animate-pulse" />
+                <Radio className="w-5 h-5 text-indigo-600 animate-pulse" />
                 <div>
-                  <h3 className="font-black text-white text-base">Live Radar GPS Tracking</h3>
-                  <p className="text-xs text-slate-400">Order #{selectedOrder.order_number || selectedOrder.id}</p>
+                  <h3 className="font-black text-slate-900 text-base">Live Radar GPS Tracking</h3>
+                  <p className="text-xs text-slate-500">Order #{selectedOrder.order_number || selectedOrder.id}</p>
                 </div>
               </div>
-              <button onClick={() => setLiveMapModalOpen(false)} className="text-slate-400 hover:text-white p-1 cursor-pointer">
+              <button onClick={() => setLiveMapModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -2224,21 +2224,21 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
             <div className="p-6 space-y-4">
               {/* Telemetry Gauge Cards */}
               <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">Speed</p>
-                  <p className="text-lg font-black text-cyan-400 mt-0.5">{selectedOrder.speed_kmh || 0} <span className="text-[10px] font-normal text-slate-400">km/h</span></p>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">Speed</p>
+                  <p className="text-lg font-black text-indigo-600 mt-0.5">{selectedOrder.speed_kmh || 0} <span className="text-[10px] font-normal text-slate-400">km/h</span></p>
                 </div>
-                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">Altitude</p>
-                  <p className="text-lg font-black text-emerald-400 mt-0.5">{selectedOrder.altitude_m || 45} <span className="text-[10px] font-normal text-slate-400">m</span></p>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">Altitude</p>
+                  <p className="text-lg font-black text-emerald-600 mt-0.5">{selectedOrder.altitude_m || 45} <span className="text-[10px] font-normal text-slate-400">m</span></p>
                 </div>
-                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">Signal Link</p>
-                  <p className="text-lg font-black text-amber-400 mt-0.5">99.8%</p>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">Signal Link</p>
+                  <p className="text-lg font-black text-amber-600 mt-0.5">99.8%</p>
                 </div>
-                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">Bearing</p>
-                  <p className="text-lg font-black text-purple-400 mt-0.5">{selectedOrder.heading_deg || 0}°</p>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">Bearing</p>
+                  <p className="text-lg font-black text-purple-600 mt-0.5">{selectedOrder.heading_deg || 0}°</p>
                 </div>
               </div>
 
@@ -2246,42 +2246,42 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
               <CustomerOrderLiveMap order={selectedOrder} className="h-64 sm:h-72" />
 
               {/* Map Coordinates Visualizer */}
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 text-xs">
-                <div className="flex justify-between items-center text-slate-400">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
+                <div className="flex justify-between items-center text-slate-600">
                   <span>Current GPS Coordinates:</span>
-                  <span className="font-mono text-cyan-400 font-bold">
+                  <span className="font-mono text-indigo-700 font-bold">
                     {typeof selectedOrder.last_known_location === 'object'
                       ? `${selectedOrder.last_known_location.lat}, ${selectedOrder.last_known_location.lng}`
                       : selectedOrder.last_known_location || '28.6289, 77.3649 (Active Corridor)'}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-slate-400">
+                <div className="flex justify-between items-center text-slate-600">
                   <span>Delivery Destination:</span>
-                  <span className="font-medium text-slate-200 truncate max-w-xs">{selectedOrder.drop_address || selectedOrder.destination_address}</span>
+                  <span className="font-medium text-slate-900 truncate max-w-xs">{selectedOrder.drop_address || selectedOrder.destination_address}</span>
                 </div>
               </div>
 
               {/* Customer Tracking URL Box */}
-              <div className="bg-slate-800/60 p-3 rounded-xl border border-slate-700 flex items-center justify-between gap-3 text-xs">
+              <div className="bg-indigo-50/70 p-3 rounded-xl border border-indigo-100 flex items-center justify-between gap-3 text-xs">
                 <div className="truncate">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">Customer Tracking URL:</p>
-                  <p className="text-cyan-300 font-mono text-[11px] truncate">
+                  <p className="text-[10px] text-indigo-900 font-bold uppercase">Customer Tracking URL:</p>
+                  <p className="text-indigo-700 font-mono text-[11px] truncate">
                     {window.location.origin}/track?orderId={selectedOrder.id}
                   </p>
                 </div>
                 <button
                   onClick={() => handleCopyOtp(`${window.location.origin}/track?orderId=${selectedOrder.id}`, `track-${selectedOrder.id}`)}
-                  className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer"
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer"
                 >
                   {copiedOtpId === `track-${selectedOrder.id}` ? 'Copied!' : 'Copy Link'}
                 </button>
               </div>
             </div>
 
-            <div className="p-4 border-t border-slate-800 flex justify-end bg-slate-950">
+            <div className="p-4 border-t border-slate-200 flex justify-end bg-slate-50">
               <button
                 onClick={() => setLiveMapModalOpen(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-bold transition cursor-pointer"
               >
                 Close Radar
               </button>

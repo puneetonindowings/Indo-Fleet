@@ -153,14 +153,22 @@ export async function downloadDronesAsZip(
  * Extracts and maps all drone objects associated with a specific order.
  * Works seamlessly whether an order has a single assigned drone or multiple reserved units.
  */
+const isValidDroneId = (val: any): boolean => {
+  if (!val || typeof val !== 'string') return false;
+  const s = val.trim();
+  if (!s || s.length < 2) return false;
+  if (s.includes('@') || s.includes('.com') || s.includes('.app') || s.includes('http:') || s.includes('https:') || s.includes('/')) return false;
+  return true;
+};
+
 export function getDronesForOrder(order: any, fleetList?: any[]): DroneQRInfo[] {
   if (!order) return [];
   const ids = new Set<string>();
 
-  if (order.assigned_drone_id && typeof order.assigned_drone_id === 'string' && order.assigned_drone_id.trim()) {
+  if (isValidDroneId(order.assigned_drone_id)) {
     ids.add(order.assigned_drone_id.trim());
   }
-  if (order.drone_id && typeof order.drone_id === 'string' && order.drone_id.trim()) {
+  if (isValidDroneId(order.drone_id)) {
     ids.add(order.drone_id.trim());
   }
 
@@ -175,10 +183,9 @@ export function getDronesForOrder(order: any, fleetList?: any[]): DroneQRInfo[] 
   }
   if (Array.isArray(reserved)) {
     reserved.forEach((item: any) => {
-      if (typeof item === 'string' && item.trim()) {
-        ids.add(item.trim());
-      } else if (item && typeof item === 'object' && item.id) {
-        ids.add(String(item.id).trim());
+      const candidate = typeof item === 'string' ? item : item?.id;
+      if (isValidDroneId(candidate)) {
+        ids.add(String(candidate).trim());
       }
     });
   }
@@ -194,8 +201,8 @@ export function getDronesForOrder(order: any, fleetList?: any[]): DroneQRInfo[] 
   }
   if (Array.isArray(items)) {
     items.forEach((item: any) => {
-      if (item?.drone_id) ids.add(String(item.drone_id).trim());
-      if (item?.id && (String(item.id).startsWith('INW-') || String(item.id).startsWith('DRONE-') || String(item.id).startsWith('UAV-'))) {
+      if (isValidDroneId(item?.drone_id)) ids.add(String(item.drone_id).trim());
+      if (isValidDroneId(item?.id) && (String(item.id).startsWith('INW-') || String(item.id).startsWith('DRONE-') || String(item.id).startsWith('UAV-') || String(item.id).startsWith('IW-'))) {
         ids.add(String(item.id).trim());
       }
     });

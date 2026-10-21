@@ -3,7 +3,7 @@
     "name": "IndoFleet Delivery",
     "slug": "indofleet-delivery",
     "owner": "puneet-indowingss-team",
-    "version": "1.1.5",
+    "version": "1.1.7",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -20,7 +20,7 @@
     },
     "android": {
       "package": "com.indofleet.delivery",
-      "versionCode": 15,
+      "versionCode": 17,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -45,6 +45,12 @@
       "predictiveBackGestureEnabled": false
     },
     "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow IndoFleet Delivery App to access your camera for drone QR scanning and airframe safety inspection."
+        }
+      ],
       [
         "expo-location",
         {
