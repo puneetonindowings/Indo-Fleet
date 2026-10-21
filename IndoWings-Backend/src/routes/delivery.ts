@@ -4813,7 +4813,6 @@ router.post('/orders/:id/assign-pilot', async (req, res) => {
     res.json({
       success: true,
       message: `Order #${id} successfully assigned to ${pilot_name}!`,
-      pilot_acceptance_otp: pilotAcceptanceOtp,
       order: updated
     });
   } catch (err: any) {
@@ -4872,7 +4871,6 @@ router.post('/pilot/request-acceptance-otp', async (req, res) => {
 
     res.json({
       success: true,
-      acceptance_otp: acceptanceOtp,
       message: `Acceptance OTP sent to your registered ${targetEmail ? 'email (' + targetEmail + ')' : 'phone'}`
     });
   } catch (err: any) {
