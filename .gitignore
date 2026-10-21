@@ -21,3 +21,6 @@ firebase_admin_key.json
 **/firebase_admin_key.json
 !firebase_admin_key.example.json
 !**/firebase_admin_key.example.json
+
+*.apk
+releases/*.apk

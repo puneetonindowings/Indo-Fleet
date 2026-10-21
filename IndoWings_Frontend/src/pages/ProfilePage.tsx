@@ -170,11 +170,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
     ios_url: string;
     updated_at: string;
   }>({
-    version: 'v1.1.4',
-    build_number: 14,
-    package_size: '~82 MB',
-    release_notes: 'IndoFleet v1.1.4 (Build 14): In-app QR code scanner HUD with instant transition to pre-flight inspection, native camera & video airframe verification modal with HTML5 file upload, auto-trigger acceptance OTP with live status countdown, and expressway navigation origin fix.',
-    android_url: 'https://expo.dev/artifacts/eas/cIUHLk91xKvnC-lJZ15FT4bnqr_DT3Ezbs9y-bsj58o.apk',
+    version: 'v1.1.7',
+    build_number: 17,
+    package_size: '~83 MB',
+    release_notes: 'IndoFleet v1.1.7 (Build 17): Multi-drone two-stage inspection (Hub Pre-Acceptance & Customer Handover), fleet-wide serial QR verification against booked orders, light theme UI overhaul, and live radar tracking maps.',
+    android_url: 'https://expo.dev/artifacts/eas/8NdM80FyCbuKx_pfNlxdzm0wFkAz2aZwp4iyrE04jtA.apk',
     ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
     updated_at: new Date().toISOString()
   });

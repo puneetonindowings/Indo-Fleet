@@ -14,15 +14,15 @@ import {
 import { API_BASE_URL } from '../config/api';
 
 export const AppReleaseConsole: React.FC = () => {
-  const [version, setVersion] = useState('v1.1.3');
+  const [version, setVersion] = useState('v1.1.7');
   const [releaseNotes, setReleaseNotes] = useState(
-    'IndoFleet RPAV 700 release: Full Android hardware back button handling, instant small-frame live road navigation map, real-time camera QR scanner with auto-match inspection, high-accuracy GPS and verified emergency SOS ambient audio playback.'
+    'IndoFleet v1.1.7 (Build 17): Multi-drone two-stage inspection (Hub Pre-Acceptance & Customer Handover), fleet-wide serial QR verification against booked orders, light theme UI overhaul, and live radar tracking maps.'
   );
   const [androidUrl, setAndroidUrl] = useState(
-    'https://expo.dev/artifacts/eas/iKonz1CfUngHuZU-A0xPVfeJYCv7JUZIK2LWzmMuQzc.apk'
+    'https://expo.dev/artifacts/eas/8NdM80FyCbuKx_pfNlxdzm0wFkAz2aZwp4iyrE04jtA.apk'
   );
   const [iosUrl, setIosUrl] = useState(
-    'https://indofleet.com/downloads/IndoFleet_DeliveryApp.ipa'
+    'https://testflight.apple.com/join/IndoFleetDeliveryApp'
   );
 
   const [notifyPartners, setNotifyPartners] = useState(true);

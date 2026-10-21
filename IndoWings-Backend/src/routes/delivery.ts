@@ -5887,11 +5887,11 @@ router.post('/pilot/support-ticket', async (req, res) => {
 
 // 15. App Release Management (Get & Publish Releases + Email Delivery Partners)
 let activeAppRelease = {
-  version: 'v1.1.5',
-  build_number: 15,
-  package_size: '~82 MB',
-  release_notes: 'IndoFleet v1.1.5 (Build 15): Authentic drone QR matching enforcement with mismatch error detection, pre-scan drone ID security hiding, removed instant dummy button, and camera hardware autofocus.',
-  android_url: 'https://expo.dev/artifacts/eas/RM4izCdJkVINYAKjKwzUUQQzv7p4yPdKeI-Pl_sJNB4.apk',
+  version: 'v1.1.7',
+  build_number: 17,
+  package_size: '~83 MB',
+  release_notes: 'IndoFleet v1.1.7 (Build 17): Multi-drone two-stage inspection (Hub Pre-Acceptance & Customer Handover), fleet-wide serial QR verification against booked orders, light theme UI overhaul, and live radar tracking maps.',
+  android_url: 'https://expo.dev/artifacts/eas/8NdM80FyCbuKx_pfNlxdzm0wFkAz2aZwp4iyrE04jtA.apk',
   ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
   updated_at: new Date().toISOString()
 };
