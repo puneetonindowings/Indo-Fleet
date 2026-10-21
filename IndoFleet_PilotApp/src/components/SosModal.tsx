@@ -222,7 +222,12 @@ export const SosModal: React.FC<SosModalProps> = ({
             const blob = await res.blob();
             audioBase64 = await new Promise((resolve) => {
               const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
+              reader.onloadend = () => {
+                const resStr = (reader.result as string) || '';
+                // Ensure proper MIME type is data:audio/mp4;base64,
+                const clean = resStr.replace(/^data:[^;]+;base64,/, 'data:audio/mp4;base64,');
+                resolve(clean.startsWith('data:audio/') ? clean : `data:audio/mp4;base64,${clean}`);
+              };
               reader.onerror = () => resolve(undefined);
               reader.readAsDataURL(blob);
             });
@@ -265,14 +270,44 @@ export const SosModal: React.FC<SosModalProps> = ({
               }
               resolve();
             },
-            () => resolve(),
-            { enableHighAccuracy: true, timeout: 3500, maximumAge: 0 }
+            async (geoErr) => {
+              console.warn('Browser GPS permission error:', geoErr?.message);
+              // Fallback to real IP-based geolocation if browser GPS is blocked/denied
+              try {
+                const ipRes = await fetch('https://ipapi.co/json/');
+                const ipData = await ipRes.json();
+                if (ipData && typeof ipData.latitude === 'number' && typeof ipData.longitude === 'number') {
+                  realCoords = { latitude: ipData.latitude, longitude: ipData.longitude };
+                }
+              } catch {}
+              resolve();
+            },
+            { enableHighAccuracy: true, timeout: 4000, maximumAge: 0 }
           );
         });
-      } else if (Location && Location.getCurrentPositionAsync) {
-        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-        if (pos?.coords) {
-          realCoords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+      } else if (Location) {
+        // Native Mobile (Android / iOS):
+        let { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          const req = await Location.requestForegroundPermissionsAsync();
+          status = req.status;
+        }
+        if (status === 'granted') {
+          // 1. Fast immediate lock from cached device GPS
+          try {
+            const lastKnown = await Location.getLastKnownPositionAsync();
+            if (lastKnown?.coords) {
+              realCoords = { latitude: lastKnown.coords.latitude, longitude: lastKnown.coords.longitude };
+            }
+          } catch {}
+
+          // 2. Balanced accuracy live satellite fix
+          try {
+            const cur = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            if (cur?.coords) {
+              realCoords = { latitude: cur.coords.latitude, longitude: cur.coords.longitude };
+            }
+          } catch {}
         }
       }
     } catch (gErr) {

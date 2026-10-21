@@ -128,11 +128,26 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
 
   const formatAudioUri = (raw?: string | null): string => {
     if (!raw) return '';
-    if (raw.startsWith('data:audio') || raw.startsWith('blob:') || raw.startsWith('http')) {
+    if (raw.startsWith('blob:') || raw.startsWith('http')) {
       return raw;
     }
-    // Default to mp4 audio data URI for expo-audio recorded blobs
-    return `data:audio/mp4;base64,${raw}`;
+    // If raw already has a data: prefix
+    if (raw.startsWith('data:')) {
+      // Replace generic/misdetected octet-stream with audio/mp4
+      if (raw.startsWith('data:application/octet-stream;base64,')) {
+        return raw.replace('data:application/octet-stream;base64,', 'data:audio/mp4;base64,');
+      }
+      if (raw.startsWith('data:audio/')) {
+        return raw;
+      }
+      const parts = raw.split(';base64,');
+      if (parts.length > 1) {
+        return `data:audio/mp4;base64,${parts[1]}`;
+      }
+    }
+    // Clean raw base64 string
+    const clean = raw.replace(/\s+/g, '');
+    return `data:audio/mp4;base64,${clean}`;
   };
 
   // Text-to-Speech Voice Dispatch Readout

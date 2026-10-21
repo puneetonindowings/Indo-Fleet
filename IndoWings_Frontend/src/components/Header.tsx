@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, X, User, LogOut, LayoutDashboard, Clock, ChevronDown, Zap, Navigation, Headphones, Wrench, Shield, ShoppingBag, ShoppingCart } from 'lucide-react';
+import { Menu, X, User, LogOut, LayoutDashboard, Clock, ChevronDown, Zap, Navigation, Headphones, Wrench, Shield, ShoppingBag, ShoppingCart, Smartphone, Download } from 'lucide-react';
 import { DeliveryUser } from '../types';
 
 interface HeaderProps {
@@ -236,6 +236,16 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
                     <User className="w-4 h-4 text-slate-400" />
                     <span>My Profile</span>
                   </button>
+
+                  {['delivery', 'pilot', 'delivery_partner'].includes((currentUser?.role || '').toLowerCase()) && (
+                    <button
+                      onClick={nav('profile', '/profile?tab=downloads')}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#5a00b8] text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      <Smartphone className="w-4 h-4 text-[#5a00b8]" />
+                      <span>Download Pilot App (v1.1.3)</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={nav('orders', '/profile?tab=orders')}

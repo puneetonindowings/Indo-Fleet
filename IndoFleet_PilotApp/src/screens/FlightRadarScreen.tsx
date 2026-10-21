@@ -1,5 +1,5 @@
 import { WebView } from 'react-native-webview';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Linking,
   Alert,
   Platform,
+  BackHandler,
 } from 'react-native';
 import Svg, {
   Circle,
@@ -150,6 +151,17 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   const [mapZoom] = useState<number>(15);
   const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
   const [fullscreen, setFullscreen] = useState(false);
+
+  // Exit fullscreen map on Android hardware back button
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onBackPress = () => {
+      setFullscreen(false);
+      return true;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove();
+  }, [fullscreen]);
   const [isLocating, setIsLocating] = useState(false);
   const [totalRoadDistanceKm, setTotalRoadDistanceKm] = useState<number | null>(null);
   const [roadDistanceKm, setRoadDistanceKm] = useState<number | null>(null);
@@ -469,8 +481,26 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
-    * { box-sizing: border-box; }
-    html, body, #map { width: 100%; height: 100%; margin: 0; padding: 0; background: #0F172A; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #0F172A;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #map {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      background: #0F172A;
+    }
     
     @keyframes gmap-pulse {
       0% { transform: scale(0.6); opacity: 0.95; }
@@ -525,8 +555,38 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
 <body>
   <div id="map"></div>
   <script>
-    var map = L.map('map', { zoomControl: false }).setView([${centerLat}, ${centerLng}], ${mapZoom});
+    var map = L.map('map', { zoomControl: false, preferCanvas: true }).setView([${centerLat}, ${centerLng}], ${mapZoom});
     L.tileLayer('${tileUrl}', { maxZoom: 19 }).addTo(map);
+
+    function forceMapInvalidate() {
+      if (map) {
+        try { map.invalidateSize(true); } catch(e) {}
+      }
+    }
+
+    // Force Leaflet recalculation for Android WebView containers
+    forceMapInvalidate();
+    setTimeout(forceMapInvalidate, 80);
+    setTimeout(forceMapInvalidate, 250);
+    setTimeout(forceMapInvalidate, 600);
+    setTimeout(forceMapInvalidate, 1200);
+
+    window.addEventListener('load', function() {
+      forceMapInvalidate();
+      setTimeout(forceMapInvalidate, 150);
+      setTimeout(forceMapInvalidate, 500);
+    });
+
+    window.addEventListener('resize', forceMapInvalidate);
+
+    if (typeof ResizeObserver !== 'undefined') {
+      try {
+        var ro = new ResizeObserver(function() {
+          forceMapInvalidate();
+        });
+        ro.observe(document.getElementById('map'));
+      } catch(e) {}
+    }
 
     var pilotMarker = null;
 
@@ -684,27 +744,41 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
       <iframe
         title="IndoFleet live navigation map"
         srcDoc={webMapHtml}
-        style={{ width: '100%', height: full ? '100%' : 250, border: 'none', display: 'block' }}
-      />
-    ) : (
-      <WebView
-        originWhitelist={['*']}
-        source={{ html: webMapHtml }}
-        style={{ width: '100%', height: full ? '100%' : 250, backgroundColor: '#0F172A' }}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        startInLoadingState={true}
-        scalesPageToFit={true}
-        onMessage={(event) => {
-          try {
-            const data = JSON.parse(event.nativeEvent.data);
-            if (data.type === 'ROUTE_DETAILS') {
-              if (typeof data.distanceKm === 'number') setRoadDistanceKm(data.distanceKm);
-              if (typeof data.durationMin === 'number') setRoadDurationMin(data.durationMin);
-            }
-          } catch {}
+        style={{
+          width: '100%',
+          height: full ? '100%' : 260,
+          border: 'none',
+          display: 'block',
+          backgroundColor: '#0F172A',
         }}
       />
+    ) : (
+      <View style={[styles.mapContainer, full ? styles.mapContainerFull : styles.mapContainerSmall]}>
+        <WebView
+          originWhitelist={['*']}
+          source={{ html: webMapHtml }}
+          style={{ width: '100%', height: '100%', backgroundColor: '#0F172A' }}
+          containerStyle={{ width: '100%', height: '100%' }}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          startInLoadingState={false}
+          scalesPageToFit={false}
+          scrollEnabled={false}
+          nestedScrollEnabled={true}
+          androidLayerType="hardware"
+          mixedContentMode="always"
+          overScrollMode="never"
+          onMessage={(event) => {
+            try {
+              const data = JSON.parse(event.nativeEvent.data);
+              if (data.type === 'ROUTE_DETAILS') {
+                if (typeof data.distanceKm === 'number') setRoadDistanceKm(data.distanceKm);
+                if (typeof data.durationMin === 'number') setRoadDurationMin(data.durationMin);
+              }
+            } catch {}
+          }}
+        />
+      </View>
     );
 
   const renderMapToggle = () => (
@@ -1116,8 +1190,28 @@ const styles = StyleSheet.create({
   gpsDot: { width: 6, height: 6, borderRadius: 3 },
   gpsText: { fontSize: 11, fontWeight: '800' },
   mapFrame: {
-    width: '100%', borderRadius: R.lg, overflow: 'hidden', backgroundColor: C.night,
-    alignItems: 'center', justifyContent: 'center',
+    width: '100%',
+    height: 260,
+    borderRadius: R.lg,
+    overflow: 'hidden',
+    backgroundColor: C.night,
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapContainer: {
+    width: '100%',
+    overflow: 'hidden',
+    backgroundColor: C.night,
+  },
+  mapContainerSmall: {
+    height: 260,
+    width: '100%',
+  },
+  mapContainerFull: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
   },
   mapToggle: {
     position: 'absolute', top: 10, right: 10, flexDirection: 'row',

@@ -14,12 +14,12 @@ import {
 import { API_BASE_URL } from '../config/api';
 
 export const AppReleaseConsole: React.FC = () => {
-  const [version, setVersion] = useState('v1.0.1');
+  const [version, setVersion] = useState('v1.1.3');
   const [releaseNotes, setReleaseNotes] = useState(
-    'IndoFleet RPAV 700 fleet update: Complete QR condition inspection system, streamlined support desk, automated password distribution, and mobile pilot inspections.'
+    'IndoFleet RPAV 700 release: Full Android hardware back button handling, instant small-frame live road navigation map, real-time camera QR scanner with auto-match inspection, high-accuracy GPS and verified emergency SOS ambient audio playback.'
   );
   const [androidUrl, setAndroidUrl] = useState(
-    'https://expo.dev/artifacts/eas/YPjrEBCflyZew06NIYn0vgajbQjflcoHC8N0rHMSzAE.apk'
+    'https://expo.dev/artifacts/eas/iKonz1CfUngHuZU-A0xPVfeJYCv7JUZIK2LWzmMuQzc.apk'
   );
   const [iosUrl, setIosUrl] = useState(
     'https://indofleet.com/downloads/IndoFleet_DeliveryApp.ipa'

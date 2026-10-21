@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,6 +8,8 @@ import {
   StatusBar,
   Alert,
   Platform,
+  BackHandler,
+  ToastAndroid,
 } from 'react-native';
 import * as Location from 'expo-location';
 import * as Battery from 'expo-battery';
@@ -116,6 +118,21 @@ function MainApp() {
   const [mustChangePassword, setMustChangePassword] = useState<boolean>(false);
   const [serverConnected, setServerConnected] = useState<boolean>(false);
   const [activeScreen, setActiveScreen] = useState<string>('dashboard');
+  const [screenHistory, setScreenHistory] = useState<string[]>(['dashboard']);
+  const lastBackPressRef = useRef<number>(0);
+
+  const navigateTo = useCallback((screen: string) => {
+    setActiveScreen(screen);
+    setScreenHistory((prev) => {
+      if (screen === 'dashboard') {
+        return ['dashboard'];
+      }
+      if (prev[prev.length - 1] === screen) {
+        return prev;
+      }
+      return [...prev, screen];
+    });
+  }, []);
 
   // Modals
   const [sosModalOpen, setSosModalOpen] = useState<boolean>(false);
@@ -127,6 +144,84 @@ function MainApp() {
   const [podModalOpen, setPodModalOpen] = useState<boolean>(false);
   const [inspectionModalOpen, setInspectionModalOpen] = useState<boolean>(false);
   const [inspectionOrder, setInspectionOrder] = useState<DeliveryOrder | null>(null);
+
+  // Android Hardware / Swipe Back Button Handler
+  const handleHardwareBack = useCallback(() => {
+    // 1. Close open modals first
+    if (sosModalOpen) {
+      setSosModalOpen(false);
+      return true;
+    }
+    if (acceptModalOpen) {
+      setAcceptModalOpen(false);
+      return true;
+    }
+    if (handoverModalOpen) {
+      setHandoverModalOpen(false);
+      return true;
+    }
+    if (podModalOpen) {
+      setPodModalOpen(false);
+      return true;
+    }
+    if (inspectionModalOpen) {
+      setInspectionModalOpen(false);
+      return true;
+    }
+
+    // 2. Specific Screen Back Routing
+    if (activeScreen === 'scanner') {
+      navigateTo(selectedOrder ? 'radar' : 'dashboard');
+      return true;
+    }
+    if (activeScreen === 'inspection') {
+      navigateTo(selectedOrder ? 'radar' : 'dashboard');
+      return true;
+    }
+
+    // 3. Pop Screen History Stack
+    if (screenHistory.length > 1) {
+      const nextHistory = [...screenHistory];
+      nextHistory.pop(); // Remove current screen
+      const prevScreen = nextHistory[nextHistory.length - 1] || 'dashboard';
+      setScreenHistory(nextHistory);
+      setActiveScreen(prevScreen);
+      return true;
+    }
+
+    // 4. If not on dashboard, jump to dashboard
+    if (activeScreen !== 'dashboard') {
+      setActiveScreen('dashboard');
+      setScreenHistory(['dashboard']);
+      return true;
+    }
+
+    // 5. On root dashboard with no modals open: double back to exit
+    const now = Date.now();
+    if (now - lastBackPressRef.current < 2000) {
+      return false; // Let Android OS exit app
+    }
+    lastBackPressRef.current = now;
+    if (Platform.OS === 'android') {
+      ToastAndroid.show('Press back again to exit', ToastAndroid.SHORT);
+    }
+    return true;
+  }, [
+    sosModalOpen,
+    acceptModalOpen,
+    handoverModalOpen,
+    podModalOpen,
+    inspectionModalOpen,
+    activeScreen,
+    selectedOrder,
+    screenHistory,
+    navigateTo,
+  ]);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', handleHardwareBack);
+    return () => sub.remove();
+  }, [handleHardwareBack]);
 
   // Dashboard & Telemetry State
   const [orders, setOrders] = useState<DeliveryOrder[]>([]);
@@ -240,8 +335,19 @@ function MainApp() {
               });
             }
           },
-          (err) => {
+          async (err) => {
             console.warn('Browser geolocation warning:', err?.message);
+            try {
+              const ipRes = await fetch('https://ipapi.co/json/');
+              const ipData = await ipRes.json();
+              if (ipData && typeof ipData.latitude === 'number' && typeof ipData.longitude === 'number') {
+                setCurrentCoords({
+                  latitude: ipData.latitude,
+                  longitude: ipData.longitude,
+                });
+                return;
+              }
+            } catch {}
             setCurrentCoords((prev) => prev || { latitude: 28.6037, longitude: 77.3661 });
           },
           { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
@@ -449,7 +555,7 @@ function MainApp() {
     setCurrentUser(null);
     setSelectedOrder(null);
     setIsTracking(false);
-    setActiveScreen('dashboard');
+    navigateTo('dashboard');
   };
 
   // Sortie Flow Triggers
@@ -466,7 +572,7 @@ function MainApp() {
   const handleStartQrInspectionFlow = (order: DeliveryOrder) => {
     setSelectedOrder(order);
     setInspectionOrder(order);
-    setActiveScreen('scanner');
+    navigateTo('scanner');
   };
 
   const handleFlightStarted = async () => {
@@ -475,7 +581,7 @@ function MainApp() {
       const trackingSuccess = await startTracking(selectedOrder.id);
       await startForegroundWatcher(selectedOrder.id);
       setIsTracking(true);
-      setActiveScreen('radar');
+      navigateTo('radar');
       await loadDashboardData();
 
       if (!trackingSuccess && Platform.OS !== 'web') {
@@ -487,7 +593,7 @@ function MainApp() {
     } catch (err: any) {
       console.warn('Flight start tracking error:', err);
       setIsTracking(true);
-      setActiveScreen('radar');
+      navigateTo('radar');
       await loadDashboardData();
     }
   };
@@ -501,19 +607,19 @@ function MainApp() {
     }
     setIsTracking(false);
     setSelectedOrder(null);
-    setActiveScreen('dashboard');
+    navigateTo('dashboard');
     await loadDashboardData();
 
     // Transition to dedicated Full-Screen Airframe Inspection (700 RPAV Standard)
     if (targetOrder) {
       setInspectionOrder(targetOrder);
-      setActiveScreen('inspection');
+      navigateTo('inspection');
     }
   };
 
   const handleOpenInspection = (order?: DeliveryOrder) => {
     setInspectionOrder(order || selectedOrder || (orders.length > 0 ? orders[0] : null));
-    setActiveScreen('inspection');
+    navigateTo('inspection');
   };
 
   // If not logged in, render Login Screen
@@ -534,9 +640,9 @@ function MainApp() {
         serverConnected={serverConnected}
         isTracking={isTracking}
         user={currentUser}
-        onNavigateProfile={() => setActiveScreen('profile')}
-        onNavigateHistory={() => setActiveScreen('history')}
-        onNavigateSupport={() => setActiveScreen('support')}
+        onNavigateProfile={() => navigateTo('profile')}
+        onNavigateHistory={() => navigateTo('history')}
+        onNavigateSupport={() => navigateTo('support')}
         onInspectDrone={() => handleOpenInspection()}
         onLogout={handleLogout}
       />
@@ -556,9 +662,9 @@ function MainApp() {
             onCompletePod={handleStartQrInspectionFlow}
             onViewRadar={(order) => {
               setSelectedOrder(order);
-              setActiveScreen('radar');
+              navigateTo('radar');
             }}
-            onViewHistory={() => setActiveScreen('history')}
+            onViewHistory={() => navigateTo('history')}
             onInspectDrone={handleOpenInspection}
           />
         )}
@@ -569,7 +675,7 @@ function MainApp() {
             historyOrders={historyOrders}
             refreshing={refreshing}
             onRefresh={() => loadDashboardData()}
-            onNavigateDashboard={() => setActiveScreen('dashboard')}
+            onNavigateDashboard={() => navigateTo('dashboard')}
           />
         )}
 
@@ -583,7 +689,7 @@ function MainApp() {
             currentCoords={currentCoords}
             onRefreshLocation={fetchInitialLocation}
             onUpdateLocation={(coords) => setCurrentCoords(coords)}
-            onBackToDashboard={() => setActiveScreen('dashboard')}
+            onBackToDashboard={() => navigateTo('dashboard')}
             onCompletePod={handleStartQrInspectionFlow}
             onStopTracking={async () => {
               await stopTracking();
@@ -608,9 +714,9 @@ function MainApp() {
         {activeScreen === 'scanner' && (
           <QrScannerScreen
             order={inspectionOrder || selectedOrder}
-            onBack={() => setActiveScreen(selectedOrder ? 'radar' : 'dashboard')}
+            onBack={() => navigateTo(selectedOrder ? 'radar' : 'dashboard')}
             onScannedSuccess={(_code) => {
-              setActiveScreen('inspection');
+              navigateTo('inspection');
             }}
           />
         )}
@@ -621,7 +727,7 @@ function MainApp() {
             pilotUser={currentUser}
             currentCoords={currentCoords}
             telemetry={telemetry}
-            onBack={() => setActiveScreen('dashboard')}
+            onBack={() => navigateTo('dashboard')}
             onSuccess={async () => {
               await stopTracking();
               if (foregroundWatcherRef.current) {
@@ -631,25 +737,25 @@ function MainApp() {
               setIsTracking(false);
               setSelectedOrder(null);
               setInspectionOrder(null);
-              setActiveScreen('dashboard');
+              navigateTo('dashboard');
               loadDashboardData();
             }}
           />
         )}
 
         {activeScreen === '404' && (
-          <NotFoundScreen onNavigate={(screen) => setActiveScreen(screen)} />
+          <NotFoundScreen onNavigate={(screen) => navigateTo(screen)} />
         )}
 
         {!['dashboard', 'history', 'radar', 'profile', 'support', 'sos', 'inspection', 'scanner', '404'].includes(activeScreen) && (
-          <NotFoundScreen onNavigate={(screen) => setActiveScreen(screen)} />
+          <NotFoundScreen onNavigate={(screen) => navigateTo(screen)} />
         )}
 
         {activeScreen === 'sos' && (
           <View style={styles.sosScreenWrapper}>
             <SosModal
               visible={true}
-              onClose={() => setActiveScreen('dashboard')}
+              onClose={() => navigateTo('dashboard')}
               pilotName={currentUser.name}
               pilotPhone={currentUser.phone}
               vehicleId={currentUser.vehicle_id}
@@ -663,7 +769,7 @@ function MainApp() {
       {!['scanner', 'inspection'].includes(activeScreen) && (
         <BottomNav
           activeScreen={activeScreen}
-          onNavigate={(screen) => setActiveScreen(screen)}
+          onNavigate={(screen) => navigateTo(screen)}
           onTriggerSos={() => setSosModalOpen(true)}
         />
       )}
@@ -685,7 +791,7 @@ function MainApp() {
         currentUser={currentUser}
         onClose={() => setAcceptModalOpen(false)}
         onAccepted={() => loadDashboardData()}
-        onNavigateProfile={() => setActiveScreen('profile')}
+        onNavigateProfile={() => navigateTo('profile')}
       />
 
       <DispatcherHandoverModal

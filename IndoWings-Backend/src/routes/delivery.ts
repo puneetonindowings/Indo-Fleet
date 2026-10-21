@@ -5202,6 +5202,11 @@ router.post('/pilot/sos-emergency', async (req, res) => {
     const parsedLng = Number(longitude);
     const parsedBat = Number(battery_pct);
 
+    let normalizedAudio = audio_base64 || null;
+    if (typeof normalizedAudio === 'string' && normalizedAudio.startsWith('data:application/octet-stream;base64,')) {
+      normalizedAudio = normalizedAudio.replace('data:application/octet-stream;base64,', 'data:audio/mp4;base64,');
+    }
+
     const sosEvent = {
       id: `SOS-${Date.now().toString(36).toUpperCase()}`,
       pilot_name: pilot_name || 'Pilot',
@@ -5210,8 +5215,8 @@ router.post('/pilot/sos-emergency', async (req, res) => {
       latitude: Number.isFinite(parsedLat) && (parsedLat !== 0 || Number(longitude) !== 0) ? parsedLat : 28.6046,
       longitude: Number.isFinite(parsedLng) && (parsedLng !== 0 || Number(latitude) !== 0) ? parsedLng : 77.3687,
       battery_pct: Number.isFinite(parsedBat) ? parsedBat : 80,
-      audio_base64: audio_base64 || null,
-      has_audio: Boolean(audio_base64),
+      audio_base64: normalizedAudio,
+      has_audio: Boolean(normalizedAudio),
       notes: notes || `EMERGENCY BEACON TRIGGERED BY ${pilot_name || 'PILOT'}`,
       timestamp: new Date().toISOString(),
       status: 'active'
@@ -5361,7 +5366,13 @@ router.get('/admin/sos-alerts', async (req, res) => {
       console.warn('[SOS DB] Could not read persistent SOS alerts:', e);
     }
 
-    const combined = Array.from(alertsMap.values()).sort(
+    const combined = Array.from(alertsMap.values()).map((a: any) => {
+      let aud = a.audio_base64;
+      if (typeof aud === 'string' && aud.startsWith('data:application/octet-stream;base64,')) {
+        aud = aud.replace('data:application/octet-stream;base64,', 'data:audio/mp4;base64,');
+      }
+      return { ...a, audio_base64: aud, has_audio: Boolean(aud) };
+    }).sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
 
@@ -5745,9 +5756,9 @@ router.post('/pilot/support-ticket', async (req, res) => {
 
 // 15. App Release Management (Get & Publish Releases + Email Delivery Partners)
 let activeAppRelease = {
-  version: 'v1.0.1',
-  release_notes: 'IndoFleet RPAV 700 fleet update: Complete QR condition inspection system, streamlined support desk, automated password distribution, and mobile pilot inspections.',
-  android_url: 'https://expo.dev/artifacts/eas/YPjrEBCflyZew06NIYn0vgajbQjflcoHC8N0rHMSzAE.apk',
+  version: 'v1.1.3',
+  release_notes: 'IndoFleet RPAV 700 release: Full Android hardware back button handling, instant small-frame live road navigation map, real-time camera QR scanner with auto-match inspection, high-accuracy GPS and verified emergency SOS ambient audio playback.',
+  android_url: 'https://expo.dev/artifacts/eas/iKonz1CfUngHuZU-A0xPVfeJYCv7JUZIK2LWzmMuQzc.apk',
   ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
   updated_at: new Date().toISOString()
 };

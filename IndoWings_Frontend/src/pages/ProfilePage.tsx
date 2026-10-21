@@ -43,7 +43,11 @@ import {
   Truck,
   LayoutDashboard,
   Filter,
-  ChevronDown
+  ChevronDown,
+  Smartphone,
+  Download,
+  QrCode,
+  ExternalLink
 } from 'lucide-react';
 import { CustomerOrderLiveMap } from '../components/CustomerOrderLiveMap';
 import { DeliveryUser, SavedAddress } from '../types';
@@ -60,7 +64,7 @@ interface ProfilePageProps {
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUser, onUpdateUser, initialTab, embedded = false, onBack }) => {
-  const getStartingTab = (): 'details' | 'addresses' | 'orders' | 'queries' | 'security' => {
+  const getStartingTab = (): 'details' | 'addresses' | 'orders' | 'queries' | 'security' | 'downloads' => {
     if (initialTab) return initialTab as any;
     if (typeof window !== 'undefined') {
       const q = new URLSearchParams(window.location.search).get('tab');
@@ -69,11 +73,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
       if (q === 'orders') return 'orders';
       if (q === 'addresses') return 'addresses';
       if (window.location.pathname.includes('/orders')) return 'orders';
+      if (q === 'downloads' || q === 'app' || q === 'apk' || q === 'pilot-app') return 'downloads';
     }
     return 'details';
   };
 
-  const [activeTab, setActiveTab] = useState<'details' | 'addresses' | 'orders' | 'queries' | 'security'>(getStartingTab);
+  const [activeTab, setActiveTab] = useState<'details' | 'addresses' | 'orders' | 'queries' | 'security' | 'downloads'>(getStartingTab);
   const [profile, setProfile] = useState<DeliveryUser | null>(currentUser);
   const [name, setName] = useState(currentUser?.name || '');
   const [email, setEmail] = useState(currentUser?.email || '');
@@ -956,15 +961,19 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
 
   const activeOrdersCount = orders.filter((o) => !['delivered', 'cancelled'].includes(o.status)).length;
 
-  const profileTabs: { id: 'details' | 'addresses' | 'orders' | 'queries' | 'security'; label: string; icon: any; count?: number }[] = [
+  const isDeliveryRole = ['delivery', 'pilot', 'delivery_partner'].includes((profile?.role || '').toLowerCase());
+
+  const profileTabs: { id: 'details' | 'addresses' | 'orders' | 'queries' | 'security' | 'downloads'; label: string; icon: any; count?: number; badge?: string }[] = [
     { id: 'details', label: 'Personal Details', icon: User },
+    ...(isDeliveryRole ? [{ id: 'downloads' as const, label: 'Download Pilot App', icon: Smartphone, badge: 'v1.1.3' }] : []),
     { id: 'addresses', label: 'Saved Addresses', icon: MapPin, count: addresses.length },
     { id: 'orders', label: 'My Orders', icon: Clock, count: orders.length },
     { id: 'queries', label: 'Support', icon: HelpCircle, count: queries.length },
-    { id: 'security', label: 'Password & Security', icon: KeyRound }
+    { id: 'security', label: 'Password & Security', icon: KeyRound },
+    ...(!isDeliveryRole ? [{ id: 'downloads' as const, label: 'Pilot Mobile App', icon: Smartphone, badge: 'APK' }] : [])
   ];
 
-  const switchTab = (id: 'details' | 'addresses' | 'orders' | 'queries' | 'security') => {
+  const switchTab = (id: 'details' | 'addresses' | 'orders' | 'queries' | 'security' | 'downloads') => {
     setActiveTab(id);
     if (!embedded) window.history.replaceState({}, '', `/profile?tab=${id}`);
   };
@@ -1039,6 +1048,30 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
               </div>
             </div>
 
+            {/* Delivery Partner App Quick Banner */}
+            {isDeliveryRole && (
+              <div className="bg-gradient-to-br from-[#1a003f] via-[#480094] to-[#7c3aed] text-white p-4.5 rounded-3xl shadow-lg border border-purple-400/20 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-xl pointer-events-none" />
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="w-6 h-6 rounded-lg bg-emerald-400/20 text-emerald-300 flex items-center justify-center">
+                    <Smartphone className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-[11px] font-black uppercase tracking-wider text-emerald-300">Pilot Mobile App</span>
+                </div>
+                <p className="text-xs text-purple-100 font-medium leading-relaxed mb-3">
+                  Install official IndoFleet Pilot App on Android to receive sorties and scan airframe QRs.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => switchTab('downloads')}
+                  className="w-full py-2.5 px-3 bg-white hover:bg-purple-50 text-[#5a00b8] font-black text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                >
+                  <Download className="w-3.5 h-3.5 text-[#5a00b8]" />
+                  <span>Download Pilot APK (v1.1.3)</span>
+                </button>
+              </div>
+            )}
+
             {/* Navigation */}
             <nav className="bg-white rounded-3xl border border-slate-200 shadow-sm p-2">
               <div className="flex lg:flex-col gap-1 overflow-x-auto no-scrollbar">
@@ -1061,6 +1094,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                       <span className="flex-1">{t.label}</span>
                       {typeof t.count === 'number' && (
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isActive ? 'bg-[#5a00b8] text-white' : 'bg-slate-100 text-slate-600'}`}>{t.count}</span>
+                      )}
+                      {t.badge && (
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isActive ? 'bg-white text-[#5a00b8]' : 'bg-emerald-100 text-emerald-800'}`}>{t.badge}</span>
                       )}
                     </button>
                   );
@@ -2182,6 +2218,203 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                   <p className="text-xs text-slate-500 leading-relaxed">
                     If you are having trouble receiving security codes or accessing your account, please reach out to the IndoFleet Operations Support Desk.
                   </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── MOBILE PILOT APP DOWNLOADS TAB ──────────────────────────────────── */}
+        {activeTab === 'downloads' && (
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-purple-900/5 p-6 sm:p-8 space-y-8 animate-in fade-in duration-200">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-purple-100 text-[#5a00b8] flex items-center justify-center shadow-sm shrink-0">
+                  <Smartphone className="w-6 h-6 text-[#5a00b8]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h2 className="text-xl sm:text-2xl font-black text-[#171222] tracking-tight">
+                      IndoFleet Pilot Mobile App
+                    </h2>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      v1.1.3 (Build 13) • Stable
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                    Official dedicated Android application for delivery partners, drone couriers, and sortie pilots.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href="https://expo.dev/artifacts/eas/iKonz1CfUngHuZU-A0xPVfeJYCv7JUZIK2LWzmMuQzc.apk"
+                  download="IndoFleet_Delivery_v1.1.3.apk"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-xs text-white bg-[#5a00b8] hover:bg-[#480094] shadow-md shadow-purple-900/20 transition-all cursor-pointer active:scale-95"
+                >
+                  <Download className="w-4 h-4" /> Download APK
+                </a>
+              </div>
+            </div>
+
+            {/* Main Action Cards: Direct Download + Mobile QR Code */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              {/* Left Column: Direct APK Download Card */}
+              <div className="lg:col-span-7 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white rounded-3xl p-6 sm:p-7 shadow-lg flex flex-col justify-between relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
+                
+                <div className="space-y-4 relative">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/15 border border-emerald-400/30 px-3 py-1 rounded-full">
+                      Android Native App (.APK)
+                    </span>
+                    <span className="text-xs text-slate-400 font-semibold">Updated Today</span>
+                  </div>
+
+                  <h3 className="text-2xl font-black text-white tracking-tight leading-snug">
+                    IndoFleet Pilot Companion v1.1.3
+                  </h3>
+
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Designed for on-the-ground sortie execution. Includes live hardware camera QR scanning, automated airframe inspection, high-accuracy road routing, and emergency ambient voice recording.
+                  </p>
+
+                  {/* App Specs Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-2.5">
+                      <span className="block text-[10px] text-slate-400 uppercase font-semibold">Version</span>
+                      <span className="block text-xs font-bold text-white mt-0.5">1.1.3 (Build 13)</span>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-2.5">
+                      <span className="block text-[10px] text-slate-400 uppercase font-semibold">Package Size</span>
+                      <span className="block text-xs font-bold text-white mt-0.5">~59.4 MB</span>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 col-span-2 sm:col-span-1">
+                      <span className="block text-[10px] text-slate-400 uppercase font-semibold">OS Support</span>
+                      <span className="block text-xs font-bold text-emerald-300 mt-0.5">Android 8.0+</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-6 relative space-y-3">
+                  <a
+                    href="https://expo.dev/artifacts/eas/iKonz1CfUngHuZU-A0xPVfeJYCv7JUZIK2LWzmMuQzc.apk"
+                    download="IndoFleet_Delivery_v1.1.3.apk"
+                    className="w-full py-3.5 px-6 rounded-2xl font-black text-sm text-[#171222] bg-white hover:bg-slate-100 transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                  >
+                    <Download className="w-4 h-4 text-[#5a00b8]" />
+                    <span>Download IndoFleet APK (v1.1.3)</span>
+                  </a>
+
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+                    <span className="flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Google Play Protect Verified
+                    </span>
+                    <a
+                      href="https://github.com/puneetonindowings/Indo-Fleet/releases/tag/v1.1.3"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-purple-300 hover:text-white inline-flex items-center gap-1 font-semibold"
+                    >
+                      GitHub Release <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Scan to Install On Phone */}
+              <div className="lg:col-span-5 bg-purple-50/70 border border-purple-100 rounded-3xl p-6 flex flex-col items-center justify-center text-center space-y-4">
+                <div className="w-10 h-10 rounded-2xl bg-purple-100 text-[#5a00b8] flex items-center justify-center font-bold">
+                  <QrCode className="w-5 h-5" />
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-black text-[#171222]">Scan QR to Install on Mobile</h4>
+                  <p className="text-xs text-slate-500 mt-1 max-w-xs">
+                    Open your Android phone's Camera app, point it at this QR code, and tap the link to download directly.
+                  </p>
+                </div>
+
+                {/* QR Code Container */}
+                <div className="p-3 bg-white rounded-2xl border border-purple-200 shadow-md">
+                  <img
+                    src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=https%3A%2F%2Fexpo.dev%2Fartifacts%2Feas%2FiKonz1CfUngHuZU-A0xPVfeJYCv7JUZIK2LWzmMuQzc.apk"
+                    alt="Scan to Download IndoFleet APK"
+                    className="w-48 h-48 object-contain rounded-xl"
+                  />
+                </div>
+
+                <div className="text-[11px] text-slate-500 font-medium">
+                  Direct High-Speed APK Link for Android
+                </div>
+              </div>
+            </div>
+
+            {/* Step-by-Step Installation Instructions */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 sm:p-7 space-y-4">
+              <h4 className="text-sm font-black text-[#171222] uppercase tracking-wider flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-[#5a00b8]" /> Quick Installation Guide for Delivery Partners
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-1.5">
+                  <div className="w-6 h-6 rounded-full bg-purple-100 text-[#5a00b8] text-xs font-black flex items-center justify-center">1</div>
+                  <h5 className="text-xs font-bold text-slate-900">Download the APK</h5>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Click "Download APK" above or scan the QR code using your mobile phone camera.
+                  </p>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-1.5">
+                  <div className="w-6 h-6 rounded-full bg-purple-100 text-[#5a00b8] text-xs font-black flex items-center justify-center">2</div>
+                  <h5 className="text-xs font-bold text-slate-900">Open &amp; Allow Install</h5>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Open the downloaded file. If prompted, toggle "Allow from this source" in Android settings.
+                  </p>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-1.5">
+                  <div className="w-6 h-6 rounded-full bg-purple-100 text-[#5a00b8] text-xs font-black flex items-center justify-center">3</div>
+                  <h5 className="text-xs font-bold text-slate-900">Grant Permissions</h5>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Grant Camera (for QR scans) and Location access (for live consignment sortie tracking).
+                  </p>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-1.5">
+                  <div className="w-6 h-6 rounded-full bg-purple-100 text-[#5a00b8] text-xs font-black flex items-center justify-center">4</div>
+                  <h5 className="text-xs font-bold text-slate-900">Sign In &amp; Deliver</h5>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Sign in with your registered email ({profile?.email || email}) and password to start receiving orders.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* What's New in v1.1.3 */}
+            <div className="bg-purple-50/50 border border-purple-100 rounded-2xl p-5 space-y-3">
+              <h5 className="text-xs font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-[#5a00b8]" /> What's New in Release v1.1.3
+              </h5>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-slate-700">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>Hardware Back Button:</strong> Full step-by-step back routing without accidental app exits.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>Small Map Fix:</strong> Live navigation route renders immediately without needing to maximize.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>Live Camera QR Scanner:</strong> Instant airframe identification and verification flow.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>SOS Voice Recording:</strong> Clean audio playback and high-precision GPS emergency beacon.</span>
                 </div>
               </div>
             </div>

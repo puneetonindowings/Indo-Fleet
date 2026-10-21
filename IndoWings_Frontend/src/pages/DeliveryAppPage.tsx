@@ -33,10 +33,10 @@ export const DeliveryAppPage: React.FC<DeliveryAppPageProps> = ({
   onLogout,
 }) => {
   const [release, setRelease] = useState<AppReleaseInfo>({
-    version: 'v1.2.0',
-    release_notes: 'Enhanced live GPS map tracking, instant POD handover verification, and performance optimizations.',
-    android_url: 'https://indofleet.com/downloads/IndoFleet_DeliveryApp.apk',
-    ios_url: 'https://indofleet.com/downloads/IndoFleet_DeliveryApp.ipa',
+    version: 'v1.1.3',
+    release_notes: 'Full Android hardware back button routing, live road navigation small map fix, real-time camera QR scanner, and emergency SOS audio playback.',
+    android_url: 'https://expo.dev/artifacts/eas/iKonz1CfUngHuZU-A0xPVfeJYCv7JUZIK2LWzmMuQzc.apk',
+    ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
     updated_at: new Date().toISOString(),
   });
 

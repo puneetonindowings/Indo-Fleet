@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   Animated,
+  BackHandler,
 } from 'react-native';
 import {
   ArrowLeft,
@@ -17,10 +18,10 @@ import {
   ShieldCheck,
   Zap,
   RefreshCw,
+  AlertCircle,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { DeliveryOrder } from '../types';
-import { getDefaultDroneModel } from '../config';
 
 interface QrScannerScreenProps {
   order: DeliveryOrder | null;
@@ -36,7 +37,10 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifiedSuccess, setVerifiedSuccess] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isInitializingCam, setIsInitializingCam] = useState(false);
   const videoRef = useRef<any>(null);
+  const streamRef = useRef<any>(null);
 
   const scanAnim = useRef(new Animated.Value(0)).current;
 
@@ -44,6 +48,16 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
   const cleanDroneSerial = rawDroneId && !rawDroneId.includes('@') ? rawDroneId : 'RPAV-700-01';
   const cleanDroneModel = order?.drone_model && !order.drone_model.includes('@') ? order.drone_model : 'IndoWings 700 RPAV';
   const cleanOrderNumber = order?.order_number || order?.id || 'DELIVERY';
+
+  // Hardware Back Button
+  useEffect(() => {
+    const onBackPress = () => {
+      onBack();
+      return true;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove();
+  }, [onBack]);
 
   // Animate laser scanner line
   useEffect(() => {
@@ -64,50 +78,148 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
   }, [scanAnim]);
 
   // Request browser camera stream (mobile back camera or desktop webcam)
-  useEffect(() => {
-    let stream: any = null;
-    let isMounted = true;
+  const startCamera = async () => {
+    setIsInitializingCam(true);
+    setCameraError(null);
 
-    const startCamera = async () => {
-      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
-        try {
-          // 1. Try environment/back camera first
-          let s = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
-          }).catch(() => null);
-
-          // 2. Fallback to any available webcam on laptop/PC
-          if (!s) {
-            s = await navigator.mediaDevices.getUserMedia({ video: true }).catch(() => null);
-          }
-
-          if (s && isMounted) {
-            stream = s;
-            setCameraActive(true);
-            if (videoRef.current) {
-              videoRef.current.srcObject = s;
-              videoRef.current.play().catch(() => {});
-            }
-          } else if (isMounted) {
-            setCameraActive(false);
-          }
-        } catch {
-          if (isMounted) setCameraActive(false);
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+      try {
+        // Stop any old stream
+        if (streamRef.current && streamRef.current.getTracks) {
+          streamRef.current.getTracks().forEach((track: any) => track.stop());
         }
-      }
-    };
 
+        let stream: any = null;
+
+        // Step 1: Try environment / rear camera first
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+            audio: false,
+          });
+        } catch (firstErr) {
+          console.log('Environment camera failed, falling back to standard webcam:', firstErr);
+          // Step 2: Fallback to any available webcam (laptop, front cam)
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: false,
+            });
+          } catch (secErr: any) {
+            console.warn('Webcam fallback failed:', secErr);
+            if (secErr?.name === 'NotAllowedError' || secErr?.name === 'PermissionDeniedError') {
+              setCameraError('Camera access denied. Please click the camera icon in browser URL bar to allow.');
+            } else if (secErr?.name === 'NotFoundError' || secErr?.name === 'DevicesNotFoundError') {
+              setCameraError('No camera device detected.');
+            } else {
+              setCameraError(secErr?.message || 'Unable to open camera.');
+            }
+          }
+        }
+
+        if (stream) {
+          streamRef.current = stream;
+          setCameraActive(true);
+          setCameraError(null);
+
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            try {
+              await videoRef.current.play();
+            } catch (playErr) {
+              console.log('Video play deferred:', playErr);
+            }
+          }
+        } else {
+          setCameraActive(false);
+        }
+      } catch (err: any) {
+        console.warn('Camera request fatal error:', err);
+        setCameraActive(false);
+        setCameraError(err?.message || 'Camera initialization error');
+      } finally {
+        setIsInitializingCam(false);
+      }
+    } else if (Platform.OS !== 'web') {
+      setIsInitializingCam(false);
+      handleTakePhotoScan();
+    } else {
+      setIsInitializingCam(false);
+      setCameraError('Camera API not supported in this browser.');
+    }
+  };
+
+  // Launch on mount
+  useEffect(() => {
     startCamera();
 
     return () => {
-      isMounted = false;
-      if (stream && stream.getTracks) {
-        stream.getTracks().forEach((track: any) => track.stop());
+      if (streamRef.current && streamRef.current.getTracks) {
+        streamRef.current.getTracks().forEach((track: any) => {
+          try {
+            track.stop();
+          } catch {}
+        });
       }
     };
   }, []);
 
+  // Sync stream to video element whenever camera becomes active
+  useEffect(() => {
+    if (cameraActive && streamRef.current && videoRef.current) {
+      if (videoRef.current.srcObject !== streamRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+      }
+      videoRef.current.play().catch(() => {});
+    }
+  }, [cameraActive]);
+
+  // Realtime QR code detector if supported by browser
+  useEffect(() => {
+    let animId: number;
+    let detector: any = null;
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && (window as any).BarcodeDetector) {
+      try {
+        detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
+      } catch {
+        detector = null;
+      }
+    }
+
+    const checkFrame = async () => {
+      if (detector && videoRef.current && cameraActive && !verifiedSuccess && !isVerifying) {
+        try {
+          if (videoRef.current.readyState >= 2) {
+            const codes = await detector.detect(videoRef.current);
+            if (codes && codes.length > 0) {
+              const codeVal = codes[0].rawValue || cleanDroneSerial;
+              handleVerifyScan(codeVal);
+              return;
+            }
+          }
+        } catch {
+          // ignore detection cycle error
+        }
+      }
+      animId = requestAnimationFrame(checkFrame);
+    };
+
+    if (cameraActive && detector) {
+      animId = requestAnimationFrame(checkFrame);
+    }
+
+    return () => {
+      if (animId) cancelAnimationFrame(animId);
+    };
+  }, [cameraActive, verifiedSuccess, isVerifying]);
+
   const handleVerifyScan = (scannedCode?: string) => {
+    if (isVerifying || verifiedSuccess) return;
     setIsVerifying(true);
     const matchedId = scannedCode || cleanDroneSerial;
 
@@ -132,13 +244,14 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
         allowsEditing: false,
-        quality: 0.5,
+        quality: 0.6,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         handleVerifyScan(cleanDroneSerial);
       }
-    } catch {
+    } catch (e) {
+      console.warn('ImagePicker scan fallback:', e);
       handleVerifyScan(cleanDroneSerial);
     }
   };
@@ -152,13 +265,17 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     <View style={styles.container}>
       {/* ── Top Header ────────────────────────────────────────── */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity
+          onPress={onBack}
+          style={styles.backBtn}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
           <ArrowLeft size={20} color="#FFFFFF" />
         </TouchableOpacity>
         <View style={styles.headerTextGroup}>
           <Text style={styles.headerTitle}>Drone QR Scan &amp; Verification</Text>
           <Text style={styles.headerSubtitle} numberOfLines={1}>
-            Order #{order?.order_number || order?.id?.slice(0, 8)} • Airframe Asset Match
+            Order #{cleanOrderNumber} • Airframe Verification
           </Text>
         </View>
         <View style={styles.headerBadge}>
@@ -169,8 +286,8 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
 
       {/* ── Camera Viewfinder Frame ───────────────────────────── */}
       <View style={styles.scannerWrapper}>
-        {/* On Web, render HTML5 live camera video element */}
-        {Platform.OS === 'web' && cameraActive ? (
+        {/* On Web, render HTML5 live camera video element permanently in DOM */}
+        {Platform.OS === 'web' && (
           <div
             style={{
               position: 'absolute',
@@ -182,28 +299,39 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: '#0F172A',
+              backgroundColor: '#070B14',
+              zIndex: 1,
             }}
           >
             <video
-              ref={videoRef}
+              ref={(el) => {
+                videoRef.current = el;
+                if (el && streamRef.current && el.srcObject !== streamRef.current) {
+                  el.srcObject = streamRef.current;
+                  el.play().catch(() => {});
+                }
+              }}
+              autoPlay
               playsInline
               muted
               style={{
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
+                opacity: cameraActive ? 1 : 0,
+                transition: 'opacity 0.25s ease-in-out',
               }}
             />
           </div>
-        ) : (
-          <View style={styles.cameraPlaceholder}>
-            <View style={styles.simulatedGrid} />
-          </View>
         )}
 
-        {/* Darkened Mask Overlay */}
-        <View style={styles.reticleContainer}>
+        {/* Fallback visual background when camera is loading or inactive */}
+        <View style={[styles.cameraPlaceholder, { zIndex: cameraActive ? 0 : 2 }]}>
+          <View style={styles.simulatedGrid} />
+        </View>
+
+        {/* Darkened Mask & Viewfinder Reticle Overlay */}
+        <View style={[styles.reticleContainer, { zIndex: 10 }]}>
           <View style={[styles.reticleBox, verifiedSuccess && styles.reticleBoxSuccess]}>
             {/* 4 Corner Targeting Brackets */}
             <View style={[styles.cornerBracket, styles.topLeft, verifiedSuccess && styles.bracketSuccess]} />
@@ -212,7 +340,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
             <View style={[styles.cornerBracket, styles.bottomRight, verifiedSuccess && styles.bracketSuccess]} />
 
             {/* Animated Laser Scanning Line */}
-            {!verifiedSuccess && (
+            {cameraActive && !verifiedSuccess && (
               <Animated.View
                 style={[
                   styles.laserLine,
@@ -223,26 +351,64 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
               />
             )}
 
-            {/* Center Status / Icon */}
+            {/* Center Status / Icon / Camera Activation Trigger */}
             <View style={styles.reticleCenter}>
               {verifiedSuccess ? (
                 <View style={styles.successCircle}>
-                  <CheckCircle2 size={44} color="#10B981" />
+                  <CheckCircle2 size={46} color="#10B981" />
                   <Text style={styles.successText}>QR MATCHED!</Text>
                 </View>
+              ) : cameraActive ? (
+                <View style={styles.activeScanningWrap}>
+                  <QrCode size={36} color="rgba(0, 245, 255, 0.45)" />
+                  <Text style={styles.activeScanningText}>Align QR Code</Text>
+                </View>
               ) : (
-                <QrCode size={38} color="rgba(255,255,255,0.4)" />
+                <TouchableOpacity
+                  style={styles.startCamBtn}
+                  onPress={startCamera}
+                  activeOpacity={0.8}
+                >
+                  {isInitializingCam ? (
+                    <ActivityIndicator size="small" color="#00F5FF" />
+                  ) : (
+                    <>
+                      <View style={styles.startCamIconWrap}>
+                        <Camera size={26} color="#00F5FF" />
+                      </View>
+                      <Text style={styles.startCamText}>Tap to Open Camera</Text>
+                      {cameraError ? (
+                        <Text style={styles.startCamError} numberOfLines={2}>
+                          {cameraError}
+                        </Text>
+                      ) : (
+                        <Text style={styles.startCamSub}>Live Viewfinder</Text>
+                      )}
+                    </>
+                  )}
+                </TouchableOpacity>
               )}
             </View>
           </View>
         </View>
 
-        {/* Viewfinder Instructions */}
-        <View style={styles.hintContainer}>
-          <Text style={styles.hintTitle}>Align Airframe QR Code inside frame</Text>
-          <Text style={styles.hintDesc}>
-            Locate physical QR code sticker on drone body or payload bay
-          </Text>
+        {/* Viewfinder Instructions / Status */}
+        <View style={[styles.hintContainer, { zIndex: 10 }]}>
+          {cameraActive ? (
+            <>
+              <Text style={styles.hintTitle}>Point camera at Drone Airframe QR Code</Text>
+              <Text style={styles.hintDesc}>
+                Frame the QR sticker on airframe chassis or battery compartment
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.hintTitle}>Camera Viewfinder Ready</Text>
+              <Text style={styles.hintDesc}>
+                Tap the frame above or use the buttons below to verify drone
+              </Text>
+            </>
+          )}
         </View>
       </View>
 
@@ -280,21 +446,33 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
           ) : (
             <>
               <QrCode size={19} color="#FFFFFF" />
-              <Text style={styles.primaryScanBtnText}>CONFIRM & VERIFY DRONE QR CODE</Text>
+              <Text style={styles.primaryScanBtnText}>CONFIRM &amp; VERIFY DRONE QR CODE</Text>
             </>
           )}
         </TouchableOpacity>
 
-        {/* Camera Photo Alternate Button */}
-        <TouchableOpacity
-          style={styles.photoAltBtn}
-          onPress={handleTakePhotoScan}
-          disabled={isVerifying || verifiedSuccess}
-          activeOpacity={0.8}
-        >
-          <Camera size={16} color="#94A3B8" />
-          <Text style={styles.photoAltBtnText}>Snap QR with Device Camera</Text>
-        </TouchableOpacity>
+        {/* Camera Photo Alternate Button / Refresh */}
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={styles.photoAltBtn}
+            onPress={handleTakePhotoScan}
+            disabled={isVerifying || verifiedSuccess}
+            activeOpacity={0.8}
+          >
+            <Camera size={15} color="#94A3B8" />
+            <Text style={styles.photoAltBtnText}>Snap QR Photo</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.photoAltBtn}
+            onPress={startCamera}
+            disabled={isVerifying || verifiedSuccess}
+            activeOpacity={0.8}
+          >
+            <RefreshCw size={15} color="#94A3B8" />
+            <Text style={styles.photoAltBtnText}>Reload Camera</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -316,6 +494,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#1E293B',
     gap: 10,
+    zIndex: 20,
   },
   backBtn: {
     width: 36,
@@ -362,9 +541,10 @@ const styles = StyleSheet.create({
   scannerWrapper: {
     flex: 1,
     position: 'relative',
-    backgroundColor: '#0A0F1D',
+    backgroundColor: '#070B14',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   cameraPlaceholder: {
     position: 'absolute',
@@ -372,7 +552,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#090D1A',
+    backgroundColor: '#080D1A',
   },
   simulatedGrid: {
     position: 'absolute',
@@ -399,7 +579,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
   },
   reticleBoxSuccess: {
     borderColor: '#10B981',
@@ -453,10 +633,61 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.9,
     shadowRadius: 10,
     elevation: 6,
+    zIndex: 5,
   },
   reticleCenter: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 16,
+    width: '100%',
+  },
+  activeScanningWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  activeScanningText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#00F5FF',
+    letterSpacing: 0.5,
+  },
+  startCamBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 245, 255, 0.25)',
+    maxWidth: 200,
+  },
+  startCamIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 245, 255, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  startCamText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#00F5FF',
+    textAlign: 'center',
+  },
+  startCamSub: {
+    fontSize: 10,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  startCamError: {
+    fontSize: 10,
+    color: '#F87171',
+    marginTop: 4,
+    textAlign: 'center',
+    lineHeight: 13,
   },
   successCircle: {
     alignItems: 'center',
@@ -493,6 +724,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#1E293B',
     gap: 12,
+    zIndex: 20,
   },
   assetCard: {
     backgroundColor: '#1E293B',
@@ -560,7 +792,13 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   photoAltBtn: {
+    flex: 1,
     height: 42,
     backgroundColor: 'transparent',
     borderRadius: 12,

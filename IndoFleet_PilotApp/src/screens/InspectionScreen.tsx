@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  BackHandler,
 } from 'react-native';
 import {
   ShieldCheck,
@@ -74,6 +75,16 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
   const cleanOrderNumber = order?.order_number || order?.id || 'DELIVERY';
   const autoBatteryPct = telemetry?.batteryPct != null && telemetry.batteryPct > 0 ? telemetry.batteryPct : 88;
   const [droneId, setDroneId] = useState<string>(cleanDroneSerial);
+
+  // Hardware Back Button
+  useEffect(() => {
+    const onBackPress = () => {
+      onBack();
+      return true;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove();
+  }, [onBack]);
 
   // Field Verification Specific Checklist (Delivery Person)
   const [cargoBayCondition, setCargoBayCondition] = useState<string>('CLEAN_RELEASE');
