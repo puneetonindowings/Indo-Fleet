@@ -151,6 +151,8 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
   const [fullscreen, setFullscreen] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const [roadDistanceKm, setRoadDistanceKm] = useState<number | null>(null);
+  const [roadDurationMin, setRoadDurationMin] = useState<number | null>(null);
 
   // Active target order: use selected order, or find first active order from allOrders
   const activeOrder = useMemo(() => {
@@ -213,13 +215,21 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
 
   const hasTargetCoords = true;
 
-  // Listen to GPS updates from Web Leaflet iframe
+  // Listen to GPS updates and road route metrics from Web Leaflet iframe
   React.useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const handleWindowMessage = (e: MessageEvent) => {
         if (e.data && e.data.type === 'GPS_FIX' && e.data.coords) {
           if (onUpdateLocation) {
             onUpdateLocation(e.data.coords);
+          }
+        }
+        if (e.data && e.data.type === 'ROUTE_DETAILS') {
+          if (typeof e.data.distanceKm === 'number') {
+            setRoadDistanceKm(e.data.distanceKm);
+          }
+          if (typeof e.data.durationMin === 'number') {
+            setRoadDurationMin(e.data.durationMin);
           }
         }
       };
@@ -271,8 +281,48 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     const a =
       Math.sin(dLat / 2) ** 2 +
       Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
-    return Number((Rk * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(2));
+    return Number((Rk * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(1));
   };
+
+  // Direct geodetic calculation between Hub and Drop-off point (Total Distance)
+  const totalHubToDropDist = useMemo(() => {
+    if (baseHub && hasTargetCoords) {
+      return calculateDist(baseHub.latitude, baseHub.longitude, targetLat, targetLng);
+    }
+    return 4.3;
+  }, [baseHub, targetLat, targetLng, hasTargetCoords]);
+
+  // Remaining / Rest distance from pilot's live location to Drop-off point
+  const remainingDist = useMemo(() => {
+    if (roadDistanceKm != null && Number.isFinite(roadDistanceKm)) {
+      return roadDistanceKm;
+    }
+    if (pilotLat != null && pilotLng != null && hasTargetCoords) {
+      return calculateDist(pilotLat, pilotLng, targetLat, targetLng);
+    }
+    return totalHubToDropDist;
+  }, [roadDistanceKm, pilotLat, pilotLng, targetLat, targetLng, hasTargetCoords, totalHubToDropDist]);
+
+  const displayTotal = totalHubToDropDist.toFixed(1);
+  const displayRemaining = remainingDist.toFixed(1);
+
+  // Direct fetch road route details for instant metric display outside the map
+  React.useEffect(() => {
+    if (pilotLat != null && pilotLng != null && targetLat != null && targetLng != null) {
+      const routingUrl = `${getRoutingApiUrl().replace(/\/+$/, '')}/route/v1/driving/${pilotLng},${pilotLat};${targetLng},${targetLat}?overview=false`;
+      fetch(routingUrl)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d && d.routes && d.routes[0]) {
+            const dist = parseFloat((d.routes[0].distance / 1000).toFixed(1));
+            const dur = Math.max(1, Math.round(d.routes[0].duration / 60));
+            setRoadDistanceKm(dist);
+            setRoadDurationMin(dur);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [pilotLat, pilotLng, targetLat, targetLng]);
 
   const handleOpenGoogleMaps = () => {
     const target = activeOrder || order;
@@ -367,10 +417,15 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
 
                 var distKm = (d.routes[0].distance / 1000).toFixed(1);
                 var durMin = Math.max(1, Math.round(d.routes[0].duration / 60));
-                var banner = document.createElement('div');
-                banner.className = 'gmap-bottom-trip-card';
-                banner.innerHTML = '<div style="display:flex;align-items:center;gap:10px;"><div style="background:#1E293B;padding:5px 9px;border-radius:10px;border:1px solid #334155;display:flex;align-items:center;gap:6px;"><span style="color:#38BDF8;font-weight:900;font-size:13px;">🚗 ' + durMin + ' min</span><span style="color:#94A3B8;font-size:12px;">(' + distKm + ' km)</span></div><div style="font-size:11px;color:#CBD5E1;font-weight:700;">Hub ➔ Home 🏠</div></div><span style="background:#0284C7;color:#FFF;padding:4px 8px;border-radius:6px;font-size:9px;font-weight:800;letter-spacing:0.5px;">FASTEST</span>';
-                document.body.appendChild(banner);
+                try {
+                  var payload = { type: 'ROUTE_DETAILS', distanceKm: parseFloat(distKm), durationMin: durMin };
+                  if (window.parent && window.parent.postMessage) {
+                    window.parent.postMessage(payload, '*');
+                  }
+                  if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+                  }
+                } catch(e) {}
               } else {
                 drawFallbackLine();
               }
@@ -427,23 +482,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
       display: flex;
       align-items: center;
       gap: 5px;
-    }
-    .gmap-bottom-trip-card {
-      position: absolute;
-      bottom: 12px;
-      left: 12px;
-      right: 12px;
-      z-index: 999;
-      background: rgba(15, 23, 42, 0.94);
-      color: #FFFFFF;
-      padding: 8px 12px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.45);
-      border: 1px solid rgba(255,255,255,0.14);
-      backdrop-filter: blur(8px);
     }
     .leaflet-popup-content-wrapper {
       background: #0F172A;
@@ -630,6 +668,15 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
         domStorageEnabled={true}
         startInLoadingState={true}
         scalesPageToFit={true}
+        onMessage={(event) => {
+          try {
+            const data = JSON.parse(event.nativeEvent.data);
+            if (data.type === 'ROUTE_DETAILS') {
+              if (typeof data.distanceKm === 'number') setRoadDistanceKm(data.distanceKm);
+              if (typeof data.durationMin === 'number') setRoadDurationMin(data.durationMin);
+            }
+          } catch {}
+        }}
       />
     );
 
@@ -716,13 +763,35 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
               </Text>
             </View>
 
+            {/* Real Route Distance & Rest Distance Display outside the map */}
+            <View style={styles.distanceStatsRow}>
+              <View style={styles.distanceStatItem}>
+                <Text style={styles.distanceStatLabel}>TOTAL DISTANCE</Text>
+                <Text style={styles.distanceStatValue}>{displayTotal} km</Text>
+              </View>
+
+              <View style={styles.distanceStatDivider} />
+
+              <View style={styles.distanceStatItem}>
+                <Text style={styles.distanceStatLabel}>REST DISTANCE</Text>
+                <Text style={[styles.distanceStatValue, { color: '#059669' }]}>{displayRemaining} km</Text>
+              </View>
+
+              <View style={styles.distanceStatDivider} />
+
+              <View style={styles.distanceStatItem}>
+                <Text style={styles.distanceStatLabel}>EST. TIME</Text>
+                <Text style={[styles.distanceStatValue, { color: '#2563EB' }]}>
+                  {roadDurationMin != null ? `${roadDurationMin} min` : `${Math.max(1, Math.round(remainingDist * 2.5))} min`}
+                </Text>
+              </View>
+            </View>
+
             <View style={styles.destFooter}>
               <View style={styles.distPill}>
-                <Navigation size={13} color={C.brandDeep} />
-                <Text style={styles.distText}>
-                  {telemetry.distanceRemainingKm != null
-                    ? `${telemetry.distanceRemainingKm.toFixed(2)} km left`
-                    : 'Distance pending'}
+                <Navigation size={13} color="#059669" />
+                <Text style={[styles.distText, { color: '#065F46' }]}>
+                  {displayRemaining} km remaining to Home 🏠
                 </Text>
               </View>
               <TouchableOpacity style={styles.linkBtn} onPress={handleOpenGoogleMaps} activeOpacity={0.8}>
@@ -953,6 +1022,39 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     letterSpacing: 0.2,
+  },
+  distanceStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginTop: 4,
+  },
+  distanceStatItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  distanceStatLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.5,
+    marginBottom: 3,
+  },
+  distanceStatValue: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  distanceStatDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#E2E8F0',
   },
   destFooter: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
