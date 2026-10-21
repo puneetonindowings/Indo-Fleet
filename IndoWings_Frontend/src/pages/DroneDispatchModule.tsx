@@ -558,9 +558,10 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     fetchFleet();
     fetchSosAlerts();
     const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       fetchDashboard(true);
       fetchSosAlerts();
-    }, 5000);
+    }, 8000);
     return () => clearInterval(interval);
   }, []);
 

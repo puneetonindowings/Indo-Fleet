@@ -464,6 +464,44 @@ function toFeedback(feedback: JsonRecord) {
   };
 }
 
+
+class InMemoryCache {
+  private cache = new Map<string, { data: any; expiresAt: number }>();
+
+  get<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return null;
+    }
+    return entry.data as T;
+  }
+
+  set<T>(key: string, data: T, ttlMs: number): T {
+    this.cache.set(key, { data, expiresAt: Date.now() + ttlMs });
+    return data;
+  }
+
+  delete(key: string): void {
+    this.cache.delete(key);
+  }
+
+  deletePattern(prefix: string): void {
+    for (const key of Array.from(this.cache.keys())) {
+      if (key.startsWith(prefix)) {
+        this.cache.delete(key);
+      }
+    }
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+}
+
+export const memoryCache = new InMemoryCache();
+
 export const deliveryStore = {
   normalizeOtpKey,
   verifyPassword,
@@ -517,9 +555,12 @@ export const deliveryStore = {
   },
 
   async getUsers() {
+    const cached = memoryCache.get<JsonRecord[]>('users:all');
+    if (cached) return cached;
     const { data, error } = await db().from('delivery_users').select('*').order('created_at');
     fail('list delivery users', error);
-    return (data || []).map(fromUser);
+    const users = (data || []).map(fromUser);
+    return memoryCache.set('users:all', users, 30_000);
   },
   async findUserById(id: string) {
     const { data, error } = await db().from('delivery_users').select('*').eq('id', id).maybeSingle();
@@ -544,6 +585,7 @@ export const deliveryStore = {
     const row = await toUser(user);
     const { data, error } = await db().from('delivery_users').insert(row).select('*').single();
     fail('create delivery user', error);
+    memoryCache.deletePattern('users:');
     return fromUser(data);
   },
   async updateUser(id: string, updates: JsonRecord) {
@@ -552,15 +594,19 @@ export const deliveryStore = {
     const row = await toUser({ ...existing, ...updates, id: existing.id });
     const { data, error } = await db().from('delivery_users').update(row).eq('id', existing.id).select('*').maybeSingle();
     fail('update delivery user', error);
+    memoryCache.deletePattern('users:');
     return data ? fromUser(data) : null;
   },
   async deleteUser(id: string) {
     const { data, error } = await db().from('delivery_users').delete().eq('id', id).select('id').maybeSingle();
     fail('delete delivery user', error);
+    memoryCache.deletePattern('users:');
     return Boolean(data);
   },
 
   async getOrders() {
+    const cached = memoryCache.get<JsonRecord[]>('orders:all');
+    if (cached) return cached;
     const { data, error } = await db().from('delivery_orders').select('*').order('created_at', { ascending: false });
     fail('list delivery orders', error);
     const orders = (data || []).map(fromOrder);
@@ -602,7 +648,7 @@ export const deliveryStore = {
       console.warn('[OrdersInspectionMerge] Notice:', e?.message);
     }
 
-    return orders;
+    return memoryCache.set('orders:all', orders, 15_000);
   },
   async findOrderById(id: string) {
     if (!id || typeof id !== 'string') return undefined;
@@ -661,6 +707,7 @@ export const deliveryStore = {
   async addOrder(order: JsonRecord) {
     const { data, error } = await db().from('delivery_orders').insert(toOrder(order)).select('*').single();
     fail('create delivery order', error);
+    memoryCache.deletePattern('orders:');
     return fromOrder(data);
   },
   async updateOrder(id: string, updates: JsonRecord) {
@@ -673,11 +720,13 @@ export const deliveryStore = {
       updated_at: updates.updated_at || new Date().toISOString()
     })).eq('id', existing.id).select('*').maybeSingle();
     fail('update delivery order', error);
+    memoryCache.deletePattern('orders:');
     return data ? fromOrder(data) : null;
   },
   async deleteOrder(id: string) {
     const { error } = await db().from('delivery_orders').delete().eq('id', id);
     fail('delete delivery order', error);
+    memoryCache.deletePattern('orders:');
     return true;
   },
   async createBooking(order: JsonRecord) {
@@ -686,6 +735,7 @@ export const deliveryStore = {
       p_drone_ids: order.reserved_inventory_ids || []
     });
     fail('reserve inventory and create booking', error);
+    memoryCache.deletePattern('orders:');
     return fromOrder(data);
   },
   async cancelBooking(orderId: string, customerId: string, reason: string) {
@@ -695,12 +745,15 @@ export const deliveryStore = {
       p_reason: reason
     });
     fail('cancel customer booking', error);
+    memoryCache.deletePattern('orders:');
     return fromOrder(data);
   },
   async getDispatchHistory() {
+    const cached = memoryCache.get<JsonRecord[]>('dispatch_history:all');
+    if (cached) return cached;
     const { data, error } = await db().from('dispatch_history').select('*').order('dispatched_at', { ascending: false });
     fail('list dispatch history', error);
-    return data || [];
+    return memoryCache.set('dispatch_history:all', data || [], 30_000);
   },
   async dispatchBookedDrones(orderId: string, droneIds: string[], dispatcher: JsonRecord) {
     const { data, error } = await db().rpc('dispatch_booked_drones', {
@@ -709,13 +762,19 @@ export const deliveryStore = {
       p_dispatcher: dispatcher
     });
     fail('dispatch booked drones', error);
+    memoryCache.deletePattern('orders:');
+    memoryCache.deletePattern('dispatch_history:');
+    memoryCache.deletePattern('fleet:');
     return data;
   },
 
   async getFleet() {
+    const cached = memoryCache.get<JsonRecord[]>('fleet:all');
+    if (cached) return cached;
     const { data, error } = await db().from('drone_fleet').select('*').order('model_name');
     fail('list drone fleet', error);
-    return (data || []).map(fromDrone);
+    const fleet = (data || []).map(fromDrone);
+    return memoryCache.set('fleet:all', fleet, 30_000);
   },
   async saveFleet(fleet: JsonRecord[]) {
     if (!fleet.length) return [];
@@ -729,11 +788,13 @@ export const deliveryStore = {
     const drone = { ...fromDrone(existing), ...updates, id };
     const { data, error } = await db().from('drone_fleet').update(toDrone(drone)).eq('id', id).select('*').maybeSingle();
     fail('update drone', error);
+    memoryCache.deletePattern('fleet:');
     return data ? fromDrone(data) : null;
   },
   async addDrone(drone: JsonRecord) {
     const { data, error } = await db().from('drone_fleet').insert(toDrone(drone)).select('*').single();
     fail('add drone', error);
+    memoryCache.deletePattern('fleet:');
     return fromDrone(data);
   },
   async addDronesBatch(drones: JsonRecord[]) {
@@ -744,6 +805,7 @@ export const deliveryStore = {
   async deleteDrone(id: string) {
     const { error } = await db().from('drone_fleet').delete().eq('id', id);
     fail('delete drone', error);
+    memoryCache.deletePattern('fleet:');
     return true;
   },
 
@@ -1163,6 +1225,9 @@ export const deliveryStore = {
       }
     }
 
+    memoryCache.deletePattern('fleet:');
+    memoryCache.deletePattern('orders:');
+    memoryCache.deletePattern('inspections:');
     return record;
   },
 
