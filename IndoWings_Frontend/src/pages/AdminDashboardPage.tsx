@@ -51,7 +51,8 @@ import {
   QrCode,
   Edit2,
   Plane,
-  Download
+  Download,
+  ScanLine
 } from 'lucide-react';
 import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
@@ -74,6 +75,7 @@ import { PostDeliveryInspectionModal } from '../components/PostDeliveryInspectio
 import { DroneAuditLogConsole } from '../components/DroneAuditLogConsole';
 import { BulkQrDownloadModal } from '../components/BulkQrDownloadModal';
 import { downloadDronesAsZip, getDronesForOrder } from '../utils/droneQrGenerator';
+import { AirframeQCInspectionConsole } from '../components/AirframeQCInspectionConsole';
 
 interface AdminDashboardProps {
   currentUser: DeliveryUser | null;
@@ -83,7 +85,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser, onUpdateUser, onNavigate, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'personnel' | 'provision' | 'fleet' | 'audits' | 'dispatch' | 'secure-dispatch' | 'delivery' | 'support' | 'profile' | 'app-release' | 'sos-alerts'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'personnel' | 'provision' | 'fleet' | 'qc-scan' | 'audits' | 'dispatch' | 'secure-dispatch' | 'delivery' | 'support' | 'profile' | 'app-release' | 'sos-alerts'>('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // SOS Emergency Alerts State
@@ -1053,6 +1055,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     { id: 'personnel', label: 'Users', icon: Users, badge: activeAccountsCount },
     { id: 'provision', label: 'Add User', icon: UserPlus, badge: null },
     { id: 'fleet', label: 'Inventory', icon: Truck, badge: idleDronesCount },
+    { id: 'qc-scan', label: 'Scan & Inspect Drone', icon: ScanLine, badge: 'QC' },
     { id: 'audits', label: 'QR Scans & Audits', icon: QrCode, badge: null },
     { id: 'secure-dispatch', label: 'Secure Dispatch', icon: Truck, badge: pendingDispatchCount > 0 ? pendingDispatchCount : null },
     { id: 'delivery', label: 'Delivery Tracking', icon: Package, badge: inFlightCount > 0 ? inFlightCount : null },
@@ -2330,6 +2333,19 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   )}
                 </div>
               </div>
+            )}
+
+            {/* ── TAB: AIRFRAME QC INSPECTION & SCANNING DESK ─────────────── */}
+            {activeTab === 'qc-scan' && (
+              <AirframeQCInspectionConsole
+                currentUser={currentUser}
+                availableDrones={drones}
+                orders={orders}
+                onInspectionCompleted={() => {
+                  fetchData();
+                }}
+                onOpenAuditLogs={() => setActiveTab('audits')}
+              />
             )}
 
             {/* ── TAB: DRONE AUDITS & QR SCAN LOGS ──────────────────────────── */}

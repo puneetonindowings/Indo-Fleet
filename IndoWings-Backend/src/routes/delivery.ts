@@ -6066,7 +6066,14 @@ router.post('/inspections', async (req, res) => {
         const stage = req.body.stage || (inspection_type === 'pre-flight' ? 'hub_pickup' : 'customer_delivery');
 
         let updatePayload: any = {};
-        if (stage === 'hub_pickup' || stage === 'hub' || inspection_type === 'pre-flight') {
+        if (stage === 'depot_dispatch' || stage === 'depot') {
+          const prevDepot = Array.isArray(orderToUpdate?.depot_inspected_drone_ids) ? orderToUpdate.depot_inspected_drone_ids : [];
+          const updatedDepot = Array.from(new Set([...prevDepot, cleanDrone]));
+          updatePayload = {
+            depot_inspection_id: saved.inspection_id,
+            depot_inspected_drone_ids: updatedDepot,
+          };
+        } else if (stage === 'hub_pickup' || stage === 'hub' || inspection_type === 'pre-flight') {
           const prevHub = Array.isArray(orderToUpdate?.hub_inspected_drone_ids) ? orderToUpdate.hub_inspected_drone_ids : [];
           const updatedHub = Array.from(new Set([...prevHub, cleanDrone]));
           updatePayload = {

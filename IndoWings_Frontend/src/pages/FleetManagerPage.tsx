@@ -38,7 +38,8 @@ import {
   Phone,
   QrCode,
   Edit2,
-  Download
+  Download,
+  ScanLine
 } from 'lucide-react';
 import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
@@ -51,6 +52,7 @@ import { DroneQRCodeModal } from '../components/DroneQRCodeModal';
 import { DroneQRScannerModal } from '../components/DroneQRScannerModal';
 import { DroneAuditLogConsole } from '../components/DroneAuditLogConsole';
 import { BulkQrDownloadModal } from '../components/BulkQrDownloadModal';
+import { AirframeQCInspectionConsole } from '../components/AirframeQCInspectionConsole';
 
 interface FleetManagerPageProps {
   currentUser: DeliveryUser | null;
@@ -66,7 +68,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   onUpdateUser
 }) => {
   // Navigation & View Tabs
-  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'audits' | 'dispatch' | 'support' | 'maintenance' | 'profile' | 'app-release'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'qc-scan' | 'audits' | 'dispatch' | 'support' | 'maintenance' | 'profile' | 'app-release'>('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // 700 RPAV Quality & Inspection State
@@ -575,6 +577,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   const fleetNavItems = [
     { id: 'overview', label: 'Overview', icon: Gauge, badge: null },
     { id: 'inventory', label: 'Inventory', icon: Boxes, badge: idleUnits },
+    { id: 'qc-scan', label: 'Scan & Inspect Drone', icon: ScanLine, badge: 'QC' },
     { id: 'audits', label: 'QR Scans & Audits', icon: QrCode, badge: null },
     { id: 'dispatch', label: 'Dispatch', icon: Send, badge: pendingDispatchUnits > 0 ? pendingDispatchUnits : null },
     { id: 'support', label: 'Support', icon: Headphones, badge: supportStats.pending > 0 ? supportStats.pending : null },
@@ -1821,6 +1824,19 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                   )}
                 </div>
               </div>
+            )}
+
+            {/* TAB: AIRFRAME QC INSPECTION & SCANNING */}
+            {activeTab === 'qc-scan' && (
+              <AirframeQCInspectionConsole
+                currentUser={currentUser}
+                availableDrones={drones}
+                orders={dispatchOrders}
+                onInspectionCompleted={() => {
+                  fetchFleet();
+                }}
+                onOpenAuditLogs={() => setActiveTab('audits')}
+              />
             )}
 
             {/* TAB: DRONE AUDITS & QR SCAN LOGS */}

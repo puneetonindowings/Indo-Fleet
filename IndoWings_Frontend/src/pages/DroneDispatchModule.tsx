@@ -8,7 +8,7 @@ import {
   ChevronRight, Headphones, FileText, CheckSquare, Layers, Shield,
   Filter, ChevronDown, ShoppingBag, ImageIcon, ChevronLeft, Plus, AlertCircle, Edit, Trash2,
   Wrench, Calendar, Pause, Play, RotateCcw, SlidersHorizontal, Plane,
-  Download, QrCode
+  Download, QrCode, ScanLine
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 import { DeliveryUser } from '../types';
@@ -19,6 +19,7 @@ import { SosAlertBanner } from '../components/SosAlertBanner';
 import { DroneQRCodeModal } from '../components/DroneQRCodeModal';
 import { BulkQrDownloadModal } from '../components/BulkQrDownloadModal';
 import { downloadDronesAsZip, getDronesForOrder } from '../utils/droneQrGenerator';
+import { AirframeQCInspectionConsole } from '../components/AirframeQCInspectionConsole';
 
 interface DispatchModuleProps {
   currentUser: DeliveryUser | null;
@@ -170,7 +171,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
   onLogout
 }) => {
   // Navigation & Layout State
-  const [activeSidebarTab, setActiveSidebarTab] = useState<'dispatch' | 'tracking' | 'history' | 'inventory' | 'profile'>('dispatch');
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'dispatch' | 'qc-scan' | 'tracking' | 'history' | 'inventory' | 'profile'>('dispatch');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Core Data
@@ -863,6 +864,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
   // Sidebar navigation tabs
   const dispatchNavItems = [
     { id: 'dispatch', label: 'Live Dispatch Desk', icon: Package, badge: stats.pendingDispatches > 0 ? stats.pendingDispatches : null },
+    { id: 'qc-scan', label: 'Scan & Inspect Drone', icon: ScanLine, badge: 'QC' },
     { id: 'tracking', label: 'Delivery Tracking', icon: Navigation, badge: stats.inTransit > 0 ? stats.inTransit : null },
     { id: 'history', label: 'Dispatch History', icon: Clock3, badge: stats.delivered > 0 ? stats.delivered : null },
     { id: 'inventory', label: 'Fleet & Inventory', icon: ShieldCheck, badge: fleet.length > 0 ? fleet.length : null },
@@ -3420,6 +3422,16 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
              ═════════════════════════════════════════════════════════════════ */}
           <main className="flex-1 w-full min-w-0">
             {activeSidebarTab === 'dispatch' && renderDispatchWorkbench()}
+            {activeSidebarTab === 'qc-scan' && (
+              <AirframeQCInspectionConsole
+                currentUser={currentUser}
+                availableDrones={fleet}
+                orders={data.orders}
+                onInspectionCompleted={() => {
+                  fetchDashboard(true);
+                }}
+              />
+            )}
             {activeSidebarTab === 'tracking' && (
               <DeliveryTrackingModule currentUser={currentUser} onNavigate={onNavigate} />
             )}
