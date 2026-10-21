@@ -560,7 +560,7 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
           <div>
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <QrCode className="w-5 h-5 text-[#5a00b8]" />
-              Select or Scan Drone QR Code (ड्रोन क्यूआर स्कैन करें)
+              Select or Scan Drone QR Code
             </h3>
             <p className="text-xs text-slate-500 mt-1">
               Choose your preferred scan method: Live Webcam, Image File Upload, Snap a Photo, or Manual Fleet Selection.
@@ -731,7 +731,7 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                   className="px-6 py-3 rounded-2xl bg-[#5a00b8] hover:bg-[#4a0099] text-white text-xs font-black shadow-lg shadow-purple-600/20 flex items-center gap-2 cursor-pointer transition-all"
                 >
                   <Camera className="w-4 h-4 text-emerald-400" />
-                  <span>Snap Photo & Decode QR (फोटो खींचकर स्कैन करें)</span>
+                  <span>Snap Photo & Decode QR</span>
                 </button>
 
                 {/* Direct Mobile Camera Capture Fallback */}
@@ -888,7 +888,7 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                   <div>
                     <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
                       <Wrench className="w-4 h-4 text-[#5a00b8]" />
-                      1. Physical Airframe & Parts Condition (बॉडी एवं कलपुर्जे)
+                      1. Physical Airframe & Parts Condition
                     </h4>
                     <p className="text-xs text-slate-500">
                       Check chassis, motor arms, propellers, and landing skids for physical integrity.
@@ -903,13 +903,13 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                   {/* Airframe Body & Arms */}
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                     <label className="text-xs font-bold text-slate-900 block">
-                      Body & Arms Integrity (बॉडी एवं आर्म्स की स्थिति)
+                      Body & Arms Integrity
                     </label>
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        { id: 'GOOD', label: 'Good / Perfect', sub: 'कोई खरोंच नहीं', color: 'emerald' },
-                        { id: 'MINOR_SCRATCH', label: 'Minor Scratch', sub: 'मामूली निशान', color: 'amber' },
-                        { id: 'CRACKED', label: 'Crack / Bend', sub: 'टूटा या मुड़ा', color: 'rose' }
+                        { id: 'GOOD', label: 'Good / Perfect', sub: 'No visible scratches', color: 'emerald' },
+                        { id: 'MINOR_SCRATCH', label: 'Minor Scratch', sub: 'Minor surface mark', color: 'amber' },
+                        { id: 'CRACKED', label: 'Crack / Bend', sub: 'Cracked or bent', color: 'rose' }
                       ].map((item) => (
                         <button
                           key={item.id}
@@ -931,13 +931,13 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                   {/* Propellers & Rotors */}
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                     <label className="text-xs font-bold text-slate-900 block">
-                      Propellers & Blades (पंखे एवं ब्लेड्स)
+                      Propellers & Blades
                     </label>
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        { id: 'GOOD', label: 'Free Spin Clean', sub: 'साफ व स्वतंत्र', color: 'emerald' },
-                        { id: 'HAIRLINE_NICK', label: 'Hairline Nick', sub: 'छोटा कट', color: 'amber' },
-                        { id: 'DAMAGED', label: 'Chipped/Damaged', sub: 'टूटा हुआ', color: 'rose' }
+                        { id: 'GOOD', label: 'Free Spin Clean', sub: 'Clean & spins free', color: 'emerald' },
+                        { id: 'HAIRLINE_NICK', label: 'Hairline Nick', sub: 'Hairline nick', color: 'amber' },
+                        { id: 'DAMAGED', label: 'Chipped/Damaged', sub: 'Chipped or damaged', color: 'rose' }
                       ].map((item) => (
                         <button
                           key={item.id}
@@ -959,13 +959,13 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                   {/* Landing Gear Skid */}
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                     <label className="text-xs font-bold text-slate-900 block">
-                      Landing Gear Skid (लैंडिंग गियर स्टैंड)
+                      Landing Gear & Skids
                     </label>
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        { id: 'GOOD', label: 'Stable & Tight', sub: 'मजबूत फिट', color: 'emerald' },
-                        { id: 'LOOSE', label: 'Loose Screws', sub: 'ढीले पेंच', color: 'amber' },
-                        { id: 'DAMAGED', label: 'Bent Skid', sub: 'मुड़ा हुआ', color: 'rose' }
+                        { id: 'GOOD', label: 'Stable & Tight', sub: 'Stable & secure', color: 'emerald' },
+                        { id: 'LOOSE', label: 'Loose Screws', sub: 'Loose fasteners', color: 'amber' },
+                        { id: 'DAMAGED', label: 'Bent Skid', sub: 'Bent or damaged', color: 'rose' }
                       ].map((item) => (
                         <button
                           key={item.id}
@@ -987,13 +987,13 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                   {/* Payload & Cargo Bay */}
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                     <label className="text-xs font-bold text-slate-900 block">
-                      Payload & Cargo Lock (कार्गो कम्पार्टमेंट एवं लॉक)
+                      Payload & Cargo Bay Lock
                     </label>
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        { id: 'CLEAN_RELEASE', label: 'Operational Lock', sub: 'लॉक सही है', color: 'emerald' },
-                        { id: 'LATCH_STICKY', label: 'Sticky Latch', sub: 'धीमा लॉक', color: 'amber' },
-                        { id: 'DAMAGED', label: 'Faulty / Jammed', sub: 'खराब या जाम', color: 'rose' }
+                        { id: 'CLEAN_RELEASE', label: 'Operational Lock', sub: 'Locks securely', color: 'emerald' },
+                        { id: 'LATCH_STICKY', label: 'Sticky Latch', sub: 'Sticky latch', color: 'amber' },
+                        { id: 'DAMAGED', label: 'Faulty / Jammed', sub: 'Faulty or jammed', color: 'rose' }
                       ].map((item) => (
                         <button
                           key={item.id}
@@ -1020,7 +1020,7 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                   <div>
                     <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
                       <Plane className="w-4 h-4 text-[#5a00b8]" />
-                      2. Flight, Avionics & Battery Test (उड़ान एवं एवियोनिक्स परीक्षण)
+                      2. Flight, Avionics & Battery Test
                     </h4>
                     <p className="text-xs text-slate-500">
                       Hover bench stability, motor vibration, GPS 3D fix, and battery cell health.
@@ -1037,7 +1037,7 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-slate-900 flex items-center gap-2">
                         <Battery className="w-4 h-4 text-emerald-600" />
-                        <span>Battery Charge Level % (बैटरी चार्ज)</span>
+                        <span>Battery Charge Level %</span>
                       </label>
                       <span className="text-xs font-black px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
                         {batteryLevel}%
@@ -1060,13 +1060,13 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                   {/* Battery Health Condition */}
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                     <label className="text-xs font-bold text-slate-900 block">
-                      Battery Cell Condition (बैटरी सेल की स्थिति)
+                      Battery Cell Health
                     </label>
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        { id: 'NORMAL', label: 'Normal / Cool', sub: 'नो सूजन, सामान्य' },
-                        { id: 'WARM', label: 'Slightly Warm', sub: 'हल्का गर्म' },
-                        { id: 'SWOLLEN', label: 'Swollen / Reject', sub: 'फूला हुआ' }
+                        { id: 'NORMAL', label: 'Normal / Cool', sub: 'Cool & normal' },
+                        { id: 'WARM', label: 'Slightly Warm', sub: 'Slightly warm' },
+                        { id: 'SWOLLEN', label: 'Swollen / Reject', sub: 'Swollen / Reject' }
                       ].map((item) => (
                         <button
                           key={item.id}
@@ -1088,13 +1088,13 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                   {/* Hover & Flight Test */}
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                     <label className="text-xs font-bold text-slate-900 block">
-                      Hover & Flight Stability (उड़ान एवं होवर स्थिरता)
+                      Hover & Flight Stability
                     </label>
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        { id: 'STABLE_HOVER', label: 'Stable Hover', sub: 'एकदम स्थिर' },
-                        { id: 'SLIGHT_DRIFT', label: 'Slight Drift', sub: 'हल्का बहाव' },
-                        { id: 'UNSTABLE', label: 'Oscillation', sub: 'अस्थिर डगमगाना' }
+                        { id: 'STABLE_HOVER', label: 'Stable Hover', sub: 'Stable hover' },
+                        { id: 'SLIGHT_DRIFT', label: 'Slight Drift', sub: 'Slight drift' },
+                        { id: 'UNSTABLE', label: 'Oscillation', sub: 'Unstable oscillation' }
                       ].map((item) => (
                         <button
                           key={item.id}
@@ -1116,13 +1116,13 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                   {/* Motor Vibration & Temp */}
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                     <label className="text-xs font-bold text-slate-900 block">
-                      Motor Temperature & Vibration (मोटर तापमान एवं कंपन)
+                      Motor Temp & Vibration
                     </label>
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        { id: 'NORMAL', label: 'Normal Running', sub: 'शांत व ठंडा' },
-                        { id: 'HIGH_VIBRATION', label: 'High Vibration', sub: 'अधिक कंपन' },
-                        { id: 'OVERHEATING', label: 'Overheating', sub: 'अत्यधिक गर्म' }
+                        { id: 'NORMAL', label: 'Normal Running', sub: 'Smooth & normal' },
+                        { id: 'HIGH_VIBRATION', label: 'High Vibration', sub: 'High vibration' },
+                        { id: 'OVERHEATING', label: 'Overheating', sub: 'Overheating' }
                       ].map((item) => (
                         <button
                           key={item.id}
@@ -1149,7 +1149,7 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                   <div>
                     <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
                       <ShieldAlert className="w-4 h-4 text-[#5a00b8]" />
-                      3. Defect Classification & Overall Verdict (दोष वर्गीकरण एवं अंतिम निर्णय)
+                      3. Defect Classification & Overall Verdict
                     </h4>
                     <p className="text-xs text-slate-500">
                       Classify technical findings and declare flight readiness clearance.
@@ -1164,23 +1164,23 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                   {/* Defect Classification */}
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                     <label className="text-xs font-bold text-slate-900 block">
-                      Defect Classification (दोष का प्रकार)
+                      Defect Classification
                     </label>
                     <div className="space-y-2">
                       {[
                         {
                           id: 'ZERO_DEFECT',
-                          label: 'Zero Defect Certified (दोषमुक्त)',
+                          label: 'Zero Defect Certified',
                           desc: '100% clean airframe, ready for all commercial delivery sorties.'
                         },
                         {
                           id: 'MINOR_COSMETIC',
-                          label: 'Minor Cosmetic (मामूली खरोंच)',
+                          label: 'Minor Cosmetic',
                           desc: 'Minor paint or surface scratch, does not impact aerodynamics or safety.'
                         },
                         {
                           id: 'GROUNDING_DEFECT',
-                          label: 'Grounding Defect (गंभीर खराबी)',
+                          label: 'Grounding Defect',
                           desc: 'Critical issue detected. Aircraft must NOT fly until repaired.'
                         }
                       ].map((defect) => (
@@ -1209,7 +1209,7 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between space-y-4">
                     <div>
                       <label className="text-xs font-bold text-slate-900 block mb-2">
-                        Overall Inspection Verdict (अंतिम निर्णय)
+                        Overall Inspection Verdict
                       </label>
                       <div className="grid grid-cols-2 gap-3">
                         <button
@@ -1223,7 +1223,7 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                         >
                           <CheckCircle2 className="w-6 h-6 mx-auto mb-1.5" />
                           <div className="text-sm font-black">PASSED</div>
-                          <div className="text-[11px] opacity-80 mt-0.5">Flight Cleared (स्वीकृत)</div>
+                          <div className="text-[11px] opacity-80 mt-0.5">Flight Cleared</div>
                         </button>
 
                         <button
@@ -1237,7 +1237,7 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                         >
                           <AlertTriangle className="w-6 h-6 mx-auto mb-1.5" />
                           <div className="text-sm font-black">FAILED</div>
-                          <div className="text-[11px] opacity-80 mt-0.5">Needs Workshop (अस्वीकृत)</div>
+                          <div className="text-[11px] opacity-80 mt-0.5">Needs Maintenance</div>
                         </button>
                       </div>
                     </div>
@@ -1256,7 +1256,7 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                   <div>
                     <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
                       <Camera className="w-4 h-4 text-[#5a00b8]" />
-                      4. Media Evidence & Remarks (सबूत एवं टिप्पणी - ऐच्छिक / OPTIONAL)
+                      4. Media Evidence & Remarks (Optional)
                     </h4>
                     <p className="text-xs text-slate-500">
                       Photos and videos are strictly <strong>optional / not mandatory</strong>. You can submit without uploading files.
@@ -1273,7 +1273,7 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                         <Camera className="w-4 h-4 text-purple-600" />
-                        <span>Photos (वैकल्पिक फोटो)</span>
+                        <span>Photos (Optional)</span>
                       </label>
                       <span className="text-[10px] text-slate-400 font-semibold">Max 5 photos</span>
                     </div>
@@ -1314,7 +1314,7 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                         <Video className="w-4 h-4 text-purple-600" />
-                        <span>Video Clip (वैकल्पिक वीडियो)</span>
+                        <span>Video Clip (Optional)</span>
                       </label>
                       <span className="text-[10px] text-slate-400 font-semibold">Max 10s clip</span>
                     </div>
@@ -1356,7 +1356,7 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                 {/* Remarks Textarea */}
                 <div>
                   <label className="text-xs font-bold text-slate-900 block mb-1.5">
-                    Inspector Notes & Remarks (टिप्पणी / रिमार्क्स)
+                    Inspector Notes & Remarks
                   </label>
                   <textarea
                     rows={2}
@@ -1405,7 +1405,7 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                   ) : (
                     <>
                       <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                      <span>Complete & Sign Airframe Inspection (निरीक्षण सबमिट करें)</span>
+                      <span>Complete & Authorize Airframe Inspection</span>
                     </>
                   )}
                 </button>

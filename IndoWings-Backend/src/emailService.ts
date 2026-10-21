@@ -288,11 +288,11 @@ Login Portal: ${url}
 --------------------------------------------------
 
 IMPORTANT INSTRUCTIONS:
-Yeh ek temporary password hai. Jab aap pehli baar Login Portal par login karenge:
-1. Login Portal (${url}) open karein.
-2. Apna Registered Email (${to}) aur Temporary Password (${temporaryPassword}) enter karein.
-3. Aapke email par 6-digit verification OTP aayega.
-4. OTP verify karne ke baad aapko apna naya permanent password create karna hoga.
+This temporary password is provided for your first sign-in. To activate your account:
+1. Open the Login Portal: ${url}
+2. Enter your registered email address (${to}) and temporary password (${temporaryPassword}).
+3. A 6-digit verification code will be sent to your email to verify your session.
+4. After verifying the code, set your new permanent password.
 
 Thanks & Regards,
 IndoFleet Operations Team
@@ -313,12 +313,12 @@ IndoFleet Operations Team
     <p style="margin: 4px 0;"><strong>Login Portal:</strong> <a href="${url}" style="color: #5a00b8; font-weight: bold;">${url}</a></p>
   </div>
   <p style="font-weight: bold; color: #000000; margin: 16px 0 6px 0;">Next Steps to Activate Your Account:</p>
-  <p style="margin: 4px 0;">Yeh ek temporary password hai. Jab aap pehli baar Login Portal par login karenge:</p>
+  <p style="margin: 4px 0;">This temporary password is provided for your first sign-in. To activate your account:</p>
   <ol style="margin: 6px 0 16px 20px; padding: 0;">
-    <li>Open the Login Portal: <a href="${url}" style="color: #5a00b8;">${url}</a></li>
-    <li>Apna Registered Email (${to}) aur Temporary Password daal kar login karein.</li>
-    <li>Aapke email par 6-digit OTP aayega.</li>
-    <li>OTP verify karke apna naya permanent password create karein.</li>
+    <li>Open the Login Portal: <a href="${url}" style="color: #5a00b8; font-weight: bold;">${url}</a></li>
+    <li>Enter your registered email address (${to}) and temporary password.</li>
+    <li>Enter the 6-digit verification code sent to your email.</li>
+    <li>Set your new permanent password to complete activation.</li>
   </ol>
   <br>
   <p style="color: #555555; margin: 0;">
