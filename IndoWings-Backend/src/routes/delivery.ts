@@ -5965,6 +5965,7 @@ router.post('/inspections', async (req, res) => {
       drone_id,
       delivery_id,
       inspection_type,
+      stage,
       // Delivery Person Specific Field Checks
       cargo_bay_condition,
       landing_surface,
@@ -5994,6 +5995,7 @@ router.post('/inspections', async (req, res) => {
       drone_id: String(drone_id).trim(),
       delivery_id: delivery_id ? String(delivery_id).trim() : null,
       inspection_type,
+      stage,
       // Delivery Person fields
       cargo_bay_condition,
       landing_surface,

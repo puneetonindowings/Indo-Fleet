@@ -22,6 +22,7 @@ import {
   FileText,
   Camera,
   Video,
+  Building2,
   X
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
@@ -29,7 +30,8 @@ import { DeliveryUser } from '../types';
 
 interface InspectionLog {
   inspection_id: string;
-  inspection_type: string; // 'DELIVERY_PERSON_CHECK' | 'DEPOT_MAINTENANCE' | 'CUSTOMER_FEEDBACK'
+  inspection_type: string; // 'HUB_PRE_FLIGHT_CHECK' | 'DELIVERY_PERSON_CHECK' | 'DEPOT_MAINTENANCE' | 'CUSTOMER_FEEDBACK'
+  stage?: 'hub_pickup' | 'customer_delivery' | 'depot_dispatch' | string;
   drone_id: string;
   delivery_id?: string | null;
   cargo_bay_condition?: string;
@@ -71,7 +73,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDroneFilter, setSelectedDroneFilter] = useState<string>('all');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'depot' | 'delivery' | 'customer'>('all');
+  const [activeSection, setActiveSection] = useState<'all' | 'hub_pickup' | 'customer_delivery' | 'depot_dispatch'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'passed' | 'defect'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeLogDetail, setActiveLogDetail] = useState<InspectionLog | null>(null);
@@ -111,6 +113,26 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
     fetchData();
   }, []);
 
+  // Helper to accurately classify each inspection into its dedicated stage
+  const getItemStage = (item: InspectionLog): 'hub_pickup' | 'customer_delivery' | 'depot_dispatch' => {
+    if (
+      item.stage === 'hub_pickup' ||
+      item.inspection_type === 'HUB_PRE_FLIGHT_CHECK' ||
+      item.inspection_type === 'pre-flight' ||
+      (item.remarks && item.remarks.toLowerCase().includes('hub'))
+    ) {
+      return 'hub_pickup';
+    }
+    if (
+      item.stage === 'depot_dispatch' ||
+      item.inspection_type === 'DEPOT_MAINTENANCE' ||
+      ['fleet_manager', 'dispatcher', 'admin', 'super_admin'].includes(item.inspector_role || '')
+    ) {
+      return 'depot_dispatch';
+    }
+    return 'customer_delivery';
+  };
+
   // Filtered Inspections
   const filteredInspections = useMemo(() => {
     return inspections.filter((item) => {
@@ -122,25 +144,10 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
         if (!matchesDrone) return false;
       }
 
-      // 2. Role / Actor filter
-      if (roleFilter === 'depot') {
-        const isDepot =
-          item.inspection_type === 'DEPOT_MAINTENANCE' ||
-          item.inspector_role === 'fleet_manager' ||
-          item.inspector_role === 'dispatcher' ||
-          item.inspector_role === 'admin';
-        if (!isDepot) return false;
-      } else if (roleFilter === 'delivery') {
-        const isDelivery =
-          item.inspection_type === 'DELIVERY_PERSON_CHECK' ||
-          item.inspector_role === 'delivery' ||
-          item.inspector_role === 'pilot';
-        if (!isDelivery) return false;
-      } else if (roleFilter === 'customer') {
-        const isCustomer =
-          item.inspector_role === 'customer' ||
-          item.inspection_type === 'CUSTOMER_FEEDBACK';
-        if (!isCustomer) return false;
+      // 2. Stage Section filter
+      if (activeSection !== 'all') {
+        const stage = getItemStage(item);
+        if (stage !== activeSection) return false;
       }
 
       // 3. Status filter
@@ -156,21 +163,28 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
 
       return true;
     });
-  }, [inspections, selectedDroneFilter, roleFilter, statusFilter, searchQuery]);
+  }, [inspections, selectedDroneFilter, activeSection, statusFilter, searchQuery]);
 
-  // Aggregate stats
+  // Aggregate stats across distinct inspection categories
   const stats = useMemo(() => {
     const total = inspections.length;
-    const depotCount = inspections.filter(
-      (i) => i.inspection_type === 'DEPOT_MAINTENANCE' || ['fleet_manager', 'dispatcher', 'admin'].includes(i.inspector_role || '')
-    ).length;
-    const deliveryCount = inspections.filter(
-      (i) => i.inspection_type === 'DELIVERY_PERSON_CHECK' || ['delivery', 'pilot'].includes(i.inspector_role || '')
-    ).length;
-    const passedCount = inspections.filter((i) => i.overall_inspection === 'PASSED').length;
-    const defectCount = inspections.filter((i) => i.overall_inspection !== 'PASSED').length;
+    let hubCount = 0;
+    let customerCount = 0;
+    let depotCount = 0;
+    let passedCount = 0;
+    let defectCount = 0;
 
-    return { total, depotCount, deliveryCount, passedCount, defectCount };
+    inspections.forEach((i) => {
+      const st = getItemStage(i);
+      if (st === 'hub_pickup') hubCount++;
+      else if (st === 'customer_delivery') customerCount++;
+      else depotCount++;
+
+      if (i.overall_inspection === 'PASSED') passedCount++;
+      else defectCount++;
+    });
+
+    return { total, hubCount, customerCount, depotCount, passedCount, defectCount };
   }, [inspections]);
 
   const formatDate = (isoString: string) => {
@@ -224,32 +238,169 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
 
       {/* KPI Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
+        <button
+          type="button"
+          onClick={() => setActiveSection('all')}
+          className={`text-left rounded-2xl p-4 shadow-xs transition-all border cursor-pointer ${
+            activeSection === 'all'
+              ? 'bg-purple-50/50 border-[#5a00b8] ring-2 ring-purple-200'
+              : 'bg-white border-slate-200 hover:border-slate-300'
+          }`}
+        >
           <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Scans & Audits</p>
           <h4 className="text-2xl font-black text-slate-900 mt-1">{stats.total}</h4>
-          <p className="text-[10px] text-slate-400 font-medium mt-0.5">Permanent Log Records</p>
-        </div>
+          <p className="text-[10px] text-slate-400 font-medium mt-0.5">All Lifecycle Records</p>
+        </button>
 
-        <div className="bg-white border border-purple-200 bg-purple-50/20 rounded-2xl p-4 shadow-xs">
-          <p className="text-[11px] font-bold text-[#5a00b8] uppercase tracking-wider">Fleet & Dispatcher</p>
+        <button
+          type="button"
+          onClick={() => setActiveSection('hub_pickup')}
+          className={`text-left rounded-2xl p-4 shadow-xs transition-all border cursor-pointer ${
+            activeSection === 'hub_pickup'
+              ? 'bg-blue-50/60 border-blue-600 ring-2 ring-blue-200'
+              : 'bg-white border-blue-200/80 hover:border-blue-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Hub Pre-Acceptance</p>
+            <span className="text-[9px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">Delivery</span>
+          </div>
+          <h4 className="text-2xl font-black text-blue-900 mt-1">{stats.hubCount}</h4>
+          <p className="text-[10px] text-blue-600 font-medium mt-0.5">Order Accept Hub Checks</p>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSection('customer_delivery')}
+          className={`text-left rounded-2xl p-4 shadow-xs transition-all border cursor-pointer ${
+            activeSection === 'customer_delivery'
+              ? 'bg-emerald-50/60 border-emerald-600 ring-2 ring-emerald-200'
+              : 'bg-white border-emerald-200/80 hover:border-emerald-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Customer Handover</p>
+            <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">Delivery</span>
+          </div>
+          <h4 className="text-2xl font-black text-emerald-900 mt-1">{stats.customerCount}</h4>
+          <p className="text-[10px] text-emerald-600 font-medium mt-0.5">Destination POD & OTP Checks</p>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSection('depot_dispatch')}
+          className={`text-left rounded-2xl p-4 shadow-xs transition-all border cursor-pointer ${
+            activeSection === 'depot_dispatch'
+              ? 'bg-purple-50/60 border-purple-600 ring-2 ring-purple-200'
+              : 'bg-white border-purple-200/80 hover:border-purple-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-bold text-[#5a00b8] uppercase tracking-wider">Depot QC Clearance</p>
+            <span className="text-[9px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded">Fleet/Admin</span>
+          </div>
           <h4 className="text-2xl font-black text-[#5a00b8] mt-1">{stats.depotCount}</h4>
-          <p className="text-[10px] text-purple-600 font-medium mt-0.5">Depot Sortie Audits</p>
-        </div>
-
-        <div className="bg-white border border-blue-200 bg-blue-50/20 rounded-2xl p-4 shadow-xs">
-          <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Delivery Person / Pilot</p>
-          <h4 className="text-2xl font-black text-blue-900 mt-1">{stats.deliveryCount}</h4>
-          <p className="text-[10px] text-blue-600 font-medium mt-0.5">Field Handover Checks</p>
-        </div>
-
-        <div className="bg-white border border-emerald-200 bg-emerald-50/20 rounded-2xl p-4 shadow-xs">
-          <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Passed / Verified</p>
-          <h4 className="text-2xl font-black text-emerald-800 mt-1">{stats.passedCount}</h4>
-          <p className="text-[10px] text-emerald-600 font-medium mt-0.5">
-            {stats.defectCount > 0 ? `${stats.defectCount} Needs Review` : '100% Quality Approved'}
-          </p>
-        </div>
+          <p className="text-[10px] text-purple-600 font-medium mt-0.5">Pre-Handover Sortie Clear</p>
+        </button>
       </div>
+
+      {/* 4 Dedicated Section Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setActiveSection('all')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeSection === 'all'
+              ? 'bg-[#5a00b8] text-white shadow-xs'
+              : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>All Inspections & Audits ({stats.total})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSection('hub_pickup')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeSection === 'hub_pickup'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/60'
+          }`}
+        >
+          <Building2 className="w-4 h-4" />
+          <span>🏢 Hub Pre-Acceptance ({stats.hubCount})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSection('customer_delivery')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeSection === 'customer_delivery'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/60'
+          }`}
+        >
+          <Truck className="w-4 h-4" />
+          <span>📦 Customer Handover ({stats.customerCount})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSection('depot_dispatch')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeSection === 'depot_dispatch'
+              ? 'bg-purple-700 text-white shadow-xs'
+              : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200/60'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" />
+          <span>🛡️ Depot QC Clearance ({stats.depotCount})</span>
+        </button>
+      </div>
+
+      {/* Contextual Section Callout Banner */}
+      {activeSection === 'hub_pickup' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3 animate-in fade-in">
+          <Building2 className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+          <div>
+            <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wide">
+              Stage 1: Hub Pre-Acceptance Inspection (Delivery Person / Pilot)
+            </h4>
+            <p className="text-xs text-blue-700 mt-0.5 leading-relaxed">
+              Conducted by the Delivery Person at the Central Dispatch Hub before accepting the order. Verifies propeller rotation, physical chassis integrity, battery voltage, and zero-defect clearance. Unlocks the Order Acceptance OTP without requiring customer OTP at the hub.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {activeSection === 'customer_delivery' && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3 animate-in fade-in">
+          <Truck className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" />
+          <div>
+            <h4 className="text-xs font-bold text-emerald-900 uppercase tracking-wide">
+              Stage 2: Customer Handover Inspection (Delivery Person / Pilot)
+            </h4>
+            <p className="text-xs text-emerald-700 mt-0.5 leading-relaxed">
+              Conducted by the Delivery Person upon arrival at the customer delivery address. Verifies safe landing surface, clean cargo bay release, customer proof of delivery (POD photo evidence), and customer OTP validation to finalize consignment delivery.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {activeSection === 'depot_dispatch' && (
+        <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 flex items-start gap-3 animate-in fade-in">
+          <ShieldCheck className="w-5 h-5 text-[#5a00b8] mt-0.5 shrink-0" />
+          <div>
+            <h4 className="text-xs font-bold text-purple-900 uppercase tracking-wide">
+              Depot Technical QC & Sortie Clearance (Fleet Manager / Dispatcher / Admin)
+            </h4>
+            <p className="text-xs text-purple-700 mt-0.5 leading-relaxed">
+              Conducted at the depot by Operations Specialists (Fleet Manager, Dispatcher, or Admin) before handing over aircraft units to delivery personnel. Covers technical avionics diagnostics, motor health, and sortie authorization.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
@@ -270,40 +421,41 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
           </select>
         </div>
 
-        {/* Actor Role Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+        {/* Status Filter */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-bold text-slate-700 whitespace-nowrap">Status:</span>
           <button
             type="button"
-            onClick={() => setRoleFilter('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-              roleFilter === 'all'
-                ? 'bg-[#5a00b8] text-white shadow-2xs'
+            onClick={() => setStatusFilter('all')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              statusFilter === 'all'
+                ? 'bg-slate-900 text-white'
                 : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
             }`}
           >
-            All Actors
+            All
           </button>
           <button
             type="button"
-            onClick={() => setRoleFilter('depot')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-              roleFilter === 'depot'
-                ? 'bg-purple-700 text-white shadow-2xs'
-                : 'bg-purple-50 hover:bg-purple-100 text-purple-700'
+            onClick={() => setStatusFilter('passed')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              statusFilter === 'passed'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
             }`}
           >
-            Fleet Manager & Dispatcher
+            Passed
           </button>
           <button
             type="button"
-            onClick={() => setRoleFilter('delivery')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-              roleFilter === 'delivery'
-                ? 'bg-blue-700 text-white shadow-2xs'
-                : 'bg-blue-50 hover:bg-blue-100 text-blue-700'
+            onClick={() => setStatusFilter('defect')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              statusFilter === 'defect'
+                ? 'bg-rose-600 text-white'
+                : 'bg-rose-50 hover:bg-rose-100 text-rose-700'
             }`}
           >
-            Delivery Person & Pilot
+            Needs Review
           </button>
         </div>
 
@@ -332,16 +484,18 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
             <ShieldCheck className="w-10 h-10 mx-auto text-slate-300" />
             <p className="text-sm font-bold text-slate-700">No Inspection or QR Scan Records Found</p>
             <p className="text-xs text-slate-400 max-w-md mx-auto">
-              {selectedDroneFilter !== 'all'
-                ? `No recorded audits found specifically for drone ${selectedDroneFilter}. Use the "Inspect" button in the Inventory table to record an inspection.`
-                : 'No inspection records currently match your selected filters. Inspections recorded at dispatch or field delivery will appear here permanently.'}
+              {activeSection === 'hub_pickup'
+                ? 'No Hub Pre-Acceptance inspections recorded yet. When a delivery person scans and checks a drone at the hub before accepting an order, it will appear here.'
+                : activeSection === 'customer_delivery'
+                ? 'No Customer Handover inspections recorded yet. When a delivery person inspects and completes delivery at the customer location, it will appear here.'
+                : activeSection === 'depot_dispatch'
+                ? 'No Depot Maintenance checks found. When a Fleet Manager, Dispatcher, or Admin inspects a drone before dispatch, it will appear here.'
+                : 'No inspection records currently match your selected filters.'}
             </p>
           </div>
         ) : (
           filteredInspections.map((item) => {
-            const isDelivery =
-              item.inspection_type === 'DELIVERY_PERSON_CHECK' ||
-              ['delivery', 'pilot'].includes(item.inspector_role || '');
+            const itemStage = getItemStage(item);
             const isPassed = item.overall_inspection === 'PASSED';
 
             return (
@@ -351,14 +505,32 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
               >
                 {/* Entry Top Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <span className="font-mono text-xs font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg">
                       {item.drone_id}
                     </span>
 
                     {item.delivery_id && (
                       <span className="text-[11px] font-mono text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md font-bold">
-                        Order: {item.delivery_id}
+                        Order #{item.delivery_id}
+                      </span>
+                    )}
+
+                    {/* Dedicated Stage Indicator Badge */}
+                    {itemStage === 'hub_pickup' ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-blue-50 text-blue-700 border border-blue-200">
+                        <Building2 className="w-3 h-3" />
+                        Hub Pre-Acceptance
+                      </span>
+                    ) : itemStage === 'customer_delivery' ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <Truck className="w-3 h-3" />
+                        Customer Handover
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-purple-50 text-[#5a00b8] border border-purple-200">
+                        <ShieldCheck className="w-3 h-3" />
+                        Depot QC Clear
                       </span>
                     )}
 
@@ -385,12 +557,20 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                   <div className="flex items-center gap-2.5">
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                        isDelivery
+                        itemStage === 'hub_pickup'
                           ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                          : itemStage === 'customer_delivery'
+                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
                           : 'bg-purple-100 text-[#5a00b8] border border-purple-200'
                       }`}
                     >
-                      <User className="w-4 h-4" />
+                      {itemStage === 'hub_pickup' ? (
+                        <Building2 className="w-4 h-4" />
+                      ) : itemStage === 'customer_delivery' ? (
+                        <Truck className="w-4 h-4" />
+                      ) : (
+                        <ShieldCheck className="w-4 h-4" />
+                      )}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -399,16 +579,18 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                         </span>
                         <span
                           className={`text-[10px] font-bold uppercase px-2 py-0.2 rounded-full ${
-                            isDelivery
+                            itemStage === 'hub_pickup'
                               ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                              : itemStage === 'customer_delivery'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                               : 'bg-purple-50 text-[#5a00b8] border border-purple-200'
                           }`}
                         >
-                          {item.inspector_role || (isDelivery ? 'Delivery Person' : 'Fleet Dispatcher')}
+                          {item.inspector_role || (itemStage === 'depot_dispatch' ? 'Depot Inspector' : 'Delivery Person')}
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500 font-mono mt-0.5">
-                        {item.inspected_by || 'system-agent'} · Check: {item.inspection_type}
+                        {item.inspected_by || 'system'} · Stage: {itemStage.replace('_', ' ').toUpperCase()}
                       </p>
                     </div>
                   </div>
@@ -429,8 +611,36 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
 
                 {/* Inspection Checklist Details Grid */}
                 <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3.5">
-                  {isDelivery ? (
-                    // Delivery Person Specific Field Verification Details
+                  {itemStage === 'hub_pickup' ? (
+                    // Hub Pre-Acceptance Specific Checklist
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Rotor & Motors</span>
+                        <span className="font-semibold text-slate-800 capitalize">
+                          {item.propeller_debris_check ? item.propeller_debris_check.replace(/_/g, ' ') : 'Spins Free No Debris'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Chassis / Body</span>
+                        <span className="font-semibold text-slate-800 capitalize">
+                          {item.body_condition || 'Good Condition'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Hub Battery</span>
+                        <span className="font-semibold text-blue-700">
+                          {item.field_battery_level != null ? `${item.field_battery_level}%` : 'Normal'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Hub Clearance</span>
+                        <span className="font-semibold text-emerald-700">
+                          {item.zero_defect_certified ? 'Zero Defects Certified' : 'Verified OK'}
+                        </span>
+                      </div>
+                    </div>
+                  ) : itemStage === 'customer_delivery' ? (
+                    // Customer Handover Specific Checklist
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                       <div>
                         <span className="text-[10px] text-slate-400 font-bold uppercase block">Cargo Bay</span>
@@ -445,15 +655,15 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                         </span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Propeller Debris</span>
-                        <span className="font-semibold text-slate-800 capitalize">
-                          {item.propeller_debris_check ? item.propeller_debris_check.replace(/_/g, ' ') : 'Spins Free'}
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Landing Battery</span>
+                        <span className="font-semibold text-emerald-700">
+                          {item.field_battery_level != null ? `${item.field_battery_level}%` : 'Normal'}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Battery Level</span>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Proof of Delivery</span>
                         <span className="font-semibold text-emerald-700">
-                          {item.field_battery_level != null ? `${item.field_battery_level}%` : 'Normal'}
+                          {item.photo_references?.length ? `${item.photo_references.length} POD Photos` : 'OTP Handover Verified'}
                         </span>
                       </div>
                     </div>
@@ -479,13 +689,14 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                         </span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Landing Gear</span>
-                        <span className="font-semibold text-slate-800 capitalize">
-                          {item.landing_gear_condition || 'Good'}
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Avionics Clearance</span>
+                        <span className="font-semibold text-purple-700 capitalize">
+                          {item.depot_avionics_cleared ? 'Cleared' : 'Passed'}
                         </span>
                       </div>
                     </div>
                   )}
+                </div>
 
                   {/* Notes / Remarks */}
                   {(item.remarks || item.delivery_handover_notes) && (
@@ -568,7 +779,6 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                       </div>
                     );
                   })()}
-                </div>
               </div>
             );
           })
