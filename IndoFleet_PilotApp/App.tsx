@@ -620,6 +620,7 @@ function MainApp() {
             order={inspectionOrder || selectedOrder}
             pilotUser={currentUser}
             currentCoords={currentCoords}
+            telemetry={telemetry}
             onBack={() => setActiveScreen('dashboard')}
             onSuccess={async () => {
               await stopTracking();
@@ -658,12 +659,14 @@ function MainApp() {
           </View>
         )}
       </View>
-      {/* Modern Bottom Navigation Menu with Center SOS Button */}
-      <BottomNav
-        activeScreen={activeScreen}
-        onNavigate={(screen) => setActiveScreen(screen)}
-        onTriggerSos={() => setSosModalOpen(true)}
-      />
+      {/* Modern Bottom Navigation Menu with Center SOS Button (hidden during QR scanning & post-flight inspection) */}
+      {!['scanner', 'inspection'].includes(activeScreen) && (
+        <BottomNav
+          activeScreen={activeScreen}
+          onNavigate={(screen) => setActiveScreen(screen)}
+          onTriggerSos={() => setSosModalOpen(true)}
+        />
+      )}
 
       {/* Modals */}
       <FirstTimePasswordModal

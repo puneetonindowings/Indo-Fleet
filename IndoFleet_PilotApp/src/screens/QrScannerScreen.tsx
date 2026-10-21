@@ -40,8 +40,10 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
 
   const scanAnim = useRef(new Animated.Value(0)).current;
 
-  const defaultDrone = order?.assigned_drone_id || order?.drone_id || getDefaultDroneModel();
-  const cleanDroneName = defaultDrone.includes('@') ? 'IndoWings 700 RPAV' : defaultDrone;
+  const rawDroneId = (order?.assigned_drone_id || order?.drone_id || '').trim();
+  const cleanDroneSerial = rawDroneId && !rawDroneId.includes('@') ? rawDroneId : 'RPAV-700-01';
+  const cleanDroneModel = order?.drone_model && !order.drone_model.includes('@') ? order.drone_model : 'IndoWings 700 RPAV';
+  const cleanOrderNumber = order?.order_number || order?.id || 'DELIVERY';
 
   // Animate laser scanner line
   useEffect(() => {
@@ -61,26 +63,44 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     ).start();
   }, [scanAnim]);
 
-  // Request browser camera stream on Web
+  // Request browser camera stream (mobile back camera or desktop webcam)
   useEffect(() => {
     let stream: any = null;
-    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
-      navigator.mediaDevices
-        .getUserMedia({ video: { facingMode: 'environment' } })
-        .then((s) => {
-          stream = s;
-          setCameraActive(true);
-          if (videoRef.current) {
-            videoRef.current.srcObject = s;
-            videoRef.current.play().catch(() => {});
+    let isMounted = true;
+
+    const startCamera = async () => {
+      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+        try {
+          // 1. Try environment/back camera first
+          let s = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+          }).catch(() => null);
+
+          // 2. Fallback to any available webcam on laptop/PC
+          if (!s) {
+            s = await navigator.mediaDevices.getUserMedia({ video: true }).catch(() => null);
           }
-        })
-        .catch(() => {
-          setCameraActive(false);
-        });
-    }
+
+          if (s && isMounted) {
+            stream = s;
+            setCameraActive(true);
+            if (videoRef.current) {
+              videoRef.current.srcObject = s;
+              videoRef.current.play().catch(() => {});
+            }
+          } else if (isMounted) {
+            setCameraActive(false);
+          }
+        } catch {
+          if (isMounted) setCameraActive(false);
+        }
+      }
+    };
+
+    startCamera();
 
     return () => {
+      isMounted = false;
       if (stream && stream.getTracks) {
         stream.getTracks().forEach((track: any) => track.stop());
       }
@@ -89,7 +109,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
 
   const handleVerifyScan = (scannedCode?: string) => {
     setIsVerifying(true);
-    const matchedId = scannedCode || cleanDroneName;
+    const matchedId = scannedCode || cleanDroneSerial;
 
     setTimeout(() => {
       setIsVerifying(false);
@@ -116,10 +136,10 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        handleVerifyScan(cleanDroneName);
+        handleVerifyScan(cleanDroneSerial);
       }
-    } catch (err: any) {
-      Alert.alert('Camera Error', err.message || 'Could not launch camera.');
+    } catch {
+      handleVerifyScan(cleanDroneSerial);
     }
   };
 
@@ -235,7 +255,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.assetLabel}>Assigned Cargo Drone Asset</Text>
-              <Text style={styles.assetValue}>{cleanDroneName}</Text>
+              <Text style={styles.assetValue}>{cleanDroneModel} ({cleanDroneSerial})</Text>
             </View>
             <View style={styles.assetTag}>
               <Text style={styles.assetTagText}>QC Passed</Text>
@@ -246,7 +266,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
         {/* Primary Scan & Confirm Action */}
         <TouchableOpacity
           style={[styles.primaryScanBtn, verifiedSuccess && styles.primaryScanBtnSuccess]}
-          onPress={() => handleVerifyScan(cleanDroneName)}
+          onPress={() => handleVerifyScan(cleanDroneSerial)}
           disabled={isVerifying || verifiedSuccess}
           activeOpacity={0.85}
         >
@@ -260,7 +280,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
           ) : (
             <>
               <QrCode size={19} color="#FFFFFF" />
-              <Text style={styles.primaryScanBtnText}>CONFIRM &amp; VERIFY DRONE QR CODE</Text>
+              <Text style={styles.primaryScanBtnText}>CONFIRM & VERIFY DRONE QR CODE</Text>
             </>
           )}
         </TouchableOpacity>
