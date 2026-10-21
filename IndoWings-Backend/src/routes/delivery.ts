@@ -4556,8 +4556,20 @@ router.get('/pilot/dashboard', async (req, res) => {
         recipient_name: o.recipient_name || o.customer_name || 'Recipient',
         pickup_address: o.pickup_address || '',
         drop_address: o.drop_address || o.delivery_address || o.destination_address || '',
-        pickup_location: o.pickup_location || null,
-        destination_location: o.destination_location || null,
+        pickup_location: o.pickup_location || {
+          latitude: Number(o.pickup_lat) || 28.6037,
+          longitude: Number(o.pickup_lng) || 77.3661,
+          name: o.pickup_address || 'Central Dispatch Hub (Sector 60, Noida)'
+        },
+        destination_location: o.destination_location || {
+          latitude: Number(o.delivery_lat) || Number(o.drop_lat) || 28.6280,
+          longitude: Number(o.delivery_lng) || Number(o.drop_lng) || 77.3750,
+          address: o.drop_address || o.delivery_address || 'Delivery Destination'
+        },
+        delivery_lat: Number(o.delivery_lat) || Number(o.drop_lat) || (o.destination_location?.latitude) || 28.6280,
+        delivery_lng: Number(o.delivery_lng) || Number(o.drop_lng) || (o.destination_location?.longitude) || 77.3750,
+        pickup_lat: Number(o.pickup_lat) || (o.pickup_location?.latitude) || 28.6037,
+        pickup_lng: Number(o.pickup_lng) || (o.pickup_location?.longitude) || 77.3661,
         drone_model: o.drone_model || 'UAV',
         drone_id: o.drone_id || (o.reserved_inventory_ids || [])[0] || '',
         status: o.status,
@@ -4587,8 +4599,20 @@ router.get('/pilot/dashboard', async (req, res) => {
         recipient_name: o.recipient_name || o.customer_name || 'Recipient',
         pickup_address: o.pickup_address || '',
         drop_address: o.drop_address || o.delivery_address || o.destination_address || '',
-        pickup_location: o.pickup_location || null,
-        destination_location: o.destination_location || null,
+        pickup_location: o.pickup_location || {
+          latitude: Number(o.pickup_lat) || 28.6037,
+          longitude: Number(o.pickup_lng) || 77.3661,
+          name: o.pickup_address || 'Central Dispatch Hub (Sector 60, Noida)'
+        },
+        destination_location: o.destination_location || {
+          latitude: Number(o.delivery_lat) || Number(o.drop_lat) || 28.6280,
+          longitude: Number(o.delivery_lng) || Number(o.drop_lng) || 77.3750,
+          address: o.drop_address || o.delivery_address || 'Delivery Destination'
+        },
+        delivery_lat: Number(o.delivery_lat) || Number(o.drop_lat) || (o.destination_location?.latitude) || 28.6280,
+        delivery_lng: Number(o.delivery_lng) || Number(o.drop_lng) || (o.destination_location?.longitude) || 77.3750,
+        pickup_lat: Number(o.pickup_lat) || (o.pickup_location?.latitude) || 28.6037,
+        pickup_lng: Number(o.pickup_lng) || (o.pickup_location?.longitude) || 77.3661,
         drone_model: o.drone_model || '700RPAV',
         drone_id: o.drone_id || (o.reserved_inventory_ids || [])[0] || '',
         status: o.status,
@@ -4687,8 +4711,20 @@ router.get('/pilot/history', async (req, res) => {
         recipient_name: o.recipient_name || o.customer_name || 'Recipient',
         pickup_address: o.pickup_address || '',
         drop_address: o.drop_address || o.delivery_address || o.destination_address || '',
-        pickup_location: o.pickup_location || null,
-        destination_location: o.destination_location || null,
+        pickup_location: o.pickup_location || {
+          latitude: Number(o.pickup_lat) || 28.6037,
+          longitude: Number(o.pickup_lng) || 77.3661,
+          name: o.pickup_address || 'Central Dispatch Hub (Sector 60, Noida)'
+        },
+        destination_location: o.destination_location || {
+          latitude: Number(o.delivery_lat) || Number(o.drop_lat) || 28.6280,
+          longitude: Number(o.delivery_lng) || Number(o.drop_lng) || 77.3750,
+          address: o.drop_address || o.delivery_address || 'Delivery Destination'
+        },
+        delivery_lat: Number(o.delivery_lat) || Number(o.drop_lat) || (o.destination_location?.latitude) || 28.6280,
+        delivery_lng: Number(o.delivery_lng) || Number(o.drop_lng) || (o.destination_location?.longitude) || 77.3750,
+        pickup_lat: Number(o.pickup_lat) || (o.pickup_location?.latitude) || 28.6037,
+        pickup_lng: Number(o.pickup_lng) || (o.pickup_location?.longitude) || 77.3661,
         drone_model: o.drone_model || '700RPAV',
         drone_id: o.drone_id || (o.reserved_inventory_ids || [])[0] || '',
         status: o.status,

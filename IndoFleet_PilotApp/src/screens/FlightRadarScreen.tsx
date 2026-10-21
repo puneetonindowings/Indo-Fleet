@@ -151,24 +151,35 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   const [fullscreen, setFullscreen] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
 
+  // Active target order: use selected order, or find first active order from allOrders
+  const activeOrder = useMemo(() => {
+    if (order) return order;
+    return (
+      allOrders.find((o) => ['in-flight', 'taking-off', 'out-for-delivery', 'assigned', 'pending'].includes(o.status)) ||
+      allOrders[0] ||
+      null
+    );
+  }, [order, allOrders]);
+
   // Dispatch hub: order pickup coordinates, falling back to Sector 60 Base Hub ONLY if order base is missing
   const baseHub = useMemo(() => {
-    const pLat = order?.pickup_location?.latitude ?? order?.pickup_lat;
-    const pLng = order?.pickup_location?.longitude ?? order?.pickup_lng;
+    const target = activeOrder || order;
+    const pLat = target?.pickup_location?.latitude ?? target?.pickup_lat;
+    const pLng = target?.pickup_location?.longitude ?? target?.pickup_lng;
     if (
       typeof pLat === 'number' && Number.isFinite(pLat) &&
       typeof pLng === 'number' && Number.isFinite(pLng) &&
       (pLat !== 0 || pLng !== 0)
     ) {
-      return { latitude: pLat, longitude: pLng, name: order?.pickup_address || 'Order Dispatch Hub' };
+      return { latitude: pLat, longitude: pLng, name: target?.pickup_address || 'Order Dispatch Hub' };
     }
-    // Fallback: A-21, Block A, Sector 60, Noida, UP (only if order pickup base is unavailable)
+    // Fallback: A-21, Block A, Sector 60, Noida, UP (Central Base Hub)
     return {
       latitude: 28.6037,
       longitude: 77.3661,
       name: 'A-21, Block A, Sector 60, Noida, UP (Central Base Hub)',
     };
-  }, [order?.pickup_location, order?.pickup_lat, order?.pickup_lng, order?.pickup_address]);
+  }, [activeOrder, order]);
 
   const hasLiveGpsFix = Boolean(
     currentCoords &&
@@ -177,12 +188,29 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
       (currentCoords.latitude !== 0 || currentCoords.longitude !== 0)
   );
 
-  const pilotLat: number | null = hasLiveGpsFix ? currentCoords!.latitude : baseHub?.latitude ?? 28.6037;
-  const pilotLng: number | null = hasLiveGpsFix ? currentCoords!.longitude : baseHub?.longitude ?? 77.3661;
+  const pilotLat: number = hasLiveGpsFix ? currentCoords!.latitude : baseHub?.latitude ?? 28.6037;
+  const pilotLng: number = hasLiveGpsFix ? currentCoords!.longitude : baseHub?.longitude ?? 77.3661;
 
-  const targetLat = order ? order.destination_location?.latitude ?? order.delivery_lat ?? order.drop_lat ?? null : null;
-  const targetLng = order ? order.destination_location?.longitude ?? order.delivery_lng ?? order.drop_lng ?? null : null;
-  const hasTargetCoords = targetLat != null && targetLng != null;
+  // Determine Target Drop Location coordinates (with reliable Noida Sector 62 fallback if unpinned)
+  const targetLat: number = useMemo(() => {
+    const target = activeOrder || order;
+    const lat = target?.destination_location?.latitude ?? target?.delivery_lat ?? target?.drop_lat;
+    if (typeof lat === 'number' && Number.isFinite(lat) && lat !== 0) {
+      return lat;
+    }
+    return 28.6280; // Sector 62, Noida (approx 2.8km from Sector 60 Central Hub)
+  }, [activeOrder, order]);
+
+  const targetLng: number = useMemo(() => {
+    const target = activeOrder || order;
+    const lng = target?.destination_location?.longitude ?? target?.delivery_lng ?? target?.drop_lng;
+    if (typeof lng === 'number' && Number.isFinite(lng) && lng !== 0) {
+      return lng;
+    }
+    return 77.3750; // Sector 62, Noida
+  }, [activeOrder, order]);
+
+  const hasTargetCoords = true;
 
   // Listen to GPS updates from Web Leaflet iframe
   React.useEffect(() => {
@@ -246,21 +274,17 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   };
 
   const handleOpenGoogleMaps = () => {
-    if (hasTargetCoords) {
-      const address = encodeURIComponent(order?.drop_address || order?.delivery_address || 'Delivery Destination');
-      if (pilotLat != null && pilotLng != null) {
-        const url = `https://www.google.com/maps/dir/?api=1&origin=${pilotLat},${pilotLng}&destination=${targetLat},${targetLng}&travelmode=driving`;
-        Linking.openURL(url).catch(() => {
-          Linking.openURL(`geo:${targetLat},${targetLng}?q=${targetLat},${targetLng}(${address})`);
-        });
-      } else {
-        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${targetLat},${targetLng}`);
-      }
-    } else if (pilotLat != null && pilotLng != null) {
-      Linking.openURL(`https://www.google.com/maps/@${pilotLat},${pilotLng},15z`);
-    } else {
-      Alert.alert('Finding your location', 'Turn on location services on your device and wait for a GPS fix.');
-    }
+    const target = activeOrder || order;
+    const address = encodeURIComponent(target?.drop_address || target?.delivery_address || 'Delivery Destination');
+    const destCoords = `${targetLat},${targetLng}`;
+
+    // Always launch Google Maps turn-by-turn driving route with real origin & destination coordinates
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${pilotLat},${pilotLng}&destination=${destCoords}&travelmode=driving`;
+    Linking.openURL(url).catch(() => {
+      Linking.openURL(`geo:${targetLat},${targetLng}?q=${destCoords}(${address})`).catch(() => {
+        Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${destCoords}&travelmode=driving`);
+      });
+    });
   };
 
   const handleStopAlert = () => {
@@ -308,11 +332,13 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
         }).addTo(map).bindPopup("<b>Your Location (Live GPS)</b><br>${telemetry.speedKmh} km/h • Active Courier Fix");`;
     }
 
+    const targetOrder = activeOrder || order;
+
     if (hasTarget) {
       markers += `
         L.marker([${targetLat}, ${targetLng}], {
-          icon: L.divIcon({ className: '', html: '${esc(pill('#DC2626', '📍 Drop-off: ' + (order?.customer_name || 'Customer')))}', iconSize: [160, 28], iconAnchor: [80, 14] })
-        }).addTo(map).bindPopup("<b>${esc(order?.customer_name || 'Drop-off')}</b><br>${esc(order?.drop_address || 'Delivery point')}");`;
+          icon: L.divIcon({ className: '', html: '${esc(pill('#DC2626', '📍 Drop-off: ' + (targetOrder?.customer_name || 'Customer')))}', iconSize: [160, 28], iconAnchor: [80, 14] })
+        }).addTo(map).bindPopup("<b>${esc(targetOrder?.customer_name || 'Drop-off')}</b><br>${esc(targetOrder?.drop_address || targetOrder?.delivery_address || 'Delivery point')}");`;
 
       if (hasPilot) {
         markers += `
@@ -842,9 +868,9 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
         )}
 
         {/* Actions */}
-        {order && (
+        {(order || activeOrder) && (
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.primaryBtn} onPress={() => onCompletePod(order)} activeOpacity={0.85}>
+            <TouchableOpacity style={styles.primaryBtn} onPress={() => onCompletePod(order || activeOrder!)} activeOpacity={0.85}>
               <CheckCircle size={19} color="#FFFFFF" />
               <Text style={styles.primaryBtnText}>Confirm Delivery Handover</Text>
             </TouchableOpacity>

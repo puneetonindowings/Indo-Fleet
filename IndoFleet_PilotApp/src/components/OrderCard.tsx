@@ -53,13 +53,15 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   };
 
   const handleOpenExternalMaps = () => {
-    const destLat = order.destination_location?.latitude || order.delivery_lat || 28.632;
-    const destLng = order.destination_location?.longitude || order.delivery_lng || 77.378;
+    const destLat = order.destination_location?.latitude || order.delivery_lat || order.drop_lat || 28.6280;
+    const destLng = order.destination_location?.longitude || order.delivery_lng || order.drop_lng || 77.3750;
     const address = encodeURIComponent(order.drop_address || order.delivery_address || 'Delivery Point');
 
-    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}&destination_place_id=${address}`;
+    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}&travelmode=driving`;
     Linking.openURL(googleMapsUrl).catch(() => {
-      Linking.openURL(`geo:${destLat},${destLng}?q=${destLat},${destLng}(${address})`);
+      Linking.openURL(`geo:${destLat},${destLng}?q=${destLat},${destLng}(${address})`).catch(() => {
+        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${destLat},${destLng}`);
+      });
     });
   };
 
@@ -69,7 +71,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       <View style={styles.cardHeader}>
         <View style={styles.orderIdBadge}>
           <Package size={14} color="#8B5CF6" />
-          <Text style={styles.orderIdText}>{order.order_number || order.id.slice(0, 8).toUpperCase()}</Text>
+          <Text style={styles.orderIdText} numberOfLines={1}>{order.order_number || order.id.slice(0, 8).toUpperCase()}</Text>
         </View>
 
         <View
@@ -111,7 +113,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       {order.assigned_by_name ? (
         <View style={styles.assignedByRow}>
           <ShieldCheck size={13} color="#3B0080" />
-          <Text style={styles.assignedByText}>
+          <Text style={styles.assignedByText} numberOfLines={1}>
             Assigned by: <Text style={styles.assignedByName}>{order.assigned_by_name}</Text> ({order.assigned_by_role || 'Dispatcher'})
           </Text>
         </View>
@@ -121,7 +123,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       <View style={styles.customerRow}>
         <View style={styles.customerNameGroup}>
           <User size={15} color="#64748B" />
-          <Text style={styles.customerName}>{order.customer_name || 'Customer'}</Text>
+          <Text style={styles.customerName} numberOfLines={1}>{order.customer_name || 'Customer'}</Text>
         </View>
 
         {order.customer_phone ? (
@@ -189,24 +191,35 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         )}
 
         {isInFlight && (
-          <View style={styles.inFlightBtnGroup}>
+          <View style={styles.inFlightActionStack}>
             <TouchableOpacity
-              style={styles.radarBtn}
-              onPress={() => onViewRadarPress(order)}
-              activeOpacity={0.8}
+              style={styles.podPrimaryBtn}
+              onPress={() => onCompletePodPress(order)}
+              activeOpacity={0.85}
             >
-              <Navigation size={16} color="#FFFFFF" />
-              <Text style={styles.radarBtnText}>Live Map</Text>
+              <QrCode size={18} color="#FFFFFF" />
+              <Text style={styles.podPrimaryBtnText}>Scan Drone QR &amp; Complete</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.podBtn}
-              onPress={() => onCompletePodPress(order)}
-              activeOpacity={0.8}
-            >
-              <QrCode size={15} color="#FFFFFF" />
-              <Text style={styles.podBtnText}>Scan Drone QR & Complete</Text>
-            </TouchableOpacity>
+            <View style={styles.inFlightSubRow}>
+              <TouchableOpacity
+                style={styles.radarSecondaryBtn}
+                onPress={() => onViewRadarPress(order)}
+                activeOpacity={0.8}
+              >
+                <Navigation size={14} color="#5A00B8" />
+                <Text style={styles.radarSecondaryBtnText}>In-App Radar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.mapAppSecondaryBtn}
+                onPress={handleOpenExternalMaps}
+                activeOpacity={0.8}
+              >
+                <ExternalLink size={14} color="#2563EB" />
+                <Text style={styles.mapAppSecondaryBtnText}>Google Maps</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -257,12 +270,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
+    maxWidth: '62%',
+    flexShrink: 1,
   },
   orderIdText: {
     fontSize: 12,
     fontWeight: '800',
     color: '#3B0080',
     letterSpacing: 0.5,
+    flexShrink: 1,
   },
   statusTag: {
     paddingHorizontal: 10,
@@ -463,38 +479,65 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#2563EB',
   },
-  inFlightBtnGroup: {
-    flexDirection: 'row',
-    gap: 10,
+  inFlightActionStack: {
+    gap: 8,
+    marginTop: 2,
   },
-  radarBtn: {
-    flex: 1,
-    backgroundColor: '#4F46E5',
-    borderRadius: 24,
-    height: 50,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-  },
-  radarBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  podBtn: {
-    flex: 1.2,
+  podPrimaryBtn: {
     backgroundColor: '#059669',
     borderRadius: 24,
-    height: 50,
+    height: 48,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: '#059669',
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  podPrimaryBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  inFlightSubRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  radarSecondaryBtn: {
+    flex: 1,
+    backgroundColor: '#F3E8FF',
+    borderRadius: 20,
+    height: 42,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
   },
-  podBtnText: {
-    fontSize: 13,
+  radarSecondaryBtnText: {
+    fontSize: 12,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#5A00B8',
+  },
+  mapAppSecondaryBtn: {
+    flex: 1,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 20,
+    height: 42,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  mapAppSecondaryBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1D4ED8',
   },
 });

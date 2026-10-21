@@ -93,6 +93,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
   if (!order) return null;
 
   const targetDrone = order.assigned_drone_id || order.drone_id || getDefaultDroneModel();
+  const cleanDroneName = targetDrone.includes('@') ? 'IndoWings 700 RPAV' : targetDrone;
 
   // Step 1: Verify & Lock Airframe & Cargo Inspection
   const handleVerifyInspection = async () => {
@@ -308,13 +309,13 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
               <View style={[styles.headerIconCircle, isInspectionVerified && styles.headerIconCircleVerified]}>
                 {isInspectionVerified ? <ShieldCheck size={18} color="#059669" /> : <ShieldAlert size={18} color="#5A00B8" />}
               </View>
-              <View>
-                <Text style={styles.title}>Delivery Handover &amp; Verification</Text>
-                <Text style={styles.subTitle}>Order #{order.order_number || order.id.slice(0, 8)} • Drone: {targetDrone}</Text>
+              <View style={styles.headerTitleWrap}>
+                <Text style={styles.title} numberOfLines={1}>Delivery Handover &amp; Verification</Text>
+                <Text style={styles.subTitle} numberOfLines={1}>Order #{order.order_number || order.id.slice(0, 8)} • Drone: {cleanDroneName}</Text>
               </View>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={20} color="#64748B" />
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <X size={18} color="#64748B" />
             </TouchableOpacity>
           </View>
 
@@ -328,9 +329,9 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                   <View style={[styles.stepNumberBadge, isInspectionVerified ? styles.stepBadgeDone : styles.stepBadgeActive]}>
                     <Text style={styles.stepNumberText}>{isInspectionVerified ? '✓' : '1'}</Text>
                   </View>
-                  <View>
+                  <View style={styles.stepTitleWrap}>
                     <Text style={styles.stepTitle}>Step 1: Drone &amp; Cargo Inspection</Text>
-                    <Text style={styles.stepSubtitle}>
+                    <Text style={styles.stepSubtitle} numberOfLines={2}>
                       {isInspectionVerified
                         ? 'Inspection verified. 0 Defects confirmed on airframe.'
                         : 'Inspect drone & payload before taking Customer & Partner OTP'}
@@ -521,8 +522,8 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
               ) : (
                 <View style={styles.verifiedSuccessBanner}>
                   <CheckCircle size={16} color="#059669" />
-                  <Text style={styles.verifiedSuccessText}>
-                    Drone {targetDrone} inspection verified. 0 Defects archived in flight logs.
+                  <Text style={styles.verifiedSuccessText} numberOfLines={2}>
+                    Drone {cleanDroneName} inspection verified. 0 Defects archived in flight logs.
                   </Text>
                   <TouchableOpacity onPress={() => setIsInspectionVerified(false)} style={styles.recheckBtn}>
                     <Text style={styles.recheckBtnText}>Re-check</Text>
@@ -540,11 +541,11 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                   <View style={[styles.stepNumberBadge, isInspectionVerified ? styles.stepBadgeActive : styles.stepBadgeLocked]}>
                     <Text style={styles.stepNumberText}>2</Text>
                   </View>
-                  <View>
+                  <View style={styles.stepTitleWrap}>
                     <Text style={[styles.stepTitle, !isInspectionVerified && styles.textMuted]}>
-                      Step 2: Customer OTP &amp; Proof of Delivery (POD)
+                      Step 2: Customer OTP &amp; POD
                     </Text>
-                    <Text style={styles.stepSubtitle}>
+                    <Text style={styles.stepSubtitle} numberOfLines={2}>
                       {isInspectionVerified ? 'Collect customer verification and package photo' : 'Locked until Step 1 Inspection is verified'}
                     </Text>
                   </View>
@@ -768,12 +769,14 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
+    gap: 8,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     flex: 1,
+    minWidth: 0,
   },
   headerIconCircle: {
     width: 34,
@@ -782,12 +785,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3E8FF',
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
   },
   headerIconCircleVerified: {
     backgroundColor: '#DCFCE7',
   },
+  headerTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
   title: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '900',
     color: '#0F172A',
   },
@@ -795,11 +803,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#64748B',
     fontWeight: '600',
+    marginTop: 2,
   },
   closeBtn: {
     padding: 6,
     borderRadius: 8,
     backgroundColor: '#F1F5F9',
+    flexShrink: 0,
   },
   scrollBody: {
     marginVertical: 4,
@@ -828,12 +838,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
+    gap: 8,
   },
   stepTitleGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     flex: 1,
+    minWidth: 0,
+  },
+  stepTitleWrap: {
+    flex: 1,
+    minWidth: 0,
   },
   stepNumberBadge: {
     width: 26,
@@ -841,6 +857,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
   },
   stepBadgeActive: {
     backgroundColor: '#5A00B8',
@@ -860,11 +877,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: '#0F172A',
+    lineHeight: 18,
   },
   stepSubtitle: {
     fontSize: 10,
     color: '#64748B',
     fontWeight: '500',
+    marginTop: 2,
   },
   verificationPill: {
     flexDirection: 'row',
@@ -874,6 +893,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 10,
     borderWidth: 1,
+    flexShrink: 0,
   },
   pillVerified: {
     backgroundColor: '#DCFCE7',
@@ -1040,14 +1060,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#065F46',
     flex: 1,
+    minWidth: 0,
+    lineHeight: 16,
   },
   recheckBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 6,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#86EFAC',
+    flexShrink: 0,
   },
   recheckBtnText: {
     fontSize: 10,
