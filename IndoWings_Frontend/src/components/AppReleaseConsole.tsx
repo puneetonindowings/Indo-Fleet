@@ -14,9 +14,9 @@ import {
 import { API_BASE_URL } from '../config/api';
 
 export const AppReleaseConsole: React.FC = () => {
-  const [version, setVersion] = useState('v1.1.8');
+  const [version, setVersion] = useState('v1.1.9');
   const [releaseNotes, setReleaseNotes] = useState(
-    'IndoFleet v1.1.8 (Build 18): Error-proof QR airframe verification with instant local matching, exact order-drone allocation (strictly 2 QRs for 2 drones), and pure light-theme scanner UI.'
+    'IndoFleet v1.1.9 (Build 19): Direct camera shutter trigger, transparent HUD reticle viewfinder, responsive order card badges, and full multi-stage depot & delivery airframe inspection.'
   );
   const [androidUrl, setAndroidUrl] = useState(
     'https://expo.dev/artifacts/eas/8NdM80FyCbuKx_pfNlxdzm0wFkAz2aZwp4iyrE04jtA.apk'

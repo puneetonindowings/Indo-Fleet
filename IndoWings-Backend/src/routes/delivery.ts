@@ -559,9 +559,7 @@ router.post('/auth/verify-otp', otpLimiter, async (req, res) => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // ADMIN USER & PERSONNEL MANAGEMENT ENDPOINTS
-// ─────────────────────────────────────────────────────────────────────────────
 
 // Admin-only account directory; never return password fields.
 router.get('/users', async (req, res) => {
@@ -635,9 +633,7 @@ router.delete('/users/:id', async (req, res) => {
   res.json({ message: 'User removed successfully' });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // FLEET QC & CLIENT HANDOVER ENDPOINTS
-// ─────────────────────────────────────────────────────────────────────────────
 
 // Fleet Manager QC Clearance
 router.post('/drones/:id/qc', async (req, res) => {
@@ -687,9 +683,7 @@ router.post('/orders/:id/handover', async (req, res) => {
   res.json({ message: 'Drone shipment successfully accepted and handed over', order: updated });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // ADMIN PERSONNEL PROVISIONING WITH ADMIN OTP VERIFICATION
-// ─────────────────────────────────────────────────────────────────────────────
 
 // 1. Admin requests Security OTP to authorize user provisioning
 router.post('/admin/request-provision-otp', async (req, res) => {
@@ -1060,9 +1054,7 @@ router.post('/auth/first-time-change-password', async (req, res) => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // PASSWORD MANAGEMENT & SECURITY OTP (PROFILE & AUTH RECOVERY)
-// ─────────────────────────────────────────────────────────────────────────────
 
 // In-memory record for admin password reset audit requests
 interface PasswordResetAudit {
@@ -1473,9 +1465,7 @@ router.get('/admin/password-reset-requests', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // DRONES MANAGEMENT (GET, SINGLE ADD & BULK BATCH PROVISIONING)
-// ─────────────────────────────────────────────────────────────────────────────
 
 // Get all drones
 router.get('/drones', async (req, res) => {

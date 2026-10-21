@@ -524,9 +524,9 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     }
   };
 
-  // ─────────────────────────────────────────────────────────────────────────────
+  
   // RENDER: LOGIN GATE
-  // ─────────────────────────────────────────────────────────────────────────────
+  
   if (!currentUser) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 pb-20 pt-28 text-slate-800 sm:pt-36">
@@ -554,9 +554,9 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
+  
   // RENDER: CART & BOOKING
-  // ─────────────────────────────────────────────────────────────────────────────
+  
   if (storeView === 'cart') {
     return (
       <div className="min-h-screen bg-slate-50 pb-24 pt-24 text-slate-800 sm:pt-28">
@@ -805,9 +805,9 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
+  
   // RENDER: STORE (grid / list)
-  // ─────────────────────────────────────────────────────────────────────────────
+  
   const detailInfo = detailDrone ? getUnitInfo(detailDrone) : [];
 
   const renderChips = (drone: StoreDrone) =>
