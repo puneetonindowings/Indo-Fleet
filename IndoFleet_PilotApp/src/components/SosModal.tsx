@@ -1,3 +1,5 @@
+import * as Battery from 'expo-battery';
+import * as Location from 'expo-location';
 import { useAudioRecorder, requestRecordingPermissionsAsync, RecordingPresets } from 'expo-audio';
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -172,32 +174,109 @@ export const SosModal: React.FC<SosModalProps> = ({
   };
 
   const handleAutoDispatch = async () => {
-    await stopAudioRecording();
     setIsRecording(false);
     setSending(true);
 
+    // 1. Flush & Stop Audio Recording safely with full completion
     let audioBase64: string | undefined = undefined;
     try {
       if (Platform.OS === 'web') {
-        if (audioChunksRef.current && audioChunksRef.current.length > 0) {
-          const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          audioBase64 = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(blob);
+        const mr = mediaRecorderRef.current;
+        if (mr && mr.state !== 'inactive') {
+          audioBase64 = await new Promise<string | undefined>((resolve) => {
+            mr.ondataavailable = (event: any) => {
+              if (event.data && event.data.size > 0) {
+                audioChunksRef.current.push(event.data);
+              }
+            };
+            mr.onstop = () => {
+              try {
+                if (audioChunksRef.current && audioChunksRef.current.length > 0) {
+                  const blob = new Blob(audioChunksRef.current, { type: mr.mimeType || 'audio/webm' });
+                  const reader = new FileReader();
+                  reader.onloadend = () => resolve(reader.result as string);
+                  reader.onerror = () => resolve(undefined);
+                  reader.readAsDataURL(blob);
+                } else {
+                  resolve(undefined);
+                }
+              } catch {
+                resolve(undefined);
+              }
+              mr.stream?.getTracks().forEach((track: any) => track.stop());
+            };
+            try {
+              mr.stop();
+            } catch {
+              resolve(undefined);
+            }
           });
         }
-      } else if (recorder && recorder.uri) {
-        const res = await fetch(recorder.uri);
-        const blob = await res.blob();
-        audioBase64 = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(blob);
-        });
+      } else {
+        try {
+          if (recorder && recorder.isRecording) {
+            await recorder.stop();
+          }
+          if (recorder && recorder.uri) {
+            const res = await fetch(recorder.uri);
+            const blob = await res.blob();
+            audioBase64 = await new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = () => resolve(undefined);
+              reader.readAsDataURL(blob);
+            });
+          }
+        } catch (e) {
+          console.warn('Native audio recording read notice:', e);
+        }
       }
     } catch (e) {
       console.warn('Audio base64 conversion notice:', e);
+    }
+
+    // 2. Fetch Real Hardware Battery Percentage
+    let realBattery = batteryPct;
+    try {
+      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'getBattery' in navigator) {
+        const b = await (navigator as any).getBattery();
+        if (b && typeof b.level === 'number') {
+          realBattery = Math.round(b.level * 100);
+        }
+      } else if (Battery && Battery.getBatteryLevelAsync) {
+        const lvl = await Battery.getBatteryLevelAsync();
+        if (lvl >= 0) {
+          realBattery = Math.round(lvl * 100);
+        }
+      }
+    } catch (bErr) {
+      console.log('Live battery fetch notice:', bErr);
+    }
+
+    // 3. Fetch Real Hardware GPS Position
+    let realCoords = currentCoords;
+    try {
+      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+        await new Promise<void>((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              if (pos?.coords) {
+                realCoords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+              }
+              resolve();
+            },
+            () => resolve(),
+            { enableHighAccuracy: true, timeout: 3500, maximumAge: 0 }
+          );
+        });
+      } else if (Location && Location.getCurrentPositionAsync) {
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        if (pos?.coords) {
+          realCoords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+        }
+      }
+    } catch (gErr) {
+      console.log('Live GPS fetch notice:', gErr);
     }
 
     try {
@@ -205,9 +284,9 @@ export const SosModal: React.FC<SosModalProps> = ({
         pilot_name: pilotName,
         pilot_phone: pilotPhone,
         vehicle_id: vehicleId,
-        latitude: currentCoords?.latitude || 0,
-        longitude: currentCoords?.longitude || 0,
-        battery_pct: batteryPct || 100,
+        latitude: realCoords?.latitude || currentCoords?.latitude || 0,
+        longitude: realCoords?.longitude || currentCoords?.longitude || 0,
+        battery_pct: realBattery != null && realBattery > 0 ? realBattery : (batteryPct || 80),
         audio_base64: audioBase64,
         notes: `EMERGENCY ALERT: SOS beacon triggered automatically by ${pilotName}`,
       });

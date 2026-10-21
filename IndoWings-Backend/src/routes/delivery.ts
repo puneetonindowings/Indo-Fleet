@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../supabase.js';
-import { fileDB } from '../db.js';
+import { fileDB, loadSosAlertsFromFile, saveSosAlertToFile } from '../db.js';
 import { buildAnalyticsPayload } from '../analytics.js';
 import {
   sendOtpNotification,
@@ -5159,29 +5159,40 @@ router.post('/pilot/update-location', async (req, res) => {
   }
 });
 
-// 9. SOS Emergency Alert Beacon with Database Persistence
+// 9. SOS Emergency Alert Beacon with Database & Local File Persistence
 router.post('/pilot/sos-emergency', async (req, res) => {
   try {
     const { pilot_name, pilot_phone, vehicle_id, latitude, longitude, battery_pct, audio_base64, notes } = req.body;
+
+    const parsedLat = Number(latitude);
+    const parsedLng = Number(longitude);
+    const parsedBat = Number(battery_pct);
 
     const sosEvent = {
       id: `SOS-${Date.now().toString(36).toUpperCase()}`,
       pilot_name: pilot_name || 'Pilot',
       pilot_phone: pilot_phone || '',
       vehicle_id: vehicle_id || 'UAV-SYS',
-      latitude: Number(latitude || 28.6037),
-      longitude: Number(longitude || 77.3661),
-      battery_pct: battery_pct != null ? Number(battery_pct) : 80,
+      latitude: Number.isFinite(parsedLat) && (parsedLat !== 0 || Number(longitude) !== 0) ? parsedLat : 28.6046,
+      longitude: Number.isFinite(parsedLng) && (parsedLng !== 0 || Number(latitude) !== 0) ? parsedLng : 77.3687,
+      battery_pct: Number.isFinite(parsedBat) ? parsedBat : 80,
       audio_base64: audio_base64 || null,
       has_audio: Boolean(audio_base64),
-      notes: notes || 'EMERGENCY BEACON TRIGGERED BY PILOT',
+      notes: notes || `EMERGENCY BEACON TRIGGERED BY ${pilot_name || 'PILOT'}`,
       timestamp: new Date().toISOString(),
       status: 'active'
     };
 
     activeSosAlerts.unshift(sosEvent);
 
-    // Save to Supabase support_requests for permanent persistence across server restarts
+    // Save to dedicated persistent file
+    try {
+      saveSosAlertToFile(sosEvent);
+    } catch (fErr) {
+      console.warn('[SOS File] Persistence notice:', fErr);
+    }
+
+    // Save to Supabase support_requests with full details
     try {
       await fileDB.saveExpertRequest({
         id: sosEvent.id,
@@ -5223,7 +5234,7 @@ router.post('/pilot/sos-emergency', async (req, res) => {
       longitude: sosEvent.longitude,
       batteryPct: sosEvent.battery_pct,
       timestamp: sosEvent.timestamp,
-      audioNote: notes || '1-minute SOS mic recording transmitted to server'
+      audioNote: notes || 'SOS emergency audio feed recorded'
     }).catch((err) => console.error('[mail] SOS email alert error:', err));
 
     res.json({
@@ -5237,42 +5248,88 @@ router.post('/pilot/sos-emergency', async (req, res) => {
   }
 });
 
-// 10. Admin endpoint to view active and past SOS alerts from database
+// 10. Admin endpoint to view active and past SOS alerts from database & local storage
 router.get('/admin/sos-alerts', async (req, res) => {
   try {
-    let persistentSos: any[] = [];
+    const alertsMap = new Map<string, any>();
+
+    // 1. Load from persistent file
+    try {
+      const fileAlerts = loadSosAlertsFromFile();
+      for (const a of fileAlerts) {
+        if (a && a.id) alertsMap.set(a.id, a);
+      }
+    } catch (e) {
+      console.warn('[SOS File] Load notice:', e);
+    }
+
+    // 2. Load from in-memory array
+    for (const mem of activeSosAlerts) {
+      if (mem && mem.id) {
+        const existing = alertsMap.get(mem.id);
+        alertsMap.set(mem.id, { ...existing, ...mem });
+      }
+    }
+
+    // 3. Load from database support_requests
     try {
       const requests = await fileDB.getExpertRequests();
-      persistentSos = requests
-        .filter((r: any) => r.category === 'SOS_EMERGENCY' || r.request_data?.sos_id)
-        .map((r: any) => {
-          const rd = r.request_data || {};
-          return {
-            id: rd.sos_id || r.id,
-            pilot_name: rd.pilot_name || r.name || 'Pilot',
-            pilot_phone: rd.pilot_phone || r.phone || '',
-            vehicle_id: rd.vehicle_id || 'UAV-SYS',
-            latitude: Number(rd.latitude || 28.6037),
-            longitude: Number(rd.longitude || 77.3661),
-            battery_pct: Number(rd.battery_pct || 80),
-            audio_base64: rd.audio_base64 || null,
-            has_audio: Boolean(rd.audio_base64 || rd.has_audio),
-            notes: r.message || rd.notes || '',
-            timestamp: rd.timestamp || r.created_at,
-            status: r.status === 'resolved' || rd.status === 'resolved' ? 'resolved' : 'active'
-          };
-        });
+      const dbSos = requests.filter((r: any) => r.category === 'SOS_EMERGENCY' || r.id?.startsWith('SOS'));
+      for (const r of dbSos) {
+        const rd = r.request_data?.request_data || r.request_data || {};
+        const id = rd.sos_id || r.id;
+        
+        let lat = Number(rd.latitude ?? r.latitude);
+        let lng = Number(rd.longitude ?? r.longitude);
+        let bat = Number(rd.battery_pct ?? r.battery_pct);
+
+        // Robust fallback: parse real Lat/Lng and Battery from message string if available
+        if (r.message) {
+          const matchCoords = r.message.match(/Lat\/Lng:\s*\[([0-9.-]+),\s*([0-9.-]+)\]/i);
+          if (matchCoords && Number.isFinite(parseFloat(matchCoords[1])) && Number.isFinite(parseFloat(matchCoords[2]))) {
+            lat = parseFloat(matchCoords[1]);
+            lng = parseFloat(matchCoords[2]);
+          }
+          const matchBat = r.message.match(/Battery:\s*([0-9]+)%/i);
+          if (matchBat && Number.isFinite(parseInt(matchBat[1], 10))) {
+            bat = parseInt(matchBat[1], 10);
+          }
+        }
+
+        const fallbackItem = {
+          id,
+          pilot_name: rd.pilot_name || r.name || 'Pilot',
+          pilot_phone: rd.pilot_phone || r.phone || '',
+          vehicle_id: rd.vehicle_id || 'UAV-SYS',
+          latitude: Number.isFinite(lat) && lat !== 0 ? lat : 28.6046,
+          longitude: Number.isFinite(lng) && lng !== 0 ? lng : 77.3687,
+          battery_pct: Number.isFinite(bat) ? bat : 80,
+          audio_base64: rd.audio_base64 || r.audio_base64 || null,
+          has_audio: Boolean(rd.audio_base64 || r.audio_base64 || rd.has_audio),
+          notes: r.message || rd.notes || '',
+          timestamp: rd.timestamp || r.created_at,
+          status: r.status === 'resolved' || rd.status === 'resolved' ? 'resolved' : 'active'
+        };
+
+        if (!alertsMap.has(id)) {
+          alertsMap.set(id, fallbackItem);
+        } else {
+          // Merge to preserve audio_base64 if in file
+          const current = alertsMap.get(id);
+          alertsMap.set(id, {
+            ...fallbackItem,
+            ...current,
+            status: r.status === 'resolved' ? 'resolved' : current.status
+          });
+        }
+      }
     } catch (e) {
       console.warn('[SOS DB] Could not read persistent SOS alerts:', e);
     }
 
-    // Merge persistent with in-memory (de-duplicated)
-    const combined = [...persistentSos];
-    for (const mem of activeSosAlerts) {
-      if (!combined.some((c: any) => c.id === mem.id)) {
-        combined.push(mem);
-      }
-    }
+    const combined = Array.from(alertsMap.values()).sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
 
     const activeCount = combined.filter((a: any) => a.status === 'active').length;
     res.json({
@@ -5300,10 +5357,26 @@ router.post('/admin/sos-alerts/:id/resolve', async (req, res) => {
     }
 
     try {
+      saveSosAlertToFile({
+        id,
+        status: 'resolved',
+        resolved_at: new Date().toISOString(),
+        resolved_by: resolved_by || 'Operations Admin',
+        resolution_notes: notes || 'Resolved by Administrator'
+      });
+    } catch (fErr) {
+      console.warn('[SOS File] Resolve notice:', fErr);
+    }
+
+    try {
+      const allReqs = await fileDB.getExpertRequests();
+      const existingReq = allReqs.find((r: any) => r.id === id);
+      const existingRd = existingReq?.request_data || {};
       await fileDB.updateExpertRequest(id, {
         status: 'resolved',
         resolution_notes: notes || 'Resolved by Administrator',
         request_data: {
+          ...existingRd,
           status: 'resolved',
           resolved_at: new Date().toISOString(),
           resolved_by: resolved_by || 'Operations Admin'

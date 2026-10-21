@@ -4,6 +4,36 @@ import path from 'path';
 import { supabase } from './supabase.js';
 
 const INSPECTIONS_FILE = path.resolve(process.cwd(), 'data/inspections.json');
+const SOS_ALERTS_FILE = path.resolve(process.cwd(), 'data/sos_alerts.json');
+
+export function loadSosAlertsFromFile(): JsonRecord[] {
+  try {
+    ensureDataDir();
+    if (!fs.existsSync(SOS_ALERTS_FILE)) {
+      fs.writeFileSync(SOS_ALERTS_FILE, JSON.stringify([], null, 2), 'utf-8');
+    }
+    const raw = fs.readFileSync(SOS_ALERTS_FILE, 'utf-8');
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export function saveSosAlertToFile(alert: JsonRecord) {
+  try {
+    ensureDataDir();
+    const existing = loadSosAlertsFromFile();
+    const idx = existing.findIndex(a => a.id === alert.id);
+    if (idx >= 0) {
+      existing[idx] = { ...existing[idx], ...alert };
+    } else {
+      existing.unshift(alert);
+    }
+    fs.writeFileSync(SOS_ALERTS_FILE, JSON.stringify(existing, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[SOS] Failed to save alert to file:', err);
+  }
+}
 
 function ensureDataDir() {
   const dir = path.dirname(INSPECTIONS_FILE);
