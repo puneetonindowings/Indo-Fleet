@@ -170,10 +170,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
     ios_url: string;
     updated_at: string;
   }>({
-    version: 'v1.2.2',
-    build_number: 22,
+    version: 'v1.2.3',
+    build_number: 23,
     package_size: '~54.9 MB',
-    release_notes: 'IndoFleet v1.2.2 (Build 22): Full multi-drone inspection persistence, video recording evidence, drone battery & fares cleanup, Google Maps navigation intent fix, and streamlined history metric cards.',
+    release_notes: 'IndoFleet v1.2.3 (Build 23): 48% APK size reduction (~54.9 MB) via ARM64 & ARMv7 optimization, full multi-drone inspection persistence, video recording evidence, drone battery & fares cleanup, Google Maps navigation intent fix, and streamlined history metric cards.',
     android_url: `${API_BASE_URL}/api/delivery/download-apk`,
     ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
     updated_at: new Date().toISOString()
