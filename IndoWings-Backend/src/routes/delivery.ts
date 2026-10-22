@@ -1,4 +1,6 @@
 import '../env.js';
+import fs from 'fs';
+import path from 'path';
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -5921,14 +5923,29 @@ router.post('/pilot/support-ticket', async (req, res) => {
 
 // 15. App Release Management (Get & Publish Releases + Email Delivery Partners)
 let activeAppRelease = {
-  version: 'v1.1.8',
-  build_number: 18,
-  package_size: '~83 MB',
-  release_notes: 'IndoFleet v1.1.8 (Build 18): Error-proof QR airframe verification with instant local matching, exact order-drone allocation (strictly 2 QRs for 2 drones), and pure light-theme scanner UI.',
-  android_url: 'https://expo.dev/artifacts/eas/8NdM80FyCbuKx_pfNlxdzm0wFkAz2aZwp4iyrE04jtA.apk',
+  version: 'v1.2.1',
+  build_number: 21,
+  package_size: '~100 MB',
+  release_notes: 'IndoFleet v1.2.1 (Build 21): Local Production Release APK with in-memory low-latency telemetry caching, bulletproof Supabase QR verification persistence, responsive mobile UI, and interactive re-verification.',
+  android_url: 'https://github.com/puneetonindowings/Indo-Fleet/releases/download/v1.2.1/IndoFleet_Delivery_v1.2.1.apk',
   ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
   updated_at: new Date().toISOString()
 };
+
+router.get('/download-apk', (req, res) => {
+  const possiblePaths = [
+    path.resolve(process.cwd(), '../releases/IndoFleet_Delivery_latest.apk'),
+    path.resolve(process.cwd(), 'releases/IndoFleet_Delivery_latest.apk'),
+    path.resolve(process.cwd(), '../IndoFleet_PilotApp/android/app/build/outputs/apk/release/app-release.apk')
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+      return res.download(p, `IndoFleet_Delivery_${activeAppRelease.version}.apk`);
+    }
+  }
+  return res.redirect(activeAppRelease.android_url);
+});
 
 router.get('/app-release', async (req, res) => {
   res.json({

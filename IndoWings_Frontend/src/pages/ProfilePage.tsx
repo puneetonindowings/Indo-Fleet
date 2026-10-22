@@ -170,11 +170,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
     ios_url: string;
     updated_at: string;
   }>({
-    version: 'v1.1.8',
-    build_number: 18,
-    package_size: '~83 MB',
-    release_notes: 'IndoFleet v1.1.8 (Build 18): Error-proof QR airframe verification with instant local matching, exact order-drone allocation (strictly 2 QRs for 2 drones), and pure light-theme scanner UI.',
-    android_url: 'https://expo.dev/artifacts/eas/8NdM80FyCbuKx_pfNlxdzm0wFkAz2aZwp4iyrE04jtA.apk',
+    version: 'v1.2.1',
+    build_number: 21,
+    package_size: '~100 MB',
+    release_notes: 'IndoFleet v1.2.1 (Build 21): Local Production Release APK with in-memory low-latency telemetry caching, bulletproof Supabase QR verification persistence, responsive mobile UI, and interactive re-verification.',
+    android_url: `${API_BASE_URL}/api/delivery/download-apk`,
     ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
     updated_at: new Date().toISOString()
   });
