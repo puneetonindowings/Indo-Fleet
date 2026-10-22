@@ -83,14 +83,21 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   };
 
   const handleOpenExternalMaps = () => {
-    const destLat = order.destination_location?.latitude || order.delivery_lat || order.drop_lat || 28.6280;
-    const destLng = order.destination_location?.longitude || order.delivery_lng || order.drop_lng || 77.3750;
     const rawAddress = order.drop_address || order.delivery_address || 'Delivery Point';
     const address = encodeURIComponent(rawAddress);
-    const destCoords = `${destLat},${destLng}`;
-    const webUrl = `https://www.google.com/maps/dir/?api=1&destination=${destCoords}&travelmode=driving`;
+    const hasDirectCoords = Boolean(
+      (order.drop_lat && order.drop_lng) ||
+      (order.destination_location?.latitude && order.destination_location?.longitude) ||
+      (order.delivery_lat && order.delivery_lng)
+    );
+    const lat = order.drop_lat || order.destination_location?.latitude || order.delivery_lat;
+    const lng = order.drop_lng || order.destination_location?.longitude || order.delivery_lng;
+    const destCoords = hasDirectCoords ? `${lat},${lng}` : address;
+    const webUrl = hasDirectCoords
+      ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`
+      : `https://www.google.com/maps/dir/?api=1&destination=${address}&travelmode=driving`;
     const appNavUrl = `google.navigation:q=${destCoords}&mode=d`;
-    const geoUrl = `geo:${destCoords}?q=${destCoords}(${address})`;
+    const geoUrl = hasDirectCoords ? `geo:${lat},${lng}?q=${lat},${lng}(${address})` : `geo:0,0?q=${address}`;
 
     // 1. Web Environment (Desktop & Mobile Browser in React Native Web)
     if (Platform.OS === 'web' && typeof window !== 'undefined') {

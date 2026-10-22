@@ -46,6 +46,7 @@ import {
 } from 'lucide-react-native';
 import { DeliveryOrder, TelemetryStats } from '../types';
 import { getRoutingApiUrl } from '../config';
+import { geocodeDeliveryAddress } from '../services/api';
 
 interface FlightRadarScreenProps {
   order: DeliveryOrder | null;
@@ -257,17 +258,43 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     return null;
   };
 
-  // Determine Target Drop Location coordinates (with intelligent address parsing)
+  // Dynamic Geocoding State for Target Drop Location
+  const [asyncTargetCoords, setAsyncTargetCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  useEffect(() => {
+    const target = activeOrder || order;
+    const directLat = target?.destination_location?.latitude ?? target?.delivery_lat ?? target?.drop_lat;
+    const directLng = target?.destination_location?.longitude ?? target?.delivery_lng ?? target?.drop_lng;
+    if (typeof directLat === 'number' && typeof directLng === 'number' && Number.isFinite(directLat) && Number.isFinite(directLng) && (directLat !== 0 || directLng !== 0)) {
+      setAsyncTargetCoords({ latitude: directLat, longitude: directLng });
+      return;
+    }
+
+    const rawAddr = target?.drop_address || target?.delivery_address;
+    if (!rawAddr) return;
+
+    let cancelled = false;
+    geocodeDeliveryAddress(rawAddr).then((coords) => {
+      if (!cancelled && coords) {
+        setAsyncTargetCoords(coords);
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [activeOrder, order]);
+
+  // Determine Target Drop Location coordinates (Dynamic Geocoding + Address Parsing)
   const targetLat: number = useMemo(() => {
     const target = activeOrder || order;
     const lat = target?.destination_location?.latitude ?? target?.delivery_lat ?? target?.drop_lat;
     if (typeof lat === 'number' && Number.isFinite(lat) && lat !== 0) {
       return lat;
     }
+    if (asyncTargetCoords) return asyncTargetCoords.latitude;
     const resolved = resolveAddressCoords(target?.drop_address || target?.delivery_address);
     if (resolved) return resolved.latitude;
-    return 28.6280; // Sector 62, Noida default
-  }, [activeOrder, order]);
+    return 28.6037;
+  }, [activeOrder, order, asyncTargetCoords]);
 
   const targetLng: number = useMemo(() => {
     const target = activeOrder || order;
@@ -275,10 +302,11 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     if (typeof lng === 'number' && Number.isFinite(lng) && lng !== 0) {
       return lng;
     }
+    if (asyncTargetCoords) return asyncTargetCoords.longitude;
     const resolved = resolveAddressCoords(target?.drop_address || target?.delivery_address);
     if (resolved) return resolved.longitude;
-    return 77.3750; // Sector 62, Noida default
-  }, [activeOrder, order]);
+    return 77.3661;
+  }, [activeOrder, order, asyncTargetCoords]);
 
   const hasTargetCoords = true;
 

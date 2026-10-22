@@ -145,6 +145,30 @@ export async function fetchPilotOrderHistory(pilotId?: string): Promise<{
 }
 
 // Helper: Call Render First; if it fails or times out, immediately fall back to Local
+export async function geocodeDeliveryAddress(address: string): Promise<{ latitude: number; longitude: number } | null> {
+  if (!address || typeof address !== 'string') return null;
+  try {
+    const data = await fetchWithRenderAndLocalFallback(`/api/delivery/geocode?address=${encodeURIComponent(address)}`, { method: 'GET' });
+    if (data && Number.isFinite(data.lat) && Number.isFinite(data.lng)) {
+      return { latitude: data.lat, longitude: data.lng };
+    }
+  } catch (e) {}
+
+  try {
+    const cleaned = address.replace(/(?:\+91[\-\s]?)?[6-9]\d{9}\b/g, '').replace(/^[^,]+,\s*/, '').trim();
+    const nRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleaned || address)}&limit=1`, {
+      headers: { 'User-Agent': 'IndoFleet-PilotApp/1.0', 'Accept': 'application/json' }
+    });
+    if (nRes.ok) {
+      const nData = await nRes.json();
+      if (Array.isArray(nData) && nData[0]?.lat && nData[0]?.lon) {
+        return { latitude: parseFloat(nData[0].lat), longitude: parseFloat(nData[0].lon) };
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
 async function fetchWithRenderAndLocalFallback(
   path: string,
   options: RequestInit

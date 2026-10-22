@@ -3,6 +3,7 @@ import * as maplibregl from 'maplibre-gl';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Navigation, ZoomIn, ZoomOut, Layers, Truck, MapPin, Building2, Clock, Route as RouteIcon, Eye, EyeOff, ChevronUp, ChevronDown } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 if (typeof (maplibregl as any).setWorkerUrl === 'function') {
   (maplibregl as any).setWorkerUrl('/maplibre-gl-worker.mjs');
@@ -104,25 +105,87 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
   );
   const hasDirectDrop = Number.isFinite(rawDropLng) && Number.isFinite(rawDropLat) && (rawDropLng !== 0 || rawDropLat !== 0);
 
-  const pickupCoords: [number, number] | null = useMemo(() => {
+  const pickupCoords: [number, number] = useMemo(() => {
     return [pickupLng, pickupLat];
   }, [pickupLng, pickupLat]);
+
+  // Dynamic Geocoding State for when order lacks direct coordinates
+  const [asyncDropCoords, setAsyncDropCoords] = useState<[number, number] | null>(null);
+
+  useEffect(() => {
+    if (hasDirectDrop) {
+      setAsyncDropCoords([rawDropLng, rawDropLat]);
+      return;
+    }
+
+    const rawAddress = String(order?.drop_address || order?.destination_address || order?.delivery_address || '').trim();
+    if (!rawAddress) return;
+
+    let cancelled = false;
+    const resolveLocation = async () => {
+      // 1. Session Storage cache check
+      const cacheKey = `geo:${rawAddress.toLowerCase()}`;
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Number.isFinite(parsed?.lat) && Number.isFinite(parsed?.lng) && !cancelled) {
+            setAsyncDropCoords([parsed.lng, parsed.lat]);
+            return;
+          }
+        } catch (e) {}
+      }
+
+      // 2. Internal IndoFleet Geocoding Service (Google & Nominatim hybrid)
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/delivery/geocode?address=${encodeURIComponent(rawAddress)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled && Number.isFinite(data.lat) && Number.isFinite(data.lng)) {
+            sessionStorage.setItem(cacheKey, JSON.stringify({ lat: data.lat, lng: data.lng }));
+            setAsyncDropCoords([data.lng, data.lat]);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // 3. Fallback OpenStreetMap Nominatim Direct Geocode
+      try {
+        const cleaned = rawAddress
+          .replace(/(?:\+91[\-\s]?)?[6-9]\d{9}\b/g, '')
+          .replace(/^[^,]+,\s*/, '')
+          .trim();
+        const queries = [rawAddress, cleaned, cleaned.split(',').slice(-2).join(',').trim()];
+        for (const q of queries) {
+          if (!q || q.length < 3) continue;
+          const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`;
+          const nRes = await fetch(url, {
+            headers: { 'User-Agent': 'IndoFleet-Platform/1.0', 'Accept': 'application/json' }
+          });
+          if (nRes.ok) {
+            const nData = await nRes.json();
+            if (!cancelled && Array.isArray(nData) && nData[0]?.lat && nData[0]?.lon) {
+              const lat = parseFloat(nData[0].lat);
+              const lng = parseFloat(nData[0].lon);
+              sessionStorage.setItem(cacheKey, JSON.stringify({ lat, lng }));
+              setAsyncDropCoords([lng, lat]);
+              return;
+            }
+          }
+        }
+      } catch (nomErr) {}
+    };
+
+    resolveLocation();
+    return () => { cancelled = true; };
+  }, [hasDirectDrop, rawDropLng, rawDropLat, order?.drop_address, order?.destination_address, order?.delivery_address]);
 
   const dropCoords: [number, number] | null = useMemo(() => {
     if (hasDirectDrop) {
       return [rawDropLng, rawDropLat];
     }
-    // Heuristic geocoding for standard delivery regions
-    const addr = String(order?.drop_address || order?.destination_address || order?.delivery_address || '').toLowerCase();
-    if (addr.includes('sector 62') || addr.includes('sec 62')) return [77.3649, 28.6280];
-    if (addr.includes('sector 18') || addr.includes('sec 18')) return [77.3225, 28.5708];
-    if (addr.includes('sector 137') || addr.includes('sec 137')) return [77.4041, 28.5135];
-    if (addr.includes('greater noida')) return [77.5037, 28.4744];
-    if (addr.includes('delhi') || addr.includes('connaught')) return [77.2167, 28.6328];
-    if (addr.includes('noida')) return [77.3750, 28.6200];
-    if (addr.trim().length > 3) return [77.3820, 28.6150]; // Default Noida destination corridor
-    return null;
-  }, [hasDirectDrop, rawDropLng, rawDropLat, order?.drop_address, order?.destination_address, order?.delivery_address]);
+    return asyncDropCoords;
+  }, [hasDirectDrop, rawDropLng, rawDropLat, asyncDropCoords]);
 
   const hasValidDrop = Boolean(dropCoords);
 
@@ -364,6 +427,13 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
 
     if (hubMarkerRef.current && pickupCoords) hubMarkerRef.current.setLngLat(pickupCoords);
     if (dropMarkerRef.current && dropCoords) dropMarkerRef.current.setLngLat(dropCoords);
+
+    if (pickupCoords && dropCoords) {
+      const bounds = new maplibregl.LngLatBounds(pickupCoords, pickupCoords);
+      roadCoordinates.forEach(pt => bounds.extend(pt));
+      bounds.extend(dropCoords);
+      map.fitBounds(bounds, { padding: { top: 55, bottom: 65, left: 35, right: 35 }, maxZoom: 14 });
+    }
   }, [roadCoordinates, pickupCoords, dropCoords]);
 
   // 5. Smoothly Move Vehicle Marker as GPS Position Updates

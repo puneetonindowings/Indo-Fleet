@@ -39,6 +39,18 @@ import { sendPushToUser, broadcastPushToPilots } from '../firebaseService.js';
 import { JWT_SECRET } from '../middleware/auth.js';
 import { createRateLimiter } from '../middleware/rateLimiter.js';
 import { apiCache } from '../utils/cache.js';
+import { geocodeAddress, getRoadRoute } from '../geocodingService.js';
+
+function calculateAerialDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Number((R * c).toFixed(1));
+}
 
 const router = Router();
 const authLimiter = createRateLimiter(15 * 60 * 1000, 15, 'Too many login attempts. Please wait 15 minutes before retrying.');
@@ -2161,10 +2173,29 @@ router.post('/store/orders', async (req, res) => {
   ]
     .filter(Boolean)
     .join(', ');
-  const destinationLat = address.lat === undefined || address.lat === null || address.lat === '' ? NaN : Number(address.lat);
-  const destinationLng = address.lng === undefined || address.lng === null || address.lng === '' ? NaN : Number(address.lng);
-  const hasDestinationCoordinates = Number.isFinite(destinationLat) && destinationLat >= -90 && destinationLat <= 90
-    && Number.isFinite(destinationLng) && destinationLng >= -180 && destinationLng <= 180;
+  let resolvedLat = address.lat === undefined || address.lat === null || address.lat === '' ? NaN : Number(address.lat);
+  let resolvedLng = address.lng === undefined || address.lng === null || address.lng === '' ? NaN : Number(address.lng);
+  let hasValidCoords = Number.isFinite(resolvedLat) && resolvedLat >= -90 && resolvedLat <= 90
+    && Number.isFinite(resolvedLng) && resolvedLng >= -180 && resolvedLng <= 180;
+
+  if (!hasValidCoords && dropAddress) {
+    try {
+      const geo = await geocodeAddress(dropAddress);
+      if (geo && Number.isFinite(geo.lat) && Number.isFinite(geo.lng)) {
+        resolvedLat = geo.lat;
+        resolvedLng = geo.lng;
+        hasValidCoords = true;
+      }
+    } catch (gErr) {
+      console.warn('[store/orders] Dynamic geocode failed:', gErr);
+    }
+  }
+
+  const pickupLat = 28.6037;
+  const pickupLng = 77.3661;
+  const aerialDistance = hasValidCoords ? calculateAerialDistance(pickupLat, pickupLng, resolvedLat, resolvedLng) : 14.8;
+  const flightDuration = Math.max(12, Math.round((aerialDistance / 65) * 60));
+
   const order = {
     id: orderId,
     order_type: 'drone_purchase',
@@ -2176,14 +2207,18 @@ router.post('/store/orders', async (req, res) => {
     recipient_name: address.recipient_name || user.name,
     recipient_phone: address.recipient_phone || user.phone || '',
     pickup_address: 'IndoFleet Manufacturing & Dispatch Center, Noida',
+    pickup_lat: pickupLat,
+    pickup_lng: pickupLng,
     drop_address: dropAddress,
     destination_address: dropAddress,
-    ...(hasDestinationCoordinates ? {
-      destination_lat: destinationLat,
-      destination_lng: destinationLng,
-      drop_lat: destinationLat,
-      drop_lng: destinationLng
+    ...(hasValidCoords ? {
+      destination_lat: resolvedLat,
+      destination_lng: resolvedLng,
+      drop_lat: resolvedLat,
+      drop_lng: resolvedLng
     } : {}),
+    aerial_distance_km: aerialDistance,
+    flight_duration_mins: flightDuration,
     address_id: address.id || null,
     delivery_notes: typeof req.body.delivery_notes === 'string' ? req.body.delivery_notes.trim() : '',
     items,
@@ -2303,6 +2338,28 @@ router.post('/orders', async (req, res) => {
   const challanNo = `CHL-${currentYear}-${String(Math.floor(1000 + Math.random() * 9000))}`;
   const estimatedDelivery = new Date(now.getTime() + 48 * 3600 * 1000); // 48 hours transit avg
 
+  let dropLat = Number(req.body.drop_lat ?? req.body.destination_lat);
+  let dropLng = Number(req.body.drop_lng ?? req.body.destination_lng);
+  let hasDropCoords = Number.isFinite(dropLat) && Number.isFinite(dropLng) && (dropLat !== 0 || dropLng !== 0);
+
+  if (!hasDropCoords && dropAddress) {
+    try {
+      const geo = await geocodeAddress(dropAddress);
+      if (geo && Number.isFinite(geo.lat) && Number.isFinite(geo.lng)) {
+        dropLat = geo.lat;
+        dropLng = geo.lng;
+        hasDropCoords = true;
+      }
+    } catch (gErr) {
+      console.warn('[orders] Dynamic geocode failed:', gErr);
+    }
+  }
+
+  const hubPickupLat = 28.6037;
+  const hubPickupLng = 77.3661;
+  const calcDistance = hasDropCoords ? calculateAerialDistance(hubPickupLat, hubPickupLng, dropLat, dropLng) : (Number(aerial_distance_km) || 120);
+  const calcDuration = Math.max(12, Math.round((calcDistance / 65) * 60));
+
   const newOrder = {
     id: orderId,
     challan_number: challanNo,
@@ -2316,8 +2373,16 @@ router.post('/orders', async (req, res) => {
     is_for_someone_else: Boolean(is_for_someone_else),
     delivery_notes: delivery_notes || '',
     pickup_address: pickupAddress,
+    pickup_lat: hubPickupLat,
+    pickup_lng: hubPickupLng,
     drop_address: dropAddress,
     destination_address: dropAddress,
+    ...(hasDropCoords ? {
+      drop_lat: dropLat,
+      drop_lng: dropLng,
+      destination_lat: dropLat,
+      destination_lng: dropLng
+    } : {}),
     package_type: `${unitsCount}x ${droneModel} (${carrier})`,
     drones_shipped: `${unitsCount}x ${droneModel}`,
     drone_model: droneModel,
@@ -6255,6 +6320,25 @@ router.get('/public/drone/:drone_id', async (req, res) => {
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to verify drone QR' });
+  }
+});
+
+// 4b. Dynamic Geocoding API (OpenStreetMap & Google Maps Hybrid)
+router.get('/geocode', async (req, res) => {
+  try {
+    const address = String(req.query.address || '').trim();
+    if (!address) {
+      res.status(400).json({ success: false, error: 'Address parameter is required' });
+      return;
+    }
+    const result = await geocodeAddress(address);
+    if (!result) {
+      res.status(404).json({ success: false, error: 'Location coordinates not found for this address' });
+      return;
+    }
+    res.json({ success: true, ...result });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Geocoding failed' });
   }
 });
 
