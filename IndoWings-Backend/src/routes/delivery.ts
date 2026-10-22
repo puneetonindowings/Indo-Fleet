@@ -5937,11 +5937,11 @@ router.post('/pilot/support-ticket', async (req, res) => {
 
 // 15. App Release Management (Get & Publish Releases + Email Delivery Partners)
 let activeAppRelease = {
-  version: 'v1.2.3',
-  build_number: 23,
+  version: 'v1.2.4',
+  build_number: 24,
   package_size: '~54.9 MB',
-  release_notes: 'IndoFleet v1.2.3 (Build 23): 48% APK size reduction (~54.9 MB) via ARM64 & ARMv7 optimization, full multi-drone inspection persistence, video recording evidence, drone battery & fares cleanup, Google Maps navigation intent fix, and streamlined history metric cards.',
-  android_url: 'https://github.com/puneetonindowings/Indo-Fleet/releases/download/v1.2.3/IndoFleet_Delivery_v1.2.3.apk',
+  release_notes: 'IndoFleet v1.2.4 (Build 24): Android 3-button system navigation bar insets fix, silent Render-to-Local API fallback for OTP/inspections without test banners, order-wise drone inspection grouping with photo/video media evidence preview in Admin Console, and optimized ~54.9 MB APK.',
+  android_url: 'https://github.com/puneetonindowings/Indo-Fleet/releases/download/v1.2.4/IndoFleet_Delivery_v1.2.4.apk',
   ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
   updated_at: new Date().toISOString()
 };
