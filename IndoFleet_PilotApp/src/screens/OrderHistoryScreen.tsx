@@ -58,13 +58,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
     () => historyOrders.filter((o) => o.status === 'cancelled' || o.status === 'missed').length,
     [historyOrders]
   );
-  const totalUnitsDelivered = useMemo(
-    () =>
-      historyOrders
-        .filter((o) => o.status === 'delivered' || o.status === 'completed')
-        .reduce((sum, o) => sum + (o.units_count || (o.reserved_inventory_ids || []).length || 1), 0),
-    [historyOrders]
-  );
+
 
   // Filter orders
   const filteredOrders = useMemo(() => {
@@ -213,22 +207,22 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
         {/* Metric Counter Cards */}
         <View style={styles.metricsRow}>
           <View style={styles.metricCard}>
+            <View style={[styles.metricIconWrap, { backgroundColor: '#EEF2FF' }]}>
+              <Package size={16} color="#4F46E5" />
+            </View>
+            <View>
+              <Text style={styles.metricVal}>{historyOrders.length}</Text>
+              <Text style={styles.metricLbl}>Total</Text>
+            </View>
+          </View>
+
+          <View style={styles.metricCard}>
             <View style={[styles.metricIconWrap, { backgroundColor: '#ECFDF5' }]}>
               <CheckCircle2 size={16} color="#059669" />
             </View>
             <View>
               <Text style={styles.metricVal}>{deliveredCount}</Text>
               <Text style={styles.metricLbl}>Delivered</Text>
-            </View>
-          </View>
-
-          <View style={styles.metricCard}>
-            <View style={[styles.metricIconWrap, { backgroundColor: '#EEF2FF' }]}>
-              <Package size={16} color="#4F46E5" />
-            </View>
-            <View>
-              <Text style={styles.metricVal}>{totalUnitsDelivered}</Text>
-              <Text style={styles.metricLbl}>Drones Delivered</Text>
             </View>
           </View>
 
