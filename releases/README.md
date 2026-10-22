@@ -1,8 +1,8 @@
 # IndoFleet Delivery Mobile App - Android Releases
 
-## Latest Release: v1.2.1 (Local Standalone Release APK, In-Memory Telemetry Cache, Supabase DB Sync & Interactive Re-Verify)
+## Latest Release: v1.2.2 (Build 22 - Multi-Drone Inspection Evidence, Video Persistence, Google Maps Redirect, Fares/Battery Removal & Streamlined Metrics)
 
-- **Version:** 1.2.1 (Build Code 21)
+- **Version:** 1.2.2 (Build Code 22)
 - **Date:** October 22, 2026
 - **Architecture:** Android (arm64-v8a, armeabi-v7a, x86_64)
 - **Package Size:** ~100.7 MB
@@ -10,24 +10,24 @@
 ### Direct Download Options:
 1. **Local Direct Build:** `IndoFleet_PilotApp/android/app/build/outputs/apk/release/app-release.apk`
 2. **Web Portal Direct Download:** `/api/delivery/download-apk`
-3. **Local Release Archive:** `releases/IndoFleet_Delivery_latest.apk` & `releases/IndoFleet_Delivery_v1.2.1.apk`
+3. **Local Release Archive:** `releases/IndoFleet_Delivery_latest.apk` & `releases/IndoFleet_Delivery_v1.2.2.apk`
 
-### What Was Fixed & Added in v1.2.1:
-- **Local Standalone Production Release APK:**
-  - Full native Android release build compiled directly on-machine using Gradle 9.3.1 and OpenJDK 17.
-  - Pre-compiled Hermes bytecode for instant startup, zero debug overlays, and smooth 60fps animations.
-- **In-Memory RAM Cache:**
-  - 98.2% latency drop on fleet fetching (`/api/delivery/fleet` reduced from 8,468ms to 148ms).
-- **Bulletproof Drone Verification & Re-verification:**
-  - Removed custom schema column collisions and safely encapsulated drone assignments into `delivery_data` JSONB.
-  - Interactive "Re-verify" action across Sortie, QR Scanner, and Inspection screens.
-- **Responsive Web & Mobile Overhauls:**
-  - Modernized Live Tracking Map with collapsible mini-HUD and 100% full-map view toggle.
-  - Fixed mobile button wrapping on Admin Dashboard and Fleet Manager.
+### What Was Fixed & Added in v1.2.2:
+- **Full Multi-Drone Inspection Persistence:**
+  - Auditing console and pilot app now capture, sync, and persist inspection records across all 4 consignment drones (`INW-700RPAV-0001`, `0002`, `0005`, `0006`).
+- **Video Evidence Persistence:**
+  - Fixed video recording and photo reference persistence in `delivery_data` with instant lightbox video playback in Admin Audit Console.
+- **Drone Battery & Weight Cleanup:**
+  - Stripped redundant drone battery percentages and payload weights from order cards, handover modals, and inspection screens; reserved exclusively for real phone battery in SOS emergencies.
+- **Google Maps Navigation Redirect:**
+  - Fixed map redirect button with direct native `google.navigation:q=` intents on Android and web fallback.
+- **Order History Metrics Row:**
+  - Streamlined metric cards to Total (`historyOrders.length`), Delivered (`deliveredCount`), and Cancelled (`cancelledCount`) with clean single-line typography.
 
 ---
 
 ## Previous Builds:
+- **v1.2.1 (Build 21):** [Local Release Archive] (`releases/IndoFleet_Delivery_v1.2.1.apk`)
 - **v1.2.0 (Build 20):** [Download IndoFleet v1.2.0 Release APK](https://expo.dev/artifacts/eas/ky_DWar8qpMmInwY2aYzMC9ZibSC48cc5GJcsAbt-bA.apk)
 - **v1.1.9 (Build 19):** [Download IndoFleet v1.1.9 APK](https://expo.dev/artifacts/eas/M-Za3pWi-ZageaWq6gSA00M0wYa5maSz_tHeiKeBp1c.apk)
 - **v1.1.8 (Build 18):** [Download IndoFleet v1.1.8 APK](https://expo.dev/artifacts/eas/8NdM80FyCbuKx_pfNlxdzm0wFkAz2aZwp4iyrE04jtA.apk)

@@ -33,8 +33,8 @@ export const DeliveryAppPage: React.FC<DeliveryAppPageProps> = ({
   onLogout,
 }) => {
   const [release, setRelease] = useState<AppReleaseInfo>({
-    version: 'v1.2.1',
-    release_notes: 'IndoFleet v1.2.1 (Build 21): Local Production Release APK with in-memory low-latency telemetry caching, bulletproof Supabase QR verification persistence, responsive mobile UI, and interactive re-verification.',
+    version: 'v1.2.2',
+    release_notes: 'IndoFleet v1.2.2 (Build 22): Full multi-drone inspection persistence, video recording evidence, drone battery & fares cleanup, Google Maps navigation intent fix, and streamlined history metric cards.',
     android_url: `${API_BASE_URL}/api/delivery/download-apk`,
     ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
     updated_at: new Date().toISOString(),
