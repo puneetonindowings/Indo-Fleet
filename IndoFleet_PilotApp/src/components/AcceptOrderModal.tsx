@@ -8,6 +8,9 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { ShieldCheck, X, KeyRound, AlertTriangle, UserCheck, CheckCircle2, RefreshCw } from 'lucide-react-native';
 import { DeliveryOrder, UserProfile } from '../types';
@@ -147,124 +150,134 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <View style={styles.modalCard}>
-          <View style={styles.header}>
-            <View style={styles.titleRow}>
-              <ShieldCheck size={20} color="#5A00B8" />
-              <Text style={styles.title}>Accept Order</Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={20} color="#64748B" />
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.subtitle}>
-            Order <Text style={styles.highlight}>#{order.order_number}</Text> was assigned to you. Enter your verification OTP to accept.
-          </Text>
-
-          {/* If Profile Missing DL ID or Vehicle Number, show warning banner */}
-          {!isProfileComplete ? (
-            <View style={styles.warningCard}>
-              <View style={styles.warningHeader}>
-                <AlertTriangle size={18} color="#D97706" />
-                <Text style={styles.warningTitle}>Profile Details Required</Text>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            bounces={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            <View style={styles.header}>
+              <View style={styles.titleRow}>
+                <ShieldCheck size={20} color="#5A00B8" />
+                <Text style={styles.title}>Accept Order</Text>
               </View>
-              <Text style={styles.warningText}>
-                You cannot accept this order yet. You must add your{' '}
-                <Text style={styles.warningBold}>Driving License (DL ID)</Text> and{' '}
-                <Text style={styles.warningBold}>Vehicle Number</Text> in your profile first.
-              </Text>
-              <TouchableOpacity
-                style={styles.profileBtn}
-                onPress={() => {
-                  onClose();
-                  if (onNavigateProfile) onNavigateProfile();
-                }}
-                activeOpacity={0.8}
-              >
-                <UserCheck size={16} color="#FFFFFF" />
-                <Text style={styles.profileBtnText}>Update Profile (Add DL &amp; Vehicle)</Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                <X size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
-          ) : (
-            /* If Profile is complete, render OTP input & Request OTP button */
-            <View style={styles.formGroup}>
-              {/* Dynamic Live Status Box */}
-              {requestingOtp ? (
-                <View style={styles.statusBoxSending}>
-                  <ActivityIndicator size="small" color="#5A00B8" />
-                  <Text style={styles.statusTextSending}>
-                    Generating &amp; sending OTP to {targetEmail}...
-                  </Text>
-                </View>
-              ) : otpDispatched ? (
-                <View style={styles.statusBoxSuccess}>
-                  <CheckCircle2 size={18} color="#059669" />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.statusTextSuccess}>
-                      OTP dispatched to <Text style={{ fontWeight: '800' }}>{targetEmail}</Text>
-                    </Text>
-                    <Text style={styles.statusSubSuccess}>
-                      Valid for 10 minutes · Check your inbox / spam folder
-                    </Text>
-                  </View>
-                </View>
-              ) : null}
 
-              {/* Resend Action Pill */}
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 10, marginTop: 4 }}>
+            <Text style={styles.subtitle}>
+              Order <Text style={styles.highlight}>#{order.order_number}</Text> was assigned to you. Enter your verification OTP to accept.
+            </Text>
+
+            {/* If Profile Missing DL ID or Vehicle Number, show warning banner */}
+            {!isProfileComplete ? (
+              <View style={styles.warningCard}>
+                <View style={styles.warningHeader}>
+                  <AlertTriangle size={18} color="#D97706" />
+                  <Text style={styles.warningTitle}>Profile Details Required</Text>
+                </View>
+                <Text style={styles.warningText}>
+                  You cannot accept this order yet. You must add your{' '}
+                  <Text style={styles.warningBold}>Driving License (DL ID)</Text> and{' '}
+                  <Text style={styles.warningBold}>Vehicle Number</Text> in your profile first.
+                </Text>
                 <TouchableOpacity
-                  style={[styles.resendBtn, (requestingOtp || cooldown > 0) && styles.resendBtnDisabled]}
-                  onPress={handleRequestMyOtp}
-                  disabled={requestingOtp || cooldown > 0}
-                  activeOpacity={0.7}
+                  style={styles.profileBtn}
+                  onPress={() => {
+                    onClose();
+                    if (onNavigateProfile) onNavigateProfile();
+                  }}
+                  activeOpacity={0.8}
                 >
-                  <RefreshCw size={12} color={cooldown > 0 ? '#94A3B8' : '#5A00B8'} />
-                  <Text style={[styles.resendBtnText, cooldown > 0 && { color: '#94A3B8' }]}>
-                    {cooldown > 0 ? `Resend OTP in ${cooldown}s` : 'Resend Acceptance OTP'}
-                  </Text>
+                  <UserCheck size={16} color="#FFFFFF" />
+                  <Text style={styles.profileBtnText}>Update Profile (Add DL &amp; Vehicle)</Text>
                 </TouchableOpacity>
               </View>
+            ) : (
+              /* If Profile is complete, render OTP input & Request OTP button */
+              <View style={styles.formGroup}>
+                {/* Dynamic Live Status Box */}
+                {requestingOtp ? (
+                  <View style={styles.statusBoxSending}>
+                    <ActivityIndicator size="small" color="#5A00B8" />
+                    <Text style={styles.statusTextSending}>
+                      Generating &amp; sending OTP to {targetEmail}...
+                    </Text>
+                  </View>
+                ) : otpDispatched ? (
+                  <View style={styles.statusBoxSuccess}>
+                    <CheckCircle2 size={18} color="#059669" />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.statusTextSuccess}>
+                        OTP dispatched to <Text style={{ fontWeight: '800' }}>{targetEmail}</Text>
+                      </Text>
+                      <Text style={styles.statusSubSuccess}>
+                        Valid for 10 minutes · Check your inbox / spam folder
+                      </Text>
+                    </View>
+                  </View>
+                ) : null}
 
-              <Text style={styles.inputLabel}>Enter 6-Digit Acceptance OTP</Text>
-              <View style={styles.inputContainer}>
-                <KeyRound size={18} color="#64748B" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  value={otp}
-                  onChangeText={setOtp}
-                  placeholder="••••••"
-                  placeholderTextColor="#94A3B8"
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  autoFocus={true}
-                />
+                {/* Resend Action Pill */}
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 10, marginTop: 4 }}>
+                  <TouchableOpacity
+                    style={[styles.resendBtn, (requestingOtp || cooldown > 0) && styles.resendBtnDisabled]}
+                    onPress={handleRequestMyOtp}
+                    disabled={requestingOtp || cooldown > 0}
+                    activeOpacity={0.7}
+                  >
+                    <RefreshCw size={12} color={cooldown > 0 ? '#94A3B8' : '#5A00B8'} />
+                    <Text style={[styles.resendBtnText, cooldown > 0 && { color: '#94A3B8' }]}>
+                      {cooldown > 0 ? `Resend OTP in ${cooldown}s` : 'Resend Acceptance OTP'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.inputLabel}>Enter 6-Digit Acceptance OTP</Text>
+                <View style={styles.inputContainer}>
+                  <KeyRound size={18} color="#64748B" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    value={otp}
+                    onChangeText={setOtp}
+                    placeholder="••••••"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    autoFocus={true}
+                  />
+                </View>
               </View>
-            </View>
-          )}
-
-          <View style={styles.actions}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={onClose} disabled={loading}>
-              <Text style={styles.cancelBtnText}>Cancel</Text>
-            </TouchableOpacity>
-
-            {isProfileComplete && (
-              <TouchableOpacity
-                style={styles.submitBtn}
-                onPress={handleVerifyAccept}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.submitBtnText}>Verify &amp; Accept</Text>
-                )}
-              </TouchableOpacity>
             )}
-          </View>
+
+            <View style={styles.actions}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={onClose} disabled={loading}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+
+              {isProfileComplete && (
+                <TouchableOpacity
+                  style={styles.submitBtn}
+                  onPress={handleVerifyAccept}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.submitBtnText}>Verify &amp; Accept</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -279,13 +292,20 @@ const styles = StyleSheet.create({
   modalCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    padding: 22,
+    maxHeight: '90%',
+    paddingHorizontal: 22,
+    paddingTop: 22,
+    paddingBottom: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     shadowColor: '#0F172A',
     shadowOpacity: 0.15,
     shadowRadius: 15,
     elevation: 8,
+  },
+  scrollContent: {
+    flexGrow: 0,
+    paddingBottom: 8,
   },
   header: {
     flexDirection: 'row',

@@ -2057,8 +2057,8 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       {/* MODAL 1: ASSIGN DELIVERY PARTNER & DISPATCH WITH OTP */}
       {assignModalOpen && selectedOrder && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div className="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[90vh]">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center text-[#3B0080]">
                   <Truck className="w-5 h-5" />
@@ -2073,7 +2073,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
               </button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs">
+            <div className="p-6 space-y-4 text-xs overflow-y-auto flex-1">
               {/* Order Quick Summary */}
               <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
                 <div className="flex justify-between font-bold text-slate-800">
@@ -2255,7 +2255,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
               </div>
             </div>
 
-            <div className="p-5 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50">
+            <div className="p-5 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50 shrink-0">
               <button
                 onClick={() => {
                   setAssignModalOpen(false);
@@ -2282,8 +2282,8 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       {/* MODAL 2: LIVE RADAR & GPS MAP DRAWER */}
       {liveMapModalOpen && selectedOrder && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white text-slate-900 rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in">
-            <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+          <div className="bg-white text-slate-900 rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in max-h-[90vh] flex flex-col">
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
               <div className="flex items-center gap-2.5">
                 <Radio className="w-5 h-5 text-indigo-600 animate-pulse" />
                 <div>
@@ -2296,7 +2296,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
               {/* Telemetry Gauge Cards */}
               <div className="grid grid-cols-4 gap-2 text-center text-xs">
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
