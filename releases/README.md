@@ -5,7 +5,7 @@
 - **Version:** 1.2.2 (Build Code 22)
 - **Date:** October 22, 2026
 - **Architecture:** Android (arm64-v8a, armeabi-v7a, x86_64)
-- **Package Size:** ~100.7 MB
+- **Package Size:** ~54.9 MB (Optimized via ARM64 & ARMv7 ABI strip)
 
 ### Direct Download Options:
 1. **Local Direct Build:** `IndoFleet_PilotApp/android/app/build/outputs/apk/release/app-release.apk`
