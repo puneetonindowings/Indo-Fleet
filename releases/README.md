@@ -1,34 +1,35 @@
 # IndoFleet Delivery Mobile App - Android Releases
 
-## Latest Release: v1.2.3 (Build 23 - 48% Size Reduction (~54.9 MB) via ARM64/ARMv7 Optimization, Multi-Drone Evidence & Metrics Alignment)
+## Latest Release: v1.2.4 (Build 24 - Android Navigation Insets Fix, Silent Local Fallback & Order-Wise Inspection Console)
 
-- **Version:** 1.2.3 (Build Code 23)
+- **Version:** 1.2.4 (Build Code 24)
 - **Date:** October 22, 2026
 - **Architecture:** Android (arm64-v8a, armeabi-v7a)
-- **Package Size:** ~54.9 MB (Optimized 48% drop from 105 MB)
+- **Package Size:** ~54.9 MB (Retains 48% size reduction)
 
 ### Direct Download Options:
 1. **Local Direct Build:** `IndoFleet_PilotApp/android/app/build/outputs/apk/release/app-release.apk`
 2. **Web Portal Direct Download:** `/api/delivery/download-apk`
-3. **Local Release Archive:** `releases/IndoFleet_Delivery_latest.apk` & `releases/IndoFleet_Delivery_v1.2.3.apk`
+3. **Local Release Archive:** `releases/IndoFleet_Delivery_latest.apk` & `releases/IndoFleet_Delivery_v1.2.4.apk`
+4. **GitHub Official Release:** [v1.2.4 Release](https://github.com/puneetonindowings/Indo-Fleet/releases/tag/v1.2.4)
 
-### What Was Fixed & Added in v1.2.3:
-- **48% APK Size Drop (~54.9 MB):**
-  - Optimized native libraries to focus strictly on real-world Android mobile devices (`arm64-v8a` + `armeabi-v7a`), stripping bloated PC emulator binaries (`x86`, `x86_64`) for instant 51 MB download savings.
-- **Full Multi-Drone Inspection Persistence:**
-  - Auditing console and pilot app now capture, sync, and persist inspection records across all 4 consignment drones (`INW-700RPAV-0001`, `0002`, `0005`, `0006`).
-- **Video Evidence Persistence:**
-  - Fixed video recording and photo reference persistence in `delivery_data` with instant lightbox video playback in Admin Audit Console.
-- **Drone Battery & Weight Cleanup:**
-  - Stripped redundant drone battery percentages and payload weights from order cards, handover modals, and inspection screens; reserved exclusively for real phone battery in SOS emergencies.
-- **Google Maps Navigation Redirect:**
-  - Fixed map redirect button with direct native `google.navigation:q=` intents on Android and web fallback.
-- **Order History Metrics Row:**
-  - Streamlined metric cards to Total (`historyOrders.length`), Delivered (`deliveredCount`), and Cancelled (`cancelledCount`) with clean single-line typography.
+### What Was Fixed & Added in v1.2.4:
+- **Android System Navigation Bar Insets Fix:**
+  - Disabled `edgeToEdgeEnabled=false` in `gradle.properties` and added 24dp Android safe padding to prevent bottom navigation tabs from being occluded behind Android 3-button system navigation controls (Back / Home / App Switcher).
+- **Silent Multi-Layer OTP & API Fallback:**
+  - Added seamless background fallback in `api.ts` from Render cloud (`indo-fleet.onrender.com`) to local backend (`localhost:5000` / `10.0.2.2:5000`) for OTP dispatch and inspection logs without showing any dummy or test alert banners.
+- **Order-Wise Grouped Drone Inspection Console:**
+  - Refactored Admin Drone Audit Log Console (`DroneAuditLogConsole.tsx`) from a confusing flat list into clean, collapsible Order cards.
+  - Consignment drones are grouped per order with consolidated multi-drone status badges.
+- **Interactive Inspection Media Evidence:**
+  - Integrated high-resolution photo and video playback lightboxes directly in the Admin Console to view pre/post-flight drone inspections with captured timestamps and checklists.
+- **Retained Compact Size (~54.9 MB):**
+  - Built with `arm64-v8a` + `armeabi-v7a` architecture filtering, preserving the 48% size optimization.
 
 ---
 
 ## Previous Builds:
+- **v1.2.3 (Build 23):** [Local Release Archive] (`releases/IndoFleet_Delivery_v1.2.3.apk`) - 48% size reduction, multi-drone persistence, video recording evidence.
 - **v1.2.2 (Build 22):** [Local Release Archive] (`releases/IndoFleet_Delivery_v1.2.2.apk`)
 - **v1.2.1 (Build 21):** [Local Release Archive] (`releases/IndoFleet_Delivery_v1.2.1.apk`)
 - **v1.2.0 (Build 20):** [Download IndoFleet v1.2.0 Release APK](https://expo.dev/artifacts/eas/ky_DWar8qpMmInwY2aYzMC9ZibSC48cc5GJcsAbt-bA.apk)
