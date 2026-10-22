@@ -35,6 +35,7 @@ import {
   CheckCircle,
   HelpCircle,
   ShoppingBag,
+  Sparkles,
   Copy,
   MapPin,
   Calendar,
@@ -1080,7 +1081,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   ];
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 pt-24 sm:pt-28 pb-16 font-sans">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 pt-24 sm:pt-28 pb-28 sm:pb-20 font-sans">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#5a00b8] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
@@ -1746,20 +1747,21 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
 
                         <div>
                           <label className="block text-xs font-bold text-slate-700 mb-1.5">Initial Password</label>
-                          <div className="flex gap-2">
+                          <div className="flex flex-col sm:flex-row gap-2">
                             <input
                               type="text"
                               value={provTempPass}
                               onChange={(e) => setProvTempPass(e.target.value)}
                               placeholder="Enter initial password (min 6 chars)"
-                              className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono focus:outline-none focus:border-[#5a00b8] bg-slate-50/50"
+                              className="flex-1 w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono focus:outline-none focus:border-[#5a00b8] bg-slate-50/50"
                             />
                             <button
                               type="button"
                               onClick={() => setProvTempPass('IW@' + Math.floor(1000 + Math.random() * 9000))}
-                              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl whitespace-nowrap cursor-pointer"
+                              className="w-full sm:w-auto px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl whitespace-nowrap cursor-pointer flex items-center justify-center gap-1.5 transition-colors"
                             >
-                              Generate Password
+                              <Sparkles className="w-3.5 h-3.5 text-purple-700" />
+                              <span>Generate Password</span>
                             </button>
                           </div>
                           <p className="text-[11px] text-slate-400 mt-1">Default temporary password for first login.</p>
@@ -1787,15 +1789,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         </p>
                       )}
 
-                      <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                        <button type="button" onClick={resetProvisioningForm} className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer">
+                      <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-100">
+                        <button type="button" onClick={resetProvisioningForm} className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer text-center">
                           Reset Form
                         </button>
 
                         <button
                           type="submit"
                           disabled={adminOtpLoading || !provName.trim() || !provEmail.trim() || !provTempPass.trim()}
-                          className="px-6 py-3 rounded-xl bg-[#5a00b8] hover:bg-[#4a0099] text-white text-xs font-bold shadow-md shadow-orange-500/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                          className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#5a00b8] hover:bg-[#4a0099] text-white text-xs font-bold shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                         >
                           {adminOtpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                           <span>Create Member Account</span>
@@ -1934,9 +1936,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
 
                   {/* Quick Airframe Operations Card - Clean White Style */}
                   <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-xs flex items-center justify-between">
-                    <div className="flex-1 mr-3">
+                    <div className="flex-1 mr-2 sm:mr-3">
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Airframe Actions</span>
-                      <div className="flex items-center gap-2 mt-2">
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
                         <button
                           type="button"
                           onClick={() => setShowQrScanner(true)}
@@ -1959,7 +1961,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         </button>
                       </div>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black shrink-0 border border-purple-100 shadow-2xs">
+                    <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#5a00b8] hidden sm:flex items-center justify-center font-black shrink-0 border border-purple-100 shadow-2xs">
                       <QrCode className="w-6 h-6" />
                     </div>
                   </div>
@@ -1999,14 +2001,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     </select>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full lg:w-auto">
                     <button
                       type="button"
                       onClick={() => setShowQrScanner(true)}
-                      className="px-3.5 py-2 rounded-xl bg-[#5a00b8] hover:bg-[#43008a] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs transition-all"
+                      className="px-3 py-2 rounded-xl bg-[#5a00b8] hover:bg-[#43008a] text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs transition-all w-full sm:w-auto"
                       title="Scan Drone QR Code or Airframe ID"
                     >
-                      <QrCode className="w-3.5 h-3.5" />
+                      <QrCode className="w-3.5 h-3.5 shrink-0" />
                       <span>Scan Drone QR</span>
                     </button>
 
@@ -2023,9 +2025,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         setInventoryOtp('');
                         setAdminOtpError('');
                       }}
-                      className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors"
+                      className="px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors w-full sm:w-auto"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-3.5 h-3.5 shrink-0" />
                       <span>+1 Single Drone</span>
                     </button>
 
@@ -2041,19 +2043,19 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         setInventoryOtp('');
                         setAdminOtpError('');
                       }}
-                      className="px-4 py-2 rounded-xl bg-[#5a00b8] hover:bg-[#2e0066] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap transition-colors"
+                      className="px-3 py-2 rounded-xl bg-[#5a00b8] hover:bg-[#2e0066] text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap transition-colors w-full sm:w-auto"
                     >
-                      <Layers className="w-3.5 h-3.5" />
+                      <Layers className="w-3.5 h-3.5 shrink-0" />
                       <span>Bulk Batch Add</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setShowBulkQrModal(true)}
-                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap transition-colors"
+                      className="px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap transition-colors w-full sm:w-auto"
                       title="Bulk Download Drone QR Codes as ZIP (Range 1-100 or All)"
                     >
-                      <Download className="w-3.5 h-3.5" />
+                      <Download className="w-3.5 h-3.5 shrink-0" />
                       <span>Bulk QR ZIP</span>
                     </button>
                   </div>
@@ -2061,8 +2063,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
 
                 {/* Fleet Table */}
                 <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs">
+                  <div className="sm:hidden px-3.5 py-1.5 bg-slate-50 border-b border-slate-200/80 text-[11px] text-slate-500 font-medium flex items-center justify-between">
+                    <span>Swipe horizontally to view full table &rarr;</span>
+                    <span className="text-[10px] bg-slate-200/70 text-slate-700 px-1.5 py-0.5 rounded font-mono font-bold">{drones.length} UAVs</span>
+                  </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
+                    <table className="w-full text-left border-collapse text-xs min-w-[780px]">
                       <thead>
                         <tr className="bg-slate-50/90 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200 text-[11px]">
                           <th className="py-3 px-3.5 w-14">Photo</th>

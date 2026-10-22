@@ -586,7 +586,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   ];
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 pt-24 sm:pt-28 pb-16 font-sans">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 pt-24 sm:pt-28 pb-28 sm:pb-20 font-sans">
       {/* Toast Notification Alert */}
       {actionSuccess && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#5a00b8] text-white px-5 py-3.5 rounded-2xl shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
@@ -1453,7 +1453,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     <p className="text-xs text-slate-500 mt-1">Manage Drone IDs, verify physical hardware serials, add new drones, or toggle maintenance status.</p>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2.5">
+                  <div className="grid grid-cols-1 xs:grid-cols-2 sm:flex sm:flex-wrap items-center gap-2.5 w-full sm:w-auto">
                     <button
                       onClick={() => {
                         setShowAddSingleDrone(true);
@@ -1465,9 +1465,9 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                         setNewDroneImage('');
                         setAddDroneError('');
                       }}
-                      className="px-3.5 py-2.5 rounded-2xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                      className="px-3.5 py-2.5 rounded-2xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap w-full sm:w-auto"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-3.5 h-3.5 shrink-0" />
                       <span>+1 Single Drone</span>
                     </button>
 
@@ -1481,19 +1481,19 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                         setBulkIsVerified(false);
                         setBulkImportError('');
                       }}
-                      className="px-4 py-2.5 rounded-2xl bg-[#5a00b8] hover:bg-[#2e0066] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap"
+                      className="px-4 py-2.5 rounded-2xl bg-[#5a00b8] hover:bg-[#2e0066] text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap w-full sm:w-auto"
                     >
-                      <Layers className="w-3.5 h-3.5" />
+                      <Layers className="w-3.5 h-3.5 shrink-0" />
                       <span>Bulk Batch Add</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setShowBulkQrModal(true)}
-                      className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap transition-all"
+                      className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap transition-all w-full sm:w-auto col-span-full xs:col-span-2 sm:col-span-1"
                       title="Bulk Download Drone QR Codes as ZIP (Range 1-100 or All)"
                     >
-                      <Download className="w-3.5 h-3.5" />
+                      <Download className="w-3.5 h-3.5 shrink-0" />
                       <span>Bulk QR ZIP</span>
                     </button>
                   </div>
@@ -1515,14 +1515,14 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     />
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full md:w-auto">
                     <button
                       type="button"
                       onClick={() => setShowQrScanner(true)}
-                      className="px-3.5 py-2 bg-[#5a00b8] hover:bg-[#470091] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs transition-all"
+                      className="px-3.5 py-2 bg-[#5a00b8] hover:bg-[#470091] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs transition-all w-full sm:w-auto"
                       title="Scan Drone QR Code or Airframe ID"
                     >
-                      <QrCode className="w-3.5 h-3.5" />
+                      <QrCode className="w-3.5 h-3.5 shrink-0" />
                       <span>Scan Drone QR</span>
                     </button>
 
@@ -1532,7 +1532,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                         setStatusFilter(e.target.value);
                         setDroneCurrentPage(1);
                       }}
-                      className="px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
+                      className="px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer w-full sm:w-auto"
                     >
                       <option value="all">All Statuses ({totalUnits})</option>
                       <option value="idle">Ready / Available ({idleUnits})</option>
@@ -1546,7 +1546,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                         setVerificationFilter(e.target.value);
                         setDroneCurrentPage(1);
                       }}
-                      className="px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
+                      className="px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer w-full sm:w-auto"
                     >
                       <option value="all">All Verifications</option>
                       <option value="verified">Verified Hardware ({verifiedUnits})</option>
@@ -1557,8 +1557,12 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
 
                 {/* Inventory Table */}
                 <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs">
+                  <div className="sm:hidden px-3.5 py-1.5 bg-slate-50 border-b border-slate-200/80 text-[11px] text-slate-500 font-medium flex items-center justify-between">
+                    <span>Swipe horizontally to view full table &rarr;</span>
+                    <span className="text-[10px] bg-slate-200/70 text-slate-700 px-1.5 py-0.5 rounded font-mono font-bold">{totalUnits} UAVs</span>
+                  </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
+                    <table className="w-full text-left border-collapse text-xs min-w-[780px]">
                       <thead>
                         <tr className="bg-slate-50/90 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200 text-[11px]">
                           <th className="py-3 px-3.5 w-14">Photo</th>
