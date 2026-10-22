@@ -1021,10 +1021,18 @@ export const deliveryStore = {
             const key = `${ord.hub_inspection_id || 'HUB'}-${dId}`;
             if (!mergedMap.has(key)) {
               const hubReports = ord.delivery_data?.hub_inspections || {};
-              const droneReport = hubReports[dId] || {};
-              const photos = droneReport.photo_references || droneReport.photos || [];
-              const videos = droneReport.video_references || droneReport.videos || [];
-              const mediaEvidence = droneReport.media_evidence || [];
+              const generalReport = ord.post_delivery_inspection || ord.delivery_data?.post_delivery_inspection || {};
+              const droneReport = hubReports[dId] || generalReport;
+              const photos = [...(droneReport.photo_references || droneReport.photos || [])];
+              const videos = [...(droneReport.video_references || droneReport.videos || [])];
+              const mediaEvidence = [...(droneReport.media_evidence || [])];
+
+              if (Array.isArray(mediaEvidence)) {
+                mediaEvidence.forEach((m: any) => {
+                  if (m?.type === 'video' && m?.uri && !videos.includes(m.uri)) videos.push(m.uri);
+                  else if (m?.uri && !photos.includes(m.uri)) photos.push(m.uri);
+                });
+              }
 
               mergedMap.set(key, {
                 inspection_id: key,
@@ -1063,10 +1071,18 @@ export const deliveryStore = {
             const key = `${ord.inspection_id || 'DEL'}-${dId}`;
             if (!mergedMap.has(key)) {
               const custReports = ord.delivery_data?.customer_inspections || {};
-              const droneReport = custReports[dId] || ord.delivery_data?.post_delivery_inspection || {};
-              const photos = droneReport.photo_references || droneReport.photos || (ord.delivery_data?.pod_photo ? [ord.delivery_data.pod_photo] : []);
-              const videos = droneReport.video_references || droneReport.videos || [];
-              const mediaEvidence = droneReport.media_evidence || [];
+              const generalCustReport = ord.post_delivery_inspection || ord.delivery_data?.post_delivery_inspection || {};
+              const droneReport = custReports[dId] || generalCustReport;
+              const photos = [...(droneReport.photo_references || droneReport.photos || (ord.delivery_data?.pod_photo ? [ord.delivery_data.pod_photo] : []))];
+              const videos = [...(droneReport.video_references || droneReport.videos || [])];
+              const mediaEvidence = [...(droneReport.media_evidence || [])];
+
+              if (Array.isArray(mediaEvidence)) {
+                mediaEvidence.forEach((m: any) => {
+                  if (m?.type === 'video' && m?.uri && !videos.includes(m.uri)) videos.push(m.uri);
+                  else if (m?.uri && !photos.includes(m.uri)) photos.push(m.uri);
+                });
+              }
 
               mergedMap.set(key, {
                 inspection_id: key,
