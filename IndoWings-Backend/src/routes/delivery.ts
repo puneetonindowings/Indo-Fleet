@@ -4865,13 +4865,19 @@ async function checkOrderDepotInspectionPassed(order: any, requestedDroneId?: st
   if (order.delivery_data?.depot_inspections) {
     Object.keys(order.delivery_data.depot_inspections).forEach((k: string) => inspectedNormSet.add(normId(k)));
   }
+  if (Array.isArray(order.hub_inspected_drone_ids)) {
+    order.hub_inspected_drone_ids.forEach((d: string) => inspectedNormSet.add(normId(d)));
+  }
+  if (order.delivery_data?.hub_inspections) {
+    Object.keys(order.delivery_data.hub_inspections).forEach((k: string) => inspectedNormSet.add(normId(k)));
+  }
 
   // Fetch direct inspection records for this delivery_id
   try {
     const existing = await fileDB.getInspections({ delivery_id: String(order.id) });
     existing.forEach((insp: any) => {
-      const isDepot = insp.stage === 'depot_dispatch' || insp.stage === 'depot' || insp.inspection_type === 'DEPOT_MAINTENANCE' || ['admin', 'dispatcher', 'fleet_manager'].includes(insp.inspector_role);
-      if (isDepot && insp.overall_inspection === 'PASSED' && insp.drone_id) {
+      const isPreDispatch = insp.stage === 'depot_dispatch' || insp.stage === 'depot' || insp.stage === 'hub_pickup' || insp.stage === 'hub' || insp.inspection_type === 'DEPOT_MAINTENANCE' || insp.inspection_type === 'HUB_PRE_FLIGHT_CHECK';
+      if (isPreDispatch && insp.overall_inspection === 'PASSED' && insp.drone_id) {
         inspectedNormSet.add(normId(insp.drone_id));
       }
     });

@@ -82,6 +82,16 @@ interface DroneAuditLogConsoleProps {
   onOpenInspectionModal?: (droneId: string, deliveryId?: string) => void;
 }
 
+const formatInspectorRole = (role?: string) => {
+  if (!role) return 'Delivery Partner';
+  const r = role.toLowerCase().trim();
+  if (r === 'delivery' || r === 'pilot') return 'Delivery Partner';
+  if (r === 'admin') return 'Admin';
+  if (r === 'fleet_manager') return 'Fleet Manager';
+  if (r === 'dispatcher') return 'Dispatcher';
+  return role;
+};
+
 export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
   currentUser,
   onOpenQRModal,
@@ -207,10 +217,10 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
           stage,
           stageLabel:
             stage === 'hub_pickup'
-              ? 'Hub Pre-Acceptance'
+              ? 'Hub Pickup Check'
               : stage === 'customer_delivery'
-              ? 'Customer Handover'
-              : 'Depot QC Clearance',
+              ? 'Customer Delivery Check'
+              : 'Workshop Maintenance',
           inspections: [],
           overallStatus: 'PASSED',
           totalDrones: 0,
@@ -410,7 +420,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
           }`}
         >
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Hub Pre-Acceptance</p>
+            <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Hub Pickup Check</p>
             <span className="text-[9px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">Stage 1</span>
           </div>
           <h4 className="text-2xl font-black text-blue-900 mt-1">{stats.hubCount}</h4>
@@ -427,7 +437,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
           }`}
         >
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Customer Handover</p>
+            <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Customer Delivery Check</p>
             <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">Stage 2</span>
           </div>
           <h4 className="text-2xl font-black text-emerald-900 mt-1">{stats.customerCount}</h4>
@@ -444,11 +454,11 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
           }`}
         >
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-bold text-[#5a00b8] uppercase tracking-wider">Depot QC Clearance</p>
-            <span className="text-[9px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded">Maintenance</span>
+            <p className="text-[11px] font-bold text-[#5a00b8] uppercase tracking-wider">Workshop Maintenance</p>
+            <span className="text-[9px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded">Internal Lab</span>
           </div>
           <h4 className="text-2xl font-black text-[#5a00b8] mt-1">{stats.depotCount}</h4>
-          <p className="text-[10px] text-purple-600 font-medium mt-0.5">Pre-Sortie Flight Cleared</p>
+          <p className="text-[10px] text-purple-600 font-medium mt-0.5">Bench Flight Cleared</p>
         </button>
       </div>
 
@@ -464,7 +474,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
           }`}
         >
           <Layers className="w-4 h-4" />
-          <span>All Orders & Inspections ({stats.total})</span>
+          <span>All Inspections ({stats.total})</span>
         </button>
 
         <button
@@ -477,7 +487,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
           }`}
         >
           <Building2 className="w-4 h-4" />
-          <span>🏢 Hub Pre-Acceptance ({stats.hubCount})</span>
+          <span>🏢 Hub Pickup ({stats.hubCount})</span>
         </button>
 
         <button
@@ -490,7 +500,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
           }`}
         >
           <Truck className="w-4 h-4" />
-          <span>📦 Customer Handover ({stats.customerCount})</span>
+          <span>📦 Customer Delivery ({stats.customerCount})</span>
         </button>
 
         <button
@@ -503,7 +513,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
           }`}
         >
           <ShieldCheck className="w-4 h-4" />
-          <span>🛡️ Depot QC Clearance ({stats.depotCount})</span>
+          <span>🛡️ Workshop Maintenance ({stats.depotCount})</span>
         </button>
       </div>
 
@@ -630,17 +640,17 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                         {grp.stage === 'hub_pickup' ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase bg-blue-50 text-blue-700 border border-blue-200">
                             <Building2 className="w-3 h-3" />
-                            Hub Pre-Acceptance
+                            Hub Pickup Check
                           </span>
                         ) : grp.stage === 'customer_delivery' ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
                             <Truck className="w-3 h-3" />
-                            Customer Handover
+                            Customer Delivery Check
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase bg-purple-50 text-[#5a00b8] border border-purple-200">
                             <ShieldCheck className="w-3 h-3" />
-                            Depot QC Clearance
+                            Workshop Maintenance
                           </span>
                         )}
 
@@ -658,7 +668,14 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                       </div>
 
                       <p className="text-[11px] text-slate-500 font-medium mt-1">
-                        Inspector: <span className="font-bold text-slate-700">{grp.inspectorName || 'Delivery Partner'}</span> · Stage: {grp.stageLabel}
+                        Inspector: <span className="font-bold text-slate-800">{grp.inspectorName || 'Akanksha Mishra'}</span>
+                        {grp.inspectorRole && (
+                          <span className="ml-1.5 px-2 py-0.5 rounded-md bg-purple-50 text-[#5a00b8] font-bold text-[10px] uppercase border border-purple-200">
+                            {formatInspectorRole(grp.inspectorRole)}
+                          </span>
+                        )}
+                        <span className="mx-2 text-slate-300">•</span>
+                        <span>Stage: <strong>{grp.stageLabel}</strong></span>
                       </p>
                     </div>
                   </div>
@@ -773,9 +790,17 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                                 </span>
                               </div>
 
-                              <span className="text-[11px] text-slate-400 font-medium">
-                                {formatDate(droneItem.inspected_at)}
-                              </span>
+                              <div className="text-right">
+                                <p className="text-[11px] font-bold text-slate-800">
+                                  {droneItem.inspector_name || grp.inspectorName || 'Akanksha Mishra'}
+                                  <span className="text-[10px] font-semibold text-[#5a00b8] ml-1">
+                                    ({formatInspectorRole(droneItem.inspector_role || grp.inspectorRole || 'delivery')})
+                                  </span>
+                                </p>
+                                <span className="text-[10px] text-slate-400 font-medium">
+                                  {formatDate(droneItem.inspected_at)}
+                                </span>
+                              </div>
                             </div>
 
                             {/* Checklist Items */}

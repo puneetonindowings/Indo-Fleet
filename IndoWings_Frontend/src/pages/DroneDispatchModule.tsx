@@ -226,17 +226,28 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     const norm = String(droneId || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (!norm) return false;
 
-    // 1. Check order.depot_inspected_drone_ids
+    // 1. Check order.depot_inspected_drone_ids or hub_inspected_drone_ids
     if (Array.isArray(order?.depot_inspected_drone_ids)) {
       const matched = order.depot_inspected_drone_ids.some(
         (id: string) => String(id).toUpperCase().replace(/[^A-Z0-9]/g, '') === norm
       );
       if (matched) return true;
     }
+    if (Array.isArray(order?.hub_inspected_drone_ids)) {
+      const matched = order.hub_inspected_drone_ids.some(
+        (id: string) => String(id).toUpperCase().replace(/[^A-Z0-9]/g, '') === norm
+      );
+      if (matched) return true;
+    }
 
-    // 2. Check order.delivery_data?.depot_inspections
+    // 2. Check order.delivery_data?.depot_inspections or hub_inspections
     if (order?.delivery_data?.depot_inspections) {
       const keys = Object.keys(order.delivery_data.depot_inspections);
+      const matched = keys.some((k) => String(k).toUpperCase().replace(/[^A-Z0-9]/g, '') === norm);
+      if (matched) return true;
+    }
+    if (order?.delivery_data?.hub_inspections) {
+      const keys = Object.keys(order.delivery_data.hub_inspections);
       const matched = keys.some((k) => String(k).toUpperCase().replace(/[^A-Z0-9]/g, '') === norm);
       if (matched) return true;
     }
@@ -870,7 +881,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
 
     const uninspected = targetDrones.filter(d => !isDroneDepotInspected(d.id, selectedOrder, fleet));
     if (uninspected.length > 0) {
-      setError(`Order assign nahi ho sakta! Pehle sabhi drones (${uninspected.map(d => d.id).join(', ')}) ka Depot QC Inspection complete karein.`);
+      setError(`Order assign nahi ho sakta! Pehle sabhi drones (${uninspected.map(d => d.id).join(', ')}) ka inspection / check complete karein.`);
       return;
     }
 
@@ -1342,7 +1353,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                             }`}>
                               <span className="flex items-center gap-1.5">
                                 {isQcOk ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />}
-                                {isQcOk ? 'Depot QC Cleared' : `Depot QC Pending (${uninspected.length}/${orderDrones.length} Drones)`}
+                                {isQcOk ? 'Inspection Cleared' : `Check Pending (${uninspected.length}/${orderDrones.length} Drones)`}
                               </span>
                               {!isQcOk && (
                                 <button
@@ -2198,26 +2209,26 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                   </p>
                 </div>
 
-                {/* Mandatory Pre-Dispatch QC Inspection Gate */}
+                {/* Mandatory Pre-Dispatch Drone Check Gate */}
                 {!isAllQcApproved ? (
                   <div className="p-4 bg-rose-50 border-2 border-rose-300 rounded-2xl space-y-2.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-rose-900 font-black text-xs uppercase tracking-wide">
                         <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                        <span>Pre-Dispatch QC Inspection Mandatory</span>
+                        <span>Pre-Dispatch Drone Check Mandatory</span>
                       </div>
                       <span className="text-[10px] bg-rose-200 text-rose-900 px-2 py-0.5 rounded-full font-black uppercase">
-                        Inspection Required
+                        Check Required
                       </span>
                     </div>
                     <p className="text-xs text-rose-800 font-medium leading-relaxed">
-                      Order tabhi assign ho payega jab iske sabhi allocated drones ka Admin / Fleet Manager / Dispatcher dwara Depot QC Inspection complete ho chuka ho.
+                      Order dispatch karne se pehle iske sabhi allocated drones ka check / verification complete hona zaroori hai.
                     </p>
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {uninspected.map((d: any) => (
                         <span key={d.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-rose-300 text-rose-800 font-mono text-[11px] font-bold rounded-lg shadow-2xs">
                           <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-                          {d.id} (Pehle Inspection Karo)
+                          {d.id} (Pehle Check Karo)
                         </span>
                       ))}
                     </div>
@@ -2230,17 +2241,17 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                       className="w-full mt-2 py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer transition shadow-xs"
                     >
                       <ScanLine className="w-4 h-4" />
-                      <span>Open Airframe QC Inspection Console</span>
+                      <span>Open Drone Check / Scanner</span>
                     </button>
                   </div>
                 ) : (
                   <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2 text-emerald-900 font-bold">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>All {targetList.length} Allocated Drone(s) QC Inspected & Cleared</span>
+                      <span>All {targetList.length} Allocated Drone(s) Checked & Cleared</span>
                     </div>
                     <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full font-black uppercase">
-                      QC Approved
+                      Verified OK
                     </span>
                   </div>
                 )}
@@ -2437,7 +2448,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 {!isAllQcApproved ? (
                   <span className="text-rose-600 font-bold flex items-center gap-1">
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                    <span>QC Inspection Pending ({uninspected.length} drone baaki)</span>
+                    <span>Drone Check Pending ({uninspected.length} drone baaki)</span>
                   </span>
                 ) : !selectedPartnerId ? (
                   <span className="text-amber-700 font-medium">Select active delivery partner</span>
