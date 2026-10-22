@@ -211,7 +211,7 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
                   {order.drone_model || '700RPAV Unit'}
                 </span>
               </div>
-              <CustomerOrderLiveMap order={order} className="h-80 sm:h-96" />
+              <CustomerOrderLiveMap order={order} className="h-[420px] sm:h-[480px] lg:h-[520px]" />
             </div>
 
             <div className="grid lg:grid-cols-[1fr_360px] gap-6">

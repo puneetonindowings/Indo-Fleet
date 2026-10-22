@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Navigation, ZoomIn, ZoomOut, Layers, Truck, MapPin, Building2, Clock, Route as RouteIcon } from 'lucide-react';
+import { Navigation, ZoomIn, ZoomOut, Layers, Truck, MapPin, Building2, Clock, Route as RouteIcon, Eye, EyeOff, ChevronUp, ChevronDown } from 'lucide-react';
 
 if (typeof (maplibregl as any).setWorkerUrl === 'function') {
   (maplibregl as any).setWorkerUrl('/maplibre-gl-worker.mjs');
@@ -66,13 +66,15 @@ const GOOGLE_SATELLITE_STYLE = {
   ]
 };
 
-export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ order, className = 'h-96' }) => {
+export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ order, className = 'h-[440px] sm:h-[500px]' }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<MapLibreMap | null>(null);
   const vehicleMarkerRef = useRef<maplibregl.Marker | null>(null);
   const hubMarkerRef = useRef<maplibregl.Marker | null>(null);
   const dropMarkerRef = useRef<maplibregl.Marker | null>(null);
   const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
+  const [isHudExpanded, setIsHudExpanded] = useState(false);
+  const [showHud, setShowHud] = useState(true);
   const [roadInfo, setRoadInfo] = useState<{ distanceKm: number | null; durationMins: number | null }>({
     distanceKm: null,
     durationMins: null
@@ -331,7 +333,7 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
       roadCoordinates.forEach(pt => bounds.extend(pt));
       bounds.extend(currentVehicleCoords);
       bounds.extend(dropCoords);
-      map.fitBounds(bounds, { padding: 50, maxZoom: 14 });
+      map.fitBounds(bounds, { padding: { top: 55, bottom: 65, left: 35, right: 35 }, maxZoom: 14 });
     });
 
     return () => {
@@ -407,105 +409,188 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
   }
 
   return (
-    <div className={`relative rounded-3xl overflow-hidden border border-slate-200 shadow-lg bg-slate-100 group w-full ${className}`}>
+    <div className={`relative rounded-3xl overflow-hidden border border-slate-200 shadow-md bg-slate-100 group w-full ${className}`}>
       {/* Interactive Google Map Canvas */}
-      <div ref={mapContainer} className="w-full h-full min-h-[360px]" />
+      <div ref={mapContainer} className="w-full h-full min-h-[280px]" />
 
-      {/* Top Left: Live Status & Google Maps Badge */}
-      <div className="absolute top-4 left-4 z-10 flex flex-wrap items-center gap-2 pointer-events-none">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/95 text-slate-900 text-xs font-semibold backdrop-blur border border-slate-200 shadow-md">
-          <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-          <span>Google Maps Live Tracking</span>
-        </div>
-        {isActiveInFlight && (
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur shadow-md ${
-            hasRealLiveGps
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-              : 'bg-amber-50 text-amber-700 border border-amber-200'
-          }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${hasRealLiveGps ? 'bg-emerald-500' : 'bg-amber-500'} animate-ping`} />
-            <span>{hasRealLiveGps ? 'GPS Uplink Active' : 'Approaching Route'}</span>
+      {/* Top Left: Ultra-Clean Minimalist Status Pill */}
+      {showHud && (
+        <div className="absolute top-3 left-3 z-10 pointer-events-none max-w-[calc(100%-140px)] flex flex-col gap-1.5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-md text-slate-800 text-[11px] font-bold shadow-md border border-slate-200/90 truncate">
+            <span className={`w-2 h-2 rounded-full ${hasRealLiveGps ? 'bg-emerald-500 animate-ping' : 'bg-blue-600 animate-pulse'} shrink-0`} />
+            <span className="truncate">{hasRealLiveGps ? 'Live GPS Uplink' : 'Live Road Route'}</span>
+            {roadInfo.durationMins !== null && (
+              <span className="text-slate-500 font-semibold shrink-0">· ~{roadInfo.durationMins}m ETA</span>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Top Right: Layer Switcher & Zoom Controls */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 pointer-events-auto">
+      {/* Top Right: Compact Controls */}
+      <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5 pointer-events-auto">
+        {/* Toggle HUD visibility (Eye button to hide everything and view full unobstructed map) */}
+        <button
+          type="button"
+          onClick={() => setShowHud(prev => !prev)}
+          className="p-2 rounded-xl bg-white/95 hover:bg-white text-slate-700 shadow-md border border-slate-200/90 transition-all cursor-pointer backdrop-blur flex items-center justify-center"
+          title={showHud ? 'Hide Info Card (Clean Full Map View)' : 'Show Info Card'}
+        >
+          {showHud ? <EyeOff className="w-4 h-4 text-slate-600" /> : <Eye className="w-4 h-4 text-[#5a00b8]" />}
+        </button>
+
+        {/* Satellite / Roadmap Toggle */}
         <button
           type="button"
           onClick={handleToggleMapType}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/95 hover:bg-white text-slate-800 text-xs font-bold shadow-md border border-slate-200 transition-all cursor-pointer backdrop-blur"
-          title="Switch Google Maps Style"
+          className="p-2 rounded-xl bg-white/95 hover:bg-white text-slate-700 shadow-md border border-slate-200/90 transition-all cursor-pointer backdrop-blur flex items-center justify-center"
+          title={mapType === 'roadmap' ? 'Switch to Satellite View' : 'Switch to Roadmap'}
         >
-          <Layers className="w-3.5 h-3.5 text-blue-600" />
-          <span>{mapType === 'roadmap' ? 'Satellite' : 'Roadmap'}</span>
+          <Layers className="w-4 h-4 text-blue-600" />
         </button>
 
-        <div className="flex flex-col rounded-xl overflow-hidden bg-white/95 shadow-md border border-slate-200 backdrop-blur">
-          <button
-            type="button"
-            onClick={() => mapInstanceRef.current?.zoomIn()}
-            className="p-2.5 hover:bg-slate-100 text-slate-700 border-b border-slate-100 transition-all cursor-pointer flex items-center justify-center"
-            title="Zoom In"
-          >
-            <ZoomIn className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => mapInstanceRef.current?.zoomOut()}
-            className="p-2.5 hover:bg-slate-100 text-slate-700 transition-all cursor-pointer flex items-center justify-center"
-            title="Zoom Out"
-          >
-            <ZoomOut className="w-4 h-4" />
-          </button>
-        </div>
-
+        {/* Recenter Button */}
         <button
           type="button"
           onClick={handleRecenter}
-          className="p-2.5 rounded-xl bg-white/95 hover:bg-white text-blue-600 shadow-md border border-slate-200 transition-all cursor-pointer backdrop-blur flex items-center justify-center"
+          className="p-2 rounded-xl bg-white/95 hover:bg-white text-blue-600 shadow-md border border-slate-200/90 transition-all cursor-pointer backdrop-blur flex items-center justify-center"
           title="Recenter on Vehicle"
         >
           <Navigation className="w-4 h-4" />
         </button>
+
+        {/* Zoom Controls (Hidden on mobile touch screens to save screen space) */}
+        <div className="hidden sm:flex flex-col rounded-xl overflow-hidden bg-white/95 shadow-md border border-slate-200/90 backdrop-blur">
+          <button
+            type="button"
+            onClick={() => mapInstanceRef.current?.zoomIn()}
+            className="p-2 hover:bg-slate-100 text-slate-700 border-b border-slate-100 transition-all cursor-pointer flex items-center justify-center"
+            title="Zoom In"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => mapInstanceRef.current?.zoomOut()}
+            className="p-2 hover:bg-slate-100 text-slate-700 transition-all cursor-pointer flex items-center justify-center"
+            title="Zoom Out"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
-      {/* Bottom Floating Delivery HUD: Real Road Distance & ETA */}
-      <div className="absolute bottom-4 left-4 right-4 z-10 pointer-events-auto">
-        <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 p-3.5 text-slate-900 shadow-xl flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-              <Truck className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Road Delivery Route</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-100">
-                  {order?.order_number ? `#${order.order_number}` : 'Active Delivery'}
-                </span>
-              </div>
-              <p className="text-sm font-semibold text-slate-900 truncate max-w-[240px] sm:max-w-md">
-                {order?.destination_address || order?.drop_address || 'Customer Destination'}
-              </p>
-            </div>
-          </div>
+      {/* Bottom Floating Delivery HUD: Sleek, Collapsible & Unobtrusive */}
+      {showHud && (
+        <div className="absolute bottom-3 left-3 right-3 z-10 pointer-events-auto">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-xl p-2.5 sm:p-3 text-slate-900 transition-all">
+            {/* COLLAPSED MINI HUD (DEFAULT) */}
+            {!isHudExpanded ? (
+              <div
+                className="flex items-center justify-between gap-2 cursor-pointer"
+                onClick={() => setIsHudExpanded(true)}
+              >
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                    <Truck className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-slate-900 truncate">
+                      {order?.destination_address || order?.drop_address || 'Delivery Destination'}
+                    </p>
+                    <div className="flex items-center gap-2 text-[10px] text-slate-500 font-semibold mt-0.5">
+                      <span>{order?.order_number ? `#${order.order_number}` : 'Active Delivery'}</span>
+                      {order?.customer_name && <span>· {order.customer_name}</span>}
+                    </div>
+                  </div>
+                </div>
 
-          <div className="flex items-center gap-4 text-xs font-medium text-slate-600 border-t sm:border-t-0 sm:border-l border-slate-200 pt-2 sm:pt-0 sm:pl-4">
-            {roadInfo.distanceKm !== null && (
-              <div className="flex items-center gap-1.5">
-                <RouteIcon className="w-3.5 h-3.5 text-blue-600" />
-                <span><strong className="text-slate-900 text-sm">{roadInfo.distanceKm}</strong> km road</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {roadInfo.distanceKm !== null && (
+                    <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 font-black text-[11px] border border-blue-100">
+                      {roadInfo.distanceKm} km
+                    </span>
+                  )}
+                  {roadInfo.durationMins !== null && (
+                    <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-black text-[11px] border border-emerald-100">
+                      ~{roadInfo.durationMins}m
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsHudExpanded(true);
+                    }}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                    title="View Full Delivery Address & Stats"
+                  >
+                    <ChevronUp className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-            )}
-            {roadInfo.durationMins !== null && (
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                <span><strong className="text-slate-900 text-sm">~{roadInfo.durationMins}</strong> mins drive</span>
+            ) : (
+              /* EXPANDED DETAILED HUD */
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                      <Truck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Road Delivery Route</span>
+                      <p className="text-xs font-bold text-slate-900">
+                        {order?.order_number ? `#${order.order_number}` : 'Active Delivery'}
+                        {order?.customer_name && <span className="font-normal text-slate-500 ml-1.5">({order.customer_name})</span>}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsHudExpanded(false)}
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                    title="Collapse to Mini Bar (See More Map)"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="text-xs text-slate-600">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Destination Address</span>
+                  <p className="font-medium text-slate-800 line-clamp-2 leading-relaxed">
+                    {order?.destination_address || order?.drop_address || 'Customer Destination Pending'}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                  <div className="flex items-center gap-3">
+                    {roadInfo.distanceKm !== null && (
+                      <div className="flex items-center gap-1.5 text-blue-700 font-bold">
+                        <RouteIcon className="w-3.5 h-3.5 text-blue-600" />
+                        <span>{roadInfo.distanceKm} km road</span>
+                      </div>
+                    )}
+                    {roadInfo.durationMins !== null && (
+                      <div className="flex items-center gap-1.5 text-emerald-700 font-bold">
+                        <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>~{roadInfo.durationMins} mins drive</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsHudExpanded(false)}
+                    className="text-[11px] font-bold text-[#5a00b8] hover:underline cursor-pointer"
+                  >
+                    Collapse Map View &uarr;
+                  </button>
+                </div>
               </div>
             )}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

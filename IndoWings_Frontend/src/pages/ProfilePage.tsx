@@ -2785,7 +2785,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                     {selectedOrderDetail.drone_model || '700RPAV'}
                   </span>
                 </div>
-                <CustomerOrderLiveMap order={selectedOrderDetail} className="h-64 sm:h-72" />
+                <CustomerOrderLiveMap order={selectedOrderDetail} className="h-[380px] sm:h-[440px]" />
               </div>
 
               {/* Timeline Progress */}

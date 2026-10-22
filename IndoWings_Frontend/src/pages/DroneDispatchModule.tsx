@@ -2317,7 +2317,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
               </div>
 
               {/* Live Interactive Map */}
-              <CustomerOrderLiveMap order={selectedOrder} className="h-64 sm:h-72" />
+              <CustomerOrderLiveMap order={selectedOrder} className="h-[380px] sm:h-[440px]" />
 
               {/* Map Coordinates Visualizer */}
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
