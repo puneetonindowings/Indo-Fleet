@@ -138,6 +138,20 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
   // Photo & Video Media Evidence
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
 
+  // Isolate state per drone: Reset media evidence and checklist whenever inspectedDroneId changes
+  useEffect(() => {
+    if (inspectedDroneId) {
+      setDroneId(inspectedDroneId);
+      setMediaItems([]);
+      setZeroDefectCertified(false);
+      setCargoBayCondition('');
+      setLandingSurface('');
+      setPropellerCheck('');
+      setFieldNotes('');
+      setPodPhoto(null);
+    }
+  }, [inspectedDroneId]);
+
   // Camera Modal States (Works seamlessly on Web & Mobile)
   const [cameraModalOpen, setCameraModalOpen] = useState<boolean>(false);
   const [cameraMode, setCameraMode] = useState<'photo' | 'video' | 'pod'>('photo');

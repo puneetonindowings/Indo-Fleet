@@ -224,36 +224,55 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
       }
 
       const grp = groupsMap.get(groupKey)!;
-      grp.inspections.push(item);
-      grp.totalDrones++;
-      if (item.overall_inspection === 'PASSED') {
-        grp.passedDronesCount++;
+      
+      // Deduplicate by normalized drone ID: if duplicate exists, prefer record with photos or newer timestamp
+      const normDrone = String(item.drone_id || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const existingIdx = grp.inspections.findIndex(
+        (existing) => String(existing.drone_id || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '') === normDrone
+      );
+
+      if (existingIdx >= 0) {
+        const existingItem = grp.inspections[existingIdx];
+        const existingPhotos = (existingItem.photo_references || []).length;
+        const currentPhotos = (item.photo_references || []).length;
+        const isCurrentNewer = new Date(item.inspected_at).getTime() >= new Date(existingItem.inspected_at).getTime();
+
+        if (currentPhotos > existingPhotos || (currentPhotos === existingPhotos && isCurrentNewer)) {
+          grp.inspections[existingIdx] = item;
+        }
       } else {
-        grp.overallStatus = 'FAILED';
+        grp.inspections.push(item);
       }
 
-      // Extract media
-      if (Array.isArray(item.photo_references)) {
-        item.photo_references.forEach((p: any) => {
-          const uri = typeof p === 'string' ? p : (p?.url || p?.uri || '');
-          if (uri && !grp.allPhotos.includes(uri)) grp.allPhotos.push(uri);
-        });
-      }
-      if (Array.isArray(item.video_references)) {
-        item.video_references.forEach((v: any) => {
-          const uri = typeof v === 'string' ? v : (v?.url || v?.uri || '');
-          if (uri && !grp.allVideos.includes(uri)) grp.allVideos.push(uri);
-        });
-      }
-      if (Array.isArray(item.media_evidence)) {
-        item.media_evidence.forEach((m: any) => {
-          if (m?.type === 'video' && m?.uri && !grp.allVideos.includes(m.uri)) {
-            grp.allVideos.push(m.uri);
-          } else if (m?.uri && !grp.allPhotos.includes(m.uri)) {
-            grp.allPhotos.push(m.uri);
-          }
-        });
-      }
+      // Recompute stats and media from unique inspections
+      grp.totalDrones = grp.inspections.length;
+      grp.passedDronesCount = grp.inspections.filter((i) => i.overall_inspection === 'PASSED').length;
+      grp.overallStatus = grp.passedDronesCount === grp.totalDrones ? 'PASSED' : 'FAILED';
+
+      const photoSet = new Set<string>();
+      const videoSet = new Set<string>();
+      grp.inspections.forEach((insp) => {
+        if (Array.isArray(insp.photo_references)) {
+          insp.photo_references.forEach((p: any) => {
+            const uri = typeof p === 'string' ? p : (p?.url || p?.uri || '');
+            if (uri) photoSet.add(uri);
+          });
+        }
+        if (Array.isArray(insp.video_references)) {
+          insp.video_references.forEach((v: any) => {
+            const uri = typeof v === 'string' ? v : (v?.url || v?.uri || '');
+            if (uri) videoSet.add(uri);
+          });
+        }
+        if (Array.isArray(insp.media_evidence)) {
+          insp.media_evidence.forEach((m: any) => {
+            if (m?.type === 'video' && m?.uri) videoSet.add(m.uri);
+            else if (m?.uri) photoSet.add(m.uri);
+          });
+        }
+      });
+      grp.allPhotos = Array.from(photoSet);
+      grp.allVideos = Array.from(videoSet);
 
       if (new Date(item.inspected_at).getTime() > new Date(grp.latestDate).getTime()) {
         grp.latestDate = item.inspected_at;
@@ -817,29 +836,41 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                                   else if (m?.uri && !itemPhotos.includes(m.uri)) itemPhotos.push(m.uri);
                                 });
                               }
-                              if (itemPhotos.length === 0 && itemVideos.length === 0) return null;
+                              if (itemPhotos.length === 0 && itemVideos.length === 0) {
+                                return (
+                                  <div className="pt-2 border-t border-slate-200/50 flex items-center gap-1.5 text-[11px] text-slate-400">
+                                    <Camera className="w-3.5 h-3.5 text-slate-300" />
+                                    <span>No individual photo evidence captured for this airframe</span>
+                                  </div>
+                                );
+                              }
 
                               return (
-                                <div className="flex items-center gap-2 pt-2 border-t border-slate-200/50 overflow-x-auto">
-                                  {itemPhotos.map((src, idx) => (
-                                    <div
-                                      key={`drone-img-${idx}`}
-                                      onClick={() => setPreviewMedia({ type: 'image', url: src })}
-                                      className="w-14 h-14 rounded-lg overflow-hidden border border-slate-200 shrink-0 cursor-pointer hover:border-[#5a00b8]"
-                                    >
-                                      <img src={src} alt="Drone proof" className="w-full h-full object-cover" />
-                                    </div>
-                                  ))}
-                                  {itemVideos.map((src, idx) => (
-                                    <div
-                                      key={`drone-vid-${idx}`}
-                                      onClick={() => setPreviewMedia({ type: 'video', url: src })}
-                                      className="w-16 h-14 rounded-lg overflow-hidden border border-purple-300 bg-slate-900 shrink-0 cursor-pointer flex items-center justify-center relative"
-                                    >
-                                      <video src={src} className="w-full h-full object-cover opacity-60" muted />
-                                      <Play className="w-3.5 h-3.5 text-white fill-white absolute" />
-                                    </div>
-                                  ))}
+                                <div className="space-y-1.5 pt-2 border-t border-slate-200/50">
+                                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">
+                                    Airframe {droneItem.drone_id} Proof ({itemPhotos.length} Photos, {itemVideos.length} Videos)
+                                  </span>
+                                  <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                                    {itemPhotos.map((src, idx) => (
+                                      <div
+                                        key={`drone-img-${idx}`}
+                                        onClick={() => setPreviewMedia({ type: 'image', url: src })}
+                                        className="w-16 h-16 rounded-lg overflow-hidden border-2 border-purple-200 hover:border-[#5a00b8] shrink-0 cursor-pointer shadow-xs transition-all"
+                                      >
+                                        <img src={src} alt="Drone proof" className="w-full h-full object-cover" />
+                                      </div>
+                                    ))}
+                                    {itemVideos.map((src, idx) => (
+                                      <div
+                                        key={`drone-vid-${idx}`}
+                                        onClick={() => setPreviewMedia({ type: 'video', url: src })}
+                                        className="w-18 h-16 rounded-lg overflow-hidden border-2 border-purple-300 bg-slate-900 shrink-0 cursor-pointer flex items-center justify-center relative shadow-xs"
+                                      >
+                                        <video src={src} className="w-full h-full object-cover opacity-60" muted />
+                                        <Play className="w-3.5 h-3.5 text-white fill-white absolute" />
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
                               );
                             })()}

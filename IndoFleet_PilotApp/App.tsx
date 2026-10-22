@@ -850,6 +850,7 @@ function MainApp() {
 
         {activeScreen === 'inspection' && (
           <InspectionScreen
+            key={String((inspectionOrder || selectedOrder)?.id || "ord") + "-" + String(activeInspectingDroneId || "main")}
             order={inspectionOrder || selectedOrder}
             stage={inspectionStage}
             inspectedDroneId={activeInspectingDroneId}

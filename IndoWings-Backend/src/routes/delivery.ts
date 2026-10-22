@@ -6177,7 +6177,9 @@ router.post('/inspections', async (req, res) => {
               ...prevDeliveryData,
               hub_inspections: {
                 ...prevHubInspections,
-                [cleanDrone]: saved
+                [cleanDrone]: saved,
+                [cleanDrone.toUpperCase()]: saved,
+                [cleanDrone.replace(/[^A-Z0-9]/gi, '')]: saved
               }
             }
           };
@@ -6195,7 +6197,9 @@ router.post('/inspections', async (req, res) => {
               ...prevDeliveryData,
               customer_inspections: {
                 ...prevCustInspections,
-                [cleanDrone]: saved
+                [cleanDrone]: saved,
+                [cleanDrone.toUpperCase()]: saved,
+                [cleanDrone.replace(/[^A-Z0-9]/gi, '')]: saved
               }
             }
           };
