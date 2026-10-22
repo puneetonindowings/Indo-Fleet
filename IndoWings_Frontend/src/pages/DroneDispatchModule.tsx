@@ -221,6 +221,40 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     }
   };
 
+  // Helper: Verify if an airframe has completed Depot QC Pre-Dispatch Inspection
+  const isDroneDepotInspected = (droneId: string, order: any, fleetList: any[]): boolean => {
+    const norm = String(droneId || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!norm) return false;
+
+    // 1. Check order.depot_inspected_drone_ids
+    if (Array.isArray(order?.depot_inspected_drone_ids)) {
+      const matched = order.depot_inspected_drone_ids.some(
+        (id: string) => String(id).toUpperCase().replace(/[^A-Z0-9]/g, '') === norm
+      );
+      if (matched) return true;
+    }
+
+    // 2. Check order.delivery_data?.depot_inspections
+    if (order?.delivery_data?.depot_inspections) {
+      const keys = Object.keys(order.delivery_data.depot_inspections);
+      const matched = keys.some((k) => String(k).toUpperCase().replace(/[^A-Z0-9]/g, '') === norm);
+      if (matched) return true;
+    }
+
+    // 3. Check fleet item
+    const fDrone = fleetList.find(
+      (d: any) =>
+        String(d.id || '').toUpperCase().replace(/[^A-Z0-9]/g, '') === norm ||
+        String(d.drone_id || '').toUpperCase().replace(/[^A-Z0-9]/g, '') === norm ||
+        String(d.serial_number || '').toUpperCase().replace(/[^A-Z0-9]/g, '') === norm
+    );
+    if (fDrone && (fDrone.qc_status === 'passed' || fDrone.verification_status === 'verified')) {
+      return true;
+    }
+
+    return false;
+  };
+
   // Single & Bulk Drone Creation/Edit Modal State
   const [showAddSingleDrone, setShowAddSingleDrone] = useState(false);
   const [showBulkDroneModal, setShowBulkDroneModal] = useState(false);
@@ -783,15 +817,25 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
   const handleRequestAssignOtp = async () => {
     if (!selectedOrder) return;
     setAssignOtpSending(true);
+    setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/delivery/orders/${selectedOrder.id}/assign-pilot-request-otp`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          drone_id: selectedDroneId || undefined
+        })
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to send OTP');
-      setNotice(json.message || 'OTP sent to your registered email');
+      setNotice(json.message || 'OTP sent to your registered email/phone');
       setAssignOtpRequired(true);
+      if (json.dev_otp) {
+        setAssignOtp(json.dev_otp);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to dispatch OTP');
     } finally {
@@ -812,16 +856,32 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       return;
     }
 
-    // Fallback: Ensure vehicle ID is present
-    const resolvedVehicle = partner.vehicle_id || "IND-DL-772";
-
     // Resolve Drone ID dynamically from user selection, first available idle UAV, or partner vehicle
     const chosenDrone = selectedDroneId
       ? fleet.find((d: any) => (d.drone_id || d.id) === selectedDroneId)
       : availableFleetDrones[0];
     const resolvedDroneId = chosenDrone ? (chosenDrone.drone_id || chosenDrone.id) : (partner.vehicle_id || 'UAV-SYS-01');
 
+    // 1. Mandatory Depot QC Inspection Check
+    const bookedDrones = getDronesForOrder(selectedOrder, fleet);
+    const targetDrones = bookedDrones.length > 0
+      ? bookedDrones
+      : (resolvedDroneId ? [{ id: resolvedDroneId }] : []);
+
+    const uninspected = targetDrones.filter(d => !isDroneDepotInspected(d.id, selectedOrder, fleet));
+    if (uninspected.length > 0) {
+      setError(`Order assign nahi ho sakta! Pehle sabhi drones (${uninspected.map(d => d.id).join(', ')}) ka Depot QC Inspection complete karein.`);
+      return;
+    }
+
+    // 2. Mandatory Dispatcher OTP Check
+    if (!assignOtp || assignOtp.trim().length !== 6) {
+      setError('Dispatcher Security Authorization OTP mandatory hai. Please 6-digit OTP request karein aur enter karein.');
+      return;
+    }
+
     setAssignSubmitting(true);
+    setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/delivery/orders/${selectedOrder.id}/assign-pilot`, {
         method: 'POST',
@@ -1239,9 +1299,12 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                       </div>
                     </div>
 
-                    {/* Consignment Drone Units Allocation */}
+                    {/* Consignment Drone Units Allocation & QC Inspection Status */}
                     {(() => {
                       const orderDrones = getDronesForOrder(order, fleet);
+                      const uninspected = orderDrones.filter(d => !isDroneDepotInspected(d.id, order, fleet));
+                      const isQcOk = orderDrones.length > 0 && uninspected.length === 0;
+
                       return (
                         <div className="pt-2 border-t border-slate-100 space-y-1.5">
                           <div className="flex items-center justify-between">
@@ -1259,7 +1322,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                                   key={d.id}
                                   className="inline-flex items-center gap-1 text-[11px] font-mono font-bold bg-slate-100 text-slate-800 px-2 py-0.5 rounded-md border border-slate-200 shadow-2xs"
                                 >
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${isDroneDepotInspected(d.id, order, fleet) ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`}></span>
                                   {d.id}
                                 </span>
                               ))}
@@ -1268,6 +1331,31 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                             <p className="text-[11px] text-slate-400 font-mono">
                               Airframe: {order.drone_id || 'Auto-allocated on dispatch'}
                             </p>
+                          )}
+
+                          {/* Pre-Dispatch Depot QC Inspection Status Badge */}
+                          {orderDrones.length > 0 && (
+                            <div className={`mt-1.5 p-2 rounded-lg text-[10px] font-bold flex items-center justify-between border ${
+                              isQcOk 
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                                : 'bg-rose-50 text-rose-800 border-rose-200'
+                            }`}>
+                              <span className="flex items-center gap-1.5">
+                                {isQcOk ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />}
+                                {isQcOk ? 'Depot QC Cleared' : `Depot QC Pending (${uninspected.length}/${orderDrones.length} Drones)`}
+                              </span>
+                              {!isQcOk && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveSidebarTab('qc-scan');
+                                  }}
+                                  className="text-[10px] text-rose-700 bg-white hover:bg-rose-100 px-2 py-0.5 rounded border border-rose-300 font-bold cursor-pointer"
+                                >
+                                  Inspect Now
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
                       );
@@ -2055,36 +2143,107 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
   const renderAllModals = () => (
     <>
       {/* MODAL 1: ASSIGN DELIVERY PARTNER & DISPATCH WITH OTP */}
-      {assignModalOpen && selectedOrder && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[90vh]">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center text-[#3B0080]">
-                  <Truck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-black text-slate-900 text-base">Assign Delivery Partner</h3>
-                  <p className="text-xs text-slate-500">Order #{selectedOrder.order_number || selectedOrder.id}</p>
-                </div>
-              </div>
-              <button onClick={() => setAssignModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {assignModalOpen && selectedOrder && (() => {
+        const bookedDrones = getDronesForOrder(selectedOrder, fleet);
+        const chosenDrone = selectedDroneId
+          ? fleet.find((d: any) => (d.drone_id || d.id) === selectedDroneId)
+          : availableFleetDrones[0];
+        const resolvedDroneId = chosenDrone ? (chosenDrone.drone_id || chosenDrone.id) : null;
 
-            <div className="p-6 space-y-4 text-xs overflow-y-auto flex-1">
-              {/* Order Quick Summary */}
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
-                <div className="flex justify-between font-bold text-slate-800">
-                  <span>Customer: {selectedOrder.customer_name}</span>
-                  <span>{selectedOrder.customer_phone}</span>
+        const targetList = bookedDrones.length > 0 
+          ? bookedDrones 
+          : (resolvedDroneId ? [{ id: resolvedDroneId, model: 'Fleet UAV' }] : []);
+        
+        const uninspected = targetList.filter(d => !isDroneDepotInspected(d.id, selectedOrder, fleet));
+        const isAllQcApproved = targetList.length > 0 && uninspected.length === 0;
+        const isReadyToDispatch = Boolean(selectedPartnerId && isAllQcApproved && assignOtp.trim().length === 6);
+
+        return (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[90vh]">
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center text-[#3B0080]">
+                    <Truck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-slate-900 text-base">Assign Delivery Partner</h3>
+                    <p className="text-xs text-slate-500">Order #{selectedOrder.order_number || selectedOrder.id}</p>
+                  </div>
                 </div>
-                <p className="text-slate-500 flex items-center gap-1 truncate">
-                  <MapPin className="w-3 h-3 text-red-500 shrink-0" />
-                  <span>{selectedOrder.drop_address || selectedOrder.destination_address}</span>
-                </p>
+                <button
+                  onClick={() => {
+                    setAssignModalOpen(false);
+                    setSelectedOrder(null);
+                    setSelectedDroneId('');
+                    setAssignOtp('');
+                    setAssignOtpRequired(false);
+                  }}
+                  className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
+
+              <div className="p-6 space-y-4 text-xs overflow-y-auto flex-1 max-h-[calc(90vh-140px)] overscroll-contain">
+                {/* Order Quick Summary */}
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
+                  <div className="flex justify-between font-bold text-slate-800">
+                    <span>Customer: {selectedOrder.customer_name}</span>
+                    <span>{selectedOrder.customer_phone}</span>
+                  </div>
+                  <p className="text-slate-500 flex items-center gap-1 truncate">
+                    <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                    <span>{selectedOrder.drop_address || selectedOrder.destination_address}</span>
+                  </p>
+                </div>
+
+                {/* Mandatory Pre-Dispatch QC Inspection Gate */}
+                {!isAllQcApproved ? (
+                  <div className="p-4 bg-rose-50 border-2 border-rose-300 rounded-2xl space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-rose-900 font-black text-xs uppercase tracking-wide">
+                        <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                        <span>Pre-Dispatch QC Inspection Mandatory</span>
+                      </div>
+                      <span className="text-[10px] bg-rose-200 text-rose-900 px-2 py-0.5 rounded-full font-black uppercase">
+                        Inspection Required
+                      </span>
+                    </div>
+                    <p className="text-xs text-rose-800 font-medium leading-relaxed">
+                      Order tabhi assign ho payega jab iske sabhi allocated drones ka Admin / Fleet Manager / Dispatcher dwara Depot QC Inspection complete ho chuka ho.
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {uninspected.map((d: any) => (
+                        <span key={d.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-rose-300 text-rose-800 font-mono text-[11px] font-bold rounded-lg shadow-2xs">
+                          <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                          {d.id} (Pehle Inspection Karo)
+                        </span>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAssignModalOpen(false);
+                        setActiveSidebarTab('qc-scan');
+                      }}
+                      className="w-full mt-2 py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer transition shadow-xs"
+                    >
+                      <ScanLine className="w-4 h-4" />
+                      <span>Open Airframe QC Inspection Console</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 text-emerald-900 font-bold">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>All {targetList.length} Allocated Drone(s) QC Inspected & Cleared</span>
+                    </div>
+                    <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full font-black uppercase">
+                      QC Approved
+                    </span>
+                  </div>
+                )}
 
               {/* Delivery Partner Selection */}
               <div>
@@ -2214,70 +2373,113 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 )}
               </div>
 
-              {/* Optional Dispatcher Security OTP */}
-              <div className="pt-3 border-t border-slate-100">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">
-                    Dispatcher Security OTP (Optional Verification)
+              {/* Mandatory Dispatcher Security Authorization OTP */}
+              <div className="pt-3 border-t border-slate-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-[#3B0080]" />
+                    <span>Dispatcher Security OTP * (Mandatory)</span>
                   </label>
+                  <button
+                    type="button"
+                    onClick={handleRequestAssignOtp}
+                    disabled={assignOtpSending || !isAllQcApproved}
+                    className="text-xs text-[#3B0080] font-bold hover:underline disabled:opacity-40 disabled:hover:no-underline cursor-pointer flex items-center gap-1"
+                  >
+                    {assignOtpSending ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span>Sending OTP...</span>
+                      </>
+                    ) : (
+                      <span>{assignOtpRequired ? 'Resend OTP' : 'Request OTP Code'}</span>
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={assignOtp}
+                    onChange={(e) => setAssignOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="Enter 6-digit Dispatcher OTP"
+                    maxLength={6}
+                    disabled={!isAllQcApproved}
+                    className="flex-1 px-3.5 py-2.5 border border-slate-300 rounded-xl font-mono text-base font-bold tracking-widest text-slate-900 bg-slate-50 focus:bg-white focus:outline-none focus:border-[#3B0080] disabled:bg-slate-100 disabled:cursor-not-allowed"
+                  />
                   {!assignOtpRequired && (
                     <button
                       type="button"
                       onClick={handleRequestAssignOtp}
-                      disabled={assignOtpSending}
-                      className="text-[#3B0080] font-bold hover:underline cursor-pointer"
+                      disabled={assignOtpSending || !isAllQcApproved}
+                      className="px-4 py-2.5 bg-[#3B0080] hover:bg-purple-900 text-white rounded-xl text-xs font-bold transition disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shrink-0"
                     >
-                      {assignOtpSending ? 'Sending...' : 'Request OTP to Email'}
+                      {assignOtpSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                      <span>Send OTP</span>
                     </button>
                   )}
                 </div>
-
-                {assignOtpRequired && (
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={assignOtp}
-                      onChange={(e) => setAssignOtp(e.target.value)}
-                      placeholder="Enter 6-digit Dispatcher OTP"
-                      maxLength={6}
-                      className="flex-1 px-3 py-2 border border-slate-200 rounded-xl font-mono text-sm tracking-widest bg-slate-50 focus:bg-white focus:outline-none focus:border-[#3B0080]"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleRequestAssignOtp}
-                      disabled={assignOtpSending}
-                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold cursor-pointer"
-                    >
-                      Resend
-                    </button>
-                  </div>
+                {!isAllQcApproved ? (
+                  <p className="text-[11px] text-rose-600 font-semibold flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Pehle inspection complete karein tabhi OTP request aur dispatch allow hoga.</span>
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-slate-500">
+                    Order dispatch karne ke liye 6-digit Dispatcher Security OTP mandatory hai.
+                  </p>
                 )}
               </div>
             </div>
 
-            <div className="p-5 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50 shrink-0">
-              <button
-                onClick={() => {
-                  setAssignModalOpen(false);
-                  setSelectedOrder(null);
-                  setSelectedDroneId('');
-                }}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-xl text-xs font-bold transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmAssignment}
-                disabled={assignSubmitting || !selectedPartnerId}
-                className="px-5 py-2.5 bg-[#3B0080] text-white rounded-xl text-xs font-black hover:bg-purple-900 transition disabled:opacity-50 flex items-center gap-2 shadow-xs cursor-pointer"
-              >
-                {assignSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                <span>Confirm & Dispatch Order</span>
-              </button>
+            <div className="p-4 sm:p-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 shrink-0">
+              <div className="text-[11px] text-slate-500 w-full sm:w-auto">
+                {!isAllQcApproved ? (
+                  <span className="text-rose-600 font-bold flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>QC Inspection Pending ({uninspected.length} drone baaki)</span>
+                  </span>
+                ) : !selectedPartnerId ? (
+                  <span className="text-amber-700 font-medium">Select active delivery partner</span>
+                ) : assignOtp.trim().length !== 6 ? (
+                  <span className="text-purple-700 font-medium">Enter 6-digit Dispatcher OTP</span>
+                ) : (
+                  <span className="text-emerald-700 font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Ready for Secure Dispatch
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssignModalOpen(false);
+                    setSelectedOrder(null);
+                    setSelectedDroneId('');
+                    setAssignOtp('');
+                    setAssignOtpRequired(false);
+                  }}
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-xl text-xs font-bold transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmAssignment}
+                  disabled={assignSubmitting || !isReadyToDispatch}
+                  className="px-5 py-2.5 bg-[#3B0080] text-white rounded-xl text-xs font-black hover:bg-purple-900 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 shadow-xs cursor-pointer"
+                >
+                  {assignSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  <span>Confirm & Dispatch Order</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      )}
+      );
+    })()}
 
       {/* MODAL 2: LIVE RADAR & GPS MAP DRAWER */}
       {liveMapModalOpen && selectedOrder && (

@@ -4840,23 +4840,106 @@ router.get('/pilot/history', async (req, res) => {
 });
 
 
-// 4. Admin / Dispatcher Order Assignment with OTP Protection
+// Helper: Verify if all drones allocated to an order have passed Depot Pre-Dispatch QC Inspection
+async function checkOrderDepotInspectionPassed(order: any, requestedDroneId?: string): Promise<{ passed: boolean; requiredDrones: string[]; uninspectedDrones: string[] }> {
+  const normId = (val: string) => String(val || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+  // 1. Gather all required drones for this order
+  const rawList: string[] = Array.from(new Set([
+    ...(Array.isArray(order.reserved_inventory_ids) ? order.reserved_inventory_ids : []),
+    ...(Array.isArray(order.assigned_drone_ids) ? order.assigned_drone_ids : []),
+    ...(order.drone_id ? [order.drone_id] : []),
+    ...(order.assigned_drone_id ? [order.assigned_drone_id] : []),
+    ...(requestedDroneId ? [requestedDroneId] : [])
+  ])).filter(Boolean).map((d: any) => String(d).trim());
+
+  if (rawList.length === 0) {
+    return { passed: true, requiredDrones: [], uninspectedDrones: [] };
+  }
+
+  // 2. Gather all inspected drone IDs (from order flags & direct inspection records)
+  const inspectedNormSet = new Set<string>();
+  if (Array.isArray(order.depot_inspected_drone_ids)) {
+    order.depot_inspected_drone_ids.forEach((d: string) => inspectedNormSet.add(normId(d)));
+  }
+  if (order.delivery_data?.depot_inspections) {
+    Object.keys(order.delivery_data.depot_inspections).forEach((k: string) => inspectedNormSet.add(normId(k)));
+  }
+
+  // Fetch direct inspection records for this delivery_id
+  try {
+    const existing = await fileDB.getInspections({ delivery_id: String(order.id) });
+    existing.forEach((insp: any) => {
+      const isDepot = insp.stage === 'depot_dispatch' || insp.stage === 'depot' || insp.inspection_type === 'DEPOT_MAINTENANCE' || ['admin', 'dispatcher', 'fleet_manager'].includes(insp.inspector_role);
+      if (isDepot && insp.overall_inspection === 'PASSED' && insp.drone_id) {
+        inspectedNormSet.add(normId(insp.drone_id));
+      }
+    });
+  } catch (err) {
+    console.warn('[CheckQC] Inspection read notice:', err);
+  }
+
+  // Also check fleet status if drone is marked verified/passed in fleet database
+  try {
+    const fleet = await fileDB.getFleet();
+    rawList.forEach((rId) => {
+      const matched = fleet.find((f: any) => normId(f.id) === normId(rId) || normId(f.drone_id) === normId(rId) || normId(f.serial_number) === normId(rId));
+      if (matched && (matched.qc_status === 'passed' || matched.verification_status === 'verified')) {
+        inspectedNormSet.add(normId(rId));
+      }
+    });
+  } catch {}
+
+  const uninspectedDrones = rawList.filter(d => !inspectedNormSet.has(normId(d)));
+  return {
+    passed: uninspectedDrones.length === 0,
+    requiredDrones: rawList,
+    uninspectedDrones
+  };
+}
+
+// 4. Admin / Dispatcher Order Assignment with Mandatory Depot Inspection & Mandatory OTP Protection
 router.post('/orders/:id/assign-pilot-request-otp', async (req, res) => {
   const operator = await requireDispatchOperator(req, res);
   if (!operator) return;
 
   const { id } = req.params;
-  const otp = crypto.randomInt(100000, 1000000).toString();
-  await fileDB.saveOTP(operator.email || operator.phone, otp, { purpose: `assign-order-${id}` });
-
-  if (operator.email) {
-    sendOtpNotification({ email: operator.email, otp }).catch((err) => console.error('[mail] Dispatcher assignment OTP error:', err));
+  const order = await fileDB.findOrderById(id);
+  if (!order) {
+    res.status(404).json({ success: false, error: 'Order not found' });
+    return;
   }
+
+  // Guard: Verify all drones have undergone Pre-Dispatch / Depot QC Inspection
+  const qcCheck = await checkOrderDepotInspectionPassed(order, req.body?.drone_id);
+  if (!qcCheck.passed) {
+    res.status(400).json({
+      success: false,
+      error: `Order #${order.order_number || order.id} assign nahi ho sakta! Sabhi drones ka Depot QC Inspection (by Admin / Fleet Manager / Dispatcher) complete hona zaroori hai. Pending airframes: ${qcCheck.uninspectedDrones.join(', ')}. Pehle inspection karo!`
+    });
+    return;
+  }
+
+  const otp = crypto.randomInt(100000, 1000000).toString();
+  const targetEmail = operator.email ? operator.email.toLowerCase().trim() : '';
+  const targetPhone = operator.phone ? operator.phone.replace(/[^0-9]/g, '').slice(-10) : '';
+
+  if (targetEmail) {
+    await fileDB.saveOTP(targetEmail, otp, { purpose: `assign-order-${id}` });
+    sendOtpNotification({ email: targetEmail, otp }).catch((err) => console.error('[mail] Dispatcher assignment OTP error:', err));
+  }
+  if (targetPhone) {
+    await fileDB.saveOTP(targetPhone, otp, { purpose: `assign-order-${id}` });
+    sendOtpNotification({ phone: targetPhone, otp }).catch((err) => console.error('[sms] Dispatcher assignment OTP error:', err));
+  }
+
+  console.log(`[DISPATCH ASSIGNMENT OTP] Order #${id} requested by ${operator.name} (${targetEmail || targetPhone}): ${otp}`);
 
   res.json({
     success: true,
     message: `Assignment authorization OTP dispatched to ${operator.email || operator.phone}`,
-    order_id: id
+    order_id: id,
+    dev_otp: process.env.NODE_ENV !== 'production' ? otp : undefined
   });
 });
 
@@ -4873,16 +4956,47 @@ router.post('/orders/:id/assign-pilot', async (req, res) => {
       return;
     }
 
-    // If OTP verification required
-    if (otp && typeof otp === 'string' && otp.trim()) {
-      const verifyRes = await fileDB.verifyOTP(operator.email || operator.phone, otp.trim());
-      if (!verifyRes.valid) {
-        res.status(400).json({ success: false, error: 'Invalid or expired assignment authorization OTP.' });
-        return;
-      }
+    const order = await fileDB.findOrderById(id);
+    if (!order) {
+      res.status(404).json({ success: false, error: 'Order not found' });
+      return;
     }
 
-    const order = await fileDB.findOrderById(id);
+    // 1. Mandatory Depot QC Inspection Check for ALL drones of this order
+    const qcCheck = await checkOrderDepotInspectionPassed(order, drone_id);
+    if (!qcCheck.passed) {
+      res.status(400).json({
+        success: false,
+        error: `Order #${order.order_number || order.id} assign nahi ho sakta! Is order ke sabhi drones ka Depot QC Inspection (by Admin / Fleet Manager / Dispatcher) complete hona mandatory hai. Abhi in airframes ka inspection baaki hai: ${qcCheck.uninspectedDrones.join(', ')}. Pehle inspection karo!`
+      });
+      return;
+    }
+
+    // 2. Mandatory Dispatcher Security OTP Check
+    if (!otp || typeof otp !== 'string' || !otp.trim()) {
+      res.status(400).json({
+        success: false,
+        error: 'Order dispatch/assign karne ke liye Dispatcher Security OTP mandatory hai. Please 6-digit OTP request karein aur enter karein.'
+      });
+      return;
+    }
+
+    const targetEmail = operator.email ? operator.email.toLowerCase().trim() : '';
+    const targetPhone = operator.phone ? operator.phone.replace(/[^0-9]/g, '').slice(-10) : '';
+    let verifyRes: { valid: boolean; reason?: string } = { valid: false, reason: '' };
+    if (targetEmail) {
+      verifyRes = await fileDB.verifyOTP(targetEmail, otp.trim());
+    }
+    if (!verifyRes.valid && targetPhone) {
+      verifyRes = await fileDB.verifyOTP(targetPhone, otp.trim());
+    }
+    if (!verifyRes.valid) {
+      res.status(400).json({
+        success: false,
+        error: verifyRes.reason || 'Invalid ya expired assignment authorization OTP. Naya OTP mangwayein aur retry karein.'
+      });
+      return;
+    }
     if (!order) {
       res.status(404).json({ success: false, error: 'Order not found' });
       return;
