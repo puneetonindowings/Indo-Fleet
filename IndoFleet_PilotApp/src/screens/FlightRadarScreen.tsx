@@ -419,16 +419,35 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
 
   const handleOpenGoogleMaps = () => {
     const target = activeOrder || order;
-    const address = encodeURIComponent(target?.drop_address || target?.delivery_address || 'Delivery Destination');
+    const rawAddress = target?.drop_address || target?.delivery_address || 'Delivery Destination';
+    const address = encodeURIComponent(rawAddress);
     const destCoords = `${targetLat},${targetLng}`;
+    const webUrl = `https://www.google.com/maps/dir/?api=1&destination=${destCoords}&travelmode=driving`;
+    const appNavUrl = `google.navigation:q=${destCoords}&mode=d`;
+    const geoUrl = `geo:${destCoords}?q=${destCoords}(${address})`;
 
-    // Launch Google Maps navigation directly to destination (Google Maps uses current device GPS as origin automatically)
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${destCoords}&travelmode=driving`;
-    Linking.openURL(url).catch(() => {
-      Linking.openURL(`geo:${targetLat},${targetLng}?q=${destCoords}(${address})`).catch(() => {
-        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${destCoords}`);
+    // 1. Web Environment (Desktop & Mobile Browser in React Native Web)
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const w = window.open(webUrl, '_blank', 'noopener,noreferrer');
+      if (!w || w.closed || typeof w.closed === 'undefined') {
+        window.location.href = webUrl;
+      }
+      return;
+    }
+
+    // 2. Native Mobile (Turn-by-turn navigation in Google Maps app)
+    Linking.canOpenURL(appNavUrl)
+      .then((canOpen) => {
+        if (canOpen) return Linking.openURL(appNavUrl);
+        return Linking.openURL(webUrl);
+      })
+      .catch(() => {
+        Linking.openURL(webUrl).catch(() => {
+          Linking.openURL(geoUrl).catch(() => {
+            Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${destCoords}`);
+          });
+        });
       });
-    });
   };
 
   const handleStopAlert = () => {

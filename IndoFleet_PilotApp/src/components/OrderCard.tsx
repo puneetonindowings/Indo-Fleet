@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Linking,
   Alert,
+  Platform,
 } from 'react-native';
 import {
   Package,
@@ -84,14 +85,35 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   const handleOpenExternalMaps = () => {
     const destLat = order.destination_location?.latitude || order.delivery_lat || order.drop_lat || 28.6280;
     const destLng = order.destination_location?.longitude || order.delivery_lng || order.drop_lng || 77.3750;
-    const address = encodeURIComponent(order.drop_address || order.delivery_address || 'Delivery Point');
+    const rawAddress = order.drop_address || order.delivery_address || 'Delivery Point';
+    const address = encodeURIComponent(rawAddress);
+    const destCoords = `${destLat},${destLng}`;
+    const webUrl = `https://www.google.com/maps/dir/?api=1&destination=${destCoords}&travelmode=driving`;
+    const appNavUrl = `google.navigation:q=${destCoords}&mode=d`;
+    const geoUrl = `geo:${destCoords}?q=${destCoords}(${address})`;
 
-    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}&travelmode=driving`;
-    Linking.openURL(googleMapsUrl).catch(() => {
-      Linking.openURL(`geo:${destLat},${destLng}?q=${destLat},${destLng}(${address})`).catch(() => {
-        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${destLat},${destLng}`);
+    // 1. Web Environment (Desktop & Mobile Browser in React Native Web)
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const w = window.open(webUrl, '_blank', 'noopener,noreferrer');
+      if (!w || w.closed || typeof w.closed === 'undefined') {
+        window.location.href = webUrl;
+      }
+      return;
+    }
+
+    // 2. Native Mobile (Turn-by-turn navigation in Google Maps app)
+    Linking.canOpenURL(appNavUrl)
+      .then((canOpen) => {
+        if (canOpen) return Linking.openURL(appNavUrl);
+        return Linking.openURL(webUrl);
+      })
+      .catch(() => {
+        Linking.openURL(webUrl).catch(() => {
+          Linking.openURL(geoUrl).catch(() => {
+            Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${destCoords}`);
+          });
+        });
       });
-    });
   };
 
   return (
