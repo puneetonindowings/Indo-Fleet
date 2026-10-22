@@ -35,7 +35,6 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
   const [requestingOtp, setRequestingOtp] = useState(false);
   const [otpDispatched, setOtpDispatched] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-  const [backupOtp, setBackupOtp] = useState<string | null>(null);
 
   const targetEmail = (currentUser?.email || order?.pilot_email || '').trim();
 
@@ -51,7 +50,6 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
   useEffect(() => {
     if (visible && order) {
       setOtp('');
-      setBackupOtp(null);
       handleRequestMyOtp();
     }
   }, [visible, order?.id]);
@@ -66,14 +64,11 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
     if (requestingOtp) return;
     setRequestingOtp(true);
     try {
-      const res = await requestPilotAcceptanceOtp(order.id, {
+      await requestPilotAcceptanceOtp(order.id, {
         pilotId: currentUser?.id,
         pilotEmail: targetEmail,
         pilotPhone: currentUser?.phone,
       });
-      if (res?.acceptance_otp) {
-        setBackupOtp(res.acceptance_otp);
-      }
       setOtpDispatched(true);
       setCooldown(30);
     } catch (err: any) {
@@ -204,55 +199,16 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
                   </Text>
                 </View>
               ) : otpDispatched ? (
-                <View>
-                  <View style={styles.statusBoxSuccess}>
-                    <CheckCircle2 size={18} color="#059669" />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.statusTextSuccess}>
-                        OTP dispatched to <Text style={{ fontWeight: '800' }}>{targetEmail}</Text>
-                      </Text>
-                      <Text style={styles.statusSubSuccess}>
-                        Valid for 10 minutes · Check your inbox / spam folder
-                      </Text>
-                    </View>
+                <View style={styles.statusBoxSuccess}>
+                  <CheckCircle2 size={18} color="#059669" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.statusTextSuccess}>
+                      OTP dispatched to <Text style={{ fontWeight: '800' }}>{targetEmail}</Text>
+                    </Text>
+                    <Text style={styles.statusSubSuccess}>
+                      Valid for 10 minutes · Check your inbox / spam folder
+                    </Text>
                   </View>
-
-                  {/* Fallback Backup OTP (Shows instantly if Render blocks SMTP or testing) */}
-                  {backupOtp && (
-                    <View style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      backgroundColor: '#F5F3FF',
-                      borderWidth: 1,
-                      borderColor: '#DDD6FE',
-                      borderRadius: 12,
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
-                      marginBottom: 8,
-                    }}>
-                      <View>
-                        <Text style={{ fontSize: 10, fontWeight: '800', color: '#6D28D9', textTransform: 'uppercase' }}>
-                          ⚡ Backup / Testing OTP:
-                        </Text>
-                        <Text style={{ fontSize: 14, fontWeight: '900', color: '#5A00B8', letterSpacing: 2 }}>
-                          {backupOtp}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        style={{
-                          backgroundColor: '#5A00B8',
-                          paddingHorizontal: 10,
-                          paddingVertical: 5,
-                          borderRadius: 8,
-                        }}
-                        onPress={() => setOtp(backupOtp)}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '800' }}>Auto-Fill</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
                 </View>
               ) : null}
 

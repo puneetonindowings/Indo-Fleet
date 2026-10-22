@@ -1,5 +1,6 @@
 import { DeliveryOrder, PilotKpis, ChartData, UserProfile, PilotTelemetryPayload } from '../types';
 import { getServerUrl, getAuthToken } from '../config';
+import { Platform } from 'react-native';
 
 export class UnauthorizedError extends Error {
   constructor(message = 'Session expired. Please log in again.') {
@@ -143,13 +144,71 @@ export async function fetchPilotOrderHistory(pilotId?: string): Promise<{
   return data;
 }
 
-// 3.5. Request Delivery Partner Self Acceptance OTP
+// Helper: Call Render First; if it fails or times out, immediately fall back to Local
+async function fetchWithRenderAndLocalFallback(
+  path: string,
+  options: RequestInit
+): Promise<any> {
+  const RENDER_BASE = 'https://indo-fleet.onrender.com';
+
+  const localCandidates: string[] = [];
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) {
+    const host = window.location.hostname || 'localhost';
+    localCandidates.push(`http://${host}:5000`);
+    localCandidates.push('http://localhost:5000');
+    localCandidates.push('http://127.0.0.1:5000');
+  } else {
+    localCandidates.push('http://10.0.2.2:5000');
+    localCandidates.push('http://localhost:5000');
+    localCandidates.push('http://192.168.1.100:5000');
+  }
+
+  // 1. FIRST: Attempt Render
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(`${RENDER_BASE}${path}`, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    const data = await res.json().catch(() => null);
+    if (res.ok && data?.success !== false) {
+      return data;
+    }
+  } catch (err: any) {
+    // Render failed or timed out, proceed silently to Local
+  }
+
+  // 2. SECOND: Attempt Local Fallback
+  for (const localBase of Array.from(new Set(localCandidates))) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(`${localBase}${path}`, {
+        ...options,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.success !== false) {
+        return data;
+      }
+    } catch {
+      // try next candidate
+    }
+  }
+
+  throw new Error('Request failed on Render and Local fallback. Please check connection.');
+}
+// 3.5. Request Delivery Partner Self Acceptance OTP (Render First -> Local Fallback)
 export async function requestPilotAcceptanceOtp(
   orderId: string,
   extra?: { pilotId?: string; pilotEmail?: string; pilotPhone?: string }
 ): Promise<{ success: boolean; acceptance_otp?: string; message: string }> {
-  const baseUrl = await getServerUrl();
-  const res = await fetch(`${baseUrl}/api/delivery/pilot/request-acceptance-otp`, {
+  return await fetchWithRenderAndLocalFallback('/api/delivery/pilot/request-acceptance-otp', {
     method: 'POST',
     headers: await getHeaders(),
     body: JSON.stringify({
@@ -159,23 +218,16 @@ export async function requestPilotAcceptanceOtp(
       pilot_phone: extra?.pilotPhone,
     }),
   });
-
-  const data = await res.json();
-  if (!res.ok || !data.success) {
-    throw new Error(data.error || 'Failed to request acceptance OTP');
-  }
-  return data;
 }
 
-// 4. Accept Assigned Order via OTP
+// 4. Accept Assigned Order via OTP (Render First -> Local Fallback)
 export async function acceptAssignedOrder(
   orderId: string,
   otp: string,
   pilotName: string,
   extra?: { pilotId?: string; pilotEmail?: string; pilotPhone?: string; dlId?: string; vehicleId?: string }
 ): Promise<any> {
-  const baseUrl = await getServerUrl();
-  const res = await fetch(`${baseUrl}/api/delivery/pilot/accept-order`, {
+  return await fetchWithRenderAndLocalFallback('/api/delivery/pilot/accept-order', {
     method: 'POST',
     headers: await getHeaders(),
     body: JSON.stringify({
@@ -189,12 +241,6 @@ export async function acceptAssignedOrder(
       vehicle_id: extra?.vehicleId
     }),
   });
-
-  const data = await res.json();
-  if (!res.ok || !data.success) {
-    throw new Error(data.error || 'Failed to accept order');
-  }
-  return data;
 }
 
 // 5. Request Delivery Partner Departure / Pickup OTP

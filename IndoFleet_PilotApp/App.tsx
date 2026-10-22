@@ -970,6 +970,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
     paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0,
+    paddingBottom: Platform.OS === 'android' ? 24 : 0,
   },
   screenBody: {
     flex: 1,
