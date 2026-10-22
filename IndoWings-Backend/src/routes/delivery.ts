@@ -1802,7 +1802,7 @@ router.post('/profile/send-verify-otp', async (req, res) => {
 
     if (decoded.email) {
       await fileDB.saveOTP(decoded.email, otp, { phone: fullPhone, purpose: 'profile-verification' });
-      sendOtpNotification({ email: decoded.email, phone: cleanPhone, otp }).catch(() => {});
+      sendOtpNotification({ email: decoded.email, phone: cleanPhone, otp }).catch((err) => console.error('Profile phone verify email error:', err));
     }
 
     const masked = decoded.email ? maskEmail(decoded.email) : fullPhone;
@@ -1821,7 +1821,7 @@ router.post('/profile/verify-otp', async (req, res) => {
     return;
   }
 
-  const { target, value, otp } = req.body;
+  const { target, value, otp, name } = req.body;
   if (!target || !value || !otp) {
     res.status(400).json({ error: 'Target, value, and OTP are required' });
     return;
@@ -1845,7 +1845,11 @@ router.post('/profile/verify-otp', async (req, res) => {
       return;
     }
 
-    const updated = await fileDB.updateUser(decoded.id, { phone: fullPhone, is_phone_verified: true });
+    const updateFields: any = { phone: fullPhone, is_phone_verified: true };
+    if (name && typeof name === 'string' && name.trim()) {
+      updateFields.name = name.trim();
+    }
+    const updated = await fileDB.updateUser(decoded.id, updateFields);
     if (!updated) {
       res.status(404).json({ error: 'Account not found.' });
       return;
@@ -1858,12 +1862,22 @@ router.post('/profile/verify-otp', async (req, res) => {
   if (target === 'email') {
     const cleanEmail = value.toLowerCase().trim();
     const local = await fileDB.verifyOTP(cleanEmail, trimmedOtp);
-    if (!local.valid || local.meta?.purpose !== 'profile-verification') {
+    if (local.valid && local.meta?.purpose === 'profile-verification') verified = true;
+    if (!verified && decoded.email) {
+      const localCurrent = await fileDB.verifyOTP(decoded.email, trimmedOtp);
+      if (localCurrent.valid && localCurrent.meta?.purpose === 'profile-verification') verified = true;
+    }
+
+    if (!verified) {
       res.status(400).json({ error: 'Invalid or expired email verification code' });
       return;
     }
 
-    const updated = await fileDB.updateUser(decoded.id, { email: cleanEmail, is_email_verified: true });
+    const updateFields: any = { email: cleanEmail, is_email_verified: true };
+    if (name && typeof name === 'string' && name.trim()) {
+      updateFields.name = name.trim();
+    }
+    const updated = await fileDB.updateUser(decoded.id, updateFields);
     if (!updated) {
       res.status(404).json({ error: 'Account not found.' });
       return;

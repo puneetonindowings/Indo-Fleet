@@ -431,17 +431,36 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
   // Save profile updates (Name, Email, Phone)
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
     setSuccessMsg('');
     setErrorMsg('');
 
     const token = localStorage.getItem('iw_delivery_token');
     if (!token) {
       setErrorMsg('Please sign in to update profile.');
-      setSaving(false);
       return;
     }
 
+    const origEmail = (profile?.email || currentUser?.email || '').trim().toLowerCase();
+    const origPhone = (profile?.phone || currentUser?.phone || '').replace(/[^0-9]/g, '').slice(-10);
+    const newEmail = email.trim().toLowerCase();
+    const newPhone = phone.trim().replace(/[^0-9]/g, '').slice(-10);
+
+    const isEmailChanged = newEmail !== '' && newEmail !== origEmail;
+    const isPhoneChanged = newPhone !== '' && newPhone !== origPhone;
+
+    // If Email changed -> Require OTP verification
+    if (isEmailChanged) {
+      await triggerVerificationFlow('email', newEmail);
+      return;
+    }
+
+    // If Phone changed -> Require OTP verification (OTP is sent to user's registered email)
+    if (isPhoneChanged) {
+      await triggerVerificationFlow('phone', newPhone);
+      return;
+    }
+
+    setSaving(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/delivery/profile`, {
         method: 'PUT',
@@ -477,17 +496,18 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
     }
   };
 
-  // Trigger Send OTP for Email / Phone verification
-  const handleTriggerVerify = async (target: 'email' | 'phone', val: string) => {
+  // Trigger Send OTP for Email / Phone verification when user changes them
+  const triggerVerificationFlow = async (target: 'email' | 'phone', val: string) => {
     const token = localStorage.getItem('iw_delivery_token');
     if (!token) return;
 
     setOtpLoading(true);
     setOtpError('');
     setOtpSuccess('');
+    setOtpCode('');
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/delivery/profile/verify-otp`, {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/profile/send-verify-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -495,27 +515,21 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
         },
         body: JSON.stringify({
           target,
-          value: val,
-          otp: '000000'
+          value: val
         })
       });
 
       const data = await res.json();
       if (!res.ok) {
-        setOtpError(data.error || 'Failed to verify contact.');
+        setErrorMsg(data.error || 'Failed to send verification code.');
         return;
       }
 
-      if (data.user) {
-        setProfile(data.user);
-        onUpdateUser(data.user);
-        localStorage.setItem('iw_delivery_user', JSON.stringify(data.user));
-      }
-
-      setOtpSuccess(`${target === 'email' ? 'Email' : 'Mobile number'} verified successfully!`);
-      setTimeout(() => setOtpSuccess(''), 3000);
+      setOtpModalTarget(target);
+      setOtpModalValue(val);
+      setOtpSuccess(data.message || 'Verification code sent to your email');
     } catch {
-      setOtpError('Verification failed. Verify backend service is running.');
+      setErrorMsg('Verification failed. Server connection error.');
     } finally {
       setOtpLoading(false);
     }
@@ -545,7 +559,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
         body: JSON.stringify({
           target: otpModalTarget,
           value: otpModalValue,
-          otp: otpCode.trim()
+          otp: otpCode.trim(),
+          name: name.trim()
         })
       });
 
@@ -561,13 +576,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
         localStorage.setItem('iw_delivery_user', JSON.stringify(data.user));
       }
 
-      setOtpSuccess('Verification successful! Account updated.');
-      setTimeout(() => {
-        setOtpModalTarget(null);
-        setOtpSuccess('');
-      }, 1500);
+      setOtpModalTarget(null);
+      setOtpCode('');
+      setSuccessMsg('Profile and verified contact details updated successfully!');
+      setTimeout(() => setSuccessMsg(''), 4000);
     } catch {
-      setOtpError('Verification request failed. Please try again.');
+      setOtpError('Verification failed. Server connection error.');
     } finally {
       setOtpLoading(false);
     }
@@ -1211,17 +1225,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
 
                 {/* Email Address */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Email Address</label>
-                    <button
-                      type="button"
-                      onClick={() => handleTriggerVerify('email', email)}
-                      disabled={otpLoading}
-                      className="text-xs font-bold text-[#5a00b8] hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <Sparkles className="w-3 h-3" /> Verify Email via OTP
-                    </button>
-                  </div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Email Address</label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
@@ -1238,17 +1242,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
 
                 {/* Mobile Phone Number */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Mobile Phone Number</label>
-                    <button
-                      type="button"
-                      onClick={() => handleTriggerVerify('phone', phone)}
-                      disabled={otpLoading}
-                      className="text-xs font-bold text-[#5a00b8] hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <Sparkles className="w-3 h-3" /> Verify Phone via OTP
-                    </button>
-                  </div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Mobile Phone Number</label>
                   <div className="relative">
                     <PhoneInput value={phone} onChange={(v) => setPhone(v)} placeholder="9XXXXXXXXX" inputClassName="py-3.5" />
                   </div>
@@ -2703,9 +2697,19 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
               </button>
             </div>
 
-            <h3 className="text-lg font-bold text-[#171222] mb-1">Verify {otpModalTarget === 'email' ? 'Email Address' : 'Mobile Phone'}</h3>
+            <h3 className="text-lg font-bold text-[#171222] mb-1">
+              Verify {otpModalTarget === 'email' ? 'New Email Address' : 'New Mobile Phone Number'}
+            </h3>
             <p className="text-xs text-slate-500 mb-5 leading-relaxed">
-              We dispatched a 6-digit verification code to <span className="font-bold text-[#171222]">{otpModalValue}</span>
+              {otpModalTarget === 'phone' ? (
+                <>
+                  To confirm updating your mobile number to <strong className="text-slate-900">+91 {otpModalValue}</strong>, a 6-digit verification code has been dispatched to your registered email (<strong className="text-slate-900">{profile?.email || currentUser?.email}</strong>).
+                </>
+              ) : (
+                <>
+                  We dispatched a 6-digit verification code directly to your new email: <strong className="text-slate-900">{otpModalValue}</strong>
+                </>
+              )}
             </p>
 
             {otpSuccess && <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold rounded-xl mb-4">{otpSuccess}</div>}
@@ -2736,8 +2740,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
               </button>
 
               <div className="text-center pt-2">
-                <button type="button" onClick={() => handleTriggerVerify(otpModalTarget, otpModalValue)} className="text-xs font-bold text-[#5a00b8] hover:underline cursor-pointer">
-                  Resend Verification Code
+                <button type="button" onClick={() => triggerVerificationFlow(otpModalTarget!, otpModalValue)} className="text-xs font-bold text-[#5a00b8] hover:underline cursor-pointer">
+                  Resend Verification Code to Email
                 </button>
               </div>
             </form>
