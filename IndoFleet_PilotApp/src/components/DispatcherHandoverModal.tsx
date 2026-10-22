@@ -101,8 +101,8 @@ export const DispatcherHandoverModal: React.FC<DispatcherHandoverModalProps> = (
 
             <View style={styles.detailRow}>
               <Package size={15} color="#64748B" />
-              <Text style={styles.detailLabel}>Payload Weight:</Text>
-              <Text style={styles.detailValue}>{order.weight_kg ? `${order.weight_kg} kg` : 'Standard'}</Text>
+              <Text style={styles.detailLabel}>Airframe Model:</Text>
+              <Text style={styles.detailValue}>{order.drone_model || '700 RPAV'}</Text>
             </View>
           </View>
 

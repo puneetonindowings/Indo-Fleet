@@ -627,9 +627,9 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                         </span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Hub Battery</span>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Airframe Integrity</span>
                         <span className="font-semibold text-blue-700">
-                          {item.field_battery_level != null ? `${item.field_battery_level}%` : 'Normal'}
+                          {item.zero_defect_certified ? 'Intact & Cleared' : 'Defect Flagged'}
                         </span>
                       </div>
                       <div>
@@ -655,9 +655,9 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                         </span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Landing Battery</span>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Delivery Handover</span>
                         <span className="font-semibold text-emerald-700">
-                          {item.field_battery_level != null ? `${item.field_battery_level}%` : 'Normal'}
+                          {item.zero_defect_certified ? 'Secure Complete' : 'Handover Logged'}
                         </span>
                       </div>
                       <div>
@@ -683,9 +683,9 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                         </span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Battery Health</span>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Sortie Readiness</span>
                         <span className="font-semibold text-slate-800 capitalize">
-                          {item.battery_condition || 'Normal'}
+                          {item.ready_for_next_sortie ? 'Flight Ready' : 'Pending Review'}
                         </span>
                       </div>
                       <div>
@@ -767,11 +767,16 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                             <div
                               key={`vid-${idx}`}
                               onClick={() => setPreviewMedia({ type: 'video', url: src })}
-                              className="group relative w-28 h-20 rounded-xl overflow-hidden border border-purple-200 bg-slate-900 shrink-0 cursor-pointer shadow-xs hover:border-[#5a00b8] transition-all flex items-center justify-center"
+                              className="group relative w-28 h-20 rounded-xl overflow-hidden border border-purple-300 bg-slate-900 shrink-0 cursor-pointer shadow-xs hover:border-[#5a00b8] transition-all flex items-center justify-center"
                             >
-                              <Video className="w-6 h-6 text-purple-400 group-hover:scale-110 transition-transform" />
-                              <div className="absolute bottom-1 right-1 bg-black/70 text-white text-[9px] font-mono px-1.5 py-0.5 rounded">
-                                VIDEO
+                              <video src={src} className="w-full h-full object-cover opacity-60" muted />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/10 transition-colors">
+                                <div className="w-8 h-8 rounded-full bg-purple-600/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                  <Video className="w-4 h-4 text-white" />
+                                </div>
+                              </div>
+                              <div className="absolute bottom-1 right-1 bg-black/80 text-purple-300 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded">
+                                PLAY VIDEO
                               </div>
                             </div>
                           ))}

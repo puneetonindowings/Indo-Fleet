@@ -42,6 +42,7 @@ import {
   QrCode,
   ShieldCheck,
   Camera,
+  Building2,
 } from 'lucide-react-native';
 import { DeliveryOrder, TelemetryStats } from '../types';
 import { getRoutingApiUrl } from '../config';
@@ -50,13 +51,14 @@ interface FlightRadarScreenProps {
   order: DeliveryOrder | null;
   allOrders?: DeliveryOrder[];
   orderInspectedDrones?: Record<string, string[]>;
+  orderHubInspectedDrones?: Record<string, string[]>;
   onSelectOrder?: (order: DeliveryOrder) => void;
   isTracking: boolean;
   telemetry: TelemetryStats;
   currentCoords: { latitude: number; longitude: number } | null;
   onBackToDashboard: () => void;
   onCompletePod: (order: DeliveryOrder) => void;
-  onOpenSortieDrones?: (order: DeliveryOrder) => void;
+  onOpenSortieDrones?: (order: DeliveryOrder, stage?: 'hub_pickup' | 'customer_delivery') => void;
   onStopTracking: () => void;
   onRefreshLocation?: () => void;
   onUpdateLocation?: (coords: { latitude: number; longitude: number }) => void;
@@ -142,6 +144,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   order,
   allOrders = [],
   orderInspectedDrones = {},
+  orderHubInspectedDrones = {},
   onSelectOrder,
   isTracking,
   telemetry,
@@ -1089,46 +1092,62 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
             (currentOrd.items || []).length,
             1
           );
+
+          const isHubStage =
+            currentOrd.status === 'assigned' ||
+            currentOrd.status === 'pending_acceptance' ||
+            currentOrd.pilot_acceptance_status === 'pending_acceptance' ||
+            (currentOrd.status as string) === 'waiting_otp_accept';
+
           const inspectedList = Array.from(new Set([
-            ...(orderInspectedDrones?.[currentOrd.id] || []),
-            ...(currentOrd.inspected_drone_ids || [])
+            ...(isHubStage
+                ? [...(orderHubInspectedDrones?.[currentOrd.id] || []), ...(currentOrd.hub_inspected_drone_ids || [])]
+                : [...(orderInspectedDrones?.[currentOrd.id] || []), ...(currentOrd.inspected_drone_ids || [])])
           ]));
           const isAllInspected = inspectedList.length >= totalDroneCount;
 
           return (
             <View style={styles.actions}>
-              {/* Sortie Airframes Inspection Summary Card (Navigates to Dedicated Screen) */}
+              {/* Airframe Inspection Summary Card (Clear Hub Pre-Acceptance vs Customer Handover) */}
               <View style={styles.sortieSummaryCard}>
                 <View style={styles.sortieSummaryHeader}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
-                    <ShieldCheck size={16} color="#4F46E5" />
+                    {isHubStage ? (
+                      <Building2 size={16} color="#4F46E5" />
+                    ) : (
+                      <ShieldCheck size={16} color="#059669" />
+                    )}
                     <Text style={styles.sortieSummaryTitle} numberOfLines={1}>
-                      Sortie Drones ({inspectedList.length}/{totalDroneCount})
+                      {isHubStage ? 'Hub Pre-Acceptance' : 'Customer Handover'} ({inspectedList.length}/{totalDroneCount})
                     </Text>
                   </View>
                   <View style={[styles.sortieBadge, isAllInspected ? styles.sortieBadgeReady : styles.sortieBadgePending]}>
                     <Text style={[styles.sortieBadgeText, isAllInspected ? styles.sortieBadgeTextReady : styles.sortieBadgeTextPending]} numberOfLines={1}>
-                      {isAllInspected ? 'Ready ✓' : 'Inspection Pending'}
+                      {isAllInspected
+                        ? (isHubStage ? 'Hub Verified ✓' : 'Handover Ready ✓')
+                        : (isHubStage ? 'Hub Inspection Required' : 'Inspection Pending')}
                     </Text>
                   </View>
                 </View>
 
                 <TouchableOpacity
                   style={styles.openSortieBtn}
-                  onPress={() => (onOpenSortieDrones ? onOpenSortieDrones(currentOrd) : onCompletePod(currentOrd))}
+                  onPress={() => (onOpenSortieDrones ? onOpenSortieDrones(currentOrd, isHubStage ? 'hub_pickup' : 'customer_delivery') : onCompletePod(currentOrd))}
                   activeOpacity={0.85}
                 >
                   <Camera size={15} color="#FFFFFF" />
                   <Text style={styles.openSortieBtnText} numberOfLines={1}>
                     {isAllInspected
-                      ? 'View Inspected Drones & POD'
-                      : `Verify Drones & Inspection (${inspectedList.length}/${totalDroneCount})`}
+                      ? (isHubStage ? 'View Hub Inspected Drones' : 'View Inspected Drones & POD')
+                      : (isHubStage
+                          ? `Inspect Drones at Hub (${inspectedList.length}/${totalDroneCount})`
+                          : `Verify for Handover (${inspectedList.length}/${totalDroneCount})`)}
                   </Text>
                   <ChevronRight size={15} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
 
-              {isAllInspected && (
+              {(!isHubStage && isAllInspected) && (
                 <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: '#059669' }]} onPress={() => onCompletePod(currentOrd)} activeOpacity={0.85}>
                   <CheckCircle size={19} color="#FFFFFF" />
                   <Text style={styles.primaryBtnText}>

@@ -763,6 +763,7 @@ function MainApp() {
             order={selectedOrder}
             allOrders={orders}
             orderInspectedDrones={orderInspectedDrones}
+            orderHubInspectedDrones={orderHubInspectedDrones}
             onSelectOrder={(ord) => setSelectedOrder(ord)}
             isTracking={isTracking}
             telemetry={telemetry}

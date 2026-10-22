@@ -171,16 +171,17 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         </Text>
       </View>
 
-      {/* Drone Specs & Weight */}
+      {/* Drone Specs & Units */}
       <View style={styles.specsRow}>
         <View style={styles.specItem}>
           <Truck size={13} color="#3B0080" />
           <Text style={styles.specLabel}>Cargo Drone:</Text>
-          <Text style={styles.specValue}>{order.drone_model || 'IndoWings 700 RPAV'}</Text>
+          <Text style={styles.specValue}>{order.drone_model || '700RPAV'}</Text>
         </View>
         <View style={styles.specItem}>
-          <Text style={styles.specLabel}>Weight:</Text>
-          <Text style={styles.specValue}>{order.weight_kg ? `${order.weight_kg} kg` : 'Standard'}</Text>
+          <Package size={13} color="#64748B" />
+          <Text style={styles.specLabel}>Consignment:</Text>
+          <Text style={styles.specValue}>{totalDroneCount} Drone{totalDroneCount > 1 ? 's' : ''}</Text>
         </View>
       </View>
 

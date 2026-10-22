@@ -24,7 +24,6 @@ import {
   User,
   Phone,
   FileText,
-  DollarSign,
   ChevronRight,
   Filter,
   X,
@@ -59,11 +58,11 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
     () => historyOrders.filter((o) => o.status === 'cancelled' || o.status === 'missed').length,
     [historyOrders]
   );
-  const totalRevenue = useMemo(
+  const totalUnitsDelivered = useMemo(
     () =>
       historyOrders
         .filter((o) => o.status === 'delivered' || o.status === 'completed')
-        .reduce((sum, o) => sum + (o.fare_inr || 0), 0),
+        .reduce((sum, o) => sum + (o.units_count || (o.reserved_inventory_ids || []).length || 1), 0),
     [historyOrders]
   );
 
@@ -178,7 +177,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
           </View>
         </View>
 
-        {/* Footer info: Customer & Fare */}
+        {/* Footer info: Customer & Status */}
         <View style={styles.cardFooter}>
           <View style={styles.customerGroup}>
             <User size={13} color="#475569" />
@@ -186,10 +185,8 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
               {item.recipient_name || item.customer_name || 'Customer'}
             </Text>
           </View>
-          <View style={styles.fareGroup}>
-            {item.fare_inr ? (
-              <Text style={styles.fareAmount}>₹{item.fare_inr.toLocaleString('en-IN')}</Text>
-            ) : null}
+          <View style={styles.viewDetailGroup}>
+            <Text style={styles.viewDetailText}>View Details</Text>
             <ChevronRight size={14} color="#94A3B8" />
           </View>
         </View>
@@ -226,12 +223,12 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
           </View>
 
           <View style={styles.metricCard}>
-            <View style={[styles.metricIconWrap, { backgroundColor: '#F3E8FF' }]}>
-              <DollarSign size={16} color="#7C3AED" />
+            <View style={[styles.metricIconWrap, { backgroundColor: '#EEF2FF' }]}>
+              <Package size={16} color="#4F46E5" />
             </View>
             <View>
-              <Text style={styles.metricVal}>₹{totalRevenue.toLocaleString('en-IN')}</Text>
-              <Text style={styles.metricLbl}>Total Fares</Text>
+              <Text style={styles.metricVal}>{totalUnitsDelivered}</Text>
+              <Text style={styles.metricLbl}>Drones Delivered</Text>
             </View>
           </View>
 
@@ -440,30 +437,16 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
                   <Text style={styles.sectionHeading}>Consignment Summary</Text>
 
                   <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Units / Cargo:</Text>
+                    <Text style={styles.detailLabel}>Units / Cargo Drones:</Text>
                     <Text style={styles.detailValue}>
-                      {selectedOrder.units_count || 1} Unit(s)
-                    </Text>
-                  </View>
-
-                  {selectedOrder.weight_kg ? (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Payload Weight:</Text>
-                      <Text style={styles.detailValue}>{selectedOrder.weight_kg} Kg</Text>
-                    </View>
-                  ) : null}
-
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Fare Amount:</Text>
-                    <Text style={styles.fareHighlight}>
-                      ₹{(selectedOrder.fare_inr || 0).toLocaleString('en-IN')}
+                      {selectedOrder.units_count || (selectedOrder.reserved_inventory_ids || []).length || 1} Unit(s)
                     </Text>
                   </View>
 
                   <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Payment Status:</Text>
+                    <Text style={styles.detailLabel}>Airframe Model:</Text>
                     <Text style={styles.detailValue}>
-                      {selectedOrder.payment_status || 'Prepaid'}
+                      {selectedOrder.drone_model || '700 RPAV Heavy-Lift'}
                     </Text>
                   </View>
                 </View>
@@ -773,15 +756,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#334155',
   },
-  fareGroup: {
+  viewDetailGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  fareAmount: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#059669',
+  viewDetailText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#4F46E5',
   },
   emptyContainer: {
     alignItems: 'center',

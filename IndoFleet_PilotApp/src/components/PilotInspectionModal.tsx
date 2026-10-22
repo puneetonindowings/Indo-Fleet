@@ -15,7 +15,6 @@ import {
   AlertTriangle,
   X,
   PackageCheck,
-  Battery,
   MapPin,
   Wind,
   Check,
@@ -256,35 +255,6 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
               </View>
             </View>
 
-            {/* 4. Battery Level at Field */}
-            <View style={styles.checkItem}>
-              <View style={styles.itemHeader}>
-                <Battery size={14} color="#3B0080" />
-                <Text style={styles.itemTitle}>4. Field Battery Level Remaining (%)</Text>
-              </View>
-              <View style={styles.batteryInputRow}>
-                {['60', '70', '80', '90'].map((pct) => (
-                  <TouchableOpacity
-                    key={pct}
-                    onPress={() => setFieldBattery(pct)}
-                    style={[styles.batteryChip, fieldBattery === pct && styles.batteryChipActive]}
-                  >
-                    <Text style={[styles.batteryChipText, fieldBattery === pct && styles.batteryChipTextActive]}>
-                      {pct}%
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-                <TextInput
-                  style={styles.batteryCustomInput}
-                  value={fieldBattery}
-                  onChangeText={setFieldBattery}
-                  keyboardType="numeric"
-                  maxLength={3}
-                  placeholder="%"
-                  placeholderTextColor="#94A3B8"
-                />
-              </View>
-            </View>
 
             {/* 5. Zero-Defect Handover Certification */}
             <Text style={styles.sectionHeading}>ZERO-DEFECT CERTIFICATION</Text>

@@ -6103,18 +6103,36 @@ router.post('/inspections', async (req, res) => {
         } else if (stage === 'hub_pickup' || stage === 'hub' || inspection_type === 'pre-flight') {
           const prevHub = Array.isArray(orderToUpdate?.hub_inspected_drone_ids) ? orderToUpdate.hub_inspected_drone_ids : [];
           const updatedHub = Array.from(new Set([...prevHub, cleanDrone]));
+          const prevDeliveryData = orderToUpdate?.delivery_data || {};
+          const prevHubInspections = prevDeliveryData.hub_inspections || {};
           updatePayload = {
             hub_inspection_id: saved.inspection_id,
             hub_inspected_drone_ids: updatedHub,
+            delivery_data: {
+              ...prevDeliveryData,
+              hub_inspections: {
+                ...prevHubInspections,
+                [cleanDrone]: saved
+              }
+            }
           };
         } else {
           const prevInspected = Array.isArray(orderToUpdate?.inspected_drone_ids) ? orderToUpdate.inspected_drone_ids : [];
           const updatedInspected = Array.from(new Set([...prevInspected, cleanDrone]));
+          const prevDeliveryData = orderToUpdate?.delivery_data || {};
+          const prevCustInspections = prevDeliveryData.customer_inspections || {};
           updatePayload = {
             inspection_id: saved.inspection_id,
             post_delivery_inspection: saved,
             drone_inspection_status: saved.overall_inspection,
             inspected_drone_ids: updatedInspected,
+            delivery_data: {
+              ...prevDeliveryData,
+              customer_inspections: {
+                ...prevCustInspections,
+                [cleanDrone]: saved
+              }
+            }
           };
         }
 

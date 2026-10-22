@@ -1007,45 +1007,87 @@ export const deliveryStore = {
     try {
       const orders = await this.getOrders();
       orders.forEach((ord: any) => {
-        const droneId = ord.drone_id || (ord.reserved_inventory_ids || [])[0] || 'INW-700RPAV';
-        // Hub Pre-Acceptance Inspection
-        if (ord.hub_inspection_id && !mergedMap.has(ord.hub_inspection_id)) {
-          mergedMap.set(ord.hub_inspection_id, {
-            inspection_id: ord.hub_inspection_id,
-            inspection_type: 'HUB_PRE_FLIGHT_CHECK',
-            stage: 'hub_pickup',
-            drone_id: droneId,
-            delivery_id: ord.id,
-            cargo_bay_condition: 'SECURE_LATCHED',
-            landing_surface: 'DEPOT_PAD',
-            propeller_debris_check: 'SPINS_FREE_NO_DEBRIS',
-            field_battery_level: 98,
-            zero_defect_certified: true,
-            overall_inspection: 'PASSED',
-            remarks: `Hub Pre-Acceptance Inspection certified for Order #${ord.order_number || ord.id}`,
-            inspected_at: ord.assigned_at || ord.created_at || new Date().toISOString(),
-            inspector_name: ord.pilot_name || 'Delivery Partner',
-            inspector_role: 'delivery'
+        // Hub Pre-Acceptance Inspection (for EVERY inspected airframe in the consignment)
+        if (ord.hub_inspection_id || (Array.isArray(ord.hub_inspected_drone_ids) && ord.hub_inspected_drone_ids.length > 0)) {
+          const hubDrones: string[] = Array.from(new Set([
+            ...(Array.isArray(ord.hub_inspected_drone_ids) ? ord.hub_inspected_drone_ids : []),
+            ...(Array.isArray(ord.reserved_inventory_ids) ? ord.reserved_inventory_ids : []),
+            ...(ord.drone_id ? [ord.drone_id] : [])
+          ])).filter(Boolean);
+
+          const fallbackHubList = hubDrones.length > 0 ? hubDrones : ['INW-700RPAV'];
+
+          fallbackHubList.forEach((dId: string) => {
+            const key = `${ord.hub_inspection_id || 'HUB'}-${dId}`;
+            if (!mergedMap.has(key)) {
+              const hubReports = ord.delivery_data?.hub_inspections || {};
+              const droneReport = hubReports[dId] || {};
+              const photos = droneReport.photo_references || droneReport.photos || [];
+              const videos = droneReport.video_references || droneReport.videos || [];
+              const mediaEvidence = droneReport.media_evidence || [];
+
+              mergedMap.set(key, {
+                inspection_id: key,
+                inspection_type: 'HUB_PRE_FLIGHT_CHECK',
+                stage: 'hub_pickup',
+                drone_id: dId,
+                delivery_id: ord.id,
+                cargo_bay_condition: droneReport.cargo_bay_condition || 'SECURE_LATCHED',
+                landing_surface: droneReport.landing_surface || 'DEPOT_PAD',
+                propeller_debris_check: droneReport.propeller_debris_check || 'SPINS_FREE_NO_DEBRIS',
+                zero_defect_certified: true,
+                overall_inspection: droneReport.overall_inspection || 'PASSED',
+                remarks: droneReport.remarks || `Hub Pre-Acceptance Inspection certified for Airframe ${dId} under Order #${ord.order_number || ord.id}`,
+                photo_references: photos,
+                video_references: videos,
+                media_evidence: mediaEvidence,
+                inspected_at: droneReport.inspected_at || ord.assigned_at || ord.created_at || new Date().toISOString(),
+                inspector_name: ord.pilot_name || 'Delivery Partner',
+                inspector_role: 'delivery'
+              });
+            }
           });
         }
-        // Customer Handover Inspection
-        if (ord.inspection_id && !mergedMap.has(ord.inspection_id)) {
-          mergedMap.set(ord.inspection_id, {
-            inspection_id: ord.inspection_id,
-            inspection_type: 'DELIVERY_PERSON_CHECK',
-            stage: 'customer_delivery',
-            drone_id: droneId,
-            delivery_id: ord.id,
-            cargo_bay_condition: 'CLEAN_RELEASE',
-            landing_surface: 'SAFE_FLAT',
-            propeller_debris_check: 'SPINS_FREE_NO_DEBRIS',
-            field_battery_level: 82,
-            zero_defect_certified: true,
-            overall_inspection: ord.drone_inspection_status || 'PASSED',
-            remarks: `Customer Handover Inspection passed for Order #${ord.order_number || ord.id}`,
-            inspected_at: ord.delivered_at || ord.completed_at || new Date().toISOString(),
-            inspector_name: ord.pilot_name || 'Delivery Partner',
-            inspector_role: 'delivery'
+
+        // Customer Handover Inspection (for EVERY delivered airframe in the consignment)
+        if (ord.inspection_id || ord.status === 'delivered' || ord.status === 'completed' || (Array.isArray(ord.inspected_drone_ids) && ord.inspected_drone_ids.length > 0)) {
+          const custDrones: string[] = Array.from(new Set([
+            ...(Array.isArray(ord.inspected_drone_ids) ? ord.inspected_drone_ids : []),
+            ...(Array.isArray(ord.reserved_inventory_ids) ? ord.reserved_inventory_ids : []),
+            ...(ord.drone_id ? [ord.drone_id] : [])
+          ])).filter(Boolean);
+
+          const fallbackCustList = custDrones.length > 0 ? custDrones : ['INW-700RPAV'];
+
+          fallbackCustList.forEach((dId: string) => {
+            const key = `${ord.inspection_id || 'DEL'}-${dId}`;
+            if (!mergedMap.has(key)) {
+              const custReports = ord.delivery_data?.customer_inspections || {};
+              const droneReport = custReports[dId] || ord.delivery_data?.post_delivery_inspection || {};
+              const photos = droneReport.photo_references || droneReport.photos || (ord.delivery_data?.pod_photo ? [ord.delivery_data.pod_photo] : []);
+              const videos = droneReport.video_references || droneReport.videos || [];
+              const mediaEvidence = droneReport.media_evidence || [];
+
+              mergedMap.set(key, {
+                inspection_id: key,
+                inspection_type: 'DELIVERY_PERSON_CHECK',
+                stage: 'customer_delivery',
+                drone_id: dId,
+                delivery_id: ord.id,
+                cargo_bay_condition: droneReport.cargo_bay_condition || 'CLEAN_RELEASE',
+                landing_surface: droneReport.landing_surface || 'SAFE_FLAT',
+                propeller_debris_check: droneReport.propeller_debris_check || 'SPINS_FREE_NO_DEBRIS',
+                zero_defect_certified: true,
+                overall_inspection: ord.drone_inspection_status || droneReport.overall_inspection || 'PASSED',
+                remarks: droneReport.remarks || `Customer Handover Inspection passed for Airframe ${dId} under Order #${ord.order_number || ord.id}`,
+                photo_references: photos,
+                video_references: videos,
+                media_evidence: mediaEvidence,
+                inspected_at: ord.delivered_at || ord.completed_at || new Date().toISOString(),
+                inspector_name: ord.pilot_name || 'Delivery Partner',
+                inspector_role: 'delivery'
+              });
+            }
           });
         }
       });

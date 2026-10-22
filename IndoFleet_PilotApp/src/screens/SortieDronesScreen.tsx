@@ -204,7 +204,7 @@ export const SortieDronesScreen: React.FC<SortieDronesScreenProps> = ({
         </View>
         <Text style={styles.sectionDesc}>
           {isHubStage
-            ? 'Scan physical QR on each aircraft at the Central Hub before accepting delivery. Ensure battery is secured and aircraft is defect-free.'
+            ? 'Scan physical QR on each aircraft at the Central Hub before accepting delivery. Ensure aircraft chassis and propellers are zero-defect.'
             : 'Scan physical QR on each aircraft before customer handover. Each drone is authenticated against the order booked inventory.'}
         </Text>
 
