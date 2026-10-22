@@ -1010,8 +1010,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const filteredDrones = drones.filter((d) => {
     const isVerified = d.is_verified === true || d.verification_status === 'verified';
     const isMaintenance = d.status === 'maintenance';
-    const isReserved = !isMaintenance && (d.status === 'reserved' || d.status === 'en-route' || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order));
-    const isIdle = !isMaintenance && (d.status === 'idle' || !d.status) && !d.assigned_order && !d.delivery_data?.assigned_order;
+    const linked = getLinkedOrderForDrone(d);
+    const isReserved = !isMaintenance && (d.status === 'reserved' || d.status === 'en-route' || Boolean(linked));
+    const isIdle = !isMaintenance && !isReserved;
 
     if (droneFilter === 'verified' && !isVerified) return false;
     if (droneFilter === 'unverified' && isVerified) return false;
@@ -1029,7 +1030,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
       const matchSerial = String(d.serial_number || '').toLowerCase().includes(q);
       const matchCat = String(d.category || '').toLowerCase().includes(q);
       const matchCity = String(d.current_city || '').toLowerCase().includes(q);
-      const matchOrder = String(d.assigned_order || d.delivery_data?.assigned_order || '').toLowerCase().includes(q);
+      const matchOrder = linked
+        ? (String(linked.id).toLowerCase().includes(q) || String(linked.order_number || '').toLowerCase().includes(q))
+        : false;
       if (!matchId && !matchModel && !matchSerial && !matchCat && !matchCity && !matchOrder) return false;
     }
     return true;
@@ -1049,9 +1052,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const verifiedDronesCount = drones.filter((d) => d.is_verified === true || d.verification_status === 'verified').length;
   const unverifiedDronesCount = drones.length - verifiedDronesCount;
   const maintenanceDronesCount = drones.filter((d) => d.status === 'maintenance').length;
-  const reservedDrones = drones.filter((d) => d.status !== 'maintenance' && (d.status === 'reserved' || d.status === 'en-route' || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order)));
+  const reservedDrones = drones.filter((d) => {
+    const linked = getLinkedOrderForDrone(d);
+    return d.status !== 'maintenance' && (d.status === 'reserved' || d.status === 'en-route' || Boolean(linked));
+  });
   const reservedDronesCount = reservedDrones.length;
-  const idleDronesCount = drones.filter((d) => d.status !== 'maintenance' && (d.status === 'idle' || !d.status) && !d.assigned_order && !d.delivery_data?.assigned_order).length;
+  const idleDronesCount = drones.filter((d) => {
+    const linked = getLinkedOrderForDrone(d);
+    return d.status !== 'maintenance' && !linked && d.status !== 'reserved' && d.status !== 'en-route';
+  }).length;
   const activeAccountsCount = users.filter((user) => user.status === 'active').length;
 
   // Actionable Operational Counts for Sidebar Badges
@@ -2087,7 +2096,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                           const linked = getLinkedOrderForDrone(d);
                           const isReserved =
                             d.status !== 'maintenance' &&
-                            (d.status === 'reserved' || Boolean(linked) || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order));
+                            (d.status === 'reserved' || Boolean(linked));
 
                           return (
                             <tr key={d.id} className="hover:bg-purple-50/20 transition-colors">

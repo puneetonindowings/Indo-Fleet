@@ -724,9 +724,31 @@ export const deliveryStore = {
     return data ? fromOrder(data) : null;
   },
   async deleteOrder(id: string) {
+    // 1. Cleanly release any drones reserved or assigned to this deleted order
+    try {
+      const { data: fleetRows } = await db().from('drone_fleet').select('*');
+      if (Array.isArray(fleetRows)) {
+        for (const row of fleetRows) {
+          const meta = row.delivery_data || {};
+          if (meta.assigned_order === id || row.assigned_order === id) {
+            const updatedMeta = { ...meta };
+            delete updatedMeta.assigned_order;
+            delete updatedMeta.assigned_client;
+            await db().from('drone_fleet').update({
+              delivery_data: updatedMeta,
+              status: row.status === 'reserved' ? 'ready' : row.status
+            }).eq('id', row.id);
+          }
+        }
+      }
+    } catch (droneReleaseErr) {
+      console.warn('[deleteOrder] Failed to release associated drones:', droneReleaseErr);
+    }
+
     const { error } = await db().from('delivery_orders').delete().eq('id', id);
     fail('delete delivery order', error);
     memoryCache.deletePattern('orders:');
+    memoryCache.deletePattern('fleet:');
     return true;
   },
   async createBooking(order: JsonRecord) {

@@ -293,7 +293,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     return fleet.filter((d: any) => {
       const isMaintenance = d.status === 'maintenance';
       const linked = getLinkedOrderForDrone(d);
-      const isReserved = !isMaintenance && (d.status === 'reserved' || d.status === 'en-route' || Boolean(linked) || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order));
+      const isReserved = !isMaintenance && (d.status === 'reserved' || d.status === 'en-route' || Boolean(linked));
       return !isMaintenance && !isReserved;
     });
   }, [fleet, data.orders]);
@@ -1614,8 +1614,8 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       const isVerified = d.is_verified === true || d.verification_status === 'verified';
       const isMaintenance = d.status === 'maintenance';
       const linked = getLinkedOrderForDrone(d);
-      const isReserved = !isMaintenance && (d.status === 'reserved' || d.status === 'en-route' || Boolean(linked) || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order));
-      const isIdle = !isMaintenance && (d.status === 'idle' || !d.status || d.status === 'available') && !isReserved;
+      const isReserved = !isMaintenance && (d.status === 'reserved' || d.status === 'en-route' || Boolean(linked));
+      const isIdle = !isMaintenance && (d.status === 'idle' || !d.status || d.status === 'available' || d.status === 'ready') && !isReserved;
 
       if (droneFilter === 'verified' && !isVerified) return false;
       if (droneFilter === 'unverified' && isVerified) return false;
@@ -1632,7 +1632,9 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         const matchSerial = String(d.serial_number || '').toLowerCase().includes(q);
         const matchCat = String(d.category || '').toLowerCase().includes(q);
         const matchCity = String(d.current_city || '').toLowerCase().includes(q);
-        const matchOrder = String(d.assigned_order || d.delivery_data?.assigned_order || linked?.id || '').toLowerCase().includes(q);
+        const matchOrder = linked
+          ? (String(linked.id).toLowerCase().includes(q) || String(linked.order_number || '').toLowerCase().includes(q))
+          : false;
         if (!matchId && !matchModel && !matchSerial && !matchCat && !matchCity && !matchOrder) return false;
       }
       return true;
@@ -1646,12 +1648,11 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     const maintenanceDronesCount = fleet.filter((d: any) => d.status === 'maintenance').length;
     const reservedDronesCount = fleet.filter((d: any) => {
       const linked = getLinkedOrderForDrone(d);
-      return d.status !== 'maintenance' && (d.status === 'reserved' || d.status === 'en-route' || Boolean(linked) || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order));
+      return d.status !== 'maintenance' && (d.status === 'reserved' || d.status === 'en-route' || Boolean(linked));
     }).length;
     const idleDronesCount = fleet.filter((d: any) => {
       const linked = getLinkedOrderForDrone(d);
-      const isReserved = d.status === 'reserved' || d.status === 'en-route' || Boolean(linked) || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order);
-      return d.status !== 'maintenance' && (d.status === 'idle' || !d.status || d.status === 'available') && !isReserved;
+      return d.status !== 'maintenance' && !linked && d.status !== 'reserved' && d.status !== 'en-route';
     }).length;
 
     return (
@@ -1870,7 +1871,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 ) : paginatedFleetDrones.map((d: any) => {
                   const isVerified = d.is_verified === true || d.verification_status === 'verified';
                   const linked = getLinkedOrderForDrone(d);
-                  const isReserved = d.status !== 'maintenance' && (d.status === 'reserved' || Boolean(linked) || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order));
+                  const isReserved = d.status !== 'maintenance' && (d.status === 'reserved' || Boolean(linked));
 
                   return (
                     <tr key={d.id} className="hover:bg-purple-50/20 transition-colors">

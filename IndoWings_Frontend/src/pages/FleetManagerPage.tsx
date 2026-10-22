@@ -1581,7 +1581,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                           const linked = getLinkedOrderForDrone(d);
                           const isReserved =
                             d.status !== 'maintenance' &&
-                            (d.status === 'reserved' || Boolean(linked) || Boolean(d.assigned_order) || Boolean(d.delivery_data?.assigned_order));
+                            (d.status === 'reserved' || Boolean(linked));
 
                           return (
                             <tr key={d.id} className="hover:bg-purple-50/20 transition-colors">
