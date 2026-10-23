@@ -156,5 +156,4 @@ npm run build
 
 ## License
 
-Copyright © 2026 IndoFleet Technologies. All rights reserved.
-Proprietary and confidential commercial software.
+Copyright © 2026 IndoFleet. All rights reserved.
