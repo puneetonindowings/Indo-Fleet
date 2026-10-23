@@ -33,7 +33,6 @@ interface ProfileScreenProps {
   onProfileUpdated: (updatedUser: UserProfile) => void;
 }
 
-/* ── Reusable input row with a focus state ─────────────────────────────────── */
 interface FieldProps {
   label: string;
   icon: React.ElementType;
@@ -120,7 +119,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const initial = displayName.trim().charAt(0).toUpperCase() || 'D';
   const roleLabel = (user?.role?.toLowerCase() === 'pilot' ? 'DELIVERY' : user?.role || 'DELIVERY').toUpperCase();
 
-  // Save is only enabled when something actually changed
   const isDirty =
     name.trim() !== (user?.name || '') ||
     phone.trim() !== (user?.phone || '') ||
@@ -205,7 +203,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Profile banner */}
+
         <View style={styles.banner}>
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarInitial}>{initial}</Text>
@@ -232,7 +230,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </View>
         </View>
 
-        {/* Profile details */}
+
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionIcon}>
@@ -309,7 +307,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Change password */}
+
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionIcon}>
@@ -398,7 +396,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
 
-  // Banner
   banner: {
     backgroundColor: '#3B0080',
     borderRadius: 24,
@@ -475,7 +472,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.85)',
   },
 
-  // Section cards
   sectionCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
@@ -511,7 +507,6 @@ const styles = StyleSheet.create({
     color: '#0F172A',
   },
 
-  // Fields
   formGroup: {
     marginBottom: 16,
   },
@@ -556,7 +551,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Password checks
   checks: {
     gap: 6,
     marginBottom: 6,
@@ -575,7 +569,6 @@ const styles = StyleSheet.create({
     color: '#059669',
   },
 
-  // Buttons
   saveBtn: {
     flexDirection: 'row',
     alignItems: 'center',

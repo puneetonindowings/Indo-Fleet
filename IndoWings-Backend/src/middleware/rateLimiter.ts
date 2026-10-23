@@ -7,7 +7,6 @@ interface RateLimitRecord {
 
 const rateLimitStore = new Map<string, RateLimitRecord>();
 
-// Clean up expired keys periodically (every 10 minutes)
 setInterval(() => {
   const now = Date.now();
   for (const [key, record] of rateLimitStore.entries()) {

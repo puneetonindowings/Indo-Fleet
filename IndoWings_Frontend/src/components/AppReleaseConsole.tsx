@@ -165,7 +165,7 @@ export const AppReleaseConsole: React.FC = () => {
           </div>
         </div>
 
-        {/* Android APK Section */}
+
         <div>
           <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
             Android APK Direct Download (.apk)
@@ -194,7 +194,7 @@ export const AppReleaseConsole: React.FC = () => {
           </div>
         </div>
 
-        {/* iOS Build Section */}
+
         <div>
           <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
             iOS App Build Direct Link (.ipa / Enterprise Build)
@@ -237,7 +237,7 @@ export const AppReleaseConsole: React.FC = () => {
           />
         </div>
 
-        {/* Email Notify Checkbox */}
+
         <div className="bg-purple-50/70 border border-purple-100 rounded-xl p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <input
@@ -256,7 +256,7 @@ export const AppReleaseConsole: React.FC = () => {
           </span>
         </div>
 
-        {/* Submit CTA */}
+
         <div className="pt-2 flex justify-end">
           <button
             type="submit"

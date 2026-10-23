@@ -34,8 +34,8 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
 export const requireRoles = (...roles: string[]) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     if (!req.user || !roles.includes(req.user.role)) {
-      res.status(403).json({ 
-        error: `Unauthorized role: ${req.user?.role || 'none'}. Required: ${roles.join(', ')}` 
+      res.status(403).json({
+        error: `Unauthorized role: ${req.user?.role || 'none'}. Required: ${roles.join(', ')}`
       });
       return;
     }

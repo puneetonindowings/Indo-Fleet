@@ -1,12 +1,12 @@
 import React from 'react';
-import { 
-  Workflow, 
-  DownloadCloud, 
-  Building2, 
-  RadioTower, 
-  MonitorUp, 
-  Network, 
-  UserPlus, 
+import {
+  Workflow,
+  DownloadCloud,
+  Building2,
+  RadioTower,
+  MonitorUp,
+  Network,
+  UserPlus,
   BookOpenCheck,
   Plane,
   Factory,
@@ -172,14 +172,14 @@ const roleModelCards = [
   },
 ];
 
-export const PlatformPage: React.FC<PlatformPageProps> = ({ 
-  onOpenCommandCenter, 
-  onOpenDemoBooking 
+export const PlatformPage: React.FC<PlatformPageProps> = ({
+  onOpenCommandCenter,
+  onOpenDemoBooking
 }) => {
   return (
     <div className="w-full bg-[#fbf9fd] text-[#171222]">
-      {/* 1. Page Hero: Full Viewport Hero ("screen tak rakho pura") */}
-      <section 
+
+      <section
         className="w-full min-h-screen flex items-center pt-28 sm:pt-36 pb-16 sm:pb-20 text-white relative overflow-hidden"
         style={{
           background: 'linear-gradient(180deg, #2b114d 0%, #240c42 100%)'
@@ -187,7 +187,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
       >
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(400px,1.15fr)] gap-10 lg:gap-14 items-center">
-            {/* Left Copy */}
+
             <div className="space-y-6">
               <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 border border-white/20 text-[#d8b4fe]">
                 <Workflow className="w-5 h-5 text-purple-300" />
@@ -202,16 +202,16 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
                 IndoFleet connects organization-level command oversight, field ground control, aircraft lifecycle workflows, release governance, documentation, support, and audit review into one enterprise operating model.
               </p>
 
-              {/* Action Buttons */}
+
               <div className="flex flex-wrap items-center gap-4 pt-2">
-                <button 
+                <button
                   onClick={onOpenCommandCenter}
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-[#5a00b8] hover:bg-[#4c0099] text-white text-sm font-semibold shadow-md transition-all active:scale-95 border border-purple-400/30"
                 >
                   <DownloadCloud className="w-4 h-4" />
                   <span>Get GCS</span>
                 </button>
-                <button 
+                <button
                   onClick={onOpenDemoBooking}
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-white hover:bg-slate-100 text-[#171222] text-sm font-semibold shadow-md transition-all active:scale-95"
                 >
@@ -220,13 +220,13 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
                 </button>
               </div>
 
-              {/* Helper Note */}
+
               <p className="text-xs text-purple-200/60 pt-1 leading-relaxed max-w-lg">
                 The download center explains versions, account access, requirements, checksums, and release notes before installation.
               </p>
             </div>
 
-            {/* Right Visual — Drone Hero Video */}
+
             <figure className="rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black relative group">
               <video
                 src="/stick.mp4"
@@ -237,7 +237,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
                 className="w-full h-full object-cover block"
                 style={{ minHeight: '320px', maxHeight: '520px' }}
               />
-              {/* Subtle gradient overlay at bottom for smooth blend */}
+
               <div className="absolute inset-x-0 bottom-0 h-20 pointer-events-none"
                 style={{ background: 'linear-gradient(to top, rgba(36,12,66,0.72), transparent)' }}
               />
@@ -246,10 +246,10 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
         </div>
       </section>
 
-      {/* 2. Platform Architecture: 3 Connected Layers */}
+
       <section className="py-20 lg:py-24 bg-[#fbf9fd] text-[#171222]">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
-          {/* Section Heading */}
+
           <div className="mb-12 text-left max-w-3xl">
             <p className="text-xs font-bold tracking-widest text-[#5a00b8] uppercase mb-3">
               PLATFORM ARCHITECTURE
@@ -259,10 +259,10 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
             </h2>
           </div>
 
-          {/* 3 Architecture Layer Cards */}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-7 items-stretch">
-            {/* Layer 01: Command Center */}
-            <article 
+
+            <article
               className="rounded-2xl border border-[#5a00b8]/15 bg-white shadow-sm p-6 sm:p-7 flex flex-col justify-between"
               style={{
                 background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.94)), radial-gradient(circle at 0 0, rgba(220, 196, 255, 0.35), transparent 18rem)'
@@ -291,8 +291,8 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
               </ul>
             </article>
 
-            {/* Layer 02: Ground Control Station */}
-            <article 
+
+            <article
               className="rounded-2xl border border-[#5a00b8]/15 bg-white shadow-sm p-6 sm:p-7 flex flex-col justify-between"
               style={{
                 background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.94)), radial-gradient(circle at 0 0, rgba(220, 196, 255, 0.35), transparent 18rem)'
@@ -321,8 +321,8 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
               </ul>
             </article>
 
-            {/* Layer 03: Aircraft and Fleet */}
-            <article 
+
+            <article
               className="rounded-2xl border border-[#5a00b8]/15 bg-white shadow-sm p-6 sm:p-7 flex flex-col justify-between"
               style={{
                 background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.94)), radial-gradient(circle at 0 0, rgba(220, 196, 255, 0.35), transparent 18rem)'
@@ -354,11 +354,11 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
         </div>
       </section>
 
-      {/* 3. Account Access: Split Layout */}
+
       <section className="py-20 lg:py-24 bg-white border-y border-[#5a00b8]/10 text-[#171222]">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.92fr)_minmax(360px,1fr)] gap-10 lg:gap-14 items-center">
-            {/* Left Copy */}
+
             <div className="space-y-6">
               <p className="text-xs font-bold tracking-widest text-[#5a00b8] uppercase">
                 ACCOUNT ACCESS
@@ -375,16 +375,16 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
                 </p>
               </div>
 
-              {/* Action Buttons */}
+
               <div className="flex flex-wrap items-center gap-3.5 pt-2">
-                <button 
+                <button
                   onClick={onOpenCommandCenter}
                   className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-[#5a00b8] hover:bg-[#260052] text-white text-sm font-semibold shadow-md transition-all active:scale-95"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span>Request account help</span>
                 </button>
-                <a 
+                <a
                   href="#docs"
                   className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-[#111827] text-sm font-semibold shadow-sm transition-all"
                 >
@@ -394,10 +394,10 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
               </div>
             </div>
 
-            {/* Right Visual: Operator Start Mission Card */}
+
             <figure className="rounded-xl overflow-hidden shadow-2xl border border-[#5a00b8]/15 bg-[#12051e] group">
-              <img 
-                src="/images/operator-start-mission.webp" 
+              <img
+                src="/images/operator-start-mission.webp"
                 alt="IndoFleet approved operator start mission view with profile metrics and mission launch action"
                 className="w-full h-auto object-cover block group-hover:scale-[1.02] transition-transform duration-300"
               />
@@ -406,10 +406,10 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
         </div>
       </section>
 
-      {/* 4. Visual Operating Story: 3 Screenshots */}
+
       <section className="py-20 lg:py-24 bg-[#fbf9fd] text-[#171222]">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
-          {/* Section Heading */}
+
           <div className="mb-12 text-left max-w-3xl">
             <p className="text-xs font-bold tracking-widest text-[#5a00b8] uppercase mb-3">
               VISUAL OPERATING STORY
@@ -419,12 +419,12 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
             </h2>
           </div>
 
-          {/* 3 Screenshot Cards Grid */}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-7">
-            {/* Card 1: Mission operation center */}
+
             <figure className="relative rounded-xl overflow-hidden shadow-lg border border-[#5a00b8]/15 bg-[#12051e] group aspect-[16/10]">
-              <img 
-                src="/images/mission-operation-center.webp" 
+              <img
+                src="/images/mission-operation-center.webp"
                 alt="IndoFleet mission operation center showing readiness, aircraft assignment, quick actions, and weather status"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
@@ -433,10 +433,10 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
               </figcaption>
             </figure>
 
-            {/* Card 2: Mission review and evidence */}
+
             <figure className="relative rounded-xl overflow-hidden shadow-lg border border-[#5a00b8]/15 bg-[#12051e] group aspect-[16/10]">
-              <img 
-                src="/images/mission-log-detail.webp" 
+              <img
+                src="/images/mission-log-detail.webp"
                 alt="IndoFleet Command Center mission detail view with flight metrics and playback review"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
@@ -445,10 +445,10 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
               </figcaption>
             </figure>
 
-            {/* Card 3: Performance and analytics */}
+
             <figure className="relative rounded-xl overflow-hidden shadow-lg border border-[#5a00b8]/15 bg-[#12051e] group aspect-[16/10]">
-              <img 
-                src="/images/command-performance-insights.webp" 
+              <img
+                src="/images/command-performance-insights.webp"
                 alt="IndoFleet Command Center performance insights dashboard with mission success and flight-hour analytics"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
@@ -460,7 +460,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
         </div>
       </section>
 
-      {/* 5. Operating Workflow: Clean Balanced Grid (Fixes scattered cards) */}
+
       <section className="py-20 lg:py-24 bg-white border-y border-[#5a00b8]/10 text-[#171222]">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="mb-12 text-left max-w-3xl">
@@ -472,10 +472,10 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
             </h2>
           </div>
 
-          {/* Row 1: Steps 01 to 04 (4 Balanced Columns) */}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-4 sm:mb-5">
             {workflowSteps.slice(0, 4).map((step) => (
-              <div 
+              <div
                 key={step.step}
                 className="p-6 rounded-xl border border-[#5a00b8]/15 bg-white shadow-sm flex flex-col justify-start space-y-3 min-h-[220px]"
                 style={{
@@ -495,10 +495,10 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
             ))}
           </div>
 
-          {/* Row 2: Steps 05 to 07 (3 Balanced Columns across full container width) */}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {workflowSteps.slice(4).map((step) => (
-              <div 
+              <div
                 key={step.step}
                 className="p-6 rounded-xl border border-[#5a00b8]/15 bg-white shadow-sm flex flex-col justify-start space-y-3 min-h-[220px]"
                 style={{
@@ -520,7 +520,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
         </div>
       </section>
 
-      {/* 6. Role Model: 6 Cards in 3x2 Grid */}
+
       <section className="py-20 lg:py-24 bg-[#fbf9fd] text-[#171222]">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="mb-12 text-left max-w-3xl">
@@ -532,12 +532,12 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
             </h2>
           </div>
 
-          {/* 3x2 Grid of 6 Role Cards */}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {roleModelCards.map((card) => {
               const IconComp = card.icon;
               return (
-                <div 
+                <div
                   key={card.title}
                   className="p-6 sm:p-7 rounded-2xl border border-[#5a00b8]/15 bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col justify-start min-h-[210px]"
                 >
@@ -557,11 +557,11 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
         </div>
       </section>
 
-      {/* 7. Security and Governance: Split Layout */}
+
       <section className="py-20 lg:py-24 bg-white border-t border-[#5a00b8]/10 text-[#171222]">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-10 lg:gap-14 items-start">
-            {/* Left Copy */}
+
             <div className="space-y-6">
               <p className="text-xs font-bold tracking-widest text-[#5a00b8] uppercase">
                 SECURITY AND GOVERNANCE
@@ -573,8 +573,8 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
                 The public operating model emphasizes named users, least privilege, role-based access control, trusted-device review, release integrity, and audit-ready records. Public documentation avoids private endpoints, secrets, tokens, internal hostnames, customer data, and sensitive implementation details.
               </p>
               <div>
-                <a 
-                  href="#release-notes" 
+                <a
+                  href="#release-notes"
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white border border-slate-200 text-sm font-semibold text-[#111827] hover:bg-slate-50 hover:border-[#5a00b8]/30 transition-all shadow-sm"
                 >
                   <ScrollText className="w-4 h-4 text-[#5a00b8]" />
@@ -583,9 +583,9 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
               </div>
             </div>
 
-            {/* Right 2x2 Security Stack */}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-              {/* Named accounts */}
+
               <div className="p-6 rounded-2xl border border-[#5a00b8]/15 bg-white shadow-sm flex flex-col justify-start min-h-[200px]">
                 <div className="w-10 h-10 rounded-lg bg-[#f2ecf8] flex items-center justify-center mb-4">
                   <KeyRound className="w-5 h-5 text-[#5a00b8]" />
@@ -598,7 +598,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
                 </p>
               </div>
 
-              {/* Role-based access */}
+
               <div className="p-6 rounded-2xl border border-[#5a00b8]/15 bg-white shadow-sm flex flex-col justify-start min-h-[200px]">
                 <div className="w-10 h-10 rounded-lg bg-[#f2ecf8] flex items-center justify-center mb-4">
                   <ShieldCheck className="w-5 h-5 text-[#5a00b8]" />
@@ -607,7 +607,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
                   <h3 className="text-lg font-bold text-[#111827] tracking-tight">
                     Role-based access
                   </h3>
-                  <span 
+                  <span
                     className="w-4 h-4 rounded-full bg-[#eee4ff] text-[#5a00b8] text-[10px] font-bold inline-flex items-center justify-center cursor-help"
                     title="RBAC means role-based access control. It limits each user to the tools, records, and aircraft approved for their role."
                   >
@@ -619,7 +619,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
                 </p>
               </div>
 
-              {/* Trusted devices */}
+
               <div className="p-6 rounded-2xl border border-[#5a00b8]/15 bg-white shadow-sm flex flex-col justify-start min-h-[200px]">
                 <div className="w-10 h-10 rounded-lg bg-[#f2ecf8] flex items-center justify-center mb-4">
                   <MonitorCheck className="w-5 h-5 text-[#5a00b8]" />
@@ -632,7 +632,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
                 </p>
               </div>
 
-              {/* Release integrity */}
+
               <div className="p-6 rounded-2xl border border-[#5a00b8]/15 bg-white shadow-sm flex flex-col justify-start min-h-[200px]">
                 <div className="w-10 h-10 rounded-lg bg-[#f2ecf8] flex items-center justify-center mb-4">
                   <Fingerprint className="w-5 h-5 text-[#5a00b8]" />
@@ -649,7 +649,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
         </div>
       </section>
 
-      {/* 8. Data Flow Section: GCS and Command Center stay aligned */}
+
       <section className="w-full py-16 sm:py-20 lg:py-24 bg-white border-t border-[#5a00b8]/10">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="max-w-3xl mb-12">
@@ -665,7 +665,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
             {dataFlowCards.map((card, idx) => {
               const IconComp = card.icon;
               return (
-                <div 
+                <div
                   key={idx}
                   className="p-7 rounded-2xl border border-[#5a00b8]/15 bg-gradient-to-b from-white to-[#fcfaff] shadow-[0_4px_24px_rgba(31,18,45,0.04)] hover:shadow-[0_16px_36px_rgba(59,0,128,0.08)] hover:border-[#5a00b8]/30 transition-all duration-300 flex flex-col justify-start"
                 >
@@ -685,11 +685,11 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
         </div>
       </section>
 
-      {/* 9. Downloads and Releases Section: Traceable version history */}
+
       <section className="w-full py-16 sm:py-20 lg:py-24 bg-[#fbf9fd] border-t border-[#5a00b8]/10">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-10 lg:gap-14 items-center">
-            {/* Left Copy */}
+
             <div>
               <p className="text-xs font-bold tracking-widest text-[#5a00b8] uppercase mb-3">
                 DOWNLOADS AND RELEASES
@@ -700,7 +700,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
               <p className="text-base text-slate-600 leading-relaxed mb-8 max-w-xl">
                 The IndoFleet website publishes the latest GCS release, release date, file size, platform, checksum, release summary, known limitations, and archived versions. Organizations should review release notes and verify checksums before production rollout.
               </p>
-              <button 
+              <button
                 onClick={onOpenCommandCenter}
                 className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-[#5a00b8] hover:bg-[#4c0099] text-white text-sm font-semibold shadow-md transition-all active:scale-95 border border-purple-400/30"
               >
@@ -709,12 +709,12 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
               </button>
             </div>
 
-            {/* Right Console Grid */}
+
             <div className="p-6 sm:p-7 rounded-2xl bg-white/90 border border-[#5a00b8]/15 shadow-[0_12px_36px_rgba(31,18,45,0.06)] grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {releasePillItems.map((item, idx) => {
                 const ItemIcon = item.icon;
                 return (
-                  <div 
+                  <div
                     key={idx}
                     className="flex items-center gap-3 p-3.5 sm:p-4 rounded-xl border border-[#5a00b8]/12 bg-[#faf7fd] text-[#111827] font-semibold text-sm hover:border-[#5a00b8]/30 hover:bg-white hover:shadow-sm transition-all"
                   >
@@ -730,7 +730,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
         </div>
       </section>
 
-      {/* 10. Platform FAQ Section: Questions before installing GCS */}
+
       <section className="w-full py-16 sm:py-24 bg-white border-t border-[#5a00b8]/10">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="max-w-3xl mb-12">
@@ -744,7 +744,7 @@ export const PlatformPage: React.FC<PlatformPageProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {platformFaqs.map((faq, idx) => (
-              <div 
+              <div
                 key={idx}
                 className="p-7 rounded-2xl border border-[#5a00b8]/15 bg-white shadow-sm hover:shadow-md hover:border-[#5a00b8]/30 transition-all flex flex-col justify-start"
               >

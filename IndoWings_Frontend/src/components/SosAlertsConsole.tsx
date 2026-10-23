@@ -68,14 +68,12 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
   const activeAlerts = alerts.filter((a) => a.status === 'active');
   const resolvedAlerts = alerts.filter((a) => a.status === 'resolved');
 
-  // If new active alert arrives, auto-surface active tab
   useEffect(() => {
     if (activeAlerts.length > 0 && filter === 'resolved') {
       setFilter('active');
     }
   }, [activeAlerts.length]);
 
-  // Priority sorting: Active / Pending emergencies always at top, then newest first
   const sortedAlerts: SosAlertItem[] = useMemo(() => {
     return [...alerts].sort((a: SosAlertItem, b: SosAlertItem) => {
       if (a.status === 'active' && b.status !== 'active') return -1;
@@ -104,7 +102,6 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
     setResolveNotes('');
   };
 
-  // Play Web Audio Beep / Siren Alarm + Voice Dispatch Readout
   const playEmergencyTone = () => {
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -131,9 +128,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
     if (raw.startsWith('blob:') || raw.startsWith('http')) {
       return raw;
     }
-    // If raw already has a data: prefix
     if (raw.startsWith('data:')) {
-      // Replace generic/misdetected octet-stream with audio/mp4
       if (raw.startsWith('data:application/octet-stream;base64,')) {
         return raw.replace('data:application/octet-stream;base64,', 'data:audio/mp4;base64,');
       }
@@ -145,12 +140,10 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
         return `data:audio/mp4;base64,${parts[1]}`;
       }
     }
-    // Clean raw base64 string
     const clean = raw.replace(/\s+/g, '');
     return `data:audio/mp4;base64,${clean}`;
   };
 
-  // Text-to-Speech Voice Dispatch Readout
   const handlePlayVoiceDispatch = (alert: SosAlertItem) => {
     playEmergencyTone();
 
@@ -168,7 +161,6 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
 
-    // Prevent garbage collection bug in Chrome
     (window as any)._activeSosUtterance = utterance;
 
     utterance.onstart = () => setSpeakingId(alert.id);
@@ -200,7 +192,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* ── HEADER & STATS ────────────────────────────────────────── */}
+
       <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
           <div className="flex items-center gap-3">
@@ -245,7 +237,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
           </div>
         </div>
 
-        {/* Quick Stats Grid */}
+
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
           <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Beacons</p>
@@ -267,7 +259,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
           </div>
         </div>
 
-        {/* Filter Tabs */}
+
         <div className="flex items-center gap-2 mt-5 pt-4 border-t border-slate-100">
           <button
             onClick={() => setFilter('active')}
@@ -303,7 +295,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
         </div>
       </div>
 
-      {/* ── ALERTS LIST ────────────────────────────────────────────── */}
+
       {filteredAlerts.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-xs">
           <div className="w-14 h-14 rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
@@ -373,7 +365,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
                     </div>
                   </div>
 
-                  {/* Actions */}
+
                   <div className="flex items-center gap-2 flex-wrap">
                     {alert.pilot_phone && (
                       <a
@@ -433,7 +425,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
                   </div>
                 </div>
 
-                {/* Details Grid */}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-4">
                   <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
@@ -475,7 +467,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
                   </div>
                 </div>
 
-                {/* ── REAL-TIME INTERACTIVE DRIVER MAP ───────────────────────── */}
+
                 {isMapOpen && alert.latitude && alert.longitude && (
                   <div className="mt-4 rounded-2xl overflow-hidden border border-slate-200 shadow-xs relative bg-slate-900">
                     <div className="h-64 sm:h-72 w-full">
@@ -487,7 +479,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
                       />
                     </div>
 
-                    {/* Floating Map Overlay Badge */}
+
                     <div className="absolute top-3 left-3 bg-slate-900/90 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl border border-white/20 backdrop-blur-md flex items-center gap-2 shadow-lg">
                       <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
                       <span>
@@ -495,7 +487,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
                       </span>
                     </div>
 
-                    {/* Layer Switcher */}
+
                     <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-white/95 rounded-xl p-1 shadow-md border border-slate-200">
                       <button
                         onClick={() => toggleMapLayer(alert.id)}
@@ -521,7 +513,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
                   </div>
                 )}
 
-                {/* ── AUDIO VOICE NOTE PLAYER & AI VOICE DISPATCH ─────────────── */}
+
                 <div className="mt-3.5 p-3.5 rounded-2xl bg-purple-50/70 border border-purple-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3 w-full sm:w-auto">
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
@@ -570,7 +562,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
                   </div>
                 </div>
 
-                {/* Notes & Resolution details */}
+
                 {alert.notes && (
                   <div className="mt-3.5 p-3 rounded-2xl bg-slate-50 border border-slate-100 text-xs text-slate-700">
                     <span className="font-bold text-slate-900">Pilot Distress Note: </span>
@@ -600,7 +592,7 @@ export const SosAlertsConsole: React.FC<SosAlertsConsoleProps> = ({
         </div>
       )}
 
-      {/* ── RESOLVE MODAL ────────────────────────────────────────── */}
+
       {resolveModalId && (
         <div
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"

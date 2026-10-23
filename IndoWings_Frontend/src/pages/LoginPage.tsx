@@ -30,7 +30,6 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) => {
-  // Automatically forward logged in users to their role dashboard
   useEffect(() => {
     const token = localStorage.getItem('iw_delivery_token');
     const userStr = localStorage.getItem('iw_delivery_user');
@@ -63,10 +62,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     }
   }, [onNavigate]);
 
-  // Login method: 'email' or 'phone'
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
 
-  // Email verification and password state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -78,7 +75,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
   } | null>(null);
   const [emailAuthMode, setEmailAuthMode] = useState<'otp' | 'password'>('otp');
 
-  // Phone verification state
   const [phone, setPhone] = useState('');
   const [verifiedPhoneUser, setVerifiedPhoneUser] = useState<{
     name: string;
@@ -88,20 +84,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
   } | null>(null);
   const [phoneAuthMode, setPhoneAuthMode] = useState<'otp' | 'password'>('otp');
 
-  // Phone + OTP state
   const [otpStep, setOtpStep] = useState(false);
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [otpDestination, setOtpDestination] = useState('');
   const [resendTimer, setResendTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
 
-  // Status & loading
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const [otpInputsRef] = [useRef<(HTMLInputElement | null)[]>([])];
 
-  // Forgot password modal state
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotIdentifier, setForgotIdentifier] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
@@ -193,7 +186,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     }
   };
 
-  // First-time login mandatory password change state
   const [showFirstTimeModal, setShowFirstTimeModal] = useState(false);
   const [pendingUser, setPendingUser] = useState<DeliveryUser | null>(null);
   const [pendingToken, setPendingToken] = useState<string>('');
@@ -331,7 +323,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     }
   };
 
-  // 1. STEP 1: VERIFY IF EMAIL EXISTS IN DATABASE
   const handleVerifyEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
@@ -366,7 +357,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     }
   };
 
-  // 2. STEP 2: VERIFY EMAIL PASSWORD & DISPATCH OTP
   const handleEmailPasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
@@ -406,7 +396,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     }
   };
 
-  // 3. STEP 1 FOR PHONE: VERIFY IF MOBILE NUMBER EXISTS
   const handleVerifyPhone = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
@@ -442,7 +431,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     }
   };
 
-  // 4. STEP 2 FOR PHONE: VERIFY PHONE PASSWORD & DISPATCH OTP
   const handlePhonePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
@@ -482,7 +470,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     }
   };
 
-  // 5. EMAIL OTP REQUEST
   const handleSendEmailOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
@@ -519,7 +506,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     }
   };
 
-  // 6. PHONE SMS OTP REQUEST
   const handleSendPhoneOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
@@ -557,7 +543,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     }
   };
 
-  // 7. UNIVERSAL OTP VERIFICATION (EMAIL OR PHONE)
   const handleVerifyOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const fullOtp = otpDigits.join('');
@@ -647,14 +632,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-white">
-      {/* ── LEFT: Classic Enterprise Branding Panel ─────────────────── */}
+
       <div
         className="hidden lg:flex lg:w-[46%] flex-col justify-between p-12 xl:p-16 relative overflow-hidden"
         style={{
           background: 'linear-gradient(135deg, #101222 0%, #191b30 55%, #0d0e1a 100%)',
         }}
       >
-        {/* Subtle grid pattern */}
+
         <div
           className="absolute inset-0 opacity-[0.06] pointer-events-none"
           style={{
@@ -664,13 +649,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
           }}
         />
 
-        {/* Ambient atmospheric glow */}
+
         <div
           className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-10 pointer-events-none"
           style={{ background: 'radial-gradient(circle, #ffffff 0%, transparent 70%)' }}
         />
 
-        {/* Top brand header */}
+
         <div className="relative z-10">
           <button
             onClick={() => {
@@ -694,7 +679,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
           </p>
         </div>
 
-        {/* Operational Roles Overview */}
+
         <div className="relative z-10 space-y-3 my-8">
           {[
             {
@@ -728,15 +713,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
           ))}
         </div>
 
-        {/* Footer info */}
+
         <div className="relative z-10 text-[11px] text-white/40">
           Copyright &copy; 2026 IndoFleet. All rights reserved.
         </div>
       </div>
 
-      {/* ── RIGHT: Form Panel ───────────────────────────────────────── */}
+
       <div className="flex-1 flex flex-col justify-center px-6 sm:px-12 lg:px-16 xl:px-20 bg-white py-12">
-        {/* Mobile Header */}
+
         <div className="lg:hidden flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
           <img src="/indofleet-logo-dark.svg" alt="IndoFleet" className="h-7 w-auto" />
           <button
@@ -769,7 +754,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                 Your account was provisioned with a temporary passkey. You must verify identity via OTP and set a permanent password to continue.
               </p>
 
-              {/* Channel Selector: Email or Phone */}
+
               <div className="mb-4">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
                   Send Verification OTP To
@@ -926,7 +911,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
             </div>
           ) : (
             <>
-              {/* Header icon & title */}
+
               <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 mb-5 shadow-sm">
                 <KeyRound className="w-6 h-6 text-slate-800" />
               </div>
@@ -938,7 +923,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
             Enter your corporate credentials to securely access your operations terminal.
           </p>
 
-          {/* Login Method Toggle */}
+
           <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
             <button
               type="button"
@@ -974,11 +959,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
             </button>
           </div>
 
-          {/* ── METHOD 1: EMAIL (TWO-STEP: VERIFY ACCOUNT -> ENTER PASSWORD) ── */}
+
           {authMethod === 'email' && (
             <div className="space-y-4">
               {!verifiedEmailUser ? (
-                // Step 1: Verify Email
                 <form onSubmit={handleVerifyEmail} className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
@@ -1019,9 +1003,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   </button>
                 </form>
               ) : !otpStep ? (
-                // Step 2: Account Verified -> Enter Password
                 <form onSubmit={handleEmailPasswordLogin} className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-200">
-                  {/* Verified Personnel Card */}
+
                   <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200 flex items-center justify-between">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
@@ -1115,7 +1098,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   </button>
                 </form>
               ) : (
-                // Step 3 (Email OTP Verification)
                 <div className="animate-in fade-in slide-in-from-right-2 duration-200">
                   <button
                     onClick={() => {
@@ -1200,11 +1182,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
             </div>
           )}
 
-          {/* ── METHOD 2: MOBILE (TWO-STEP: VERIFY ACCOUNT -> PASSWORD -> OTP) ── */}
+
           {authMethod === 'phone' && (
             <div className="space-y-4">
               {!verifiedPhoneUser ? (
-                // Step 1: Verify Mobile
                 <form onSubmit={handleVerifyPhone} className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
@@ -1241,9 +1222,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   </button>
                 </form>
               ) : !otpStep ? (
-                // Step 2: Account Verified -> Enter Password
                 <form onSubmit={handlePhonePasswordLogin} className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-200">
-                  {/* Verified Personnel Card */}
+
                   <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200 flex items-center justify-between">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
@@ -1337,7 +1317,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
                   </button>
                 </form>
               ) : (
-                // Step 3 (Phone OTP Verification)
                 <div className="animate-in fade-in slide-in-from-right-2 duration-200">
                   <button
                     onClick={() => {
@@ -1422,7 +1401,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
             </div>
           )}
 
-          {/* Clean Enterprise Assistance */}
+
           <div className="mt-8 pt-6 border-t border-slate-100 text-center text-xs text-slate-400">
             <span>Need assistance with your account? </span>
             <a
@@ -1442,7 +1421,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
     </div>
       </div>
 
-      {/* ── FORGOT PASSWORD MODAL ─────────────────────────────────────── */}
+
       {showForgotModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150">

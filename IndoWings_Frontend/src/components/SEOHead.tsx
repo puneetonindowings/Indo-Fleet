@@ -92,10 +92,8 @@ export const SEOHead: React.FC<SEOHeadProps> = ({ currentPage }) => {
   useEffect(() => {
     const meta = PAGE_META_MAP[currentPage] || PAGE_META_MAP.home;
 
-    // 1. Update Title
     document.title = meta.title;
 
-    // 2. Update Meta Description
     let descElem = document.querySelector('meta[name="description"]');
     if (!descElem) {
       descElem = document.createElement('meta');
@@ -104,7 +102,6 @@ export const SEOHead: React.FC<SEOHeadProps> = ({ currentPage }) => {
     }
     descElem.setAttribute('content', meta.description);
 
-    // 3. Update Meta Keywords
     let kwElem = document.querySelector('meta[name="keywords"]');
     if (!kwElem) {
       kwElem = document.createElement('meta');
@@ -113,7 +110,6 @@ export const SEOHead: React.FC<SEOHeadProps> = ({ currentPage }) => {
     }
     kwElem.setAttribute('content', meta.keywords);
 
-    // 4. Update Canonical Link
     let canonicalElem = document.querySelector('link[rel="canonical"]');
     if (!canonicalElem) {
       canonicalElem = document.createElement('link');
@@ -122,7 +118,6 @@ export const SEOHead: React.FC<SEOHeadProps> = ({ currentPage }) => {
     }
     canonicalElem.setAttribute('href', meta.canonical);
 
-    // 5. Update Open Graph Tags
     const updateOg = (property: string, content: string) => {
       let ogElem = document.querySelector(`meta[property="${property}"]`);
       if (!ogElem) {
@@ -140,7 +135,6 @@ export const SEOHead: React.FC<SEOHeadProps> = ({ currentPage }) => {
     updateOg('og:site_name', 'IndoFleet by IndoFleet');
     updateOg('og:image', 'https://indowfleet.com/indowfleet-hero.png');
 
-    // 6. Update Twitter Card Tags
     const updateTwitter = (name: string, content: string) => {
       let twElem = document.querySelector(`meta[name="${name}"]`);
       if (!twElem) {
@@ -156,7 +150,6 @@ export const SEOHead: React.FC<SEOHeadProps> = ({ currentPage }) => {
     updateTwitter('twitter:description', meta.description);
     updateTwitter('twitter:image', 'https://indowfleet.com/indowfleet-hero.png');
 
-    // 7. Inject Dynamic Breadcrumb JSON-LD
     let scriptElem = document.getElementById('jsonld-breadcrumbs');
     if (!scriptElem) {
       scriptElem = document.createElement('script');

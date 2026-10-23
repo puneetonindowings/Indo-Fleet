@@ -93,7 +93,6 @@ export const App: React.FC = () => {
   const [selectedDroneForDemo, setSelectedDroneForDemo] = useState<string | undefined>(undefined);
   const [currentPage, setCurrentPage] = useState<Page>(getInitialPage);
 
-  // Restore delivery session on load with expiration and integrity validation
   useEffect(() => {
     const token = localStorage.getItem('iw_delivery_token');
     const userStr = localStorage.getItem('iw_delivery_user');
@@ -115,7 +114,6 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // Route Protection & Role Governance for Enterprise Dashboards & Fleet Store
   useEffect(() => {
     const protectedPages: Page[] = ['admin', 'fleet', 'support-desk', 'dispatch', 'drone-dispatch', 'delivery-tracking', 'shop', 'store', 'cart'];
     if (protectedPages.includes(currentPage)) {
@@ -177,14 +175,12 @@ export const App: React.FC = () => {
     }
   }, [currentPage, deliveryUser]);
 
-  // Browser back/forward
   useEffect(() => {
     const handlePopState = () => setCurrentPage(getInitialPage());
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Old GCS session restore
   useEffect(() => {
     const token = localStorage.getItem('iw_token');
     if (token) {
@@ -241,8 +237,6 @@ export const App: React.FC = () => {
     setSelectedDroneForDemo(droneName);
     setIsDemoModalOpen(true);
   };
-
-
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f7f4fb] text-[#171222] font-sans antialiased w-full max-w-full">

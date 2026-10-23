@@ -15,7 +15,6 @@ async function seed1000Drones() {
     process.exit(1);
   }
 
-  // Clear drone_fleet first to ensure clean 1000 drones seed
   const { error: deleteError } = await supabase.from('drone_fleet').delete().neq('id', '');
   if (deleteError) {
     console.warn('[seed] Note on clearing drone_fleet:', deleteError.message);

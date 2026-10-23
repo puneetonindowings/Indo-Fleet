@@ -61,7 +61,6 @@ export const SosModal: React.FC<SosModalProps> = ({
   const mediaRecorderRef = useRef<any>(null);
   const audioChunksRef = useRef<any[]>([]);
 
-  // Automatically start countdown as soon as SOS opens
   useEffect(() => {
     if (visible) {
       setSecondsRemaining(60);
@@ -70,7 +69,6 @@ export const SosModal: React.FC<SosModalProps> = ({
       setSending(false);
       startAudioRecording();
 
-      // Start 60-second automatic countdown
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = setInterval(() => {
         setSecondsRemaining((prev) => {
@@ -93,7 +91,6 @@ export const SosModal: React.FC<SosModalProps> = ({
     };
   }, [visible]);
 
-  // Live dynamic audio waveform animation
   useEffect(() => {
     if (visible && isRecording) {
       const waveInterval = setInterval(() => {
@@ -140,7 +137,6 @@ export const SosModal: React.FC<SosModalProps> = ({
       return;
     }
 
-    // Native Mobile (Android/iOS) Audio Recording
     try {
       const { granted } = await requestRecordingPermissionsAsync();
       if (!granted) {
@@ -177,7 +173,6 @@ export const SosModal: React.FC<SosModalProps> = ({
     setIsRecording(false);
     setSending(true);
 
-    // 1. Flush & Stop Audio Recording safely with full completion
     let audioBase64: string | undefined = undefined;
     try {
       if (Platform.OS === 'web') {
@@ -224,7 +219,6 @@ export const SosModal: React.FC<SosModalProps> = ({
               const reader = new FileReader();
               reader.onloadend = () => {
                 const resStr = (reader.result as string) || '';
-                // Ensure proper MIME type is data:audio/mp4;base64,
                 const clean = resStr.replace(/^data:[^;]+;base64,/, 'data:audio/mp4;base64,');
                 resolve(clean.startsWith('data:audio/') ? clean : `data:audio/mp4;base64,${clean}`);
               };
@@ -240,7 +234,6 @@ export const SosModal: React.FC<SosModalProps> = ({
       console.warn('Audio base64 conversion notice:', e);
     }
 
-    // 2. Fetch Real Hardware Battery Percentage
     let realBattery = batteryPct;
     try {
       if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'getBattery' in navigator) {
@@ -258,7 +251,6 @@ export const SosModal: React.FC<SosModalProps> = ({
       console.log('Live battery fetch notice:', bErr);
     }
 
-    // 3. Fetch Real Hardware GPS Position
     let realCoords = currentCoords;
     try {
       if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'geolocation' in navigator) {
@@ -272,7 +264,6 @@ export const SosModal: React.FC<SosModalProps> = ({
             },
             async (geoErr) => {
               console.warn('Browser GPS permission error:', geoErr?.message);
-              // Fallback to real IP-based geolocation if browser GPS is blocked/denied
               try {
                 const ipRes = await fetch('https://ipapi.co/json/');
                 const ipData = await ipRes.json();
@@ -286,14 +277,12 @@ export const SosModal: React.FC<SosModalProps> = ({
           );
         });
       } else if (Location) {
-        // Native Mobile (Android / iOS):
         let { status } = await Location.getForegroundPermissionsAsync();
         if (status !== 'granted') {
           const req = await Location.requestForegroundPermissionsAsync();
           status = req.status;
         }
         if (status === 'granted') {
-          // 1. Fast immediate lock from cached device GPS
           try {
             const lastKnown = await Location.getLastKnownPositionAsync();
             if (lastKnown?.coords) {
@@ -301,7 +290,6 @@ export const SosModal: React.FC<SosModalProps> = ({
             }
           } catch {}
 
-          // 2. Balanced accuracy live satellite fix
           try {
             const cur = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
             if (cur?.coords) {
@@ -364,7 +352,7 @@ export const SosModal: React.FC<SosModalProps> = ({
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
         {isDispatched ? (
-          /* ================= LIGHT THEME FULL SCREEN SUCCESS STATE ================= */
+
           <View style={styles.successFullScreen}>
             <View style={styles.successCard}>
               <View style={styles.successIconOuter}>
@@ -414,9 +402,9 @@ export const SosModal: React.FC<SosModalProps> = ({
             </View>
           </View>
         ) : (
-          /* ================= LIGHT THEME FULL SCREEN ACTIVE EMERGENCY STATE ================= */
+
           <View style={styles.activeFullScreen}>
-            {/* Top Bar with notch safe-padding */}
+
             <View style={styles.topBar}>
               <View style={styles.topBarBadge}>
                 <View style={styles.blinkingBeaconDot} />
@@ -437,7 +425,7 @@ export const SosModal: React.FC<SosModalProps> = ({
               showsVerticalScrollIndicator={false}
               bounces={false}
             >
-              {/* Giant Glowing Countdown Radar */}
+
               <View style={styles.radarOuterRing}>
                 <View style={styles.radarMiddleRing}>
                   <View style={styles.radarInnerRing}>
@@ -448,7 +436,7 @@ export const SosModal: React.FC<SosModalProps> = ({
                 </View>
               </View>
 
-              {/* Live Ambient Mic Audio Waveform Card */}
+
               <View style={styles.audioMonitorCard}>
                 <View style={styles.audioMonitorHeader}>
                   <View style={styles.micRecordingBadge}>
@@ -458,7 +446,7 @@ export const SosModal: React.FC<SosModalProps> = ({
                   <Text style={styles.audioTimerText}>{60 - secondsRemaining}s / 60s</Text>
                 </View>
 
-                {/* Animated Waveform Equalizer */}
+
                 <View style={styles.waveformContainer}>
                   {waveHeights.map((h, i) => (
                     <View
@@ -479,7 +467,7 @@ export const SosModal: React.FC<SosModalProps> = ({
                 </Text>
               </View>
 
-              {/* Real-time GPS & Telemetry Card */}
+
               <View style={styles.telemetryCard}>
                 <Text style={styles.telemetryCardHeader}>LIVE TELEMETRY BROADCAST</Text>
 
@@ -522,7 +510,7 @@ export const SosModal: React.FC<SosModalProps> = ({
               </Text>
             </ScrollView>
 
-            {/* Bottom Fixed Action Bar */}
+
             <View style={styles.bottomBar}>
               <TouchableOpacity
                 style={styles.cancelBtn}
@@ -857,7 +845,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
-  /* Full Screen Success (Light Theme) */
+
   successFullScreen: {
     flex: 1,
     backgroundColor: '#FFFFFF',

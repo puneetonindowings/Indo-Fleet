@@ -4,7 +4,6 @@ import { fileDB } from '../db.js';
 
 const router = Router();
 
-// POST demo request
 router.post('/demo-request', async (req, res) => {
   try {
     const { name, email, phone, organization, drone_interest, use_case, message } = req.body;
@@ -33,9 +32,9 @@ router.post('/demo-request', async (req, res) => {
       severity: 'INFO'
     });
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: 'Thank you! Your flight demo inquiry has been registered with IndoFleet flight engineers.',
-      request: saved 
+      request: saved
     });
   } catch (error) {
     console.error('[contact] Failed to submit demo request:', error);
@@ -43,7 +42,6 @@ router.post('/demo-request', async (req, res) => {
   }
 });
 
-// POST general contact
 router.post('/contact', async (req, res) => {
   try {
     const { name, email, message, subject } = req.body;
@@ -66,7 +64,6 @@ router.post('/contact', async (req, res) => {
   }
 });
 
-// POST feedback
 router.post('/feedback', async (req, res) => {
   try {
     const { name, email, rating, category, message } = req.body;
@@ -88,10 +85,10 @@ router.post('/feedback', async (req, res) => {
       status: 'published'
     });
 
-    res.status(201).json({ 
+    res.status(201).json({
       success: true,
       message: 'Thank you! Your feedback has been recorded and submitted to the IndoFleet engineering team.',
-      feedback: savedFb 
+      feedback: savedFb
     });
   } catch (error) {
     console.error('[contact] Failed to record feedback:', error);

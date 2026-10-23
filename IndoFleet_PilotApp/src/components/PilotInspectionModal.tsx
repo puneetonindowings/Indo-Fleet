@@ -40,7 +40,6 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
   const defaultDrone = order?.assigned_drone_id || order?.drone_id || 'RPAV-000001';
   const [droneId, setDroneId] = useState(defaultDrone);
 
-  // Field Verification Specific Checklist (Delivery Person)
   const [cargoBayCondition, setCargoBayCondition] = useState<string>('CLEAN_RELEASE');
   const [landingSurface, setLandingSurface] = useState<string>('SAFE_FLAT');
   const [propellerCheck, setPropellerCheck] = useState<string>('SPINS_FREE_NO_DEBRIS');
@@ -107,7 +106,7 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'android' ? 20 : 0}>
         <View style={styles.modalCard}>
-          {/* Header */}
+
           <View style={styles.header}>
             <View style={styles.titleRow}>
               <View style={styles.iconCircle}>
@@ -124,7 +123,7 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
           </View>
 
           <ScrollView style={styles.scrollBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            {/* Airframe & Order Details */}
+
             <View style={styles.droneIdCard}>
               <View style={styles.rowBetween}>
                 <Text style={styles.fieldLabel}>AIRFRAME ID</Text>
@@ -147,10 +146,10 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
               </Text>
             </View>
 
-            {/* Checklist Section */}
+
             <Text style={styles.sectionHeading}>POST-DELIVERY FIELD CHECKS</Text>
 
-            {/* 1. Cargo Bay & Payload Release */}
+
             <View style={styles.checkItem}>
               <View style={styles.itemHeader}>
                 <PackageCheck size={14} color="#3B0080" />
@@ -185,7 +184,7 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
               </View>
             </View>
 
-            {/* 2. Landing Surface & Ground Contact */}
+
             <View style={styles.checkItem}>
               <View style={styles.itemHeader}>
                 <MapPin size={14} color="#3B0080" />
@@ -220,7 +219,7 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
               </View>
             </View>
 
-            {/* 3. Propellers & Rotors Debris Check */}
+
             <View style={styles.checkItem}>
               <View style={styles.itemHeader}>
                 <Wind size={14} color="#3B0080" />
@@ -256,7 +255,6 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
             </View>
 
 
-            {/* 5. Zero-Defect Handover Certification */}
             <Text style={styles.sectionHeading}>ZERO-DEFECT CERTIFICATION</Text>
             <TouchableOpacity
               activeOpacity={0.85}
@@ -281,7 +279,7 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
               </View>
             </TouchableOpacity>
 
-            {/* 6. Field Notes */}
+
             <View style={styles.remarksBox}>
               <Text style={styles.fieldLabel}>FIELD DELIVERY OBSERVATIONS (OPTIONAL)</Text>
               <TextInput
@@ -296,7 +294,7 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
             </View>
           </ScrollView>
 
-          {/* Footer Submit Button */}
+
           <View style={styles.footer}>
             <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
               <Text style={styles.cancelBtnText}>Cancel</Text>

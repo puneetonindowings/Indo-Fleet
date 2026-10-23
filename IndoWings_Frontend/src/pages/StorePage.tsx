@@ -66,7 +66,6 @@ const emptyAddress = (user: DeliveryUser | null): AddressDraft => ({
   pincode: ''
 });
 
-/* ── Product facts: same values as the 700RPAV page, nothing extra ─────────── */
 const DRONE_SPECS = [
   { label: 'Flight Endurance', value: '65', unit: 'Mins', note: 'AMSL cruising' },
   { label: 'Launch Ceiling', value: '18,000', unit: 'ft', note: 'High altitude' },
@@ -92,7 +91,6 @@ const USE_CASES = [
 
 const DEFAULT_IMG = '/images/cyberonemax.png';
 
-/* Only show unit data the API actually returned */
 const getUnitInfo = (d: StoreDrone) => {
   const info: { label: string; value: string }[] = [];
   if (d.serial_number) info.push({ label: 'Serial', value: d.serial_number });
@@ -102,7 +100,6 @@ const getUnitInfo = (d: StoreDrone) => {
   return info;
 };
 
-/* 1 … 4 5 6 … 20 style pagination */
 const getPageItems = (page: number, count: number): (number | '…')[] => {
   if (count <= 7) return Array.from({ length: count }, (_, i) => i + 1);
   const items: (number | '…')[] = [1];
@@ -141,12 +138,10 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
   const [pageSize, setPageSize] = useState(embedded ? 12 : 24);
   const [addresses, setAddresses] = useState<SavedAddress[]>(currentUser?.saved_addresses || []);
 
-  // Selected drone for the product detail overlay
   const [detailDrone, setDetailDrone] = useState<StoreDrone | null>(null);
   const [productTab, setProductTab] = useState<'specs' | 'applications'>('specs');
   const [copied, setCopied] = useState(false);
 
-  // Cart maps droneId -> StoreDrone
   const [cart, setCart] = useState<Record<string, StoreDrone>>(() => {
     try {
       return JSON.parse(localStorage.getItem('iw_store_cart_drones') || '{}');
@@ -163,7 +158,6 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
-  // Fetch drones from backend
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/delivery/store/products`)
       .then(async response => {
@@ -173,7 +167,6 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
         const loadedDrones = rawList.filter((d: StoreDrone) => (!d.status || d.status === 'idle') && (!d.qc_status || d.qc_status === 'passed'));
         setDrones(loadedDrones);
 
-        // Clean out any cart items that are already booked / reserved
         setCart(prev => {
           const availableIds = new Set(loadedDrones.map((d: StoreDrone) => d.id));
           const next = { ...prev };
@@ -191,7 +184,6 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
       .finally(() => setLoading(false));
   }, []);
 
-  // Check URL params for direct product page access e.g. /store?drone=INW-700RPAV-0004
   useEffect(() => {
     const checkUrlDrone = () => {
       const params = new URLSearchParams(window.location.search);
@@ -242,17 +234,15 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     try {
       localStorage.setItem('iw_store_view', view);
     } catch {
-      /* ignore */
+
     }
   }, [view]);
 
-  // Hubs that actually exist in the inventory data
   const hubs = useMemo(
     () => Array.from(new Set(drones.map(d => d.current_city).filter(Boolean) as string[])).sort(),
     [drones]
   );
 
-  // Filter and sort drones by Drone ID / search query / hub
   const filteredDrones = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = drones;
@@ -309,7 +299,6 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     });
   };
 
-  // Select / deselect every unit on the current page
   const togglePage = () => {
     setError('');
     setCart(prev => {
@@ -325,7 +314,6 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     });
   };
 
-  // Add the next N units from the current results that are not in the cart yet
   const addFirstN = () => {
     setError('');
     setCart(prev => {
@@ -344,7 +332,6 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
 
   const selectedAddress = addresses.find(address => address.id === selectedAddressId);
 
-  // Open product detail
   const handleOpenDetail = (drone: StoreDrone) => {
     setDetailDrone(drone);
     setProductTab('specs');
@@ -353,7 +340,6 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Back to main store grid
   const handleBackToStore = () => {
     setDetailDrone(null);
     window.history.pushState({}, '', '/store');
@@ -367,11 +353,10 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      /* clipboard not available */
+
     }
   };
 
-  // View mode: 'grid' (products list) vs 'cart' (dedicated cart & booking page)
   const [storeView, setStoreView] = useState<'grid' | 'cart'>(() => {
     if (typeof window !== 'undefined' && (window.location.pathname.includes('/cart') || window.location.search.includes('cart'))) {
       return 'cart';
@@ -379,7 +364,6 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     return 'grid';
   });
 
-  // Sync view mode with URL state
   useEffect(() => {
     const handleUrlChange = () => {
       if (window.location.pathname.includes('/cart') || window.location.search.includes('cart')) {
@@ -413,7 +397,6 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     openCartPage();
   };
 
-  // Sequence navigation
   const { prevDrone, nextDrone } = useMemo(() => {
     if (!detailDrone || drones.length === 0) return { prevDrone: null, nextDrone: null };
     const currentIndex = drones.findIndex(d => d.id === detailDrone.id);
@@ -422,7 +405,6 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     return { prevDrone: prev, nextDrone: next };
   }, [detailDrone, drones]);
 
-  // Detail overlay: Esc closes, arrow keys move between units, page scroll is locked
   useEffect(() => {
     if (!detailDrone) return;
     const onKey = (e: KeyboardEvent) => {
@@ -524,9 +506,8 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     }
   };
 
-  
-  // RENDER: LOGIN GATE
-  
+
+
   if (!currentUser) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 pb-20 pt-28 text-slate-800 sm:pt-36">
@@ -554,9 +535,8 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     );
   }
 
-  
-  // RENDER: CART & BOOKING
-  
+
+
   if (storeView === 'cart') {
     return (
       <div className="min-h-screen bg-slate-50 pb-24 pt-24 text-slate-800 sm:pt-28">
@@ -599,9 +579,9 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
             </div>
           ) : (
             <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
-              {/* Left: units + address */}
+
               <div className="space-y-6 lg:col-span-7">
-                {/* Selected units */}
+
                 <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                   <div className="mb-4 flex items-center justify-between">
                     <h2 className="flex items-center gap-2 text-base font-black text-slate-900">
@@ -646,7 +626,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                   </ul>
                 </section>
 
-                {/* Delivery form */}
+
                 <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                   <h2 className="mb-5 flex items-center gap-2 border-b border-slate-100 pb-3 text-base font-black text-slate-900">
                     <MapPin className="h-4 w-4 text-[#5a00b8]" />
@@ -736,7 +716,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                 </section>
               </div>
 
-              {/* Right: summary */}
+
               <aside className="lg:sticky lg:top-28 lg:col-span-5">
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                   <h2 className="text-base font-black text-slate-900">Booking Summary</h2>
@@ -805,9 +785,8 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
     );
   }
 
-  
-  // RENDER: STORE (grid / list)
-  
+
+
   const detailInfo = detailDrone ? getUnitInfo(detailDrone) : [];
 
   const renderChips = (drone: StoreDrone) =>
@@ -959,7 +938,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
       <style>{STORE_CSS}</style>
 
       <section className="mx-auto max-w-7xl px-4 sm:px-6">
-        {/* Banner */}
+
         <div className="relative mb-8 overflow-hidden rounded-3xl bg-black text-white">
           <video
             src="/stick.mp4"
@@ -1005,7 +984,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
           </div>
         </div>
 
-        {/* Toolbar: search, sort, view, hub filter */}
+
         <div className="sticky top-20 z-20 mb-5 rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-sm backdrop-blur-md">
           <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
             <div className="relative flex-1">
@@ -1087,7 +1066,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
           )}
         </div>
 
-        {/* Results bar: count + bulk tools */}
+
         {!loading && filteredDrones.length > 0 && (
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1">
             <p className="text-xs font-semibold text-slate-500">
@@ -1133,7 +1112,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
           <p className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">{error}</p>
         )}
 
-        {/* Inventory */}
+
         <section className="w-full">
           {loading ? (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
@@ -1179,7 +1158,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                 <div className="space-y-3">{visibleDrones.map((drone, i) => renderRow(drone, i))}</div>
               )}
 
-              {/* Pagination */}
+
               {pageCount > 1 && (
                 <nav
                   aria-label="Pagination"
@@ -1257,7 +1236,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
           )}
         </section>
 
-        {/* Floating cart bar */}
+
         {totalUnits > 0 && !detailDrone && (
           <div className="fixed inset-x-4 bottom-5 z-40 sm:inset-x-auto sm:bottom-6 sm:right-24">
             <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-[0_12px_40px_rgba(60,10,120,0.2)]">
@@ -1289,7 +1268,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
         )}
       </section>
 
-      {/* ── PRODUCT DETAIL OVERLAY ──────────────────────────────────────────── */}
+
       {detailDrone && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm sm:p-6"
@@ -1302,7 +1281,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
             className="relative my-auto max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-slate-100 bg-white p-5 shadow-2xl sm:p-8"
             onClick={e => e.stopPropagation()}
           >
-            {/* Top bar */}
+
             <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-xl border border-purple-100 bg-purple-50 px-3 py-1 font-mono text-xs font-bold text-[#5a00b8]">
@@ -1358,7 +1337,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
             </div>
 
             <div className="grid items-start gap-6 sm:gap-8 md:grid-cols-2">
-              {/* Image + unit data */}
+
               <div className="flex flex-col rounded-2xl border border-slate-100 bg-gradient-to-br from-purple-50 via-white to-slate-50 p-6">
                 <div className="flex min-h-[240px] flex-1 items-center justify-center">
                   <img
@@ -1379,7 +1358,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                 )}
               </div>
 
-              {/* Details & actions */}
+
               <div className="space-y-5">
                 <div>
                   <span className="mb-1 block text-[11px] font-bold text-[#5a00b8]">Tactical UAV</span>
@@ -1391,7 +1370,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                   </p>
                 </div>
 
-                {/* Spec tiles */}
+
                 <div className="grid grid-cols-2 gap-2">
                   {DRONE_SPECS.map(s => (
                     <div key={s.label} className="rounded-xl border border-purple-100 bg-purple-50/60 p-3">
@@ -1405,7 +1384,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                   ))}
                 </div>
 
-                {/* Tabs */}
+
                 <div>
                   <div className="flex border-b border-slate-200" role="tablist">
                     {([
@@ -1447,7 +1426,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                   </ul>
                 </div>
 
-                {/* Actions */}
+
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
@@ -1488,4 +1467,4 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
       )}
     </div>
   );
-};  
+};

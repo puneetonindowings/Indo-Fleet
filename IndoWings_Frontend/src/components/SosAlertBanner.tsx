@@ -22,7 +22,7 @@ export const SosAlertBanner: React.FC<SosAlertBannerProps> = ({
   return (
     <div className="mb-6 p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white shadow-xl shadow-red-500/20 border-2 border-red-300/40 animate-pulse-subtle overflow-hidden max-w-full">
       <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
-        {/* Left Side: Alert Icon & Info */}
+
         <div className="flex items-start gap-3.5 min-w-0 max-w-full flex-1">
           <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/30 shadow-inner">
             <AlertTriangle className="w-7 h-7 text-white animate-bounce" />
@@ -68,7 +68,7 @@ export const SosAlertBanner: React.FC<SosAlertBannerProps> = ({
           </div>
         </div>
 
-        {/* Right Side: Quick Action Buttons - Fully constrained inside banner */}
+
         <div className="flex items-center gap-2 w-full xl:w-auto flex-wrap justify-start xl:justify-end shrink-0">
           {latest.latitude && latest.longitude && (
             <a

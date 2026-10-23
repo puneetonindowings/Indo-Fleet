@@ -9,7 +9,6 @@ import {
 
 const router = Router();
 
-// Register a client device FCM token
 router.post('/register-token', (req: Request, res: Response) => {
   const { userId, token, role } = req.body;
   if (!token) {
@@ -21,7 +20,6 @@ router.post('/register-token', (req: Request, res: Response) => {
   res.json({ success: true, message: 'Device push notification token registered successfully' });
 });
 
-// Unregister a client device FCM token
 router.post('/unregister-token', (req: Request, res: Response) => {
   const { userId, token } = req.body;
   if (!token) {
@@ -33,7 +31,6 @@ router.post('/unregister-token', (req: Request, res: Response) => {
   res.json({ success: true, message: 'Device token unregistered successfully' });
 });
 
-// Test push notification endpoint
 router.post('/send-test', async (req: Request, res: Response) => {
   const { token, userId, title, body, data } = req.body;
 

@@ -481,7 +481,6 @@ function toFeedback(feedback: JsonRecord) {
   };
 }
 
-
 class InMemoryCache {
   private cache = new Map<string, { data: any; expiresAt: number }>();
 
@@ -628,7 +627,6 @@ export const deliveryStore = {
     fail('list delivery orders', error);
     const orders = (data || []).map(fromOrder);
 
-    // Cross-verify with inspections table to guarantee complete real-time sync
     try {
       const { data: insList } = await db().from('inspections').select('inspection_id,delivery_id,drone_id,stage,inspection_type,overall_inspection');
       if (Array.isArray(insList) && insList.length > 0) {
@@ -741,7 +739,6 @@ export const deliveryStore = {
     return data ? fromOrder(data) : null;
   },
   async deleteOrder(id: string) {
-    // 1. Cleanly release any drones reserved or assigned to this deleted order
     try {
       const { data: fleetRows } = await db().from('drone_fleet').select('*');
       if (Array.isArray(fleetRows)) {
@@ -1007,11 +1004,9 @@ export const deliveryStore = {
     return Boolean(data);
   },
 
-  // --- 700 RPAV Quality & Post-Delivery Inspection System ---
   async getInspections(filter?: { drone_id?: string; delivery_id?: string; inspection_type?: string; stage?: string }) {
     const mergedMap = new Map<string, any>();
 
-    // 1. Load from Supabase DB
     try {
       let query = db().from('inspections').select('*');
       if (filter?.drone_id) {
@@ -1030,10 +1025,8 @@ export const deliveryStore = {
         });
       }
     } catch {
-      // Fallback to file storage if database table is not yet migrated
     }
 
-    // 2. Load from file storage
     const fileRecords = loadInspectionsFromFile();
     fileRecords.forEach((item: any) => {
       const key = item?.inspection_id;
@@ -1042,7 +1035,6 @@ export const deliveryStore = {
       }
     });
 
-    // 3. Synthesize any completed order inspections from database orders
     try {
       const existingDeliveryDroneStage = new Set<string>();
       mergedMap.forEach((item: any) => {
@@ -1058,7 +1050,6 @@ export const deliveryStore = {
       orders.forEach((ord: any) => {
         const pilotName = ord.pilot_assigned || ord.delivery_data?.pilot_assigned || ord.pilot_name || ord.delivery_data?.pilot_name || '';
 
-        // 1. Hub Pickup / Dispatch Inspection (ONLY for airframes that were actually inspected)
         const hubInspectedList: string[] = Array.from(new Set([
           ...(Array.isArray(ord.hub_inspected_drone_ids) ? ord.hub_inspected_drone_ids : []),
           ...(ord.delivery_data?.hub_inspections ? Object.keys(ord.delivery_data.hub_inspections) : []),
@@ -1123,7 +1114,6 @@ export const deliveryStore = {
           }
         });
 
-        // 2. Customer Delivery / Handover Inspection (ONLY for airframes that were actually inspected)
         const custInspectedList: string[] = Array.from(new Set([
           ...(Array.isArray(ord.inspected_drone_ids) ? ord.inspected_drone_ids : []),
           ...(ord.delivery_data?.customer_inspections ? Object.keys(ord.delivery_data.customer_inspections) : []),
@@ -1235,7 +1225,6 @@ export const deliveryStore = {
       drone_id: String(inspection.drone_id || '').trim(),
       delivery_id: String(inspection.delivery_id || '').trim() || null,
 
-      // === Delivery Person Specific Field Verification Details ===
       cargo_bay_condition: inspection.cargo_bay_condition || (isDeliveryPerson ? 'CLEAN_RELEASE' : 'NOT_INSPECTED'),
       landing_surface: inspection.landing_surface || (isDeliveryPerson ? 'SAFE_FLAT' : 'NOT_INSPECTED'),
       propeller_debris_check: inspection.propeller_debris_check || (isDeliveryPerson ? 'SPINS_FREE_NO_DEBRIS' : 'NOT_INSPECTED'),
@@ -1243,7 +1232,6 @@ export const deliveryStore = {
       zero_defect_certified: typeof inspection.zero_defect_certified === 'boolean' ? inspection.zero_defect_certified : (isDeliveryPerson ? true : false),
       delivery_handover_notes: inspection.delivery_handover_notes || inspection.remarks || '',
 
-      // === Dispatcher & Fleet Manager Depot Technical Inspection Details ===
       body_condition: inspection.body_condition || (isDeliveryPerson ? 'GOOD' : 'NOT_INSPECTED'),
       propeller_condition: inspection.propeller_condition || (isDeliveryPerson ? 'GOOD' : 'NOT_INSPECTED'),
       battery_condition: inspection.battery_condition || (isDeliveryPerson ? 'NORMAL' : 'NOT_INSPECTED'),
@@ -1262,10 +1250,8 @@ export const deliveryStore = {
       inspector_role: role
     };
 
-    // 1. Save to append-only persistent storage (File)
     appendInspectionToFile(record);
 
-    // 2. Persist to Supabase public.inspections table
     try {
       await db().from('inspections').upsert({
         inspection_id: record.inspection_id,
@@ -1296,7 +1282,6 @@ export const deliveryStore = {
       console.warn('[InspectionsDB] Non-blocking DB upsert notice:', insTableErr?.message);
     }
 
-    // 3. Log to Supabase audit_logs (append-only compliance)
     try {
       await db().from('audit_logs').insert({
         user_email: record.inspected_by,
@@ -1310,9 +1295,6 @@ export const deliveryStore = {
       console.warn('[AuditLog] Non-blocking audit log warning:', auditErr?.message);
     }
 
-    // 3. State Transition for Drone Master:
-    // If PASSED -> status: 'ready' (AVAILABLE), current_condition: 'GOOD', is_verified: true
-    // If FAILED -> status: 'maintenance', current_condition: 'NEEDS_REVIEW'
     try {
       const isPassed = record.overall_inspection === 'PASSED';
       const droneStatus = isPassed ? 'ready' : 'maintenance';
@@ -1332,7 +1314,6 @@ export const deliveryStore = {
       console.warn('[DroneUpdate] Non-blocking drone update warning:', droneErr?.message);
     }
 
-    // 4. Update order if delivery_id is linked
     if (record.delivery_id) {
       try {
         const order = await this.findOrderById(record.delivery_id);

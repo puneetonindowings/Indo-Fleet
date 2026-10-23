@@ -1,12 +1,12 @@
 import React from 'react';
-import { 
-  Building2, 
-  FileText, 
-  ShieldCheck, 
-  Users, 
-  Network, 
-  ExternalLink, 
-  ArrowRight, 
+import {
+  Building2,
+  FileText,
+  ShieldCheck,
+  Users,
+  Network,
+  ExternalLink,
+  ArrowRight,
   Globe,
   Award
 } from 'lucide-react';
@@ -17,10 +17,10 @@ interface CompanyPageProps {
   onOpenCommandCenter?: () => void;
 }
 
-export const CompanyPage: React.FC<CompanyPageProps> = ({ 
+export const CompanyPage: React.FC<CompanyPageProps> = ({
   onNavigate,
   onOpenDemoBooking,
-  onOpenCommandCenter 
+  onOpenCommandCenter
 }) => {
   const handleNav = (page: string, path: string) => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -31,9 +31,9 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
 
   return (
     <div className="min-h-screen bg-white text-slate-900 selection:bg-slate-200">
-      {/* ── SECTION 1: HERO HEADER ─────────────────────────────────────────── */}
+
       <section className="relative isolate overflow-hidden bg-[#191b30] px-4 pb-24 pt-28 text-white sm:px-6 sm:pb-28 sm:pt-36 lg:px-8">
-        {/* Subtle background radial glow */}
+
         <div className="pointer-events-none absolute -right-24 -top-24 h-[28rem] w-[28rem] rounded-full bg-white/[0.06] blur-3xl" />
         <div className="pointer-events-none absolute -bottom-40 left-[12%] h-96 w-96 rounded-full bg-white/[0.04] blur-3xl" />
         <div className="pointer-events-none absolute inset-0 opacity-[0.07]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.22) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.22) 1px, transparent 1px)', backgroundSize: '52px 52px', maskImage: 'linear-gradient(to bottom, black, transparent 88%)' }} />
@@ -59,7 +59,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
             </p>
           </div>
 
-          {/* Decorative company identity graphic */}
+
           <div className="relative mx-auto hidden aspect-square w-full max-w-[390px] items-center justify-center lg:flex">
             <div className="absolute inset-3 rounded-[3rem] border border-white/10 rotate-12" />
             <div className="absolute inset-8 rounded-[2.5rem] border border-white/15 -rotate-6" />
@@ -80,12 +80,12 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
         </div>
       </section>
 
-      {/* ── SECTION 2: PUBLIC IDENTITY ─────────────────────────────────────── */}
+
       <section className="border-b border-slate-200/80 bg-[#f8fafc] px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-14">
-            
-            {/* Left Column: Public Identity Narrative */}
+
+
             <div className="lg:col-span-7 lg:pt-3">
               <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-500 shadow-sm before:h-1.5 before:w-1.5 before:rounded-full before:bg-[#191b30]">
                 Public Identity
@@ -125,7 +125,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
               </ul>
             </div>
 
-            {/* Right Column: Official Details Card */}
+
             <div className="lg:col-span-5">
               <div className="relative overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white p-5 shadow-[0_24px_70px_-38px_rgba(25,27,48,0.38)] ring-1 ring-white sm:p-7">
                 <div className="mb-5 flex items-center gap-3 border-b border-slate-100 pb-5 text-lg font-bold tracking-tight text-[#0f172a]">
@@ -134,7 +134,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {/* Brand */}
+
                   <div className="group min-w-0 rounded-2xl border border-slate-200/70 bg-gradient-to-br from-[#f8fafc] to-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_12px_24px_-18px_rgba(25,27,48,0.35)]">
                     <div className="mb-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
                       Brand
@@ -144,14 +144,14 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Official Website */}
+
                   <div className="group min-w-0 rounded-2xl border border-slate-200/70 bg-gradient-to-br from-[#f8fafc] to-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_12px_24px_-18px_rgba(25,27,48,0.35)]">
                     <div className="mb-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
                       Official Website
                     </div>
-                    <a 
-                      href="https://indowings.com/" 
-                      target="_blank" 
+                    <a
+                      href="https://indowings.com/"
+                      target="_blank"
                       rel="noreferrer"
                       className="flex items-center gap-1 break-all text-sm font-bold text-[#191b30] transition-colors hover:underline"
                     >
@@ -160,14 +160,14 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                     </a>
                   </div>
 
-                  {/* Owner */}
+
                   <div className="group min-w-0 rounded-2xl border border-slate-200/70 bg-gradient-to-br from-[#f8fafc] to-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_12px_24px_-18px_rgba(25,27,48,0.35)]">
                     <div className="mb-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
                       Owner
                     </div>
-                    <a 
-                      href="https://indowings.com/company/about.php" 
-                      target="_blank" 
+                    <a
+                      href="https://indowings.com/company/about.php"
+                      target="_blank"
                       rel="noreferrer"
                       className="break-words text-sm font-bold leading-5 text-[#191b30] transition-colors hover:underline"
                     >
@@ -175,14 +175,14 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                     </a>
                   </div>
 
-                  {/* Founder / Developer */}
+
                   <div className="group min-w-0 rounded-2xl border border-slate-200/70 bg-gradient-to-br from-[#f8fafc] to-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_12px_24px_-18px_rgba(25,27,48,0.35)]">
                     <div className="mb-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
                       Founder & CEO
                     </div>
-                    <a 
-                      href="https://indowings.com/company/about.php" 
-                      target="_blank" 
+                    <a
+                      href="https://indowings.com/company/about.php"
+                      target="_blank"
                       rel="noreferrer"
                       className="break-words text-sm font-bold leading-5 text-[#191b30] transition-colors hover:underline"
                     >
@@ -190,7 +190,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                     </a>
                   </div>
 
-                  {/* Legal Name */}
+
                   <div className="group min-w-0 rounded-2xl border border-slate-200/70 bg-gradient-to-br from-[#f8fafc] to-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_12px_24px_-18px_rgba(25,27,48,0.35)]">
                     <div className="mb-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
                       Legal Name
@@ -200,7 +200,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Registration Number */}
+
                   <div className="group min-w-0 rounded-2xl border border-slate-200/70 bg-gradient-to-br from-[#f8fafc] to-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_12px_24px_-18px_rgba(25,27,48,0.35)]">
                     <div className="mb-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
                       Registration Number
@@ -210,7 +210,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Jurisdiction (Full Width) */}
+
                   <div className="group min-w-0 rounded-2xl border border-slate-200/70 bg-gradient-to-br from-[#f8fafc] to-white p-4 transition-all duration-200 hover:border-slate-300 hover:shadow-[0_12px_24px_-18px_rgba(25,27,48,0.35)] sm:col-span-2">
                     <div className="mb-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
                       Jurisdiction
@@ -220,7 +220,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Company Address (Full Width) */}
+
                   <div className="group min-w-0 rounded-2xl border border-slate-200/70 bg-gradient-to-br from-[#f8fafc] to-white p-4 transition-all duration-200 hover:border-slate-300 hover:shadow-[0_12px_24px_-18px_rgba(25,27,48,0.35)] sm:col-span-2">
                     <div className="mb-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
                       Company Address
@@ -237,7 +237,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
         </div>
       </section>
 
-      {/* ── SECTION 3: OWNERSHIP AND DEVELOPMENT ───────────────────────────── */}
+
       <section className="relative overflow-hidden bg-white px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-500 shadow-sm before:h-1.5 before:w-1.5 before:rounded-full before:bg-[#191b30]">
@@ -250,10 +250,10 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
             Owner and manufacturing details are provided for accountability. The public product brand, autonomous transit network, GCS workstation downloads, documentation, and operational support routes remain under indowfleet.com.
           </p>
 
-          {/* 3-Column Card Layout */}
+
           <div className="grid grid-cols-1 gap-5 md:grid-cols-3 md:gap-6">
-            
-            {/* Card 1: Public Site */}
+
+
             <div className="group relative flex flex-col justify-between overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-gradient-to-b from-white to-[#f8fafc]/70 p-6 shadow-[0_12px_35px_-28px_rgba(25,27,48,0.42)] transition-all duration-300 hover:-translate-y-1.5 hover:border-slate-300 hover:shadow-[0_28px_55px_-30px_rgba(25,27,48,0.32)] sm:p-7">
               <div>
                 <div className="mb-6 flex items-center gap-2.5">
@@ -274,8 +274,8 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
               </div>
 
               <div>
-                <a 
-                  href="/" 
+                <a
+                  href="/"
                   onClick={handleNav('home', '/')}
                   className="group/link inline-flex items-center gap-2 border-b border-slate-200 pb-1.5 text-sm font-bold text-[#191b30] transition-all duration-200 hover:border-[#191b30] hover:text-slate-800"
                 >
@@ -285,7 +285,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
               </div>
             </div>
 
-            {/* Card 2: Owner */}
+
             <div className="group relative flex flex-col justify-between overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-gradient-to-b from-white to-[#f8fafc]/70 p-6 shadow-[0_12px_35px_-28px_rgba(25,27,48,0.42)] transition-all duration-300 hover:-translate-y-1.5 hover:border-slate-300 hover:shadow-[0_28px_55px_-30px_rgba(25,27,48,0.32)] sm:p-7">
               <div>
                 <div className="mb-6 flex items-center gap-2.5">
@@ -306,9 +306,9 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
               </div>
 
               <div>
-                <a 
-                  href="https://indowings.com/" 
-                  target="_blank" 
+                <a
+                  href="https://indowings.com/"
+                  target="_blank"
                   rel="noreferrer"
                   className="group/link inline-flex items-center gap-2 border-b border-slate-200 pb-1.5 text-sm font-bold text-[#191b30] transition-all duration-200 hover:border-[#191b30] hover:text-slate-800"
                 >
@@ -318,7 +318,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
               </div>
             </div>
 
-            {/* Card 3: Leadership & Developer */}
+
             <div className="group relative flex flex-col justify-between overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-gradient-to-b from-white to-[#f8fafc]/70 p-6 shadow-[0_12px_35px_-28px_rgba(25,27,48,0.42)] transition-all duration-300 hover:-translate-y-1.5 hover:border-slate-300 hover:shadow-[0_28px_55px_-30px_rgba(25,27,48,0.32)] sm:p-7">
               <div>
                 <div className="mb-6 flex items-center gap-2.5">
@@ -339,9 +339,9 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
               </div>
 
               <div>
-                <a 
-                  href="https://indowings.com/company/about.php" 
-                  target="_blank" 
+                <a
+                  href="https://indowings.com/company/about.php"
+                  target="_blank"
                   rel="noreferrer"
                   className="group/link inline-flex items-center gap-2 border-b border-slate-200 pb-1.5 text-sm font-bold text-[#191b30] transition-all duration-200 hover:border-[#191b30] hover:text-slate-800"
                 >
@@ -355,7 +355,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
         </div>
       </section>
 
-      {/* ── SECTION 4: REFERENCES & TRUST ──────────────────────────────────── */}
+
       <section className="relative overflow-hidden border-t border-slate-200/80 bg-[#f8fafc] px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-500 shadow-sm before:h-1.5 before:w-1.5 before:rounded-full before:bg-[#191b30]">
@@ -365,10 +365,10 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
             Customer and partner information
           </h2>
 
-          {/* 3-Column Card Layout */}
+
           <div className="grid grid-cols-1 gap-5 md:grid-cols-3 md:gap-6">
-            
-            {/* Reference Card 1: Customers */}
+
+
             <div className="group relative flex flex-col justify-between overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-gradient-to-b from-white to-[#f8fafc]/70 p-6 shadow-[0_12px_35px_-28px_rgba(25,27,48,0.42)] transition-all duration-300 hover:-translate-y-1.5 hover:border-slate-300 hover:shadow-[0_28px_55px_-30px_rgba(25,27,48,0.32)] sm:p-7">
               <div>
                 <div className="mb-6 flex items-center gap-2.5">
@@ -389,8 +389,8 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
               </div>
 
               <div>
-                <a 
-                  href="/support?tab=expert" 
+                <a
+                  href="/support?tab=expert"
                   onClick={handleNav('support', '/support?tab=expert')}
                   className="group/link inline-flex items-center gap-2 border-b border-slate-200 pb-1.5 text-sm font-bold text-[#191b30] transition-all duration-200 hover:border-[#191b30] hover:text-slate-800"
                 >
@@ -400,7 +400,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
               </div>
             </div>
 
-            {/* Reference Card 2: Partners */}
+
             <div className="group relative flex flex-col justify-between overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-gradient-to-b from-white to-[#f8fafc]/70 p-6 shadow-[0_12px_35px_-28px_rgba(25,27,48,0.42)] transition-all duration-300 hover:-translate-y-1.5 hover:border-slate-300 hover:shadow-[0_28px_55px_-30px_rgba(25,27,48,0.32)] sm:p-7">
               <div>
                 <div className="mb-6 flex items-center gap-2.5">
@@ -421,8 +421,8 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
               </div>
 
               <div>
-                <a 
-                  href="/support?tab=expert" 
+                <a
+                  href="/support?tab=expert"
                   onClick={handleNav('support', '/support?tab=expert')}
                   className="group/link inline-flex items-center gap-2 border-b border-slate-200 pb-1.5 text-sm font-bold text-[#191b30] transition-all duration-200 hover:border-[#191b30] hover:text-slate-800"
                 >
@@ -432,7 +432,7 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
               </div>
             </div>
 
-            {/* Reference Card 3: Trust */}
+
             <div className="group relative flex flex-col justify-between overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-gradient-to-b from-white to-[#f8fafc]/70 p-6 shadow-[0_12px_35px_-28px_rgba(25,27,48,0.42)] transition-all duration-300 hover:-translate-y-1.5 hover:border-slate-300 hover:shadow-[0_28px_55px_-30px_rgba(25,27,48,0.32)] sm:p-7">
               <div>
                 <div className="mb-6 flex items-center gap-2.5">
@@ -453,8 +453,8 @@ export const CompanyPage: React.FC<CompanyPageProps> = ({
               </div>
 
               <div>
-                <a 
-                  href="/docs" 
+                <a
+                  href="/docs"
                   onClick={handleNav('docs', '/docs')}
                   className="group/link inline-flex items-center gap-2 border-b border-slate-200 pb-1.5 text-sm font-bold text-[#191b30] transition-all duration-200 hover:border-[#191b30] hover:text-slate-800"
                 >

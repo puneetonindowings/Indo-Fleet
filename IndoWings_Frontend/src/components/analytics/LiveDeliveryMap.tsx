@@ -9,7 +9,6 @@ if (typeof (maplibregl as any).setWorkerUrl === 'function') {
   (maplibregl as any).setWorkerUrl('/maplibre-gl-worker.mjs');
 }
 
-// Google Maps Raster Tile Styles (Direct Google Maps Engine - Roadmap & Satellite)
 const GOOGLE_ROADMAP_STYLE = {
   version: 8 as const,
   sources: {
@@ -81,17 +80,15 @@ export const LiveDeliveryMap: React.FC<Props> = ({ deliveries, center }) => {
     if (!mapRef.current) return;
     const instance = mapRef.current;
 
-    // clear previous markers
     markersRef.current.forEach((m) => {
       try {
         m.remove();
       } catch {
-        /* noop */
+
       }
     });
     markersRef.current = [];
 
-    // clear previous route sources/layers
     (instance.getStyle().layers || []).forEach((layer) => {
       if (layer.id.startsWith('route-')) instance.removeLayer(layer.id);
     });
@@ -102,7 +99,6 @@ export const LiveDeliveryMap: React.FC<Props> = ({ deliveries, center }) => {
     const boundsPoints: [number, number][] = [];
 
     if (deliveriesRef.current.length === 0) {
-      // Plot IndoFleet Central Logistics Operations Base
       const hubHtml = `
         <div style="font-family: Arial, sans-serif; padding: 6px 8px; min-width: 170px;">
           <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
@@ -183,7 +179,6 @@ export const LiveDeliveryMap: React.FC<Props> = ({ deliveries, center }) => {
       }
     });
 
-    // ensure correct sizing even if the container mounts at zero size
     const ro = new ResizeObserver(() => map.resize());
     ro.observe(containerRef.current);
     resizeObserverRef.current = ro;
@@ -208,7 +203,7 @@ export const LiveDeliveryMap: React.FC<Props> = ({ deliveries, center }) => {
         try {
           plot();
         } catch {
-          /* noop */
+
         }
       });
     }
@@ -232,7 +227,7 @@ export const LiveDeliveryMap: React.FC<Props> = ({ deliveries, center }) => {
     <div className="relative">
       <div ref={containerRef} className="h-[380px] w-full rounded-2xl overflow-hidden border border-slate-200" />
 
-      {/* Top Left Status Pill */}
+
       <div className="absolute top-3 left-3 bg-white/95 backdrop-blur rounded-xl border border-slate-200 px-3 py-1.5 shadow-sm flex items-center gap-2 z-10">
         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
         <span className="text-[11px] font-bold text-slate-700">
@@ -240,7 +235,7 @@ export const LiveDeliveryMap: React.FC<Props> = ({ deliveries, center }) => {
         </span>
       </div>
 
-      {/* Top Right: Google Maps Layer Switcher & Zoom Controls */}
+
       <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5">
         <button
           type="button"
@@ -281,7 +276,7 @@ export const LiveDeliveryMap: React.FC<Props> = ({ deliveries, center }) => {
         </button>
       </div>
 
-      {/* Bottom Left Legend */}
+
       <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur rounded-xl border border-slate-200 px-3 py-1.5 shadow-sm flex flex-wrap gap-x-3 gap-y-1 max-w-[70%] z-10">
         {['delivered', 'in-flight', 'out-for-delivery', 'delayed', 'on-hold'].map((s) => (
           <span key={s} className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600">
@@ -291,7 +286,7 @@ export const LiveDeliveryMap: React.FC<Props> = ({ deliveries, center }) => {
         ))}
       </div>
 
-      {/* Bottom Right: Google Maps Branding Badge */}
+
       <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur rounded-lg px-2.5 py-1 text-[11px] font-bold text-slate-700 shadow-sm border border-slate-200 flex items-center gap-1 z-10 select-none">
         <span className="text-[#4285F4] font-black">G</span>
         <span className="text-[#EA4335] font-black">o</span>

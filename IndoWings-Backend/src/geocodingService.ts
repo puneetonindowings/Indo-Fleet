@@ -16,7 +16,6 @@ interface RouteResult {
   coordinates: [number, number][]; // [lng, lat] GeoJSON format
 }
 
-// In-memory LRU-like cache for geocoding
 const geocodeCache = new Map<string, { result: GeocodeResult | null; timestamp: number }>();
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -29,36 +28,29 @@ function cleanAddressCandidates(raw: string): string[] {
   const trimmed = raw.trim();
   if (!trimmed) return [];
 
-  // Remove phone numbers (+91-XXXXX or 10-digit Indian numbers)
   const noPhone = trimmed
     .replace(/(?:\+91[\-\s]?)?[6-9]\d{9}\b/g, '')
     .replace(/\b\d{10}\b/g, '')
     .trim();
 
-  // Strip obvious recipient prefixes like "Name, Phone, Full Address"
   const tokens = noPhone.split(',').map((s) => s.trim()).filter(Boolean);
 
   const candidates: string[] = [];
 
-  // Candidate 1: Full cleaned string
   candidates.push(noPhone);
 
-  // Candidate 2: If multiple tokens, try without first token (often recipient name or flat number)
   if (tokens.length >= 2) {
     candidates.push(tokens.slice(1).join(', '));
   }
 
-  // Candidate 3: Last 3 tokens (e.g., "Sector 74, Noida, 201301" or "Indiranagar, Bangalore, Karnataka")
   if (tokens.length >= 3) {
     candidates.push(tokens.slice(-3).join(', '));
   }
 
-  // Candidate 4: Last 2 tokens (e.g., "Noida, 201301" or "Bangalore, Karnataka")
   if (tokens.length >= 2) {
     candidates.push(tokens.slice(-2).join(', '));
   }
 
-  // Candidate 5: Pincode or City alone if present
   const pinMatch = trimmed.match(/\b([1-9][0-9]{5})\b/);
   if (pinMatch) {
     candidates.push(pinMatch[1]);
@@ -82,7 +74,6 @@ export async function geocodeAddress(rawAddress: string): Promise<GeocodeResult 
   const candidates = cleanAddressCandidates(rawAddress);
   if (candidates.length === 0) return null;
 
-  // 1. If Google Maps API Key is configured, try Google Geocoding first
   const googleKey = process.env.GOOGLE_MAPS_API_KEY?.trim();
   if (googleKey) {
     for (const q of candidates) {
@@ -109,7 +100,6 @@ export async function geocodeAddress(rawAddress: string): Promise<GeocodeResult 
     }
   }
 
-  // 2. OpenStreetMap Nominatim Geocoding (Global, no API key required)
   for (const q of candidates) {
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`;
@@ -132,7 +122,6 @@ export async function geocodeAddress(rawAddress: string): Promise<GeocodeResult 
         }
       }
     } catch (nomErr) {
-      // Continue to next candidate
     }
   }
 

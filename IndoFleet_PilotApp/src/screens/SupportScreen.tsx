@@ -74,7 +74,7 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({ user }) => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* 24x7 Hotline Card */}
+
       <View style={styles.hotlineCard}>
         <View style={styles.hotlineHeader}>
           <Headphones size={22} color="#3B0080" />
@@ -105,11 +105,11 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({ user }) => {
         </View>
       </View>
 
-      {/* Support Ticket Form */}
+
       <View style={styles.ticketCard}>
         <Text style={styles.ticketCardTitle}>SUBMIT OPERATIONAL ASSISTANCE TICKET</Text>
 
-        {/* Category Picker */}
+
         <View style={styles.formGroup}>
           <Text style={styles.label}>ISSUE CATEGORY</Text>
           <View style={styles.categoryWrap}>
@@ -135,7 +135,7 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({ user }) => {
           </View>
         </View>
 
-        {/* Priority Selector */}
+
         <View style={styles.formGroup}>
           <Text style={styles.label}>SEVERITY / PRIORITY</Text>
           <View style={styles.priorityRow}>
@@ -161,7 +161,7 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({ user }) => {
           </View>
         </View>
 
-        {/* Message Input */}
+
         <View style={styles.formGroup}>
           <Text style={styles.label}>DETAILS & SITUATION DESCRIPTION</Text>
           <TextInput
@@ -175,7 +175,7 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({ user }) => {
           />
         </View>
 
-        {/* Submit Ticket */}
+
         <TouchableOpacity
           style={styles.submitBtn}
           onPress={handleSubmitTicket}

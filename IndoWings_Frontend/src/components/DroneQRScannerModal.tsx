@@ -47,7 +47,6 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const readerElementId = 'drone-qr-reader-container';
 
-  // Synthesize a confirmation beep on successful scan using Web Audio API
   const playBeep = () => {
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -92,7 +91,6 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
     }
   };
 
-  // Start live camera QR scanner
   const startCamera = async (facing: 'environment' | 'user' = facingMode) => {
     setCameraError(null);
     try {
@@ -116,7 +114,6 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
           parseAndMatchDrone(decodedText);
         },
         () => {
-          // Frame error (no QR in current frame) - ignore
         }
       );
 
@@ -132,7 +129,6 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
     }
   };
 
-  // Stop camera stream safely
   const stopCamera = async () => {
     if (scannerRef.current) {
       try {
@@ -146,7 +142,6 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
     setIsCameraActive(false);
   };
 
-  // Switch between front & back camera
   const toggleFacingMode = async () => {
     const nextFacing = facingMode === 'environment' ? 'user' : 'environment';
     setFacingMode(nextFacing);
@@ -156,10 +151,8 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
     }, 200);
   };
 
-  // Manage scanner lifecycle on modal open/close & mode change
   useEffect(() => {
     if (isOpen && mode === 'camera' && !matchedDrone) {
-      // Delay slightly for DOM element render
       const timer = setTimeout(() => {
         startCamera();
       }, 300);
@@ -172,7 +165,6 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
     }
   }, [isOpen, mode, matchedDrone]);
 
-  // Handle file upload scanning
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -205,7 +197,7 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
       <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-200/90 flex flex-col max-h-[92vh]">
-        {/* Header */}
+
         <div className="px-6 py-5 bg-gradient-to-r from-slate-950 via-[#3a0075] to-slate-950 text-white flex items-center justify-between border-b border-white/10">
           <div className="flex items-center gap-3.5">
             <div className="w-11 h-11 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white shadow-inner">
@@ -237,7 +229,7 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
           </button>
         </div>
 
-        {/* Mode Switch Tabs */}
+
         {!matchedDrone && (
           <div className="flex border-b border-slate-100 bg-slate-50/70 p-2 gap-1.5 text-xs font-bold">
             <button
@@ -284,26 +276,26 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
           </div>
         )}
 
-        {/* Modal Body */}
+
         <div className="p-6 space-y-5 overflow-y-auto">
-          {/* ── MODE 1: LIVE WEBCAM CAMERA SCANNER ── */}
+
           {mode === 'camera' && !matchedDrone && (
             <div className="space-y-4">
               <div className="relative rounded-3xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner flex flex-col items-center justify-center min-h-[300px]">
-                {/* HTML5 QR Code Mount Element */}
+
                 <div id={readerElementId} className="w-full h-full min-h-[300px]" />
 
-                {/* Viewfinder Target Overlays */}
+
                 {isCameraActive && (
                   <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
                     <div className="w-56 h-56 border-2 border-purple-400/80 rounded-2xl relative shadow-2xl">
-                      {/* Corner Accents */}
+
                       <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-[#a855f7] rounded-tl-lg" />
                       <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-[#a855f7] rounded-tr-lg" />
                       <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-[#a855f7] rounded-bl-lg" />
                       <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-[#a855f7] rounded-br-lg" />
 
-                      {/* Animated Laser Scanning Line */}
+
                       <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-purple-400 to-transparent shadow-[0_0_12px_#a855f7] animate-pulse absolute top-1/2 -translate-y-1/2" />
                     </div>
 
@@ -313,7 +305,7 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
                   </div>
                 )}
 
-                {/* Camera Flip Control Bar */}
+
                 {isCameraActive && (
                   <div className="absolute top-3 right-3 z-10">
                     <button
@@ -327,7 +319,7 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
                   </div>
                 )}
 
-                {/* Camera Fallback / Error State */}
+
                 {cameraError && (
                   <div className="p-6 text-center text-white space-y-3 z-10 max-w-sm">
                     <div className="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto border border-rose-500/30">
@@ -370,7 +362,7 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
             </div>
           )}
 
-          {/* ── MODE 2: MANUAL ID SEARCH ── */}
+
           {mode === 'manual' && !matchedDrone && (
             <div className="space-y-4">
               <div className="space-y-1.5">
@@ -390,7 +382,7 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
                 </div>
               </div>
 
-              {/* Sample Quick Selection */}
+
               <div className="space-y-2">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                   Quick Select Airframe from Central Fleet:
@@ -411,7 +403,7 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
             </div>
           )}
 
-          {/* ── MODE 3: UPLOAD QR IMAGE ── */}
+
           {mode === 'file' && !matchedDrone && (
             <div className="space-y-4">
               <div id="file-qr-temp" className="hidden" />
@@ -428,7 +420,7 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
             </div>
           )}
 
-          {/* Not Found Warning */}
+
           {notFound && searchInput.trim() && !matchedDrone && (
             <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2.5">
               <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
@@ -441,7 +433,7 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
             </div>
           )}
 
-          {/* ── MATCHED DRONE CARD (POST-SCAN SUCCESS STATE) ── */}
+
           {matchedDrone && (
             <div className="p-6 bg-gradient-to-br from-purple-50/70 via-white to-slate-50 border border-purple-200/90 rounded-3xl space-y-5 animate-fadeIn shadow-xs">
               <div className="flex items-start justify-between">
@@ -472,7 +464,7 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
                 </div>
               </div>
 
-              {/* 2x2 Specs & QC Grid */}
+
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="bg-white p-3 rounded-2xl border border-purple-100/80 shadow-2xs">
                   <span className="text-[10px] text-slate-400 block font-bold uppercase">Battery System</span>
@@ -484,7 +476,7 @@ export const DroneQRScannerModal: React.FC<DroneQRScannerModalProps> = ({
                 </div>
               </div>
 
-              {/* Action Buttons for this Scanned Drone */}
+
               <div className="space-y-2 pt-1">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <button

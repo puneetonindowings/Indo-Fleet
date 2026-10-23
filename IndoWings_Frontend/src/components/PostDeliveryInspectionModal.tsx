@@ -52,7 +52,6 @@ export const PostDeliveryInspectionModal: React.FC<PostDeliveryInspectionModalPr
   const [selectedDroneId, setSelectedDroneId] = useState(defaultDroneId);
   const [deliveryId, setDeliveryId] = useState(defaultDeliveryId);
 
-  // 8 Comprehensive Parts Checklists with Checkmarks
   const [checkAirframe, setCheckAirframe] = useState(true);
   const [checkPropellers, setCheckPropellers] = useState(true);
   const [checkBattery, setCheckBattery] = useState(true);
@@ -62,17 +61,14 @@ export const PostDeliveryInspectionModal: React.FC<PostDeliveryInspectionModalPr
   const [checkPayloadBay, setCheckPayloadBay] = useState(true);
   const [checkSensorsOthers, setCheckSensorsOthers] = useState(true);
 
-  // Conditions
   const [bodyCondition, setBodyCondition] = useState<'GOOD' | 'SCRATCHED' | 'DAMAGED' | 'NOT_INSPECTED'>('GOOD');
   const [propellerCondition, setPropellerCondition] = useState<'GOOD' | 'DAMAGED' | 'REPLACE' | 'NOT_INSPECTED'>('GOOD');
   const [batteryCondition, setBatteryCondition] = useState<'NORMAL' | 'NEEDS_CHARGING' | 'NEEDS_ASSESSMENT' | 'NOT_INSPECTED'>('NORMAL');
   const [landingGearCondition, setLandingGearCondition] = useState<'GOOD' | 'DAMAGED' | 'NOT_INSPECTED'>('GOOD');
 
-  // Overall Decision & Remarks
   const [overallInspection, setOverallInspection] = useState<'PASSED' | 'FAILED' | 'PENDING'>('PASSED');
   const [remarks, setRemarks] = useState('');
 
-  // Media (Photo and Video) Upload
   const [mediaFiles, setMediaFiles] = useState<UploadedMedia[]>([]);
 
   const [loading, setLoading] = useState(false);
@@ -136,7 +132,7 @@ export const PostDeliveryInspectionModal: React.FC<PostDeliveryInspectionModalPr
 
     try {
       const token = localStorage.getItem('iw_delivery_token') || localStorage.getItem('iw_token') || '';
-      
+
       const checklistSummary = [
         `1. Airframe: ${checkAirframe ? 'PASSED' : 'FLAGGED'}`,
         `2. Propellers & Rotors: ${checkPropellers ? 'PASSED' : 'FLAGGED'}`,
@@ -265,7 +261,7 @@ export const PostDeliveryInspectionModal: React.FC<PostDeliveryInspectionModalPr
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
       <div className="bg-white border border-slate-200/90 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden">
-        {/* Header */}
+
         <div className="px-6 py-5 bg-gradient-to-r from-slate-950 via-[#3a0075] to-slate-950 text-white flex items-center justify-between border-b border-white/10">
           <div className="flex items-center gap-3.5">
             <div className="w-11 h-11 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white shadow-inner">
@@ -294,7 +290,7 @@ export const PostDeliveryInspectionModal: React.FC<PostDeliveryInspectionModalPr
           </button>
         </div>
 
-        {/* Form Body */}
+
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5 flex-1">
           {error && (
             <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
@@ -310,7 +306,7 @@ export const PostDeliveryInspectionModal: React.FC<PostDeliveryInspectionModalPr
             </div>
           )}
 
-          {/* Identification Section: Drone & Order Reference */}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
@@ -362,7 +358,7 @@ export const PostDeliveryInspectionModal: React.FC<PostDeliveryInspectionModalPr
             </div>
           </div>
 
-          {/* SECTION 1: Parts Checkmarks (Fly, Landing, Battery, Control, Propellers, Airframe, etc.) */}
+
           <div className="space-y-3 pt-2 border-t border-slate-100">
             <div className="flex items-center justify-between">
               <div>
@@ -426,7 +422,7 @@ export const PostDeliveryInspectionModal: React.FC<PostDeliveryInspectionModalPr
             </div>
           </div>
 
-          {/* SECTION 2: Photo & Video Upload (Visual Evidence) */}
+
           <div className="space-y-2.5 pt-2 border-t border-slate-100">
             <div className="flex items-center justify-between">
               <div>
@@ -459,7 +455,7 @@ export const PostDeliveryInspectionModal: React.FC<PostDeliveryInspectionModalPr
               </span>
             </div>
 
-            {/* Media Badges */}
+
             {mediaFiles.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
                 {mediaFiles.map((m, idx) => (
@@ -496,7 +492,7 @@ export const PostDeliveryInspectionModal: React.FC<PostDeliveryInspectionModalPr
             )}
           </div>
 
-          {/* SECTION 3: Technical Remarks / Notes */}
+
           <div className="space-y-1.5 pt-2 border-t border-slate-100">
             <label className="block text-xs font-bold text-slate-800">
               Technical Remarks &amp; Inspection Message
@@ -513,7 +509,7 @@ export const PostDeliveryInspectionModal: React.FC<PostDeliveryInspectionModalPr
             </p>
           </div>
 
-          {/* SECTION 4: Overall Airworthiness Verdict */}
+
           <div className="pt-2 border-t border-slate-100 space-y-2">
             <label className="block text-xs font-bold text-slate-800">
               Overall Airworthiness Verdict <span className="text-rose-500">*</span>
@@ -621,7 +617,7 @@ export const PostDeliveryInspectionModal: React.FC<PostDeliveryInspectionModalPr
             </div>
           </div>
 
-          {/* Action Buttons */}
+
           <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-100">
             <button
               type="button"

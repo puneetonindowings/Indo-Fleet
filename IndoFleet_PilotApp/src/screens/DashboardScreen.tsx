@@ -35,7 +35,6 @@ interface DashboardScreenProps {
 
 type FilterTab = 'all' | 'assigned' | 'in-flight';
 
-// Filter rules for tabs: All, Assigned, and In Transit (Queue and Missed removed)
 const FILTERS: {
   key: FilterTab;
   label: string;
@@ -96,24 +95,20 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         ['pending', 'assigned'].includes(b.status) ||
         b.pilot_acceptance_status === 'pending_acceptance';
 
-      // 1. Pending & newly assigned orders always first
       if (isPendingA && !isPendingB) return -1;
       if (!isPendingA && isPendingB) return 1;
 
-      // 2. Active in-flight orders next
       const isInFlightA = ['in-flight', 'taking-off', 'out-for-delivery'].includes(a.status);
       const isInFlightB = ['in-flight', 'taking-off', 'out-for-delivery'].includes(b.status);
       if (isInFlightA && !isInFlightB) return -1;
       if (!isInFlightA && isInFlightB) return 1;
 
-      // 3. Newest first
       const timeA = new Date(a.created_at || 0).getTime();
       const timeB = new Date(b.created_at || 0).getTime();
       return timeB - timeA;
     });
   }, [orders, activeFilter]);
 
-  // Real counts from the orders list
   const counts = useMemo(() => {
     const result = {} as Record<FilterTab, number>;
     FILTERS.forEach((f) => {
@@ -143,10 +138,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
     [orderHubInspectedDrones, orderInspectedDrones, onAcceptOrder, onStartFlight, onCompletePod, onStartQrScan, onOpenSortieDrones, onViewRadar, onInspectDrone]
   );
 
-  // Passed as an element (not a component function) so the header is not remounted on every render
   const header = (
     <View style={styles.headerArea}>
-      {/* Welcome banner with live order counts */}
+
       <View style={styles.welcomeBanner}>
         <View style={styles.welcomeTop}>
           <View style={styles.avatar}>
@@ -179,7 +173,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         </View>
       </View>
 
-      {/* KPI Metrics: Total Delivered, Today's Delivery, Assigned, In Transit */}
+
       <KpiOverview
         kpis={{
           ...kpis,
@@ -191,7 +185,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         inTransitCount={counts['in-flight']}
       />
 
-      {/* Orders header + filters */}
+
       <View style={styles.sortiesHeader}>
         <View style={styles.sortiesTitleRow}>
           <View style={styles.titleLeftGroup}>
@@ -296,7 +290,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-  // Welcome banner
   welcomeBanner: {
     backgroundColor: '#3B0080',
     borderRadius: 20,
@@ -373,7 +366,6 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 
-  // Orders header
   sortiesHeader: {
     marginBottom: 14,
     gap: 12,
@@ -418,7 +410,6 @@ const styles = StyleSheet.create({
     color: '#6B21A8',
   },
 
-  // Filter pills
   filterTabs: {
     gap: 8,
     paddingRight: 4,
@@ -468,7 +459,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
-  // Empty state
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',

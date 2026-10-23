@@ -3,7 +3,6 @@ import { UserProfile, DroneItem, MissionItem, AuditLogItem } from '../types';
 const API_BASE = '/api';
 
 export const apiClient = {
-  // Auth
   async login(email: string, password = ''): Promise<{ token: string; user: UserProfile }> {
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
@@ -30,7 +29,6 @@ export const apiClient = {
     return [];
   },
 
-  // Fleet
   async getFleet(): Promise<DroneItem[]> {
     try {
       const res = await fetch(`${API_BASE}/fleet`);
@@ -44,7 +42,6 @@ export const apiClient = {
     return [];
   },
 
-  // Missions
   async getMissions(): Promise<MissionItem[]> {
     try {
       const res = await fetch(`${API_BASE}/missions`);
@@ -83,7 +80,6 @@ export const apiClient = {
     });
   },
 
-  // Audit
   async getAuditLogs(): Promise<AuditLogItem[]> {
     try {
       const res = await fetch(`${API_BASE}/audit-logs`);
@@ -97,7 +93,6 @@ export const apiClient = {
     return [];
   },
 
-  // Stats
   async getStats() {
     try {
       const res = await fetch(`${API_BASE}/stats`);
@@ -108,7 +103,6 @@ export const apiClient = {
     return null;
   },
 
-  // Demo Booking & Leads
   async submitDemoRequest(formData: {
     name: string;
     email: string;

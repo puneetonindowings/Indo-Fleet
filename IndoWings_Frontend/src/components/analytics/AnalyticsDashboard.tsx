@@ -54,7 +54,6 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // client-side filters (section 19) applied to detail lists
   const [statusFilter, setStatusFilter] = useState('all');
   const [droneFilter, setDroneFilter] = useState('all');
   const [query, setQuery] = useState('');
@@ -173,7 +172,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
 
   return (
     <div className="space-y-6">
-      {/* ── HEADER: title + time range ─────────────────────────────────── */}
+
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div>
           <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -189,7 +188,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
         </div>
       </div>
 
-      {/* ── ROW 1: PRIMARY KPI CARDS ───────────────────────────────────── */}
+
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3.5">
         <KpiCard
           label={range.key === 'today' ? "Today's Orders" : 'Total Orders'}
@@ -232,7 +231,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
         />
       </div>
 
-      {/* secondary KPI strip: Operations, Quality & Fleet Metrics */}
+
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3.5">
         {[
           { label: "Today's Deliveries", value: k.todaysDeliveries.value, icon: Truck, tone: 'text-emerald-700 bg-emerald-50' },
@@ -255,7 +254,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
         ))}
       </div>
 
-      {/* ── ROW 2: ORDERS + DELIVERIES TRENDS ───────────────────────────── */}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <SectionCard title="Orders Overview" subtitle={`Order volume trend · ${data.range.granularity}`}>
           <div className="h-64">
@@ -295,7 +294,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
         </SectionCard>
       </div>
 
-      {/* ── ROW 3: STATUS DISTRIBUTION + PERIOD COMPARISON ──────────────── */}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <SectionCard title="Order Status Breakdown" subtitle="Distribution across statuses in range">
           {data.statusDistribution.length === 0 ? (
@@ -358,7 +357,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
         </SectionCard>
       </div>
 
-      {/* ── ROW 4: TODAY'S DELIVERIES + LIVE MAP ───────────────────────── */}
+
       {(canDispatch || canSupport) && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
           <SectionCard
@@ -421,7 +420,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
         </div>
       )}
 
-      {/* ── ROW 5: DELIVERY PERFORMANCE + INVENTORY + CUSTOMERS ────────── */}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
         {canDispatch && (
           <SectionCard title="Delivery Performance" subtitle="Fulfilment quality metrics">
@@ -530,7 +529,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
         )}
       </div>
 
-      {/* ── ROW 6: SUPPORT ANALYTICS + INSIGHTS ────────────────────────── */}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {canSupport && (
           <SectionCard title="Support Analytics" subtitle={`${formatNumber(data.support.total)} tickets · ${data.support.resolutionRate}% resolved`}>
@@ -587,8 +586,6 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
           </SectionCard>
         )}
       </div>
-
-
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <SectionCard title="Quick Actions" subtitle="Role-aware shortcuts">

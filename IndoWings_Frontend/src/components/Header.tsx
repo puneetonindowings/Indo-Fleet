@@ -118,22 +118,22 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full pt-2 sm:pt-3.5 px-2.5 sm:px-6 pointer-events-none transition-all duration-300">
-      {/* ── Floating Cylindrical Glassmorphic Capsule ────────────────── */}
+
       <div
         className={`max-w-[1360px] mx-auto h-[58px] sm:h-[68px] px-3 sm:px-6 rounded-full flex items-center justify-between pointer-events-auto transition-all duration-300 ${
           scrolled ? 'navbar-glass-capsule-scrolled' : 'navbar-glass-capsule'
         }`}
       >
-        {/* ── Brand Logo (Bigger & Crisp) ───────────────────────────── */}
+
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <a href="/" onClick={nav('home', '/')} className="flex items-center gap-2 group">
             <img src="/indofleet-logo-dark.svg" alt="IndoFleet" className="h-8 sm:h-10 w-auto object-contain transition-transform group-hover:scale-[1.02]" />
           </a>
         </div>
 
-        {/* ── Desktop Navigation Menu (Cylindrical Pills) ───────────── */}
+
         <nav className="hidden lg:flex items-center gap-1.5 text-[14px] font-bold text-slate-800" ref={dropdownRef}>
-          {/* 1. Track Order (Direct Link) */}
+
           <a
             href="/track"
             onClick={nav('track', '/track')}
@@ -143,7 +143,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
             <span>Track Order</span>
           </a>
 
-          {/* 2. Fleet Store */}
+
           <a
             href="/store"
             onClick={nav('shop', '/store')}
@@ -153,7 +153,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
             <span>Store</span>
           </a>
 
-          {/* 3. Direct Support Desk Link with Inquiries Form & Numbers */}
+
           <a
             href="/support"
             onClick={nav('support', '/support')}
@@ -163,15 +163,15 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
             <span>Support Desk</span>
           </a>
 
-          {/* 4. Direct Link: IndoFleet */}
+
           <a href="/company" onClick={nav('company', '/company')} className="px-3.5 py-2 rounded-full hover:bg-slate-100/80 hover:text-slate-900 transition-all text-slate-700 font-bold">
             IndoFleet
           </a>
         </nav>
 
-        {/* ── Right Actions ─────────────────────────────────────────── */}
+
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-          {/* Cart Quick Access (Desktop & Tablet) */}
+
           <a
             href="/cart"
             onClick={nav('cart', '/cart')}
@@ -191,7 +191,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
             )}
           </a>
 
-          {/* User Auth / Profile Dropdown (Desktop & Tablet) */}
+
           {currentUser ? (
             <div className="hidden sm:block relative shrink-0" ref={profileRef} onMouseEnter={() => handleMouseEnter('profile')} onMouseLeave={handleMouseLeave}>
               <button
@@ -221,7 +221,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
                     </div>
                   </div>
 
-                  {/* Direct Workspace Link */}
+
                   {dashboardInfo && (
                     <button
                       onClick={nav(dashboardInfo.page, dashboardInfo.url)}
@@ -280,7 +280,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
             </button>
           )}
 
-          {/* Mobile Hamburger Menu Button */}
+
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="lg:hidden p-2 rounded-full text-slate-700 hover:text-[#5a00b8] hover:bg-purple-50 bg-slate-50/80 border border-slate-200 transition-colors shrink-0 flex items-center justify-center cursor-pointer"
@@ -291,10 +291,10 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
         </div>
       </div>
 
-      {/* ── Mobile Drawer (Rich, Complete Menu with Profile & Cart) ────── */}
+
       {mobileMenuOpen && (
         <div className="lg:hidden mt-2.5 max-w-[1360px] mx-auto dropdown-glass rounded-3xl px-5 py-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-150 max-h-[calc(100vh-5.5rem)] overflow-y-auto pointer-events-auto border border-slate-200/90 shadow-xl bg-white/95">
-          {/* User Profile Card (if logged in) */}
+
           {currentUser ? (
             <div className="p-3 bg-gradient-to-br from-slate-50 to-orange-50/40 rounded-2xl border border-slate-200/80 space-y-2.5">
               <div className="flex items-center gap-3">
@@ -327,7 +327,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
                 </button>
               </div>
 
-              {/* Dedicated role dashboard button if operational user */}
+
               {dashboardInfo && (
                 <button
                   onClick={nav(dashboardInfo.page, dashboardInfo.url)}
@@ -351,7 +351,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
             </button>
           )}
 
-          {/* Cart Section in Mobile Drawer */}
+
           <a
             href="/cart"
             onClick={nav('cart', '/cart')}
@@ -370,7 +370,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
             )}
           </a>
 
-          {/* Store Link */}
+
           <a
             href="/store"
             onClick={nav('shop', '/store')}
@@ -380,7 +380,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
             <span>Fleet Store</span>
           </a>
 
-          {/* Track Order Link */}
+
           <a
             href="/track"
             onClick={nav('track', '/track')}
@@ -390,7 +390,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
             <span>Track Order</span>
           </a>
 
-          {/* Support Desk Link */}
+
           <a
             href="/support"
             onClick={nav('support', '/support')}
@@ -400,14 +400,14 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
             <span>Support Desk</span>
           </a>
 
-          {/* IndoFleet Link */}
+
           <div className="px-3 pt-1.5 pb-0.5">
             <a href="/company" onClick={nav('company', '/company')} className="flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[#5a00b8]">
               <span>IndoFleet</span>
             </a>
           </div>
 
-          {/* Logout button (if logged in) */}
+
           {currentUser && (
             <div className="pt-2 border-t border-slate-100">
               <button

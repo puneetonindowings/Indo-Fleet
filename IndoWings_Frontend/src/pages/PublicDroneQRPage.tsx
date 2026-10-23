@@ -47,7 +47,6 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
   const [showInspectionModal, setShowInspectionModal] = useState(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date>(new Date());
 
-  // Customer Feedback & Support Form State (Name & Number auto-fetched from order/drone ID)
   const [showFeedbackForm, setShowFeedbackForm] = useState(true); // Open by default for easy reporting
   const [selectedPartIssue, setSelectedPartIssue] = useState('Cargo Bay & Electronic Latch');
   const [customIssueText, setCustomIssueText] = useState('');
@@ -57,7 +56,6 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
   const [feedbackSuccess, setFeedbackSuccess] = useState('');
   const [feedbackError, setFeedbackError] = useState('');
 
-  // Check if current user is an authorized operator/staff
   const deliveryUser = (() => {
     try {
       const str = localStorage.getItem('iw_delivery_user');
@@ -96,7 +94,6 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
 
   useEffect(() => {
     const path = window.location.pathname;
-    // URL pattern: /drone/:drone_id
     const parts = path.split('/').filter(Boolean);
     const id = parts[parts.indexOf('drone') + 1] || '';
     setDroneId(id);
@@ -111,7 +108,6 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
     if (droneId) {
       fetchDroneData(false);
 
-      // Auto-poll every 8 seconds so if a dispatcher assigns a delivery person, it updates in real time
       const interval = setInterval(() => {
         fetchDroneData(true);
       }, 8000);
@@ -120,7 +116,6 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
     }
   }, [droneId, fetchDroneData]);
 
-  // Media file upload handler (Photos and Videos)
   const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -134,7 +129,6 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
     const filesToProcess = Array.from(files).slice(0, remainingSlots);
 
     filesToProcess.forEach((file) => {
-      // 25MB file size limit
       if (file.size > 25 * 1024 * 1024) {
         setFeedbackError(`File "${file.name}" exceeds the 25 MB limit.`);
         return;
@@ -178,7 +172,6 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
         ? (customIssueText.trim() ? `Custom Issue: ${customIssueText.trim()}` : 'Other Unlisted Issue')
         : selectedPartIssue;
 
-      // Contact info is automatically resolved from the order linked to this drone
       const autoCustomerName = droneData?.customer_name || 'Verified Customer';
       const autoCustomerPhone = droneData?.customer_phone || null;
       const autoCustomerEmail = droneData?.customer_email || SUPPORT_EMAIL;
@@ -227,15 +220,13 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased w-full pt-28 sm:pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-      {/* Outer Wide Layout Container - Scales to full website on PC, fits phone cleanly on mobile */}
+
       <div className="w-full max-w-7xl mx-auto space-y-6">
 
-        {/* ═══════════════════════════════════════════════════════════
-            HERO TOP BANNER - Full Width Website Card
-           ═══════════════════════════════════════════════════════════ */}
+
         <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-purple-50/60 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-          
+
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-start sm:items-center gap-4 sm:gap-5">
               <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-purple-100/90 border border-purple-200 flex items-center justify-center text-purple-700 shadow-xs shrink-0">
@@ -260,7 +251,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
               </div>
             </div>
 
-            {/* Live Refresh Status Pill */}
+
             <div className="flex items-center gap-3 self-start md:self-center shrink-0">
               <div className="text-right hidden sm:block">
                 <p className="text-[11px] font-semibold text-slate-400">STATUS AUTO-SYNC</p>
@@ -280,7 +271,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
             </div>
           </div>
 
-          {/* Active Order Banner if assigned */}
+
           {hasActiveOrder && (
             <div className="mt-5 pt-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-purple-50/50 p-4 rounded-2xl border border-purple-100">
               <div className="flex items-center gap-2.5">
@@ -304,9 +295,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
           )}
         </div>
 
-        {/* ═══════════════════════════════════════════════════════════
-            LOADING & ERROR STATES
-           ═══════════════════════════════════════════════════════════ */}
+
         {loading ? (
           <div className="bg-white border border-slate-200 rounded-3xl p-16 flex flex-col items-center justify-center gap-3 text-slate-500 shadow-sm">
             <Loader2 className="w-10 h-10 animate-spin text-purple-600" />
@@ -327,15 +316,13 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
             </div>
           </div>
         ) : droneData ? (
-          /* ═══════════════════════════════════════════════════════════
-              MAIN TWO-COLUMN GRID (Col 7 / Col 5 on Desktop, 1 Col on Phone)
-             ═══════════════════════════════════════════════════════════ */
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-            
-            {/*  */}
+
+
             <div className="lg:col-span-7 space-y-6">
 
-              {/* 1. Dynamic Delivery Driver & Fleet Status */}
+
               <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -381,13 +368,13 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                   )}
                 </div>
 
-                {/* Subtext info */}
+
                 <p className="text-[11px] text-slate-500 leading-relaxed">
                   As soon as a logistics driver is assigned at dispatch, their name and direct phone line appear here automatically.
                 </p>
               </div>
 
-              {/* 2. Road Delivery & Handling Instructions */}
+
               <div className="bg-white border border-amber-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 text-amber-900">
                   <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
@@ -439,7 +426,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                 </div>
               </div>
 
-              {/* 3. Pre-Delivery Acceptance Verification Checklist */}
+
               <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-sm space-y-3.5">
                 <div className="flex items-center gap-2 text-slate-800">
                   <CheckSquare className="w-4 h-4 text-purple-700" />
@@ -482,7 +469,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                 </div>
               </div>
 
-              {/* Staff QC Action (Logged-in operator/admin) */}
+
               {canInspect && (
                 <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 flex items-center justify-between gap-3">
                   <div>
@@ -501,10 +488,10 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
               )}
             </div>
 
-            {/*  */}
+
             <div className="lg:col-span-5 space-y-6">
 
-              {/* 4. Report Drone Part Issue & Technical Support Form */}
+
               <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -536,7 +523,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                     </div>
                   )}
 
-                  {/* Auto-Linked Customer Pill (NO manual typing required) */}
+
                   <div className="p-3.5 rounded-2xl bg-purple-50/70 border border-purple-200/70 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
@@ -562,7 +549,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                     </span>
                   </div>
 
-                  {/* Drone Parts Selector */}
+
                   <div>
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
                       Select Drone Part / Issue Category <span className="text-rose-500">*</span>
@@ -583,7 +570,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                     </select>
                   </div>
 
-                  {/* Unlisted Problem Custom Field */}
+
                   {selectedPartIssue === 'Other / Unlisted Issue' && (
                     <div className="animate-fadeIn">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-purple-700 block mb-1">
@@ -600,7 +587,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                     </div>
                   )}
 
-                  {/* Detailed Description */}
+
                   <div>
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
                       Detailed Description <span className="text-rose-500">*</span>
@@ -615,7 +602,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                     />
                   </div>
 
-                  {/* Photo & Video Upload */}
+
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
                       Upload Photos &amp; Videos (Proof of Issue)
@@ -637,7 +624,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                       </span>
                     </div>
 
-                    {/* Previews */}
+
                     {uploadedMedia.length > 0 && (
                       <div className="grid grid-cols-2 gap-2 pt-1">
                         {uploadedMedia.map((m, idx) => (
@@ -679,7 +666,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
                 </form>
               </div>
 
-              {/* 5. Official IndoWings Help Desk Card */}
+
               <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-sm space-y-3.5">
                 <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">
                   IndoWings Official Support Desk
@@ -730,7 +717,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
 
       </div>
 
-      {/* Modal for Logged-In Operator Inspection */}
+
       <PostDeliveryInspectionModal
         isOpen={showInspectionModal}
         onClose={() => setShowInspectionModal(false)}

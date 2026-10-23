@@ -17,7 +17,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
 
   return (
     <footer className="relative bg-[#191b30] text-slate-300 pt-16 pb-12 px-4 sm:px-8 overflow-hidden font-['Plus_Jakarta_Sans',sans-serif] border-t border-white/[0.08]">
-      {/* Subtle dot matrix background */}
+
       <div
         className="absolute inset-0 pointer-events-none opacity-[0.05]"
         style={{
@@ -26,11 +26,11 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
         }}
       />
 
-      {/* Atmospheric aerospace glows */}
+
       <div className="absolute top-0 left-1/4 w-[450px] h-[250px] bg-white/[0.04] blur-[100px] rounded-full pointer-events-none" />
       <div className="absolute bottom-10 right-1/4 w-[500px] h-[250px] bg-white/[0.03] blur-[110px] rounded-full pointer-events-none" />
 
-      {/* Watermark */}
+
       <div className="absolute bottom-2 sm:bottom-0 left-0 right-0 overflow-hidden pointer-events-none select-none flex justify-center items-end z-0">
         <span
           className="font-black tracking-tighter leading-none whitespace-nowrap text-transparent font-['Space_Grotesk',sans-serif]"
@@ -48,7 +48,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
       </div>
 
       <div className="relative z-10 max-w-[1360px] mx-auto">
-        {/* Top bar: Brand */}
+
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-10 border-b border-white/[0.07]">
           <div className="max-w-2xl">
             <a href="/" onClick={navTo('home', '/')} className="inline-flex items-center gap-3">
@@ -64,9 +64,9 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
           </div>
         </div>
 
-        {/* Links Grid with slightly larger readable font */}
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 py-10">
-          {/* Column 1: Operations Gateway */}
+
           <div>
             <h3 className="text-xs sm:text-[13px] font-black uppercase tracking-[0.16em] text-white mb-4 flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
@@ -132,7 +132,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
             </ul>
           </div>
 
-          {/* Column 2: Flight Tracking */}
+
           <div>
             <h3 className="text-xs sm:text-[13px] font-black uppercase tracking-[0.16em] text-white mb-4 flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
@@ -157,7 +157,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
             </ul>
           </div>
 
-          {/* Column 3: Protocols & Specifications */}
+
           <div>
             <h3 className="text-xs sm:text-[13px] font-black uppercase tracking-[0.16em] text-white mb-4 flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
@@ -182,7 +182,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
             </ul>
           </div>
 
-          {/* Column 4: Compliance & Governance */}
+
           <div>
             <h3 className="text-xs sm:text-[13px] font-black uppercase tracking-[0.16em] text-white mb-4 flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
@@ -209,7 +209,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
           </div>
         </div>
 
-        {/* Bottom Bar: Copyright on Left, 24/7 Operations Support on Right */}
+
         <div className="pt-6 border-t border-white/[0.08] flex flex-col lg:flex-row items-center justify-between text-[13px] text-slate-400 gap-4">
           <p>Copyright &copy; 2026 IndoFleet. All rights reserved.</p>
 

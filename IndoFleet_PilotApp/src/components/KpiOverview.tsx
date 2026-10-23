@@ -18,9 +18,9 @@ export const KpiOverview: React.FC<KpiOverviewProps> = ({ kpis, inTransitCount }
 
   return (
     <View style={styles.container}>
-      {/* 2x2 Metric Hero Cards: Assigned, In Transit, Today's Delivery, Total Delivered */}
+
       <View style={styles.heroRow}>
-        {/* 1. Assigned */}
+
         <View style={[styles.card, styles.cardAssigned]}>
           <View style={styles.cardHeader}>
             <Layers size={14} color="#2563EB" />
@@ -30,7 +30,7 @@ export const KpiOverview: React.FC<KpiOverviewProps> = ({ kpis, inTransitCount }
           <Text style={styles.cardSub}>Active Deliveries</Text>
         </View>
 
-        {/* 2. In Transit */}
+
         <View style={[styles.card, styles.cardTransit]}>
           <View style={styles.cardHeader}>
             <Navigation size={14} color="#7C3AED" />
@@ -42,7 +42,7 @@ export const KpiOverview: React.FC<KpiOverviewProps> = ({ kpis, inTransitCount }
       </View>
 
       <View style={styles.heroRow}>
-        {/* 3. Today's Delivery */}
+
         <View style={[styles.card, styles.cardToday]}>
           <View style={styles.cardHeader}>
             <Calendar size={14} color="#0D9488" />
@@ -52,7 +52,7 @@ export const KpiOverview: React.FC<KpiOverviewProps> = ({ kpis, inTransitCount }
           <Text style={styles.cardSub}>Completed Today</Text>
         </View>
 
-        {/* 4. Total Delivered */}
+
         <View style={[styles.card, styles.cardDelivered]}>
           <View style={styles.cardHeader}>
             <PackageCheck size={14} color="#059669" />

@@ -37,17 +37,13 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'in-transit' | 'delivered' | 'on-hold' | 'pending' | 'cancelled'>('all');
-  
-  // Selected Order for Split-Screen View
+
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
-  
-  // Dedicated Full-Screen Track View Order
+
   const [fullScreenOrder, setFullScreenOrder] = useState<any | null>(null);
 
-  // Full Order Details Modal State
   const [showDetailsOrder, setShowDetailsOrder] = useState<any | null>(null);
 
-  // Manage Order Modal State (Hold, Reschedule, Resume, Cancel)
   const [managingOrder, setManagingOrder] = useState<any | null>(null);
   const [manageAction, setManageAction] = useState<'hold' | 'cancel' | 'reschedule' | 'resume'>('hold');
   const [manageReason, setManageReason] = useState('');
@@ -95,7 +91,6 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
     return () => clearInterval(interval);
   }, []);
 
-  // Filtered Orders List
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
       const q = search.trim().toLowerCase();
@@ -131,7 +126,6 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
     });
   }, [orders, search, statusFilter]);
 
-  // Keep selected order synced
   useEffect(() => {
     if (selectedOrder) {
       const current = orders.find((o) => o.id === selectedOrder.id);
@@ -141,7 +135,6 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
     }
   }, [orders]);
 
-  // Handle Order Status Manage Action Submit
   const handleManageSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!managingOrder) return;
@@ -221,14 +214,13 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
     }
   };
 
-  // ── VIEW 1: FULL SCREEN CLEAN TRACKING MAP PAGE ────────────────────────
   if (fullScreenOrder) {
     const badge = getStatusBadge(fullScreenOrder.status);
     const orderNum = fullScreenOrder.order_number || fullScreenOrder.id;
 
     return (
       <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col font-sans">
-        {/* Fullscreen Header Bar */}
+
         <div className="bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between gap-3 shadow-md">
           <div className="flex items-center gap-3">
             <button
@@ -265,12 +257,12 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
           </div>
         </div>
 
-        {/* Clean Full-Screen Map Canvas */}
+
         <div className="flex-1 w-full h-full relative">
           <CustomerOrderLiveMap order={fullScreenOrder} className="h-full w-full" />
         </div>
 
-        {/* Full Order Details Modal Overlay */}
+
         {showDetailsOrder && (
           <OrderDetailsModal order={showDetailsOrder} onClose={() => setShowDetailsOrder(null)} />
         )}
@@ -278,10 +270,9 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
     );
   }
 
-  // ── VIEW 2: SPLIT-SCREEN ORDERS LIST & MAP WORKSPACE ───────────────────
   return (
     <div className="space-y-5 font-sans">
-      {/* Header Bar */}
+
       <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -293,7 +284,7 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-          {/* Search Box */}
+
           <div className="relative flex-1 sm:w-72">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -316,7 +307,7 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
         </div>
       </div>
 
-      {/* Status Filter Tabs */}
+
       <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs font-bold">
         {[
           { id: 'all', label: 'All Orders', count: orders.length },
@@ -343,9 +334,9 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
         ))}
       </div>
 
-      {/* Main Split Screen Workspace: Left List + Right Map */}
+
       <div className="flex flex-col lg:flex-row gap-6 min-h-[620px]">
-        {/* LEFT COLUMN: Delivery Cards List */}
+
         <div className="w-full lg:w-[440px] xl:w-[480px] shrink-0 space-y-3.5 overflow-y-auto max-h-[calc(100vh-14rem)] pr-1">
           {loading ? (
             <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center text-xs text-slate-400">
@@ -378,7 +369,7 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
                       : 'border-slate-200 hover:border-purple-300 hover:bg-slate-50/50'
                   }`}
                 >
-                  {/* Row 1: Order # & Status Badge */}
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center font-mono text-slate-700 font-bold text-xs">
@@ -394,11 +385,11 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
                     </span>
                   </div>
 
-                  {/* Row 2: Route Visual Progress Line */}
+
                   <div className="py-1">
                     <div className="flex items-center justify-between relative px-2 mb-1.5">
                       <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100 shrink-0 z-10" />
-                      
+
                       <div className="flex-1 mx-2 h-0.5 bg-slate-200 relative flex items-center justify-center">
                         <div className="w-7 h-7 rounded-full bg-white border border-slate-300 text-slate-700 shadow-xs flex items-center justify-center z-10 transition-transform group-hover:scale-110">
                           <Truck className="w-3.5 h-3.5 text-[#5a00b8]" />
@@ -418,7 +409,7 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
                     </div>
                   </div>
 
-                  {/* Row 3: Customer Info Card */}
+
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 text-white font-bold text-xs flex items-center justify-center shrink-0">
@@ -455,9 +446,9 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
                     </div>
                   </div>
 
-                  {/* Row 4: Explicit Action Buttons: TRACK | DETAILS | MANAGE */}
+
                   <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
-                    {/* Track Button (Opens Full Page Map) */}
+
                     <button
                       type="button"
                       onClick={(e) => {
@@ -470,7 +461,7 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
                       <span>Track</span>
                     </button>
 
-                    {/* Details Button (Opens Full Details Modal) */}
+
                     <button
                       type="button"
                       onClick={(e) => {
@@ -483,7 +474,7 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
                       <span>Details</span>
                     </button>
 
-                    {/* Manage Button */}
+
                     {!['delivered', 'cancelled'].includes(order.status) && (
                       <button
                         type="button"
@@ -510,11 +501,11 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
           )}
         </div>
 
-        {/* RIGHT COLUMN: Interactive Map Preview Panel */}
+
         <div className="flex-1 bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-xs flex flex-col min-h-[520px] lg:min-h-[650px] relative">
           {selectedOrder ? (
             <>
-              {/* Header Floating Banner */}
+
               <div className="p-4 bg-white/95 backdrop-blur-md border-b border-slate-200 z-10 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-200 text-[#5a00b8] flex items-center justify-center font-bold shrink-0">
@@ -554,7 +545,7 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
                 </div>
               </div>
 
-              {/* Map Component */}
+
               <div className="w-full flex-1 relative min-h-[480px]">
                 <CustomerOrderLiveMap order={selectedOrder} className="h-full w-full" />
               </div>
@@ -567,12 +558,12 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
         </div>
       </div>
 
-      {/* ── MODAL 1: ORDER DETAILS MODAL ─────────────────────────────────── */}
+
       {showDetailsOrder && (
         <OrderDetailsModal order={showDetailsOrder} onClose={() => setShowDetailsOrder(null)} />
       )}
 
-      {/* ── MODAL 2: MANAGE ORDER STATUS ────────────────────────────────── */}
+
       {managingOrder && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-4">
@@ -693,7 +684,6 @@ export const DeliveryTrackingModule: React.FC<DeliveryTrackingModuleProps> = () 
   );
 };
 
-// ── REUSABLE ORDER DETAILS MODAL COMPONENT ─────────────────────────────────
 const OrderDetailsModal: React.FC<{ order: any; onClose: () => void }> = ({ order, onClose }) => {
   const custName = order.customer_name || order.client_name || 'Customer';
   const custPhone = order.customer_phone || 'N/A';
@@ -703,7 +693,7 @@ const OrderDetailsModal: React.FC<{ order: any; onClose: () => void }> = ({ orde
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 font-sans">
       <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-6 border border-slate-100">
-        {/* Header */}
+
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 text-[#5a00b8] flex items-center justify-center font-black">
@@ -724,7 +714,7 @@ const OrderDetailsModal: React.FC<{ order: any; onClose: () => void }> = ({ orde
           </button>
         </div>
 
-        {/* Section 1: Customer Details */}
+
         <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
           <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
             <User className="w-4 h-4 text-[#5a00b8]" /> Customer &amp; Recipient Information
@@ -745,7 +735,7 @@ const OrderDetailsModal: React.FC<{ order: any; onClose: () => void }> = ({ orde
           </div>
         </div>
 
-        {/* Section 2: Route & Addresses */}
+
         <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
           <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
             <MapPin className="w-4 h-4 text-emerald-600" /> Route &amp; Hub Locations
@@ -762,7 +752,7 @@ const OrderDetailsModal: React.FC<{ order: any; onClose: () => void }> = ({ orde
           </div>
         </div>
 
-        {/* Section 3: Hardware & Logistics */}
+
         <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
           <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
             <Truck className="w-4 h-4 text-amber-600" /> Hardware &amp; Logistics Specification
@@ -787,7 +777,7 @@ const OrderDetailsModal: React.FC<{ order: any; onClose: () => void }> = ({ orde
           </div>
         </div>
 
-        {/* Section 4: Timestamps & Notes */}
+
         {(order.rescheduled_date || order.hold_reason || order.delivery_notes) && (
           <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-200 space-y-2 text-xs">
             <h4 className="font-bold text-[#5a00b8] flex items-center gap-1.5">

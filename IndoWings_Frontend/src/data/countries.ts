@@ -4,7 +4,6 @@ export type Country = {
   dial: string;  // international dialling code, without the leading '+'
 };
 
-// Ordered with India first (default), then a broadly complete country list.
 export const COUNTRIES: Country[] = [
   { iso: 'IN', name: 'India', dial: '91' },
   { iso: 'US', name: 'United States', dial: '1' },
@@ -218,7 +217,7 @@ export function countryByIso(iso?: string | null): Country {
 export function parsePhone(value?: string | null): { country: Country; national: string } {
   const raw = (value || '').trim();
   if (!raw) return { country: DEFAULT_COUNTRY, national: '' };
-  
+
   const isIntl = raw.startsWith('+') || raw.startsWith('00');
   const digitsOnly = raw.replace(/[^0-9]/g, '');
 
@@ -244,7 +243,6 @@ export function parsePhone(value?: string | null): { country: Country; national:
   return { country: DEFAULT_COUNTRY, national: withoutPrefix };
 }
 
-// Combine a country and a national number into the canonical stored value.
 export function toInternational(country: Country, national: string): string {
   const digits = (national || '').replace(/[^0-9]/g, '');
   return digits ? `+${country.dial}${digits}` : '';

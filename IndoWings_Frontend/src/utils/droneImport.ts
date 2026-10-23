@@ -158,7 +158,7 @@ async function parsePdfText(buffer: ArrayBuffer): Promise<string> {
         if (part[1] !== undefined) literals.push(part[1].replace(/\\([\\()])/g, '$1').replace(/\\n/g, ' '));
         else if (part[2]) {
           const hex = part[2].replace(/(..)/g, '%$1');
-          try { literals.push(decodeURIComponent(hex)); } catch { /* Skip malformed glyph sequences. */ }
+          try { literals.push(decodeURIComponent(hex)); } catch {  }
         }
       }
     }

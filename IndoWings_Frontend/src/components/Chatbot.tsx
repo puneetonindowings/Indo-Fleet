@@ -36,7 +36,6 @@ interface ChatbotProps {
   onNavigate?: (page: string) => void;
 }
 
-/* ── Starter topics (shown as tiles under the welcome message) ─────────────── */
 const SUGGESTED_TOPICS = [
   {
     icon: Package,
@@ -76,7 +75,6 @@ const SUGGESTED_TOPICS = [
   }
 ];
 
-/* Small shortcut chips above the input once the chat has started */
 const QUICK_CHIPS = [
   { label: 'Track order', query: 'Track my delivery order' },
   { label: '700RPAV specs', query: '700RPAV specs and performance' },
@@ -84,7 +82,6 @@ const QUICK_CHIPS = [
   { label: 'Support', query: 'Support contact' }
 ];
 
-/* ── Guide cards (text kept exactly as before) ─────────────────────────────── */
 type Tone = 'amber' | 'purple' | 'blue' | 'emerald' | 'indigo';
 
 const TONES: Record<Tone, { box: string; title: string; icon: string; text: string }> = {
@@ -161,7 +158,6 @@ const GUIDES: Record<string, GuideDef> = {
   }
 };
 
-/* ── Status helpers ────────────────────────────────────────────────────────── */
 const statusStyle = (status?: string) =>
   status === 'delivered'
     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -229,7 +225,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [showTeaser, setShowTeaser] = useState(true);
 
-  // Conversational state machine
   const [convState, setConvState] = useState<{
     step: 'idle' | 'awaiting_name' | 'lookup_name' | 'lookup_phone' | 'lookup_date';
     pendingOrderId?: string;
@@ -243,7 +238,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Initial welcome message
   useEffect(() => {
     const welcomeTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     setMessages([
@@ -256,14 +250,12 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
     ]);
   }, []);
 
-  // Auto scroll to bottom
   useEffect(() => {
     if (isOpen && !isMinimized) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isOpen, isMinimized, loading]);
 
-  // Focus input when opened
   useEffect(() => {
     if (isOpen && !isMinimized) {
       setTimeout(() => inputRef.current?.focus(), 150);
@@ -294,11 +286,9 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
     ]);
   };
 
-  // Helper for formatting markdown-style bold, italic, and clean structure without raw asterisks
   const renderFormattedText = (text: string) => {
     const lines = text.split('\n');
     return lines.map((line, lIdx) => {
-      // Process bold (**...**) and italic (*...*) cleanly
       const parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g);
       return (
         <React.Fragment key={lIdx}>
@@ -364,7 +354,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 2. STEP 2 OF 3: LOST ORDER ID - ASKING FOR PHONE / EMAIL
       if (convState.step === 'lookup_phone') {
         const updatedLookup = { ...(convState.lookupData || {}), phone: clean };
         setConvState({
@@ -379,7 +368,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 3. STEP 3 OF 3: LOST ORDER ID - SUBMIT LOOKUP TO BACKEND
       if (convState.step === 'lookup_date') {
         const finalLookup = {
           name: convState.lookupData?.name || '',
@@ -415,7 +403,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 4. IDENTITY VERIFICATION FOR ORDER TRACKING
       if (convState.step === 'awaiting_name' && convState.pendingOrderId) {
         const orderId = convState.pendingOrderId;
         setConvState({ step: 'idle' });
@@ -448,7 +435,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 5. TRIGGER: FIND / RECOVER LOST ORDER ID (Natural Hindi & English matching)
       const lostIdKeywords = [
         'order id dedo', 'order id do', 'order id batao', 'order id bta do', 'order id de do',
         'order id chahiye', 'order id kya hai', 'order id nahi', 'order id bhul', 'order id bhool',
@@ -467,7 +453,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 6. CHECK IF QUERY CONTAINS AN ORDER ID DIRECTLY (e.g. IW-20261007-4BB5E1 or INW-2026-001)
       const orderIdRegex = /(IW-?\d{4,8}-?[A-Z0-9]{3,8}|INW-?\d{4}-?\d{1,6})/i;
       const orderMatch = clean.match(orderIdRegex);
       if (orderMatch) {
@@ -502,7 +487,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 7. GREETINGS & CASUAL
       const greetingKeywords = ['hi', 'hello', 'hey', 'namaste', 'pranam', 'good morning', 'good afternoon', 'good evening'];
       if (greetingKeywords.some((kw) => lower === kw || lower.startsWith(kw + ' ') || lower.endsWith(' ' + kw))) {
         addMessage({
@@ -513,7 +497,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 8. COURTESY / THANK YOU
       const thankKeywords = ['thank', 'thanks', 'dhanyawad', 'shukriya', 'thankyou', 'thx'];
       if (thankKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
@@ -524,7 +507,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 9. FIX GUIDE: WEATHER HOLD
       const weatherKeywords = ['weather', 'mausam', 'hawa', 'rain', 'barish', 'storm', 'wind', 'gust', 'weather hold'];
       if (weatherKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
@@ -536,7 +518,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 10. FIX GUIDE: RTK / GPS FIX
       const rtkKeywords = ['rtk', 'gps', 'satellite', 'accuracy', 'centimeter', 'float', 'drift', 'navic', 'glonass'];
       if (rtkKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
@@ -548,7 +529,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 11. FIX GUIDE: NPNT & DIGITALSKY PERMISSION
       const npntKeywords = ['npnt', 'digitalsky', 'permission', 'token', 'dgca token', 'green zone', 'yellow zone', 'airspace approval'];
       if (npntKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
@@ -560,7 +540,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 12. FIX GUIDE: TELEMETRY & 5G FAILOVER
       const telemetryKeywords = ['telemetry', '5g', 'signal', 'cellular', 'lost link', 'failover', 'apn', 'uhf', 'rf link', 'disconnect'];
       if (telemetryKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
@@ -572,7 +551,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 13. FIX GUIDE: DUAL-IMU & AVIONICS
       const avionicsKeywords = ['imu', 'compass', 'gyro', 'accelerometer', 'esc', 'motor', 'calibration', 'sensor', 'bench test'];
       if (avionicsKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
@@ -584,7 +562,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 14. FIX GUIDE GENERAL SEARCH
       const fixGeneralKeywords = ['fix', 'troubleshoot', 'diagnostic', 'problem', 'issue', 'kharab', 'error', 'guide'];
       if (fixGeneralKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
@@ -596,7 +573,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 15. CHECK IF USER ASKS TO TRACK ORDER (GENERIC)
       const trackKeywords = ['track', 'tracking', 'status', 'where is', 'kahan hai', 'kya status', 'delivery status', 'eta', 'transit', 'order status'];
       if (trackKeywords.some((kw) => lower.includes(kw)) && clean.length < 60) {
         addMessage({
@@ -607,7 +583,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 16. KNOWLEDGE BASE: SUPPORT TEAM & HELPLINE (ONLY ON-DEMAND)
       const supportKeywords = ['support', 'contact', 'call', 'phone', 'helpline', 'customer care', 'email', 'number', 'talk to human', 'agent', 'desk', 'complain', 'complaint', 'madad', 'helpdesk'];
       if (supportKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
@@ -619,8 +594,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 17. KNOWLEDGE BASE: STORE / HOW TO BOOK DRONES
-      // (checked before the drone specs so "How to book 700RPAV consignment" opens the booking guide)
       const bookingKeywords = ['book', 'buy', 'purchase', 'store', 'order kaise', 'kaise kharide', 'inventory', 'consignment', 'shop', 'price', 'pricing', 'fare', 'cost'];
       if (bookingKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
@@ -632,7 +605,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 18. KNOWLEDGE BASE: 700RPAV DRONE FLEET & SPECS
       const droneKeywords = ['drone', 'fleet', '700rpav', 'rpav', 'aircraft', 'uav', 'payload', 'specs', 'specification', 'battery', 'range', 'speed', 'endurance', 'camera', 'weight'];
       if (droneKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
@@ -644,7 +616,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 19. KNOWLEDGE BASE: COMPANY & FOUNDER & DGCA
       const companyKeywords = ['indowings', 'company', 'founder', 'ceo', 'paras jain', 'headquarter', 'office', 'dgca', 'cin', 'about', 'make in india', 'location'];
       if (companyKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
@@ -656,7 +627,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 20. KNOWLEDGE BASE: ORDER CANCELLATION / RETURN POLICY
       const cancelKeywords = ['cancel', 'cancellation', 'return', 'refund', 'by operations'];
       if (cancelKeywords.some((kw) => lower.includes(kw))) {
         addMessage({
@@ -667,7 +637,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         return;
       }
 
-      // 21. DEFAULT INTELLIGENT HELPFUL FALLBACK (Clean text, no cheese emoji soup)
       addMessage({
         sender: 'bot',
         text: 'I can assist you with:\n\n• Track Order: Type your Order ID (e.g. IW-20261007-4BB5E1)\n• Lost Order ID: Type "order id dedo" or "Find my Order ID"\n• 700RPAV Specs: Type "Drone specs"\n• Hardware Fixes: Type "Fix guide" or "Weather hold"\n• How to Book: Type "How to book"\n• Support Team: Type "Support contact"'
@@ -709,7 +678,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
     nav(page, url);
   };
 
-  // Track a single order picked from the lookup list
   const trackFromList = async (ord: any, customerName: string) => {
     setLoading(true);
     try {
@@ -738,15 +706,13 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
     }
   };
 
-  /* ── Card renderer ───────────────────────────────────────────────────────── */
+
   const renderCard = (msg: ChatMessage) => {
     if (!msg.cardType) return null;
 
-    // Guides (weather, RTK, NPNT, telemetry, avionics, QC, store)
     const guide = GUIDES[msg.cardType];
     if (guide) return <GuideCard def={guide} onCta={navAndClose} />;
 
-    // Live order tracking
     if (msg.cardType === 'order_detail' && msg.cardData) {
       const d = msg.cardData;
       const progress: number | null =
@@ -767,7 +733,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
           </div>
 
           <div className="space-y-3 px-3.5 py-3">
-            {/* Route */}
+
             <div>
               <div className="flex items-center justify-between gap-3 text-[11px] font-semibold text-slate-700">
                 <span className="max-w-[45%] truncate">{d.pickup_address?.split(',')[0] || 'Pickup'}</span>
@@ -791,7 +757,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
               )}
             </div>
 
-            {/* Partner + ETA */}
+
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-2 text-center">
                 <span className="block text-[10px] font-medium text-slate-400">Delivery Partner</span>
@@ -805,7 +771,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
               </div>
             </div>
 
-            {/* Hardware + recipient */}
+
             <div className="flex items-center justify-between gap-3 rounded-xl border border-purple-100 bg-purple-50/60 p-2.5 text-[11px]">
               <div className="min-w-0">
                 <span className="block text-slate-500">Hardware Model</span>
@@ -829,7 +795,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       );
     }
 
-    // Lookup results
     if (msg.cardType === 'order_list' && msg.cardData?.orders) {
       return (
         <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
@@ -863,7 +828,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       );
     }
 
-    // 700RPAV specs
     if (msg.cardType === 'drones_info') {
       const specs = [
         { label: 'Endurance', value: '65 mins flight' },
@@ -903,7 +867,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       );
     }
 
-    // Company info
     if (msg.cardType === 'company_info') {
       const rows = [
         { label: 'Legal Name', value: 'Indo Wings Private Limited' },
@@ -929,7 +892,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       );
     }
 
-    // Support
     if (msg.cardType === 'support_info') {
       return (
         <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
@@ -979,7 +941,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
 
   return (
     <>
-      {/* ── FLOATING LAUNCHER (bottom-right) ─────────────────────────────────── */}
+
       <div className="fixed bottom-4 right-4 z-50 flex select-none items-center gap-3 sm:bottom-6 sm:right-6">
         {!isOpen && showTeaser && (
           <div className="animate-in fade-in slide-in-from-right-2 hidden items-center gap-2 rounded-2xl border border-purple-100 bg-white py-2 pl-4 pr-2 text-xs font-semibold text-slate-800 shadow-[0_8px_30px_rgba(90,0,184,0.18)] duration-300 sm:flex">
@@ -1017,7 +979,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         </button>
       </div>
 
-      {/* ── CHAT WINDOW ──────────────────────────────────────────────────────── */}
+
       {isOpen && (
         <div
           role="dialog"
@@ -1029,7 +991,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
             isMinimized ? 'h-[68px]' : 'h-[620px] max-h-[calc(100svh-7.5rem)]'
           }`}
         >
-          {/* Header */}
+
           <div className="relative shrink-0 overflow-hidden bg-gradient-to-br from-[#2a0a5e] via-[#4a0099] to-[#7c3aed] px-4 py-3.5 text-white">
             <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
             <div className="pointer-events-none absolute -bottom-12 left-1/3 h-28 w-28 rounded-full bg-fuchsia-400/20 blur-2xl" />
@@ -1079,7 +1041,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
 
           {!isMinimized && (
             <>
-              {/* Messages */}
+
               <div className="flex-1 space-y-4 overflow-y-auto bg-gradient-to-b from-[#faf8ff] to-white p-4 text-[13px] [scrollbar-color:#d8c8f5_transparent] [scrollbar-width:thin]">
                 {messages.map((msg) => (
                   <div
@@ -1120,7 +1082,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                   </div>
                 ))}
 
-                {/* Starter topics */}
+
                 {messages.length <= 1 && (
                   <div className="animate-in fade-in space-y-2 duration-300">
                     <p className="flex items-center gap-1.5 px-1 text-[11px] font-bold text-slate-500">
@@ -1153,7 +1115,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                   </div>
                 )}
 
-                {/* Typing indicator */}
+
                 {loading && (
                   <div className="flex items-start gap-2.5">
                     <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#5a00b8] text-white shadow-sm">
@@ -1174,7 +1136,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Quick chips (only once the chat has started and no step-by-step flow is running) */}
+
               {messages.length > 1 && convState.step === 'idle' && (
                 <div className="flex shrink-0 gap-2 overflow-x-auto border-t border-slate-100 bg-white px-3 pb-1 pt-2.5 [scrollbar-width:none]">
                   {QUICK_CHIPS.map((chip) => (
@@ -1191,7 +1153,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                 </div>
               )}
 
-              {/* Input */}
+
               <form
                 onSubmit={handleSend}
                 className="flex shrink-0 items-center gap-2 border-t border-slate-100 bg-white p-3"

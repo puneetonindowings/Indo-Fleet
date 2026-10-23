@@ -39,7 +39,6 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
 
-  // Form State
   const [name, setName] = useState(currentUser?.name || '');
   const [email, setEmail] = useState(currentUser?.email || '');
   const [rating, setRating] = useState(5);
@@ -52,7 +51,6 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
-  // Fetch feedbacks from API
   const fetchFeedbacks = async () => {
     try {
       setLoading(true);
@@ -71,7 +69,6 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
   useEffect(() => {
     fetchFeedbacks();
 
-    // Check URL params for orderId
     const params = new URLSearchParams(window.location.search);
     const qOrderId = params.get('orderId');
     const qDrone = params.get('drone');
@@ -120,7 +117,6 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
         localStorage.setItem(`iw_feedback_submitted_${orderId.trim()}`, 'true');
         localStorage.setItem(`iw_feedback_prompted_${orderId.trim()}`, 'true');
       }
-      // Reload feedbacks list
       await fetchFeedbacks();
     } catch (err: any) {
       setSubmitError(err.message || 'Could not submit feedback. Please try again.');
@@ -154,7 +150,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
-      {/* ── HERO SECTION ────────────────────────────────────────────────────── */}
+
       <section className="bg-[#1b0038] text-white pt-28 sm:pt-36 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
@@ -175,7 +171,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
               </p>
             </div>
 
-            {/* Action Card in Hero */}
+
             <div className="bg-white/10 border border-white/20 backdrop-blur-md rounded-2xl p-6 text-center shrink-0 md:w-80 shadow-2xl">
               <div className="flex items-center justify-center gap-1.5 mb-2">
                 {[1, 2, 3, 4, 5].map((i) => (
@@ -203,7 +199,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
         </div>
       </section>
 
-      {/* ── REAL LIVE STATS BAR ────────────────────────────────────────────── */}
+
       <section className="bg-white border-b border-slate-200 py-6 px-4 sm:px-6 lg:px-8 shadow-xs">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           <div className="border-r border-slate-100 last:border-0">
@@ -225,9 +221,9 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
         </div>
       </section>
 
-      {/* ── MAIN CONTENT CONTAINER ─────────────────────────────────────────── */}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* ── OPTIONAL INLINE SUBMISSION FORM ──────────────────────────────── */}
+
         {showForm && (
           <div className="mb-12 bg-white rounded-2xl border-2 border-purple-200 shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">
             <div className="bg-[#fbf9fe] px-6 py-4 border-b border-slate-100 flex items-center justify-between">
@@ -260,7 +256,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
               <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
                 {submitError && <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium">{submitError}</div>}
 
-                {/* Star Rating Interactive */}
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Overall Mission Rating *</label>
                   <div className="flex items-center gap-2">
@@ -285,7 +281,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* Drone Model */}
+
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Autonomous UAV Model *</label>
                     <select
@@ -301,7 +297,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
                     </select>
                   </div>
 
-                  {/* Category */}
+
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Feedback Highlight *</label>
                     <select
@@ -317,7 +313,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
                     </select>
                   </div>
 
-                  {/* Customer Name */}
+
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Your Name / Organization</label>
                     <input
@@ -329,7 +325,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
                     />
                   </div>
 
-                  {/* Order ID (Optional/Prefilled) */}
+
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Delivery Order ID (Optional for Verified Badge)</label>
                     <input
@@ -342,7 +338,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
                   </div>
                 </div>
 
-                {/* Message */}
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Your Review & Experience *</label>
                   <textarea
@@ -376,9 +372,9 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
           </div>
         )}
 
-        {/* ── FILTER & SEARCH BAR ──────────────────────────────────────────── */}
+
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
-          {/* Star Filters */}
+
           <div className="flex items-center gap-1.5 flex-wrap">
             <button
               onClick={() => setFilterRating('all')}
@@ -408,7 +404,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
             </button>
           </div>
 
-          {/* Search Input */}
+
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
@@ -421,7 +417,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
           </div>
         </div>
 
-        {/* ── FEEDBACK REVIEWS GRID ────────────────────────────────────────── */}
+
         {loading ? (
           <div className="text-center py-20 text-slate-400">
             <div className="w-10 h-10 border-2 border-[#5a00b8] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
@@ -458,7 +454,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
               return (
                 <div key={fb.id} className="bg-white rounded-2xl border border-slate-200/90 hover:border-purple-200 hover:shadow-md p-6 flex flex-col justify-between transition-all">
                   <div>
-                    {/* Top Row: Rating & Verified Flight Badge */}
+
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-1">
                         {[1, 2, 3, 4, 5].map((star) => (
@@ -476,7 +472,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
                       )}
                     </div>
 
-                    {/* Drone Model Tag */}
+
                     <div className="mb-3">
                       <div className="inline-flex items-center gap-1.5 bg-purple-50 text-[#5a00b8] border border-purple-100 px-2.5 py-1 rounded-lg text-xs font-bold">
                         <Plane className="w-3 h-3" />
@@ -484,11 +480,11 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
                       </div>
                     </div>
 
-                    {/* Review Message */}
+
                     <p className="text-slate-700 text-sm leading-relaxed mb-4 italic">"{fb.message}"</p>
                   </div>
 
-                  {/* Bottom Author & Order Info */}
+
                   <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-[#5a00b8] text-white text-xs font-bold flex items-center justify-center">{fb.user_name?.[0]?.toUpperCase() || 'U'}</div>

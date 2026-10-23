@@ -9,7 +9,6 @@ const DELIVERY_ACTIVE_STATUSES = ['pending', 'assigned', ...IN_TRANSIT_STATUSES,
 const SUPPORT_OPEN = ['pending', 'open', 'in_progress', 'waiting_for_customer', 'waiting_for_internal_team', 'reopened', 'unresolved'];
 const SUPPORT_DONE = ['resolved', 'closed'];
 
-// ── date helpers ──────────────────────────────────────────────────────────────
 function startOfDay(d: Date): Date {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
@@ -60,7 +59,7 @@ function resolveRange(fromStr?: string | null, toStr?: string | null): Range {
   const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   return { from, to, prevFrom, prevTo, spanDays, granularity, label: `${fmt(from)} – ${fmt(to)}` };
 }
-  
+
 interface Bucket {
   label: string;
   start: number;
@@ -98,7 +97,6 @@ function inRange(time: number, from: Date | number, to: Date | number): boolean 
   return time >= f && time <= t;
 }
 
-// ── value helpers ─────────────────────────────────────────────────────────────
 function orderRevenue(order: any): number {
   if (order.status === 'cancelled') return 0;
   if (order.payment_status === 'refunded') return 0;
@@ -168,7 +166,6 @@ function orderGeo(order: any) {
   return { source, destination, current };
 }
 
-// ── main builder ──────────────────────────────────────────────────────────────
 export async function buildAnalyticsPayload(query: { from?: string; to?: string } = {}) {
   const range = resolveRange(query.from, query.to);
   const [allOrders, fleet, users, tickets, dispatchHistory, feedbacks] = await Promise.all([
@@ -193,7 +190,6 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
 
   const buckets = buildBuckets(range);
 
-  // ── time series per bucket ───────────────────────────────────────────────────
   const ordersTrend = buckets.map((b) => {
     const inBucket = orders.filter((o) => inRange(ts(o.created_at), b.start, b.end));
     const deliveredInBucket = orders.filter((o) => o.delivered_at && inRange(ts(o.delivered_at), b.start, b.end));
@@ -214,10 +210,8 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
     customers: customers.filter((c) => inRange(ts(c.created_at), b.start, b.end)).length
   }));
 
-  // sparklines (last 8 buckets)
   const spark = (arr: any[], key: string) => arr.slice(-8).map((p) => Number(p[key]) || 0);
 
-  // ── KPI cards ────────────────────────────────────────────────────────────────
   const allTimeTotalOrders = orders.length;
   const allTimeCancelledOrders = orders.filter((o) => o.status === 'cancelled').length;
   const allTimeDeliveredOrders = orders.filter((o) => o.status === 'delivered').length;
@@ -261,7 +255,6 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
     activeSupportTickets: { value: openTickets }
   };
 
-  // ── orders analytics ─────────────────────────────────────────────────────────
   const statusCount = (statuses: string[]) => ordersInRange.filter((o) => statuses.includes(o.status)).length;
   const orderCounts = {
     total: ordersInRange.length,
@@ -278,7 +271,6 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
     delayed: statusCount(['delayed'])
   };
 
-  // ── revenue analytics ────────────────────────────────────────────────────────
   const weekStart = startOfDay(new Date(now - 6 * DAY_MS)).getTime();
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
   const yearStart = new Date(new Date().getFullYear(), 0, 1).getTime();
@@ -295,7 +287,6 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
     cod: round(sum(ordersInRange.filter((o) => o.payment_method === 'cod').map(orderRevenue)), 0)
   };
 
-  // ── period comparison ────────────────────────────────────────────────────────
   const deliveredInRange = ordersInRange.filter((o) => o.status === 'delivered').length;
   const deliveredPrev = ordersPrev.filter((o) => o.status === 'delivered').length;
   const newCustomersInRange = customers.filter((c) => inRange(ts(c.created_at), range.from, range.to)).length;
@@ -310,7 +301,6 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
     cancellations: delta(cancelledInRange, cancelledPrev)
   };
 
-  // ── status distribution ──────────────────────────────────────────────────────
   const distributionDefs: Array<{ status: string; label: string }> = [
     { status: 'pending', label: 'Pending' },
     { status: 'assigned', label: 'Processing' },
@@ -330,7 +320,6 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
     })
     .filter((d) => d.count > 0);
 
-  // ── today's deliveries ───────────────────────────────────────────────────────
   const todaysDeliveries = orders.filter((o) => {
     const created = ts(o.created_at);
     const delivered = o.delivered_at ? ts(o.delivered_at) : 0;
@@ -362,7 +351,6 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
       };
     });
 
-  // ── live delivery map ────────────────────────────────────────────────────────
   const mapDeliveries = orders
     .filter((o) => DELIVERY_ACTIVE_STATUSES.includes(o.status) || o.status === 'delivered')
     .slice(0, 60)
@@ -379,7 +367,6 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
       };
     });
 
-  // ── delivery performance ─────────────────────────────────────────────────────
   const deliveredOrders = orders.filter((o) => o.status === 'delivered' && o.delivered_at);
   const deliveryTimes = deliveredOrders
     .map((o) => (ts(o.delivered_at) - ts(o.created_at)) / 60000)
@@ -402,7 +389,6 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
     trend: ordersTrend.map((p) => ({ label: p.label, delivered: p.delivered, failed: p.failed, delayed: p.delayed }))
   };
 
-  // ── drone / inventory analytics ──────────────────────────────────────────────
   const inventoryStatusCount = (statuses: string[]) => fleet.filter((d: any) => statuses.includes(d.status)).length;
   const inventory = {
     total: fleet.length,
@@ -425,7 +411,6 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
       .sort((a, b) => b.count - a.count)
   };
 
-  // ── customer analytics ───────────────────────────────────────────────────────
   const orderCountByCustomer = orders.reduce((acc: Record<string, number>, o) => {
     const key = o.creator_id || o.customer_email || o.customer_name;
     if (!key) return acc;
@@ -445,7 +430,6 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
     growth: customerTrend
   };
 
-  // ── support analytics ────────────────────────────────────────────────────────
   const resolvedTickets = tickets.filter((t) => SUPPORT_DONE.includes(t.status));
   const resolutionHours = resolvedTickets
     .map((t) => (ts(t.updated_at) - ts(t.created_at)) / 3_600_000)
@@ -478,7 +462,6 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
     byAgent: Object.entries(byAgentMap).map(([agent, count]) => ({ agent, count: count as number })).sort((a, b) => b.count - a.count)
   };
 
-  // ── top performers ───────────────────────────────────────────────────────────
   const droneModelStats = orders.reduce((acc: Record<string, { orders: number; revenue: number }>, o) => {
     const model = String(o.drone_model || o.package_type || 'Delivery');
     if (!model) return acc;
@@ -527,7 +510,6 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
     topAgents
   };
 
-  // ── recent activity ──────────────────────────────────────────────────────────
   type Activity = { activity: string; entity: string; performedBy: string; time: number; type: string };
   const activities: Activity[] = [];
   for (const o of orders.slice(0, 120)) {
@@ -558,7 +540,6 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
       return { activity: a.activity, entity: a.entity, performedBy: a.performedBy, type: a.type, date: d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }), time: d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }), timestamp: a.time };
     });
 
-  // ── insights (dynamic, data-driven) ──────────────────────────────────────────
   const insights: Array<{ text: string; tone: 'positive' | 'negative' | 'neutral' }> = [];
   const orderDelta = comparison.orders.deltaPct;
   if (ordersPrev.length || ordersInRange.length) {
@@ -579,7 +560,6 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
   if (deliveryPerformance.avgDeliveryMins) insights.push({ text: `Average delivery time is ${deliveryPerformance.avgDeliveryMins} minutes with ${deliveryPerformance.onTimePct}% on-time rate.`, tone: deliveryPerformance.onTimePct >= 80 ? 'positive' : 'neutral' });
   if (comparison.newCustomers.deltaPct > 0) insights.push({ text: `New customer signups grew by ${comparison.newCustomers.deltaPct}% this period.`, tone: 'positive' });
 
-  // ── legacy top-level fields (backward compat for DispatchPage) ───────────────
   const deliveredAll = orders.filter((o) => o.status === 'delivered').length;
   const cancelledAll = orders.filter((o) => o.status === 'cancelled').length;
   const grossRevenue = round(sum(orders.map(orderRevenue)), 0);
@@ -605,7 +585,6 @@ export async function buildAnalyticsPayload(query: { from?: string; to?: string 
     topPerformers,
     recentActivity,
     insights,
-    // legacy
     total_orders: orders.length,
     delivered_orders: deliveredAll,
     in_flight_orders: inTransitNow,

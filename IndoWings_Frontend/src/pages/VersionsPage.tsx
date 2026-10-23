@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { 
-  SlidersHorizontal, Sparkles, TrendingUp, Wrench, AlertTriangle, 
-  DownloadCloud, CheckCircle2, Calendar, ChevronDown, ChevronUp, 
+import {
+  SlidersHorizontal, Sparkles, TrendingUp, Wrench, AlertTriangle,
+  DownloadCloud, CheckCircle2, Calendar, ChevronDown, ChevronUp,
   ExternalLink, ArrowRight, ShieldCheck, Tag, Copy, Check, Filter,
   Package, Truck, Radio, MapPin, Award
 } from 'lucide-react';
@@ -107,17 +107,17 @@ export const VersionsPage: React.FC<VersionsPageProps> = ({ onNavigate }) => {
 
   return (
     <div className="min-h-screen bg-[#f7f4fb] text-[#171222]">
-      {/* ── HERO SECTION (Aviation Dark Purple Aesthetics) ──────────────────── */}
-      <section 
-        className="relative text-white pt-28 sm:pt-36 pb-24 px-6 overflow-hidden" 
+
+      <section
+        className="relative text-white pt-28 sm:pt-36 pb-24 px-6 overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #1e0940 0%, #2b114d 50%, #1a0835 100%)' }}>
-        <div 
-          className="absolute inset-0 opacity-10" 
-          style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 70% 80%, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} 
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 70% 80%, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }}
         />
-        
+
         <div className="relative max-w-5xl mx-auto">
-          {/* Sliders / Toggle Icon Box */}
+
           <div className="w-14 h-14 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center mb-5 shadow-lg shadow-slate-950/30">
             <SlidersHorizontal className="w-7 h-7 text-white" />
           </div>
@@ -136,10 +136,10 @@ export const VersionsPage: React.FC<VersionsPageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* ── MAIN RELEASE NOTES CONTAINER ────────────────────────────────────── */}
+
       <section className="max-w-5xl mx-auto px-6 -mt-10 relative z-10 pb-20 space-y-8">
-        
-        {/* Filter Pills */}
+
+
         <div className="flex items-center justify-between gap-4 bg-white/80 backdrop-blur-xs p-3 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center gap-2">
             {[
@@ -179,13 +179,13 @@ export const VersionsPage: React.FC<VersionsPageProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Releases List */}
+
         {filteredReleases.map(release => (
-          <div 
+          <div
             key={release.version}
             className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-lg shadow-slate-950/5 transition-all">
-            
-            {/* Top Metadata Bar */}
+
+
             <div className="flex items-center justify-between pb-3 mb-2">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold tracking-wider text-slate-400 uppercase font-mono">
@@ -198,28 +198,28 @@ export const VersionsPage: React.FC<VersionsPageProps> = ({ onNavigate }) => {
                 )}
               </div>
               <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider ${
-                release.status === 'Stable' 
-                  ? 'bg-purple-100 text-[#5a00b8] border border-purple-200' 
+                release.status === 'Stable'
+                  ? 'bg-purple-100 text-[#5a00b8] border border-purple-200'
                   : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
               }`}>
                 {release.status}
               </span>
             </div>
 
-            {/* Release Version Title */}
+
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[#171222] tracking-tight mb-3">
               {release.version}
             </h2>
 
-            {/* Summary Paragraph */}
+
             <p className="text-slate-600 text-sm sm:text-base leading-relaxed mb-8 max-w-4xl">
               {release.summary}
             </p>
 
-            {/* 4 Quadrants Grid (IndoFleet Specific Content) */}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
-              
-              {/* Quadrant 1: New */}
+
+
               <div className="bg-[#fcfaff] border border-purple-100/90 rounded-2xl p-5 sm:p-6 shadow-xs">
                 <div className="flex items-center gap-2 text-[#5a00b8] font-bold text-sm mb-4">
                   <Sparkles className="w-4 h-4" />
@@ -235,7 +235,7 @@ export const VersionsPage: React.FC<VersionsPageProps> = ({ onNavigate }) => {
                 </ul>
               </div>
 
-              {/* Quadrant 2: Improved */}
+
               <div className="bg-[#fcfaff] border border-purple-100/90 rounded-2xl p-5 sm:p-6 shadow-xs">
                 <div className="flex items-center gap-2 text-[#5a00b8] font-bold text-sm mb-4">
                   <TrendingUp className="w-4 h-4" />
@@ -251,7 +251,7 @@ export const VersionsPage: React.FC<VersionsPageProps> = ({ onNavigate }) => {
                 </ul>
               </div>
 
-              {/* Quadrant 3: Bug Fixes */}
+
               <div className="bg-[#fcfaff] border border-purple-100/90 rounded-2xl p-5 sm:p-6 shadow-xs">
                 <div className="flex items-center gap-2 text-[#5a00b8] font-bold text-sm mb-4">
                   <Wrench className="w-4 h-4" />
@@ -267,7 +267,7 @@ export const VersionsPage: React.FC<VersionsPageProps> = ({ onNavigate }) => {
                 </ul>
               </div>
 
-              {/* Quadrant 4: Operational Parameters */}
+
               <div className="bg-[#fcfaff] border border-purple-100/90 rounded-2xl p-5 sm:p-6 shadow-xs">
                 <div className="flex items-center gap-2 text-[#5a00b8] font-bold text-sm mb-4">
                   <AlertTriangle className="w-4 h-4" />
@@ -284,7 +284,7 @@ export const VersionsPage: React.FC<VersionsPageProps> = ({ onNavigate }) => {
               </div>
             </div>
 
-            {/* Bottom Actions: Installer & Checksum */}
+
             {release.installerName && (
               <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/70 p-4 rounded-2xl">
                 <div>

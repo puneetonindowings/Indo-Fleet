@@ -40,7 +40,6 @@ function getFirebaseAuth(): Auth | null {
   }
 }
 
-// Global confirmation result store for phone OTP
 let confirmationResultHolder: ConfirmationResult | null = null;
 let recaptchaVerifierHolder: RecaptchaVerifier | null = null;
 

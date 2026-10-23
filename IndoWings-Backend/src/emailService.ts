@@ -4,7 +4,6 @@ import nodemailer from 'nodemailer';
 import { supabase } from './supabase.js';
 import { fileDB } from './db.js';
 
-// Force Node.js DNS resolver to prioritize IPv4 over IPv6.
 if (typeof (dns as any).setDefaultResultOrder === 'function') {
   (dns as any).setDefaultResultOrder('ipv4first');
 }
@@ -18,10 +17,6 @@ const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
 const smtpUser = process.env.SMTP_USER || '';
 const smtpPass = process.env.SMTP_PASS || '';
 
-// Resolve guaranteed IPv4 addresses for SMTP host.
-// Render Docker containers have no IPv6 outbound routing; Nodemailer v10's internal resolver
-// picks random addresses from resolve4 + resolve6, causing fatal `connect ENETUNREACH [2607:...]`.
-// Passing an IPv4 IP address directly as `host` bypasses Nodemailer's internal resolver completely.
 async function getSmtpIpv4Addresses(host: string): Promise<string[]> {
   if (/^(\d{1,3}\.){3}\d{1,3}$/.test(host)) {
     return [host];
@@ -42,7 +37,6 @@ async function getSmtpIpv4Addresses(host: string): Promise<string[]> {
   } catch (err: any) {
     console.warn(`[mail] dns.lookup failed for ${host}:`, err?.message || err);
   }
-  // Fallback Google SMTP IPv4 addresses if DNS is restricted
   return ['142.250.183.108', '142.250.183.109', '192.178.158.108', '192.178.158.109'];
 }
 
@@ -82,7 +76,6 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
     return false;
   }
 
-  // Pure Gmail SMTP via Nodemailer
   if (smtpUser && smtpPass) {
     const mailOptions = {
       from: `"${MAIL_FROM_NAME}" <${smtpUser}>`,
@@ -92,7 +85,6 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
       html: html || undefined
     };
 
-    // Get guaranteed IPv4 addresses
     const ipv4List = await getSmtpIpv4Addresses(smtpHost);
     const portsToTry = [587, 465];
     const attemptErrors: string[] = [];
@@ -128,7 +120,6 @@ export async function getReceivedSupportAttachment(emailId: string, attachmentId
   throw new Error('Direct file download is supported via customer ticket attachments.');
 }
 
-// ── 0. OTP Dispatch (Nodemailer 6-Digit Code Primary) ─────────────────────────
 export async function sendOtpNotification({ email, phone, otp }: { email?: string; phone?: string; otp: string }) {
   let targetEmail = email;
   if (!targetEmail && phone) {
@@ -148,7 +139,6 @@ export async function sendOtpNotification({ email, phone, otp }: { email?: strin
   let delivered = false;
 
   if (targetEmail && targetEmail.includes('@')) {
-    // Pure Nodemailer 6-digit OTP delivery with branded template
     const subject = `Your IndoWings Verification Code: ${otp}`;
     const text = `Hello,\n\nYour IndoWings verification code is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share it with anyone.\n\nIf you did not request this login code, please contact ${SUPPORT_EMAIL}.\n\nThanks & Regards,\nIndoWings Operations Team`;
     const html = `
@@ -166,7 +156,6 @@ export async function sendOtpNotification({ email, phone, otp }: { email?: strin
 </div>
     `.trim();
 
-    // Send directly and strictly to the account's registered email address
     delivered = await sendEmail({ to: targetEmail, subject, text, html });
     if (delivered) {
       console.log(`[mail] Verification code delivered via Nodemailer to ${targetEmail}`);
@@ -175,7 +164,6 @@ export async function sendOtpNotification({ email, phone, otp }: { email?: strin
     }
   }
 
-  // 2. Phone session tracking log
   if (phone) {
     const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
     const fullPhone = `+91${cleanPhone}`;
@@ -185,7 +173,6 @@ export async function sendOtpNotification({ email, phone, otp }: { email?: strin
   return delivered;
 }
 
-// ── 1. Welcome / Signup Email ────────────────────────────────────────────────
 export async function sendWelcomeEmail(to: string, name: string, phone?: string) {
   const subject = `Welcome to IndoFleet Drone Delivery - Account Activated`;
   const text = `
@@ -208,7 +195,6 @@ IndoFleet Operations Team
   await sendEmail({ to, subject, text });
 }
 
-// ── Helper: Clean Light Email Layout Wrapper ──────────────────────────────
 function renderCleanEmail({
   title,
   subtitle,
@@ -243,7 +229,6 @@ function renderCleanEmail({
   `.trim();
 }
 
-// ── 1B. Enterprise Team Member Account Provisioned Email ─────────────────────
 export async function sendUserProvisionedEmail({
   to,
   name,
@@ -357,7 +342,6 @@ export async function sendPasswordChangedEmail(to: string, name: string) {
   });
 }
 
-// ── 2. Login Security Alert Email ───────────────────────────────────────────
 export async function sendLoginAlertEmail(to: string, name: string, role: string, ip?: string) {
   const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
   const subject = `Security Alert: Login Detected for ${name} (${role.toUpperCase()})`;
@@ -380,7 +364,6 @@ IndoFleet Flight Operations
   await sendEmail({ to, subject, text });
 }
 
-// ── 3. Order Placed Confirmation Email ──────────────────────────────────────
 export async function sendOrderPlacedEmail(order: any) {
   const to = order.customer_email;
   if (!to) return;
@@ -442,7 +425,6 @@ IndoFleet Customer Operations
   });
 }
 
-// ── 4. Order Status Update Email ───────────────────────────────────────────
 export async function sendOrderStatusEmail(order: any, newStatus: string) {
   const to = order.customer_email;
   if (!to) return;
@@ -515,7 +497,6 @@ IndoFleet Flight Operations
   await sendEmail({ to, subject, text });
 }
 
-// ── 5. Expert Consultation Request Confirmation Email ────────────────────────
 export async function sendExpertRequestCreatedEmail(request: any) {
   const to = request.email;
   if (!to || !to.includes('@')) return;
@@ -597,7 +578,6 @@ IndoFleet Flight Operations
   await sendEmail({ to, subject, text, html });
 }
 
-// ── 6. Expert Consultation Status Update Email ───────────────────────────────
 export async function sendExpertRequestStatusEmail(request: any, newStatus: string) {
   const to = request.email;
   if (!to || !to.includes('@')) return;
@@ -674,7 +654,6 @@ IndoFleet Flight Operations
   await sendEmail({ to, subject, text, html });
 }
 
-// ── 7. Order Completion: Feedback Invitation Email ──────────────────────────
 export async function sendFeedbackInvitationEmail(order: any) {
   const to = order.customer_email;
   if (!to || !to.includes('@')) return;
@@ -738,7 +717,6 @@ IndoFleet Flight Operations
   await sendEmail({ to, subject, text, html });
 }
 
-// ── 8. Support Query: Alert to Support Team ──────────────────────────────────
 export async function sendSupportQueryAlertToTeam(query: any) {
   const to = 'connect@IndoFleet.com';
   const priorityLabel = (query.priority || 'NORMAL').toUpperCase();
@@ -816,7 +794,6 @@ Time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
   await sendEmail({ to, subject, text, html });
 }
 
-// ── 9. Support Query: Resolution Notification to User ────────────────────────
 export async function sendQueryResolutionEmail(query: any, resolutionNotes: string, agentName: string = 'IndoWings Support') {
   if (!query.email) return;
   const to = query.email;
@@ -867,7 +844,6 @@ IndoWings Operations Team
   await sendEmail({ to, subject, text, html });
 }
 
-// ── 10. Direct Email Reply from Support Agent ─────────────────────────────────
 export async function sendDirectSupportEmail(to: string, subject: string, message: string, agentName: string = 'IndoWings Support Desk') {
   if (!to || !to.includes('@')) return { success: false, error: 'Customer email address is invalid.' };
 
@@ -915,7 +891,6 @@ Phone: 1800-IND-WINGS | Email: ${SUPPORT_EMAIL}
   return { success: true, messageId: 'smtp-' + Date.now() };
 }
 
-// ── 12. Flight Started Customer Notification Email ──────────────────────────
 export async function sendFlightStartedCustomerEmail({
   to,
   customerName,
@@ -1001,7 +976,6 @@ IndoFleet Flight Operations
   return sendEmail({ to, subject, text, html });
 }
 
-// ── 13. SOS Emergency Alert Email to Admin & Dispatch Operations ─────────────
 export async function sendSosEmergencyAlertEmail({
   adminEmail,
   pilotName,
@@ -1090,7 +1064,6 @@ IndoFleet Automated Emergency Alert System
   return sendEmail({ to: adminEmail, subject, text, html });
 }
 
-// ── 14. Delivery Completed & Handover Confirmation Email ────────────────────
 export async function sendDeliveryCompletedEmail({
   to,
   orderNumber,
@@ -1175,7 +1148,6 @@ IndoFleet Operations Desk
   return sendEmail({ to, subject, text, html });
 }
 
-// ── 15. Delivery Partner Accepted Order Alert (Sent to Dispatcher) ──────────
 export async function sendOrderAcceptedByDeliveryAlert({
   dispatcherEmail,
   dispatcherName,
@@ -1248,7 +1220,6 @@ IndoFleet Operations Desk
   return sendEmail({ to: targetEmail, subject, text, html });
 }
 
-// ── 16. Password Change Verification OTP Email (Valid for 10 Minutes) ───────────
 export async function sendPasswordChangeOtpEmail({
   email,
   name,
@@ -1299,7 +1270,6 @@ IndoFleet Security
   return sendEmail({ to: email, subject, text, html });
 }
 
-// ── 17. Temporary Password Dispatch Email (Valid for 10 Minutes) ────────────────
 export async function sendTemporaryPasswordEmail({
   email,
   name,
@@ -1356,7 +1326,6 @@ IndoWings Security
   return sendEmail({ to: email, subject, text, html });
 }
 
-// ── 16. App Release Notification Email for Delivery Partners ────────────────
 export async function sendAppReleaseEmail({
   to,
   name,
@@ -1416,7 +1385,4 @@ IndoFleet Flight Operations
 
   return sendEmail({ to, subject, text, html });
 }
-
-
-
 

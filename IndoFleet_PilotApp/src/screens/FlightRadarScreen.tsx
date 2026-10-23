@@ -65,7 +65,6 @@ interface FlightRadarScreenProps {
   onUpdateLocation?: (coords: { latitude: number; longitude: number }) => void;
 }
 
-/* ───────────────────────── Design tokens ───────────────────────── */
 const C = {
   brand: '#5A00B8',
   brandDeep: '#3B0080',
@@ -114,7 +113,6 @@ const cardinal = (deg: number) => {
 
 const clamp = (n: number, min: number, max: number) => Math.min(Math.max(n, min), max);
 
-/* ───────────────────────── Small building blocks ───────────────────────── */
 const MeterCard: React.FC<{
   icon: React.ReactNode;
   label: string;
@@ -140,7 +138,6 @@ const MeterCard: React.FC<{
   </View>
 );
 
-/* ───────────────────────── Screen ───────────────────────── */
 export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   order,
   allOrders = [],
@@ -162,7 +159,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
   const [fullscreen, setFullscreen] = useState(false);
 
-  // Exit fullscreen map on Android hardware back button
   useEffect(() => {
     if (!fullscreen) return;
     const onBackPress = () => {
@@ -177,7 +173,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   const [roadDistanceKm, setRoadDistanceKm] = useState<number | null>(null);
   const [roadDurationMin, setRoadDurationMin] = useState<number | null>(null);
 
-  // Active target order: use selected order, or find first active order from allOrders
   const activeOrder = useMemo(() => {
     if (order) return order;
     return (
@@ -187,7 +182,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     );
   }, [order, allOrders]);
 
-  // Dispatch hub: order pickup coordinates, falling back to Sector 60 Base Hub ONLY if order base is missing
   const baseHub = useMemo(() => {
     const target = activeOrder || order;
     const pLat = target?.pickup_location?.latitude ?? target?.pickup_lat;
@@ -199,7 +193,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     ) {
       return { latitude: pLat, longitude: pLng, name: target?.pickup_address || 'Order Dispatch Hub' };
     }
-    // Fallback: A-21, Block A, Sector 60, Noida, UP (Central Base Hub)
     return {
       latitude: 28.6037,
       longitude: 77.3661,
@@ -218,34 +211,21 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   const pilotLat: number = hasLiveGpsFix ? currentCoords!.latitude : baseHub?.latitude ?? 28.6037;
   const pilotLng: number = hasLiveGpsFix ? currentCoords!.longitude : baseHub?.longitude ?? 77.3661;
 
-  // Intelligent Noida / Delhi NCR Sector Resolver from Address String
   const resolveAddressCoords = (addressStr?: string): { latitude: number; longitude: number } | null => {
     if (!addressStr || typeof addressStr !== 'string') return null;
     const lower = addressStr.toLowerCase();
 
-    // Sector 148, Noida / Expressway (Near Gold's Gym / Metro)
     if (lower.includes('148')) return { latitude: 28.4779, longitude: 77.4815 };
-    // Sector 142 / Advant Navis
     if (lower.includes('142')) return { latitude: 28.5028, longitude: 77.4172 };
-    // Sector 137 / Felix Hospital / Paras Tierea
     if (lower.includes('137')) return { latitude: 28.5132, longitude: 77.4046 };
-    // Sector 128 / Jaypee Wish Town
     if (lower.includes('128')) return { latitude: 28.5283, longitude: 77.3753 };
-    // Sector 62 / Electronic City
     if (lower.includes('62')) return { latitude: 28.6280, longitude: 77.3750 };
-    // Sector 63
     if (lower.includes('63')) return { latitude: 28.6234, longitude: 77.3824 };
-    // Sector 60 Central Hub
     if (lower.includes('60')) return { latitude: 28.6037, longitude: 77.3661 };
-    // Sector 18 / Atta Market / DLF Mall of India
     if (lower.includes('18')) return { latitude: 28.5708, longitude: 77.3260 };
-    // Sector 16 / Film City
     if (lower.includes('16') || lower.includes('film city')) return { latitude: 28.5672, longitude: 77.3211 };
-    // Greater Noida / Pari Chowk / Knowledge Park
     if (lower.includes('pari chowk') || lower.includes('greater noida')) return { latitude: 28.4744, longitude: 77.5040 };
-    // Connaught Place / Central Delhi
     if (lower.includes('connaught') || lower.includes('cp')) return { latitude: 28.6315, longitude: 77.2167 };
-    // Gurgaon / Cyber City
     if (lower.includes('cyber city') || lower.includes('gurgaon') || lower.includes('gurugram')) return { latitude: 28.4950, longitude: 77.0890 };
 
     const secMatch = lower.match(/sector\s*([0-9]{1,3})/);
@@ -258,7 +238,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     return null;
   };
 
-  // Dynamic Geocoding State for Target Drop Location
   const [asyncTargetCoords, setAsyncTargetCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
   useEffect(() => {
@@ -283,7 +262,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     return () => { cancelled = true; };
   }, [activeOrder, order]);
 
-  // Determine Target Drop Location coordinates (Dynamic Geocoding + Address Parsing)
   const targetLat: number = useMemo(() => {
     const target = activeOrder || order;
     const lat = target?.destination_location?.latitude ?? target?.delivery_lat ?? target?.drop_lat;
@@ -310,7 +288,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
 
   const hasTargetCoords = true;
 
-  // Listen to GPS updates and road route metrics from Web Leaflet iframe
   React.useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const handleWindowMessage = (e: MessageEvent) => {
@@ -337,7 +314,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     setIsLocating(true);
     setTimeout(() => setIsLocating(false), 2000);
 
-    // 1. Web browser direct GPS query
     if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -346,7 +322,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
             const coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
             if (onUpdateLocation) onUpdateLocation(coords);
 
-            // Notify iframe map to fly smoothly to current coords
             if (typeof document !== 'undefined') {
               const iframes = document.querySelectorAll('iframe');
               iframes.forEach((ifr) => {
@@ -363,7 +338,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
       );
     }
 
-    // 2. Trigger parent refresh
     if (onRefreshLocation) {
       onRefreshLocation();
     }
@@ -379,7 +353,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     return Number((Rk * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(1));
   };
 
-  // Fetch Total Road Distance from Hub to Customer Drop
   React.useEffect(() => {
     if (baseHub && targetLat != null && targetLng != null) {
       const hubRoutingUrl = `${getRoutingApiUrl().replace(/\/+$/, '')}/route/v1/driving/${baseHub.longitude},${baseHub.latitude};${targetLng},${targetLat}?overview=false`;
@@ -395,7 +368,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     }
   }, [baseHub, targetLat, targetLng]);
 
-  // Fetch Remaining Road Distance from Pilot's current position to Customer Drop
   React.useEffect(() => {
     if (pilotLat != null && pilotLng != null && targetLat != null && targetLng != null) {
       const routingUrl = `${getRoutingApiUrl().replace(/\/+$/, '')}/route/v1/driving/${pilotLng},${pilotLat};${targetLng},${targetLat}?overview=false`;
@@ -413,7 +385,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     }
   }, [pilotLat, pilotLng, targetLat, targetLng]);
 
-  // Total trip distance: Use total road route from Hub to Drop (e.g. 4.3 km)
   const totalTripDist = useMemo(() => {
     if (totalRoadDistanceKm != null && Number.isFinite(totalRoadDistanceKm)) {
       return totalRoadDistanceKm;
@@ -428,7 +399,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     return 4.3;
   }, [totalRoadDistanceKm, roadDistanceKm, baseHub, targetLat, targetLng, hasTargetCoords]);
 
-  // Remaining / Rest distance from pilot's live location to Drop-off point (Cannot exceed totalTripDist)
   const remainingDist = useMemo(() => {
     let currentRemaining: number;
     if (roadDistanceKm != null && Number.isFinite(roadDistanceKm)) {
@@ -454,7 +424,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     const appNavUrl = `google.navigation:q=${destCoords}&mode=d`;
     const geoUrl = `geo:${destCoords}?q=${destCoords}(${address})`;
 
-    // 1. Web Environment (Desktop & Mobile Browser in React Native Web)
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const w = window.open(webUrl, '_blank', 'noopener,noreferrer');
       if (!w || w.closed || typeof w.closed === 'undefined') {
@@ -463,7 +432,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
       return;
     }
 
-    // 2. Native Mobile (Turn-by-turn navigation in Google Maps app)
     Linking.canOpenURL(appNavUrl)
       .then((canOpen) => {
         if (canOpen) return Linking.openURL(appNavUrl);
@@ -485,15 +453,12 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     ]);
   };
 
-  /* ───────── Google Maps-Style Web Map (Leaflet in iframe) ───────── */
+
   const webMapHtml = useMemo(() => {
-    // Render Google maps HTML on both Web and Native Android
-    // if (Platform.OS !== 'web') return '';
 
     const hasPilot = pilotLat != null && pilotLng != null;
     const hasTarget = hasTargetCoords;
 
-    // Default Sector 60 Noida Hub coordinates (Used only if live GPS & target are unavailable)
     const defaultLat = 28.6037;
     const defaultLng = 77.3661;
     const centerLat = hasPilot && hasTarget ? (pilotLat! + targetLat!) / 2 : hasPilot ? pilotLat! : hasTarget ? targetLat! : defaultLat;
@@ -549,9 +514,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
             .then(function(d) {
               if (d && d.routes && d.routes[0] && d.routes[0].geometry) {
                 var coords = d.routes[0].geometry.coordinates.map(function(p) { return [p[1], p[0]]; });
-                // Outer white casing for high visibility
                 L.polyline(coords, { color: '#FFFFFF', weight: 8, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(map);
-                // Inner Google Blue navigation road polyline
                 var navRoute = L.polyline(coords, { color: '#1A73E8', weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round' }).addTo(map);
                 map.fitBounds(navRoute.getBounds(), { padding: [55, 55] });
 
@@ -602,7 +565,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
       height: 100%;
       background: #0F172A;
     }
-    
+
     @keyframes gmap-pulse {
       0% { transform: scale(0.6); opacity: 0.95; }
       70% { transform: scale(2.0); opacity: 0; }
@@ -665,7 +628,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
       }
     }
 
-    // Force Leaflet recalculation for Android WebView containers
     forceMapInvalidate();
     setTimeout(forceMapInvalidate, 80);
     setTimeout(forceMapInvalidate, 250);
@@ -747,7 +709,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
 </html>`;
   }, [pilotLat, pilotLng, targetLat, targetLng, hasTargetCoords, mapType, mapZoom, telemetry.speedKmh, order, baseHub, hasLiveGpsFix]);
 
-  /* ───────── Native radar (SVG) ───────── */
+
   const renderTacticalRadarSvg = (full = false) => {
     const size = 320;
     const c = size / 2;
@@ -762,7 +724,6 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
 
     const heading = telemetry.headingDeg || 0;
     const rad = (heading * Math.PI) / 180;
-    // 60° sweep wedge behind heading
     const a1 = ((heading - 30 - 90) * Math.PI) / 180;
     const a2 = ((heading + 30 - 90) * Math.PI) / 180;
     const wr = 130;
@@ -902,7 +863,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     </View>
   );
 
-  /* Fullscreen: only the map between the app header and bottom nav */
+
   if (fullscreen && viewMode === 'map') {
     return (
       <View style={styles.container}>
@@ -924,11 +885,11 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     );
   }
 
-  /* ───────── Render ───────── */
+
   return (
     <View style={styles.container}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Top bar */}
+
         <View style={styles.navRow}>
           <TouchableOpacity style={styles.backBtn} onPress={onBackToDashboard} activeOpacity={0.7}>
             <ArrowLeft size={16} color={C.ink} />
@@ -941,7 +902,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
           </View>
         </View>
 
-        {/* Destination / overview */}
+
         {order ? (
           <View style={styles.destCard}>
             <View style={styles.destTop}>
@@ -965,7 +926,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
               </Text>
             </View>
 
-            {/* Real Route Distance & Rest Distance Display outside the map */}
+
             <View style={styles.distanceStatsRow}>
               <View style={styles.distanceStatItem}>
                 <Text style={styles.distanceStatLabel}>TOTAL DISTANCE</Text>
@@ -1020,7 +981,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
           </View>
         )}
 
-        {/* Map view */}
+
         {viewMode === 'map' && (
           <View style={styles.mapCard}>
             <View style={styles.mapHeader}>
@@ -1082,7 +1043,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
           </View>
         )}
 
-        {/* Assigned Deliveries */}
+
         {!order && allOrders.length > 0 && (
           <View style={styles.listCard}>
             <View style={styles.listHeader}>
@@ -1130,7 +1091,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
           </View>
         )}
 
-        {/* Actions */}
+
         {(order || activeOrder) && (() => {
           const currentOrd = (order || activeOrder)!;
           const totalDroneCount = Math.max(
@@ -1155,7 +1116,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
 
           return (
             <View style={styles.actions}>
-              {/* Airframe Inspection Summary Card (Clear Hub Pre-Acceptance vs Customer Handover) */}
+
               <View style={styles.sortieSummaryCard}>
                 <View style={styles.sortieSummaryHeader}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
@@ -1222,12 +1183,11 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   );
 };
 
-/* ───────────────────────── Styles ───────────────────────── */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   content: { padding: 14, paddingBottom: 190, gap: 12 },
 
-  /* nav */
+
   navRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   backBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -1247,7 +1207,7 @@ const styles = StyleSheet.create({
   segmentText: { fontSize: 12, fontWeight: '700', color: C.body },
   segmentTextActive: { color: '#FFFFFF' },
 
-  /* destination card */
+
   destCard: {
     backgroundColor: C.card, borderRadius: R.xl, padding: 18, gap: 10,
     borderWidth: 1, borderColor: C.line, ...cardShadow,
@@ -1340,7 +1300,7 @@ const styles = StyleSheet.create({
   },
   linkBtnText: { fontSize: 12, fontWeight: '800', color: C.brandDeep },
 
-  /* map card */
+
   mapCard: {
     backgroundColor: C.card, borderRadius: R.xl, padding: 14, gap: 12,
     borderWidth: 1, borderColor: C.line, ...cardShadow,
@@ -1397,7 +1357,7 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 11, fontWeight: '600', color: C.muted },
   statValue: { fontSize: 12, fontWeight: '800', color: C.ink },
 
-  /* radar */
+
   radarWrapFull: { flex: 1, width: '100%', alignSelf: 'stretch', padding: 6 },
   fsWrap: {
     flex: 1, marginHorizontal: 12, marginTop: 12, marginBottom: 104,
@@ -1432,7 +1392,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', ...cardShadow,
   },
 
-  /* instruments */
+
   hudSection: { gap: 12 },
   meterRow: { flexDirection: 'row', gap: 12 },
   meterCard: {
@@ -1449,7 +1409,7 @@ const styles = StyleSheet.create({
   meterFill: { height: 5, borderRadius: 3 },
   meterCaption: { fontSize: 11, color: C.muted },
 
-  /* delivery list */
+
   listCard: {
     backgroundColor: C.card, borderRadius: R.xl, padding: 16, gap: 10,
     borderWidth: 1, borderColor: C.line, ...cardShadow,
@@ -1474,7 +1434,7 @@ const styles = StyleSheet.create({
   listRight: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   listDist: { fontSize: 13, fontWeight: '800', color: C.ok },
 
-  /* actions */
+
   actions: { gap: 10, marginTop: 8, marginBottom: 16 },
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,

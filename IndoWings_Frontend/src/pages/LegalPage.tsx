@@ -27,7 +27,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
 
   return (
     <div className="min-h-screen bg-[#f9f7fd]">
-      {/* Header */}
+
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-[900px] mx-auto px-4 sm:px-6 pt-28 sm:pt-36 pb-12">
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-purple-600 mb-3">Legal</p>
@@ -52,7 +52,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
 
       <div className="max-w-[900px] mx-auto px-4 sm:px-6 py-12 space-y-16">
 
-        {/* PRIVACY POLICY */}
+
         <section id="privacy" className="scroll-mt-24">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center"><Lock className="w-5 h-5" /></div>
@@ -103,7 +103,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
           </div>
         </section>
 
-        {/* TERMS OF USE */}
+
         <section id="terms" className="scroll-mt-24">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center"><FileText className="w-5 h-5" /></div>
@@ -151,7 +151,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
           </div>
         </section>
 
-        {/* SECURITY DISCLOSURE */}
+
         <section id="security" className="scroll-mt-24">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center"><Shield className="w-5 h-5" /></div>
@@ -195,7 +195,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ section }) => {
           </div>
         </section>
 
-        {/* DATA PROTECTION */}
+
         <section id="data-protection" className="scroll-mt-24">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center"><Database className="w-5 h-5" /></div>

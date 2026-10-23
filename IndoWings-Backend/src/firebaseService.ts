@@ -22,7 +22,6 @@ export function initializeFirebase(): App | null {
   }
 
   try {
-    // 1. Check for raw JSON string in env
     const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
     if (serviceAccountJson && serviceAccountJson.trim()) {
       const parsed = JSON.parse(serviceAccountJson);
@@ -36,7 +35,6 @@ export function initializeFirebase(): App | null {
       return firebaseApp;
     }
 
-    // 2. Check for service account file path
     const configuredPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || process.env.FIREBASE_PRIVATE_KEY_PATH;
     const candidates = [
       configuredPath,
@@ -61,12 +59,10 @@ export function initializeFirebase(): App | null {
             return firebaseApp;
           }
         } catch {
-          // Continue to next candidate
         }
       }
     }
 
-    // 3. Check individual env variables
     const projectId = process.env.FIREBASE_PROJECT_ID;
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
     let privateKey = process.env.FIREBASE_PRIVATE_KEY;
@@ -95,7 +91,6 @@ export function initializeFirebase(): App | null {
   }
 }
 
-// Attempt initialization
 initializeFirebase();
 
 /**

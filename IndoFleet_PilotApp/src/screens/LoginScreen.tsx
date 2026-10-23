@@ -95,7 +95,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Brand */}
+
           <View style={styles.brandHero}>
             <IndoFleetLogo size="large" layout="column" showSubtitle={true} />
             <View style={styles.roleBadge}>
@@ -104,7 +104,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             </View>
           </View>
 
-          {/* Login card */}
+
           <View style={styles.card}>
             <Text style={styles.cardHeading}>Sign in</Text>
             <Text style={styles.cardSubheading}>
@@ -118,7 +118,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               </View>
             ) : null}
 
-            {/* Identifier */}
+
             <View style={styles.formGroup}>
               <Text style={styles.inputLabel}>Email, phone or Delivery ID</Text>
               <View style={[styles.inputWrap, focused === 'identifier' && styles.inputWrapFocused]}>
@@ -148,7 +148,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               </View>
             </View>
 
-            {/* Password */}
+
             <View style={styles.formGroup}>
               <Text style={styles.inputLabel}>Password</Text>
               <View style={[styles.inputWrap, focused === 'password' && styles.inputWrapFocused]}>
@@ -186,7 +186,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               </View>
             </View>
 
-            {/* Submit */}
+
             <TouchableOpacity
               style={[styles.loginBtn, !canSubmit && styles.loginBtnDisabled]}
               onPress={handleLogin}
@@ -207,7 +207,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             </TouchableOpacity>
           </View>
 
-          {/* Help */}
+
           <View style={styles.noticeBox}>
             <Text style={styles.noticeHeading}>Don't have an account?</Text>
             <Text style={styles.noticeText}>

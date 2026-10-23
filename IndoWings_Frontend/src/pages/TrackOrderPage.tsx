@@ -49,7 +49,6 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
 
-  // Poll order status if active
   React.useEffect(() => {
     if (!order || ['delivered', 'cancelled', 'failed'].includes(order.status)) return;
     const interval = setInterval(() => {
@@ -58,7 +57,6 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
         .then((data) => {
           if (data?.order) {
             setOrder(data.order);
-            // If just transitioned to delivered while user is on screen
             if (data.order.status === 'delivered') {
               if (!data.order.feedback_submitted && !localStorage.getItem(`iw_feedback_prompted_${data.order.id}`)) {
                 localStorage.setItem(`iw_feedback_prompted_${data.order.id}`, 'true');
@@ -88,7 +86,6 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
         return;
       }
       setOrder(data.order);
-      // If delivered upon initial load
       if (data.order.status === 'delivered') {
         if (!data.order.feedback_submitted && !localStorage.getItem(`iw_feedback_prompted_${data.order.id}`)) {
           localStorage.setItem(`iw_feedback_prompted_${data.order.id}`, 'true');
@@ -103,7 +100,6 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
   };
 
   React.useEffect(() => {
-    // Clear out any legacy local storage cache that was causing orders to auto-populate
     try {
       localStorage.removeItem('iw_last_order_id');
     } catch {}
@@ -178,7 +174,7 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
 
         {order && (
           <div className="space-y-6">
-            {/* Header */}
+
             <div className="bg-white border border-[#e2e8f0] rounded-2xl p-6 shadow-sm">
               <div className="flex items-start justify-between flex-wrap gap-3">
                 <div>
@@ -200,7 +196,7 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
               </div>
             </div>
 
-            {/* Live Interactive Location Map */}
+
             <div className="space-y-2">
               <div className="flex items-center justify-between px-1">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
@@ -215,7 +211,7 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
             </div>
 
             <div className="grid lg:grid-cols-[1fr_360px] gap-6">
-              {/* Timeline */}
+
               <div className="bg-white border border-[#e2e8f0] rounded-2xl p-6 shadow-sm">
                 <h3 className="text-sm font-bold text-[#171222] mb-6">Delivery Timeline</h3>
                 <div className="space-y-0">
@@ -239,7 +235,7 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
                 </div>
               </div>
 
-              {/* Info Sidebar */}
+
               <div className="space-y-4">
                 {order.drone_id && (
                   <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 shadow-sm">

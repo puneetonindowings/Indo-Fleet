@@ -49,7 +49,6 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
   const [statusFilter, setStatusFilter] = useState<'all' | 'delivered' | 'cancelled'>('all');
   const [selectedOrder, setSelectedOrder] = useState<DeliveryOrder | null>(null);
 
-  // Compute summary metrics
   const deliveredCount = useMemo(
     () => historyOrders.filter((o) => o.status === 'delivered' || o.status === 'completed').length,
     [historyOrders]
@@ -59,11 +58,8 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
     [historyOrders]
   );
 
-
-  // Filter orders
   const filteredOrders = useMemo(() => {
     return historyOrders.filter((o) => {
-      // Status filter
       if (statusFilter === 'delivered' && o.status !== 'delivered' && o.status !== 'completed') {
         return false;
       }
@@ -71,7 +67,6 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
         return false;
       }
 
-      // Search filter
       if (searchQuery.trim()) {
         const q = searchQuery.trim().toLowerCase();
         const matchesId = (o.order_number || o.id || '').toLowerCase().includes(q);
@@ -111,7 +106,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
         activeOpacity={0.8}
         onPress={() => setSelectedOrder(item)}
       >
-        {/* Top Meta Header */}
+
         <View style={styles.cardHeader}>
           <View style={styles.orderIdGroup}>
             <Package size={14} color="#3B0080" />
@@ -139,7 +134,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
           </View>
         </View>
 
-        {/* Date & Drone info */}
+
         <View style={styles.cardSubHeader}>
           <View style={styles.dateRow}>
             <Clock size={12} color="#64748B" />
@@ -154,7 +149,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
           )}
         </View>
 
-        {/* Route Details */}
+
         <View style={styles.routeContainer}>
           <View style={styles.routeRow}>
             <View style={styles.dotOrigin} />
@@ -171,7 +166,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
           </View>
         </View>
 
-        {/* Footer info: Customer & Status */}
+
         <View style={styles.cardFooter}>
           <View style={styles.customerGroup}>
             <User size={13} color="#475569" />
@@ -190,7 +185,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* ── Top Summary Header & KPIs ───────────────────────────── */}
+
       <View style={styles.summaryHeader}>
         <View style={styles.headerTitleRow}>
           <View>
@@ -204,7 +199,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
           </View>
         </View>
 
-        {/* Metric Counter Cards */}
+
         <View style={styles.metricsRow}>
           <View style={styles.metricCard}>
             <View style={[styles.metricIconWrap, { backgroundColor: '#EEF2FF' }]}>
@@ -237,7 +232,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
           </View>
         </View>
 
-        {/* Search Bar */}
+
         <View style={styles.searchBar}>
           <Search size={16} color="#94A3B8" />
           <TextInput
@@ -255,7 +250,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
           )}
         </View>
 
-        {/* Filter Pills */}
+
         <View style={styles.filterTabsRow}>
           {(
             [
@@ -285,7 +280,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
         </View>
       </View>
 
-      {/* ── Order List ─────────────────────────────────────────── */}
+
       <FlatList
         data={filteredOrders}
         keyExtractor={(item) => item.id}
@@ -331,7 +326,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
         }
       />
 
-      {/* ── Order Details Modal ─────────────────────────────────── */}
+
       {selectedOrder && (
         <Modal
           visible={Boolean(selectedOrder)}
@@ -341,7 +336,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              {/* Modal Header */}
+
               <View style={styles.modalHeader}>
                 <View>
                   <Text style={styles.modalTitle}>Delivery Details</Text>
@@ -358,7 +353,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
               </View>
 
               <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-                {/* Status Card */}
+
                 <View style={styles.modalSectionCard}>
                   <View style={styles.modalSectionRow}>
                     <Text style={styles.modalSectionLabel}>Mission Status</Text>
@@ -400,7 +395,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
                   )}
                 </View>
 
-                {/* Recipient & Customer Details */}
+
                 <View style={styles.modalSectionCard}>
                   <Text style={styles.sectionHeading}>Recipient & Drop Info</Text>
 
@@ -426,7 +421,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
                   </View>
                 </View>
 
-                {/* Consignment & Payment Details */}
+
                 <View style={styles.modalSectionCard}>
                   <Text style={styles.sectionHeading}>Consignment Summary</Text>
 
@@ -445,7 +440,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
                   </View>
                 </View>
 
-                {/* Proof of Delivery (POD) Verification */}
+
                 <View style={styles.modalSectionCard}>
                   <View style={styles.modalSectionRow}>
                     <Text style={styles.sectionHeading}>Proof of Delivery (POD)</Text>
@@ -466,7 +461,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
                 </View>
               </ScrollView>
 
-              {/* Close Button */}
+
               <TouchableOpacity
                 style={styles.modalDoneBtn}
                 onPress={() => setSelectedOrder(null)}
@@ -800,7 +795,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.65)',

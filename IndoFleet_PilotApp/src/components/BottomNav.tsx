@@ -26,7 +26,6 @@ const TABS = [
 
 type Tab = (typeof TABS)[number];
 
-/* ── Single tab with an animated pill, icon cross-fade and press spring ────── */
 const TabButton: React.FC<{ tab: Tab; active: boolean; onPress: () => void }> = ({
   tab,
   active,
@@ -67,7 +66,7 @@ const TabButton: React.FC<{ tab: Tab; active: boolean; onPress: () => void }> = 
     >
       <Animated.View style={{ alignItems: 'center', transform: [{ scale: press }] }}>
         <View style={styles.iconWrap}>
-          {/* Purple pill grows in behind the icon */}
+
           <Animated.View
             style={[
               styles.pill,
@@ -80,7 +79,7 @@ const TabButton: React.FC<{ tab: Tab; active: boolean; onPress: () => void }> = 
               },
             ]}
           />
-          {/* Grey icon fades out while the purple one fades in */}
+
           <Animated.View style={[styles.iconLayer, { opacity: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
             <Icon size={20} color={INACTIVE} />
           </Animated.View>
@@ -118,7 +117,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   onNavigate,
   onTriggerSos,
 }) => {
-  // SOS: soft pulsing ring + press spring
   const pulse = useRef(new Animated.Value(0)).current;
   const sosPress = useRef(new Animated.Value(1)).current;
 
@@ -157,7 +155,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         />
       ))}
 
-      {/* Center floating SOS button */}
+
       <View style={styles.centerSosContainer}>
         <Animated.View
           pointerEvents="none"

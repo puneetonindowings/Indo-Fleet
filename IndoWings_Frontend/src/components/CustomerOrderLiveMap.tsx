@@ -14,7 +14,6 @@ interface CustomerOrderLiveMapProps {
   className?: string;
 }
 
-// Google Maps Raster Tile Styles (Zero card, Zero key required - Direct Google Tile Engine)
 const GOOGLE_ROADMAP_STYLE = {
   version: 8 as const,
   sources: {
@@ -81,26 +80,24 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
     durationMins: null
   });
 
-  // 1. Robust Coordinate Extraction & Noida Central Dispatch Resolution
   const rawPickupLng = Number(order?.pickup_lng ?? order?.pickup_location?.longitude ?? order?.pickup_location?.lng);
   const rawPickupLat = Number(order?.pickup_lat ?? order?.pickup_location?.latitude ?? order?.pickup_location?.lat);
-  // Default to Noida IndoWings Central Dispatch Hub if pickup coordinates are unspecified
   const pickupLng = Number.isFinite(rawPickupLng) && rawPickupLng !== 0 ? rawPickupLng : 77.3661;
   const pickupLat = Number.isFinite(rawPickupLat) && rawPickupLat !== 0 ? rawPickupLat : 28.6037;
   const hasValidPickup = true;
 
   const rawDropLng = Number(
-    order?.drop_lng ?? 
-    order?.destination_lng ?? 
-    order?.delivery_lng ?? 
-    order?.destination_location?.longitude ?? 
+    order?.drop_lng ??
+    order?.destination_lng ??
+    order?.delivery_lng ??
+    order?.destination_location?.longitude ??
     order?.destination_location?.lng
   );
   const rawDropLat = Number(
-    order?.drop_lat ?? 
-    order?.destination_lat ?? 
-    order?.delivery_lat ?? 
-    order?.destination_location?.latitude ?? 
+    order?.drop_lat ??
+    order?.destination_lat ??
+    order?.delivery_lat ??
+    order?.destination_location?.latitude ??
     order?.destination_location?.lat
   );
   const hasDirectDrop = Number.isFinite(rawDropLng) && Number.isFinite(rawDropLat) && (rawDropLng !== 0 || rawDropLat !== 0);
@@ -109,7 +106,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
     return [pickupLng, pickupLat];
   }, [pickupLng, pickupLat]);
 
-  // Dynamic Geocoding State for when order lacks direct coordinates
   const [asyncDropCoords, setAsyncDropCoords] = useState<[number, number] | null>(null);
 
   useEffect(() => {
@@ -123,7 +119,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
 
     let cancelled = false;
     const resolveLocation = async () => {
-      // 1. Session Storage cache check
       const cacheKey = `geo:${rawAddress.toLowerCase()}`;
       const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
@@ -136,7 +131,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
         } catch (e) {}
       }
 
-      // 2. Internal IndoFleet Geocoding Service (Google & Nominatim hybrid)
       try {
         const res = await fetch(`${API_BASE_URL}/api/delivery/geocode?address=${encodeURIComponent(rawAddress)}`);
         if (res.ok) {
@@ -149,7 +143,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
         }
       } catch (e) {}
 
-      // 3. Fallback OpenStreetMap Nominatim Direct Geocode
       try {
         const cleaned = rawAddress
           .replace(/(?:\+91[\-\s]?)?[6-9]\d{9}\b/g, '')
@@ -195,7 +188,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
   const isPending = order?.status === 'pending';
   const isActiveInFlight = ['in-flight', 'in-transit', 'taking-off', 'approaching', 'out-for-delivery', 'assigned'].includes(order?.status);
 
-  // Helper to extract live coordinates robustly across formats (numbers, objects, comma-separated strings)
   const extractVehicleCoords = (o: any): [number, number] | null => {
     if (!o) return null;
     const cLng = Number(o.current_lng ?? o.pilot_lng ?? o.longitude);
@@ -240,7 +232,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
     return pickupCoords;
   }, [order, isCancelled, isDelivered, isPending, pickupCoords, dropCoords]);
 
-  // 2. Fetch Real Road-by-Road Route from OSRM
   const [roadCoordinates, setRoadCoordinates] = useState<[number, number][]>([]);
 
   useEffect(() => {
@@ -279,7 +270,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
     };
   }, [pickupCoords, dropCoords]);
 
-  // 3. Initialize Google Map Instance (Only on mount or mapType change)
   useEffect(() => {
     if (!mapContainer.current || !pickupCoords || !dropCoords || !currentVehicleCoords) return;
 
@@ -296,7 +286,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
     mapInstanceRef.current = map;
 
     map.on('load', () => {
-      // Add Turn-by-Turn Road Route Source
       if (!map.getSource('road-route')) {
         map.addSource('road-route', {
           type: 'geojson',
@@ -312,7 +301,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
 
         const routeColor = isCancelled ? '#e11d48' : isDelivered ? '#10b981' : isOnHold ? '#f59e0b' : '#2563eb';
 
-        // Road Route Glow / Outline (Casing)
         map.addLayer({
           id: 'road-route-glow',
           type: 'line',
@@ -325,7 +313,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
           }
         });
 
-        // Main Road Driving Polyline
         map.addLayer({
           id: 'road-route-line',
           type: 'line',
@@ -339,7 +326,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
         });
       }
 
-      // 1. Origin Hub Marker
       const hubEl = document.createElement('div');
       hubEl.className = 'flex flex-col items-center cursor-pointer';
       hubEl.innerHTML = `
@@ -355,7 +341,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
         .setPopup(new maplibregl.Popup({ offset: 20 }).setHTML(`<strong>IndoFleet Hub</strong><br/>${order?.pickup_address || 'Sector 62, Noida Operations Plant'}`))
         .addTo(map);
 
-      // 2. Customer Destination Marker
       const dropEl = document.createElement('div');
       dropEl.className = 'flex flex-col items-center cursor-pointer';
       dropEl.innerHTML = `
@@ -371,7 +356,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
         .setPopup(new maplibregl.Popup({ offset: 20 }).setHTML(`<strong>Customer Drop Point</strong><br/>${order?.destination_address || order?.drop_address || 'Delivery Address'}`))
         .addTo(map);
 
-      // 3. Delivery Vehicle Marker (Mini Truck / Carrier)
       const vehicleEl = document.createElement('div');
       vehicleEl.className = 'relative flex items-center justify-center cursor-pointer transition-transform duration-700 ease-out';
       const markerBg = isCancelled ? '#e11d48' : isDelivered ? '#10b981' : isOnHold ? '#f59e0b' : isPending ? '#64748b' : '#2563eb';
@@ -391,7 +375,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
         .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<strong>Delivery Vehicle</strong><br/>Order #${order?.order_number || order?.id}<br/>Driver: ${order?.pilot_assigned || 'IndoFleet Pilot'}`))
         .addTo(map);
 
-      // Fit bounds tightly around the route
       const bounds = new maplibregl.LngLatBounds(pickupCoords, pickupCoords);
       roadCoordinates.forEach(pt => bounds.extend(pt));
       bounds.extend(currentVehicleCoords);
@@ -408,7 +391,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
     };
   }, [mapType]);
 
-  // 4. Smoothly Update Route Polyline when road coordinates are fetched
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !map.isStyleLoaded()) return;
@@ -436,7 +418,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
     }
   }, [roadCoordinates, pickupCoords, dropCoords]);
 
-  // 5. Smoothly Move Vehicle Marker as GPS Position Updates
   useEffect(() => {
     if (vehicleMarkerRef.current && currentVehicleCoords) {
       vehicleMarkerRef.current.setLngLat(currentVehicleCoords);
@@ -480,10 +461,10 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
 
   return (
     <div className={`relative rounded-3xl overflow-hidden border border-slate-200 shadow-md bg-slate-100 group w-full ${className}`}>
-      {/* Interactive Google Map Canvas */}
+
       <div ref={mapContainer} className="w-full h-full min-h-[280px]" />
 
-      {/* Top Left: Ultra-Clean Minimalist Status Pill */}
+
       {showHud && (
         <div className="absolute top-3 left-3 z-10 pointer-events-none max-w-[calc(100%-140px)] flex flex-col gap-1.5">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-md text-slate-800 text-[11px] font-bold shadow-md border border-slate-200/90 truncate">
@@ -496,9 +477,9 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
         </div>
       )}
 
-      {/* Top Right: Compact Controls */}
+
       <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5 pointer-events-auto">
-        {/* Toggle HUD visibility (Eye button to hide everything and view full unobstructed map) */}
+
         <button
           type="button"
           onClick={() => setShowHud(prev => !prev)}
@@ -508,7 +489,7 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
           {showHud ? <EyeOff className="w-4 h-4 text-slate-600" /> : <Eye className="w-4 h-4 text-[#5a00b8]" />}
         </button>
 
-        {/* Satellite / Roadmap Toggle */}
+
         <button
           type="button"
           onClick={handleToggleMapType}
@@ -518,7 +499,7 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
           <Layers className="w-4 h-4 text-blue-600" />
         </button>
 
-        {/* Recenter Button */}
+
         <button
           type="button"
           onClick={handleRecenter}
@@ -528,7 +509,7 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
           <Navigation className="w-4 h-4" />
         </button>
 
-        {/* Zoom Controls (Hidden on mobile touch screens to save screen space) */}
+
         <div className="hidden sm:flex flex-col rounded-xl overflow-hidden bg-white/95 shadow-md border border-slate-200/90 backdrop-blur">
           <button
             type="button"
@@ -549,11 +530,11 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
         </div>
       </div>
 
-      {/* Bottom Floating Delivery HUD: Sleek, Collapsible & Unobtrusive */}
+
       {showHud && (
         <div className="absolute bottom-3 left-3 right-3 z-10 pointer-events-auto">
           <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-xl p-2.5 sm:p-3 text-slate-900 transition-all">
-            {/* COLLAPSED MINI HUD (DEFAULT) */}
+
             {!isHudExpanded ? (
               <div
                 className="flex items-center justify-between gap-2 cursor-pointer"
@@ -599,7 +580,7 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
                 </div>
               </div>
             ) : (
-              /* EXPANDED DETAILED HUD */
+
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                   <div className="flex items-center gap-2.5">

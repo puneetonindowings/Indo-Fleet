@@ -73,7 +73,6 @@ export default function PhoneInput({
   const rootRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  // Keep in sync when the parent value changes externally.
   useEffect(() => {
     const parsed = parsePhone(value);
     setNational(parsed.national);

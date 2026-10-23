@@ -81,7 +81,6 @@ const TRANSIT_STAGES = [
   }
 ];
 
-/* Spec sheet — only the values already on the site */
 const SPECS = [
   { label: 'Flight Endurance', value: '65', unit: 'Mins', note: 'AMSL cruising' },
   { label: 'Launch Ceiling', value: '18,000', unit: 'ft', note: 'High altitude' },
@@ -118,10 +117,10 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  /* Hero: "view drone" toggle hides the text so the video is fully visible */
+
   const [clean, setClean] = useState(false);
 
-  /* Protocol: auto-advancing stepper */
+
   const [proto, setProto] = useState(0);
   useEffect(() => {
     const id = setTimeout(() => setProto((p) => (p + 1) % TRANSIT_STAGES.length), 5000);
@@ -133,11 +132,9 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
     <>
       <style>{KEYFRAMES}</style>
 
-      {/* ════════════════════════════════════════════════════════════════════
-          HERO — full-screen video, headline, ticker
-         ════════════════════════════════════════════════════════════════════ */}
+
       <section className="relative flex min-h-[100svh] w-full flex-col justify-end overflow-hidden bg-black text-white">
-        {/* Full-screen background video (original, untouched) */}
+
         <video
           src="/stick.mp4"
           autoPlay
@@ -147,7 +144,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
           className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         />
 
-        {/* Text content */}
+
         <div
           className={`relative z-10 mx-auto w-full max-w-[1280px] px-4 pb-10 pt-32 transition-opacity duration-500 sm:px-6 sm:pt-36 ${
             clean ? 'pointer-events-none opacity-0' : 'opacity-100'
@@ -212,12 +209,9 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════
-          CAPABILITIES — hover-sweep rows
-         ════════════════════════════════════════════════════════════════════ */}
+
       <section className="bg-white py-20 sm:py-28">
         <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
           <div className="mb-12 max-w-2xl">
@@ -240,7 +234,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
                   onClick={() => go(feat.page, feat.link)}
                   className="group relative flex w-full cursor-pointer items-center gap-4 overflow-hidden px-4 py-7 text-left focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#5a00b8] sm:gap-6 sm:px-6"
                 >
-                  {/* purple sweep */}
+
                   <span
                     aria-hidden="true"
                     className="absolute inset-0 origin-left scale-x-0 bg-[#5a00b8] transition-transform duration-500 ease-out group-hover:scale-x-100 group-focus-visible:scale-x-100"
@@ -269,9 +263,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════
-          PROTOCOL — auto-advancing stepper
-         ════════════════════════════════════════════════════════════════════ */}
+
       <section
         id="protocol"
         className="border-y border-slate-200 bg-slate-50 py-20 sm:py-28"
@@ -289,7 +281,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-12">
-            {/* Step list */}
+
             <div className="space-y-3 lg:col-span-5">
               {TRANSIT_STAGES.map((s, i) => {
                 const active = proto === i;
@@ -329,7 +321,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
               })}
             </div>
 
-            {/* Detail panel */}
+
             <div
               key={proto}
               className="hf-swap relative flex min-h-[320px] flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-8 shadow-sm lg:col-span-7"
@@ -361,9 +353,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════
-          FEATURED AIRCRAFT: 700RPAV — real footage + spec sheet
-         ════════════════════════════════════════════════════════════════════ */}
+
       <section className="bg-white py-20 sm:py-28">
         <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
           <div className="mb-12 max-w-2xl">
@@ -377,7 +367,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
           </div>
 
           <div className="grid gap-10 lg:grid-cols-12 lg:items-stretch">
-            {/* Left: the real aircraft */}
+
             <div className="relative min-h-[320px] overflow-hidden rounded-3xl bg-black lg:col-span-6">
               <video
                 src="/rpav.mp4"
@@ -396,7 +386,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
               </p>
             </div>
 
-            {/* Right: spec sheet */}
+
             <div className="lg:col-span-6">
               <p className="max-w-xl text-sm leading-relaxed text-slate-500 sm:text-base">
                 Engineered for high-altitude BVLOS operations over mountains, near-silent acoustic

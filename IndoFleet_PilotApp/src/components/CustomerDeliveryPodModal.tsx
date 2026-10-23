@@ -60,7 +60,6 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
   onDelivered,
   onOpenFullScreenInspection,
 }) => {
-  // Pre-Handover Airframe & Zero-Defect Inspection State (Step 1 - Mandatory)
   const existingInspection = Boolean(
     order?.inspection_id ||
     (Array.isArray(order?.inspected_drone_ids) && order.inspected_drone_ids.length > 0) ||
@@ -73,14 +72,12 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
   );
   const [verifyingInspection, setVerifyingInspection] = useState<boolean>(false);
 
-  // Field Checklist
   const [cargoBayCondition, setCargoBayCondition] = useState<string>('CLEAN_RELEASE');
   const [landingSurface, setLandingSurface] = useState<string>('SAFE_FLAT');
   const [propellerCheck, setPropellerCheck] = useState<string>('SPINS_FREE_NO_DEBRIS');
   const [fieldBattery, setFieldBattery] = useState<string>('75');
   const [zeroDefectCertified, setZeroDefectCertified] = useState<boolean>(true);
 
-  // Handover Verification State (Step 2 - Unlocked only after Inspection)
   const [customerOtp, setCustomerOtp] = useState('');
   const [pilotOtp, setPilotOtp] = useState('');
   const [recipientName, setRecipientName] = useState(order?.recipient_name || order?.customer_name || '');
@@ -96,7 +93,6 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
   const targetDrone = order.assigned_drone_id || order.drone_id || getDefaultDroneModel();
   const cleanDroneName = targetDrone.includes('@') ? 'IndoWings 700 RPAV' : targetDrone;
 
-  // Step 1: Verify & Lock Airframe & Cargo Inspection
   const handleVerifyInspection = async () => {
     setVerifyingInspection(true);
     const hasAnyDefect =
@@ -304,7 +300,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'android' ? 20 : 0}>
         <View style={styles.modalCard}>
-          {/* Header */}
+
           <View style={styles.header}>
             <View style={styles.titleRow}>
               <View style={[styles.headerIconCircle, isInspectionVerified && styles.headerIconCircleVerified]}>
@@ -321,9 +317,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
           </View>
 
           <ScrollView style={styles.scrollBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            {/* ═══════════════════════════════════════════════════════════
-                STAGE 1: AIRFRAME & ZERO-DEFECT INSPECTION (MANDATORY)
-               ═══════════════════════════════════════════════════════════ */}
+
             <View style={[styles.stepContainer, isInspectionVerified ? styles.stepContainerVerified : styles.stepContainerPending]}>
               <View style={styles.stepHeaderRow}>
                 <View style={styles.stepTitleGroup}>
@@ -349,7 +343,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
 
               {!isInspectionVerified ? (
                 <View style={styles.inspectionFormBody}>
-                  {/* 0. Drone Airframe QR Verification */}
+
                   <View style={styles.checkItem}>
                     <View style={styles.itemHeader}>
                       <QrCode size={13} color="#3B0080" />
@@ -358,7 +352,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                     <View style={{ backgroundColor: '#F8FAFC', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', marginTop: 4 }}>
                       <Text style={{ fontSize: 11, color: '#64748B', fontWeight: '600' }}>Assigned Airframe Drone ID:</Text>
                       <Text style={{ fontSize: 15, fontFamily: 'monospace', fontWeight: '900', color: '#0F172A', marginTop: 2 }}>{targetDrone}</Text>
-                      
+
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, backgroundColor: '#ECFDF5', padding: 8, borderRadius: 8, borderWidth: 1, borderColor: '#A7F3D0' }}>
                         <Check size={14} color="#059669" />
                         <Text style={{ fontSize: 11, fontWeight: '700', color: '#059669' }}>Physical QR Scanned &amp; Verified on Consignment</Text>
@@ -376,7 +370,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                     </View>
                   </View>
 
-                  {/* 1. Cargo Bay */}
+
                   <View style={styles.checkItem}>
                     <View style={styles.itemHeader}>
                       <PackageCheck size={13} color="#3B0080" />
@@ -411,7 +405,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                     </View>
                   </View>
 
-                  {/* 2. Landing Surface */}
+
                   <View style={styles.checkItem}>
                     <View style={styles.itemHeader}>
                       <MapPin size={13} color="#3B0080" />
@@ -446,7 +440,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                     </View>
                   </View>
 
-                  {/* 3. Propeller Debris */}
+
                   <View style={styles.checkItem}>
                     <View style={styles.itemHeader}>
                       <Wind size={13} color="#3B0080" />
@@ -481,7 +475,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                     </View>
                   </View>
 
-                  {/* 4. Zero Defect Toggle */}
+
                   <TouchableOpacity
                     style={[styles.zeroDefectCard, zeroDefectCertified ? styles.zeroDefectPass : styles.zeroDefectFail]}
                     onPress={() => setZeroDefectCertified(!zeroDefectCertified)}
@@ -502,7 +496,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                     </View>
                   </TouchableOpacity>
 
-                  {/* Verify Action Button */}
+
                   <TouchableOpacity
                     style={styles.verifyInspectionBtn}
                     onPress={handleVerifyInspection}
@@ -533,9 +527,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
               )}
             </View>
 
-            {/* ═══════════════════════════════════════════════════════════
-                STAGE 2: CUSTOMER OTP & PROOF OF DELIVERY (LOCKED UNTIL STEP 1)
-               ═══════════════════════════════════════════════════════════ */}
+
             <View style={[styles.stepContainer, !isInspectionVerified && styles.stepContainerLocked]}>
               <View style={styles.stepHeaderRow}>
                 <View style={styles.stepTitleGroup}>
@@ -568,7 +560,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                 </View>
               ) : (
                 <View style={styles.unlockedHandoverBody}>
-                  {/* Step 2A: Customer OTP */}
+
                   <View style={styles.sectionBox}>
                     <View style={styles.sectionHeader}>
                       <KeyRound size={15} color="#3B0080" />
@@ -601,7 +593,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                     />
                   </View>
 
-                  {/* Step 2B: Delivery Partner Self OTP */}
+
                   <View style={styles.sectionBox}>
                     <View style={styles.sectionHeader}>
                       <ShieldCheck size={15} color="#059669" />
@@ -634,7 +626,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                     />
                   </View>
 
-                  {/* Step 2C: Recipient Details */}
+
                   <View style={styles.sectionBox}>
                     <View style={styles.sectionHeader}>
                       <User size={15} color="#3B0080" />
@@ -649,7 +641,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                     />
                   </View>
 
-                  {/* Step 2D: Proof of Delivery (POD) Photo */}
+
                   <View style={styles.sectionBox}>
                     <View style={styles.sectionHeader}>
                       <Camera size={15} color="#3B0080" />
@@ -687,7 +679,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                     )}
                   </View>
 
-                  {/* Step 2E: Delivery Location Geo-Tag */}
+
                   <View style={styles.geoBox}>
                     <MapPin size={15} color="#059669" />
                     <View style={styles.geoInfo}>
@@ -700,7 +692,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
                     </View>
                   </View>
 
-                  {/* Step 2G: Notes */}
+
                   <View style={styles.sectionBox}>
                     <View style={styles.sectionHeader}>
                       <FileText size={14} color="#94A3B8" />
@@ -719,7 +711,7 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
             </View>
           </ScrollView>
 
-          {/* Footer Actions */}
+
           <View style={styles.footerActions}>
             <TouchableOpacity style={styles.cancelBtn} onPress={onClose} disabled={loading}>
               <Text style={styles.cancelBtnText}>Cancel</Text>

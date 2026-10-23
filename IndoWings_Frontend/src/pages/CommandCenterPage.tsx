@@ -1,17 +1,17 @@
 import React from 'react';
-import { 
-  RadioTower, 
-  Workflow, 
-  BookOpen, 
-  MonitorUp, 
-  Building2, 
-  UsersRound, 
-  ShieldCheck, 
-  MonitorCheck, 
-  Network, 
-  ClipboardCheck, 
-  Plane, 
-  UserCheck 
+import {
+  RadioTower,
+  Workflow,
+  BookOpen,
+  MonitorUp,
+  Building2,
+  UsersRound,
+  ShieldCheck,
+  MonitorCheck,
+  Network,
+  ClipboardCheck,
+  Plane,
+  UserCheck
 } from 'lucide-react';
 
 interface CommandCenterPageProps {
@@ -87,8 +87,8 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
 
   return (
     <div className="w-full bg-[#fbf9fd] text-[#171222]">
-      {/* 1. Page Hero: Full Viewport Hero matching SkyGrid product-hero */}
-      <section 
+
+      <section
         className="w-full min-h-screen flex items-center pt-28 sm:pt-36 pb-16 sm:pb-20 text-white relative overflow-hidden"
         style={{
           background: 'linear-gradient(180deg, #2b114d 0%, #240c42 100%)'
@@ -96,7 +96,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
       >
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.15fr] gap-10 lg:gap-14 items-center">
-            {/* Left Copy */}
+
             <div className="space-y-6">
               <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 border border-white/20 text-[#d8b4fe]">
                 <RadioTower className="w-5 h-5 text-purple-300" />
@@ -111,9 +111,9 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
                 Command Center gives teams a central place to manage organizations, users, roles, trusted devices, fleet visibility, mission oversight, audit logs, and GCS synchronization.
               </p>
 
-              {/* Action Buttons */}
+
               <div className="flex flex-wrap items-center gap-3.5 pt-2">
-                <a 
+                <a
                   href="/platform"
                   onClick={handleGoPlatform}
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-[#5a00b8] hover:bg-[#4c0099] text-white text-sm font-semibold shadow-md transition-all active:scale-95 border border-purple-400/30"
@@ -121,14 +121,14 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
                   <Workflow className="w-4 h-4" />
                   <span>How IndoFleet works</span>
                 </a>
-                <button 
+                <button
                   onClick={onOpenDemoBooking}
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-semibold shadow-md transition-all active:scale-95 border border-white/20"
                 >
                   <BookOpen className="w-4 h-4" />
                   <span>View documentation</span>
                 </button>
-                <button 
+                <button
                   onClick={onOpenCommandCenter}
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-white hover:bg-slate-100 text-[#171222] text-sm font-semibold shadow-md transition-all active:scale-95"
                 >
@@ -138,10 +138,10 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
               </div>
             </div>
 
-            {/* Right Visual Hero Shot */}
+
             <figure className="rounded-2xl overflow-hidden shadow-2xl border border-white/15 bg-[#12051e] group">
-              <img 
-                src="/images/command-overview.webp" 
+              <img
+                src="/images/command-overview.webp"
                 alt="IndoFleet Command Center mission overview dashboard with flight summary and alerts"
                 className="w-full h-auto object-cover block group-hover:scale-[1.01] transition-transform duration-300"
               />
@@ -150,11 +150,11 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
         </div>
       </section>
 
-      {/* 2. Account Governance Section */}
+
       <section className="w-full py-16 sm:py-20 lg:py-24 bg-[#fbf9fd]">
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
-            {/* Left Copy */}
+
             <div>
               <p className="text-xs font-bold tracking-widest text-[#5a00b8] uppercase mb-3">
                 ACCOUNT GOVERNANCE
@@ -167,12 +167,12 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
               </p>
             </div>
 
-            {/* Right Console Grid */}
+
             <div className="p-6 sm:p-7 rounded-2xl bg-white/90 border border-[#5a00b8]/15 shadow-[0_12px_36px_rgba(31,18,45,0.05)] grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {accountGovernancePills.map((item, idx) => {
                 const ItemIcon = item.icon;
                 return (
-                  <div 
+                  <div
                     key={idx}
                     className="flex items-center gap-3 p-3.5 sm:p-4 rounded-xl border border-[#5a00b8]/12 bg-[#faf7fd] text-[#111827] font-semibold text-sm hover:border-[#5a00b8]/30 hover:bg-white hover:shadow-sm transition-all"
                   >
@@ -188,11 +188,11 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
         </div>
       </section>
 
-      {/* 3. Command Visibility Section */}
+
       <section className="w-full py-16 sm:py-20 lg:py-24 bg-white border-t border-[#5a00b8]/10">
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
-            {/* Left Copy */}
+
             <div>
               <p className="text-xs font-bold tracking-widest text-[#5a00b8] uppercase mb-3">
                 COMMAND VISIBILITY
@@ -205,10 +205,10 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
               </p>
             </div>
 
-            {/* Right Screenshot Frame */}
+
             <figure className="relative rounded-2xl overflow-hidden shadow-xl border border-slate-200/80 bg-[#12051e] group">
-              <img 
-                src="/images/mission-log-detail.webp" 
+              <img
+                src="/images/mission-log-detail.webp"
                 alt="IndoFleet Command Center mission detail with flight metrics, map playback, and safety events"
                 className="w-full h-auto object-cover block group-hover:scale-[1.01] transition-transform duration-300"
               />
@@ -220,7 +220,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
         </div>
       </section>
 
-      {/* 4. Command Center Views (Visual Story Grid) */}
+
       <section className="w-full py-16 sm:py-20 lg:py-24 bg-[#fbf9fd] border-t border-[#5a00b8]/10">
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="max-w-3xl mb-12">
@@ -233,10 +233,10 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-7">
-            {/* 1. Operations readiness */}
+
             <figure className="relative rounded-2xl overflow-hidden shadow-md border border-slate-200/80 bg-white group hover:shadow-xl transition-all">
-              <img 
-                src="/images/mission-operation-center.webp" 
+              <img
+                src="/images/mission-operation-center.webp"
                 alt="IndoFleet mission operation center with assigned aircraft, readiness checks, weather, and quick actions"
                 className="w-full h-auto object-cover block group-hover:scale-[1.02] transition-transform duration-300"
               />
@@ -245,10 +245,10 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
               </figcaption>
             </figure>
 
-            {/* 2. Mission archive */}
+
             <figure className="relative rounded-2xl overflow-hidden shadow-md border border-slate-200/80 bg-white group hover:shadow-xl transition-all">
-              <img 
-                src="/images/mission-log-archive.webp" 
+              <img
+                src="/images/mission-log-archive.webp"
                 alt="IndoFleet mission log archive with filter controls and completed mission rows"
                 className="w-full h-auto object-cover block group-hover:scale-[1.02] transition-transform duration-300"
               />
@@ -257,10 +257,10 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
               </figcaption>
             </figure>
 
-            {/* 3. Performance insights */}
+
             <figure className="relative rounded-2xl overflow-hidden shadow-md border border-slate-200/80 bg-white group hover:shadow-xl transition-all">
-              <img 
-                src="/images/command-performance-insights.webp" 
+              <img
+                src="/images/command-performance-insights.webp"
                 alt="IndoFleet performance dashboard with flight-hour chart and aircraft analytics"
                 className="w-full h-auto object-cover block group-hover:scale-[1.02] transition-transform duration-300"
               />
@@ -272,14 +272,14 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
         </div>
       </section>
 
-      {/* 5. Product Detail Grid (6 Cards) */}
+
       <section className="w-full py-16 sm:py-20 lg:py-24 bg-white border-t border-[#5a00b8]/10">
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {productDetailCards.map((card, idx) => {
               const IconComp = card.icon;
               return (
-                <div 
+                <div
                   key={idx}
                   className="p-7 rounded-2xl border border-[#5a00b8]/15 bg-gradient-to-b from-white to-[#fcfaff] shadow-[0_4px_24px_rgba(31,18,45,0.04)] hover:shadow-[0_16px_36px_rgba(59,0,128,0.08)] hover:border-[#5a00b8]/30 transition-all duration-300 flex flex-col justify-start"
                 >
@@ -291,7 +291,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
                       {card.title}
                     </h3>
                     {card.hasHelp && (
-                      <span 
+                      <span
                         className="w-4 h-4 rounded-full bg-[#eee4ff] text-[#5a00b8] text-[10px] font-bold inline-flex items-center justify-center cursor-help"
                         title={card.tooltip}
                       >
@@ -309,8 +309,8 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
         </div>
       </section>
 
-      {/* 6. Connected Operations (Dark Feature Section matching exact screenshot) */}
-      <section 
+
+      <section
         className="w-full py-16 sm:py-20 lg:py-24 text-white relative overflow-hidden"
         style={{
           background: 'linear-gradient(180deg, #2b114d 0%, #240c42 100%)'
@@ -318,7 +318,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
       >
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
-            {/* Left Copy */}
+
             <div>
               <p className="text-xs font-bold tracking-widest text-[#d8b4fe] uppercase mb-3">
                 CONNECTED OPERATIONS
@@ -331,10 +331,10 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
               </p>
             </div>
 
-            {/* Right Console matching media_1789756153609.png */}
+
             <div className="p-6 sm:p-8 rounded-2xl bg-white/[0.04] border border-white/10 shadow-2xl grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {connectedOperationsPills.map((pill, idx) => (
-                <div 
+                <div
                   key={idx}
                   className="flex items-center justify-start min-h-[52px] px-5 py-3.5 rounded-xl border border-white/10 bg-white/[0.08] hover:bg-white/[0.14] hover:border-purple-300/30 text-white font-bold text-sm sm:text-[15px] transition-all cursor-default"
                 >

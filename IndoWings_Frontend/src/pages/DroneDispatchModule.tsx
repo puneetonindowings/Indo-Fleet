@@ -170,11 +170,9 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
   onNavigate,
   onLogout
 }) => {
-  // Navigation & Layout State
   const [activeSidebarTab, setActiveSidebarTab] = useState<'dispatch' | 'qc-scan' | 'tracking' | 'history' | 'inventory' | 'profile'>('dispatch');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // Core Data
   const [data, setData] = useState<DashboardData>(EMPTY_DASHBOARD);
   const [fleet, setFleet] = useState<DroneInventoryItem[]>([]);
   const [fleetLoading, setFleetLoading] = useState(false);
@@ -185,12 +183,10 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [newOrderAlert, setNewOrderAlert] = useState<DispatchOrder | null>(null);
 
-  // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'assigned' | 'accepted' | 'in-transit' | 'on-hold' | 'rescheduled' | 'delivered' | 'cancelled'>('all');
   const [historySearch, setHistorySearch] = useState('');
 
-  // Fleet & Inventory State (Matching Admin Dashboard)
   const [droneFilter, setDroneFilter] = useState('all');
   const [droneSearchQuery, setDroneSearchQuery] = useState('');
   const [droneCurrentPage, setDroneCurrentPage] = useState(1);
@@ -198,7 +194,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
   const [selectedReservedDrone, setSelectedReservedDrone] = useState<any | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
-  // QR Label & Bulk QR Download States
   const [selectedQrDrone, setSelectedQrDrone] = useState<any | null>(null);
   const [showBulkQrModal, setShowBulkQrModal] = useState(false);
   const [orderDownloadingZipId, setOrderDownloadingZipId] = useState<string | null>(null);
@@ -221,12 +216,10 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     }
   };
 
-  // Helper: Verify if an airframe has completed Depot QC Pre-Dispatch Inspection
   const isDroneDepotInspected = (droneId: string, order: any, fleetList: any[]): boolean => {
     const norm = String(droneId || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (!norm) return false;
 
-    // 1. Check order.depot_inspected_drone_ids or hub_inspected_drone_ids
     if (Array.isArray(order?.depot_inspected_drone_ids)) {
       const matched = order.depot_inspected_drone_ids.some(
         (id: string) => String(id).toUpperCase().replace(/[^A-Z0-9]/g, '') === norm
@@ -240,7 +233,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       if (matched) return true;
     }
 
-    // 2. Check order.delivery_data?.depot_inspections or hub_inspections
     if (order?.delivery_data?.depot_inspections) {
       const keys = Object.keys(order.delivery_data.depot_inspections);
       const matched = keys.some((k) => String(k).toUpperCase().replace(/[^A-Z0-9]/g, '') === norm);
@@ -252,7 +244,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       if (matched) return true;
     }
 
-    // 3. Check fleet item
     const fDrone = fleetList.find(
       (d: any) =>
         String(d.id || '').toUpperCase().replace(/[^A-Z0-9]/g, '') === norm ||
@@ -266,7 +257,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     return false;
   };
 
-  // Single & Bulk Drone Creation/Edit Modal State
   const [showAddSingleDrone, setShowAddSingleDrone] = useState(false);
   const [showBulkDroneModal, setShowBulkDroneModal] = useState(false);
   const [editingDrone, setEditingDrone] = useState<any | null>(null);
@@ -286,7 +276,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
   const [inventoryActionLoading, setInventoryActionLoading] = useState(false);
   const [inventoryModalError, setInventoryModalError] = useState('');
 
-  // Manage Order State (Hold, Cancel, Reschedule, Resume)
   const [managingOrder, setManagingOrder] = useState<DispatchOrder | null>(null);
   const [manageAction, setManageAction] = useState<'hold' | 'cancel' | 'reschedule' | 'resume'>('hold');
   const [manageReason, setManageReason] = useState('');
@@ -299,12 +288,10 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
   const [manageSubmitting, setManageSubmitting] = useState(false);
   const [manageError, setManageError] = useState('');
 
-  // Modals & Drawers
   const [selectedOrder, setSelectedOrder] = useState<DispatchOrder | null>(null);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [liveMapModalOpen, setLiveMapModalOpen] = useState(false);
 
-  // Assignment Modal Form
   const [selectedPartnerId, setSelectedPartnerId] = useState('');
   const [selectedDroneId, setSelectedDroneId] = useState('');
   const [assignOtpRequired, setAssignOtpRequired] = useState(false);
@@ -316,7 +303,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
   const prevOrderCountRef = useRef<number>(0);
   const token = localStorage.getItem('iw_delivery_token') || '';
 
-  // SOS Emergency Beacon state
   const [sosAlerts, setSosAlerts] = useState<any[]>([]);
   const [resolvingSosId, setResolvingSosId] = useState<string | null>(null);
 
@@ -358,7 +344,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // Web Audio Synthetic Inbound Chime
   const playInboundChime = () => {
     if (!soundEnabled) return;
     try {
@@ -366,7 +351,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
 
-      // Note 1: 880Hz (A5)
       const osc1 = ctx.createOscillator();
       const gain1 = ctx.createGain();
       osc1.type = 'sine';
@@ -378,7 +362,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       osc1.start(ctx.currentTime);
       osc1.stop(ctx.currentTime + 0.35);
 
-      // Note 2: 1174.66Hz (D6)
       const osc2 = ctx.createOscillator();
       const gain2 = ctx.createGain();
       osc2.type = 'sine';
@@ -404,7 +387,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
 
       const incomingOrders: DispatchOrder[] = json.orders || [];
 
-      // Detect new incoming order
       if (prevOrderCountRef.current > 0 && incomingOrders.length > prevOrderCountRef.current) {
         const latest = incomingOrders[0];
         setNewOrderAlert(latest);
@@ -610,7 +592,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // Real-time dynamic stats computed directly from active order list
   const stats = useMemo(() => {
     return {
       totalOrders: data.orders.length,
@@ -626,10 +607,8 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     };
   }, [data.orders]);
 
-  // Filtered Orders for Dispatch Workbench
   const filteredOrders = useMemo(() => {
     return data.orders.filter((order) => {
-      // Status filtering
       if (statusFilter === 'pending') {
         if (order.status !== 'pending') return false;
       } else if (statusFilter === 'assigned') {
@@ -648,7 +627,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         if (order.status !== 'cancelled') return false;
       }
 
-      // Search filtering
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const matchNumber = (order.order_number || order.id || '').toLowerCase().includes(q);
@@ -667,7 +645,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     });
   }, [data.orders, statusFilter, searchQuery]);
 
-  // Handle Request Security Verification OTP for placing order on hold
   const handleRequestHoldOtp = async () => {
     if (!managingOrder) return;
     if (manageReason.trim().length < 5) {
@@ -704,7 +681,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     }
   };
 
-  // Handle Manage Order Status (Hold, Cancel, Reschedule, Resume)
   const handleManageOrderStatus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!managingOrder) return;
@@ -758,7 +734,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     }
   };
 
-  // Handle Toggle Drone Maintenance
   const handleToggleDroneMaintenance = async (drone: any) => {
     const isMaint = drone.status === 'maintenance';
     const nextStatus = isMaint ? 'idle' : 'maintenance';
@@ -804,7 +779,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     }
   };
 
-  // History Orders (Delivered, Completed, or Cancelled)
   const historyOrders = useMemo(() => {
     return data.orders.filter((order) => {
       if (historySearch.trim()) {
@@ -822,9 +796,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     });
   }, [data.orders, historySearch]);
 
-
-
-  // Handle Request Dispatcher OTP
   const handleRequestAssignOtp = async () => {
     if (!selectedOrder) return;
     setAssignOtpSending(true);
@@ -832,7 +803,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     try {
       const res = await fetch(`${API_BASE_URL}/api/delivery/orders/${selectedOrder.id}/assign-pilot-request-otp`, {
         method: 'POST',
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
@@ -854,7 +825,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     }
   };
 
-  // Handle Confirm Assignment with Partner
   const handleConfirmAssignment = async () => {
     if (!selectedOrder || !selectedPartnerId) {
       setError('Please select an active delivery partner.');
@@ -867,13 +837,11 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       return;
     }
 
-    // Resolve Drone ID dynamically from user selection, first available idle UAV, or partner vehicle
     const chosenDrone = selectedDroneId
       ? fleet.find((d: any) => (d.drone_id || d.id) === selectedDroneId)
       : availableFleetDrones[0];
     const resolvedDroneId = chosenDrone ? (chosenDrone.drone_id || chosenDrone.id) : (partner.vehicle_id || 'UAV-SYS-01');
 
-    // 1. Mandatory Depot QC Inspection Check
     const bookedDrones = getDronesForOrder(selectedOrder, fleet);
     const targetDrones = bookedDrones.length > 0
       ? bookedDrones
@@ -885,7 +853,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       return;
     }
 
-    // 2. Mandatory Dispatcher OTP Check
     if (!assignOtp || assignOtp.trim().length !== 6) {
       setError('Dispatcher Security Authorization OTP mandatory hai. Please 6-digit OTP request karein aur enter karein.');
       return;
@@ -933,7 +900,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     setTimeout(() => setCopiedOtpId(null), 2000);
   };
 
-  // Sidebar navigation tabs
   const dispatchNavItems = [
     { id: 'dispatch', label: 'Live Dispatch Desk', icon: Package, badge: stats.pendingDispatches > 0 ? stats.pendingDispatches : null },
     { id: 'qc-scan', label: 'Scan & Inspect Drone', icon: ScanLine, badge: 'QC' },
@@ -943,10 +909,9 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     { id: 'profile', label: 'My Profile', icon: User, badge: null },
   ] as const;
 
-  // Render Dispatch Workbench Inner View
   const renderDispatchWorkbench = () => (
     <div className="space-y-6">
-      {/* Top Action Bar */}
+
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2.5">
@@ -961,7 +926,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          {/* Audio Notification Toggle */}
+
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
@@ -975,7 +940,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
             <span>{soundEnabled ? 'Chime Active' : 'Muted'}</span>
           </button>
 
-          {/* Live Refresh Button */}
+
           <button
             onClick={() => {
               fetchDashboard();
@@ -990,7 +955,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         </div>
       </div>
 
-      {/* Inbound Booking Banner Alert */}
+
       {newOrderAlert && (
         <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white p-4 rounded-xl shadow-lg flex items-center justify-between animate-bounce">
           <div className="flex items-center gap-3">
@@ -1034,7 +999,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         </div>
       )}
 
-      {/* KPI Stats Grid */}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Bookings</p>
@@ -1085,9 +1050,9 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         </div>
       </div>
 
-      {/* Search & Filter Toolbar */}
+
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-        {/* Status Filter Select Dropdown */}
+
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="text-xs font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
             <Filter className="w-3.5 h-3.5 text-[#3B0080]" />
@@ -1112,7 +1077,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
             <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
 
-          {/* Clear Filter Button if not 'all' */}
+
           {statusFilter !== 'all' && (
             <button
               onClick={() => setStatusFilter('all')}
@@ -1124,7 +1089,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
           )}
         </div>
 
-        {/* Search Field */}
+
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -1142,7 +1107,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         </div>
       </div>
 
-      {/* Orders List / Cards Grid */}
+
       {loading ? (
         <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 shadow-xs">
           <Loader2 className="w-8 h-8 text-[#3B0080] animate-spin mx-auto mb-3" />
@@ -1173,7 +1138,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 key={order.id}
                 className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-purple-300 transition overflow-hidden"
               >
-                {/* Order Top Bar */}
+
                 <div className="p-4 bg-slate-50/80 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1 font-mono font-bold text-slate-900">
@@ -1199,7 +1164,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                     )}
                   </div>
 
-                  {/* Status Badge */}
+
                   <div className="flex items-center gap-2">
                     {isPending && (
                       <span className="bg-amber-100 text-amber-800 font-extrabold px-3 py-1 rounded-full text-xs flex items-center gap-1.5 border border-amber-300">
@@ -1258,7 +1223,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                   </div>
                 </div>
 
-                {/* Hold Status Reason Callout */}
+
                 {order.status === 'on-hold' && (
                   <div className="mx-5 mt-4 p-3.5 bg-amber-500/10 border-2 border-amber-400/40 rounded-xl text-xs text-amber-950 flex items-start gap-3 shadow-xs">
                     <div className="w-7 h-7 rounded-lg bg-amber-200 border border-amber-300 flex items-center justify-center shrink-0 mt-0.5">
@@ -1280,9 +1245,9 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                   </div>
                 )}
 
-                {/* Order Details Body */}
+
                 <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
-                  {/* Column 1: Customer & Package Summary */}
+
                   <div className="space-y-3">
                     <p className="font-extrabold text-slate-400 uppercase tracking-wider text-[10px]">Customer & Contact</p>
                     <div>
@@ -1310,7 +1275,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                       </div>
                     </div>
 
-                    {/* Consignment Drone Units Allocation & QC Inspection Status */}
+
                     {(() => {
                       const orderDrones = getDronesForOrder(order, fleet);
                       const uninspected = orderDrones.filter(d => !isDroneDepotInspected(d.id, order, fleet));
@@ -1344,11 +1309,11 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                             </p>
                           )}
 
-                          {/* Pre-Dispatch Depot QC Inspection Status Badge */}
+
                           {orderDrones.length > 0 && (
                             <div className={`mt-1.5 p-2 rounded-lg text-[10px] font-bold flex items-center justify-between border ${
-                              isQcOk 
-                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                              isQcOk
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                                 : 'bg-rose-50 text-rose-800 border-rose-200'
                             }`}>
                               <span className="flex items-center gap-1.5">
@@ -1373,7 +1338,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                     })()}
                   </div>
 
-                  {/* Column 2: Route & Addresses */}
+
                   <div className="space-y-3">
                     <p className="font-extrabold text-slate-400 uppercase tracking-wider text-[10px]">Delivery Route &amp; Address</p>
 
@@ -1410,7 +1375,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                     )}
                   </div>
 
-                  {/* Column 3: Partner Assignment & Dispatcher Actions */}
+
                   <div className="space-y-3 flex flex-col justify-between border-t md:border-t-0 md:border-l border-slate-100 md:pl-6">
                     <div>
                       <p className="font-extrabold text-slate-400 uppercase tracking-wider text-[10px] mb-1">
@@ -1436,7 +1401,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                             </p>
                           )}
 
-                          {/* Partner Acceptance Status */}
+
                           <div className="mt-2 pt-2 border-t border-slate-100">
                             <div className="flex items-center justify-between">
                               <span className="text-[10px] font-bold text-slate-500 uppercase">Partner Status:</span>
@@ -1458,7 +1423,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                         </div>
                       )}
 
-                      {/* Live Telemetry Info for In-Transit */}
+
                       {isInTransit && (
                         <div className="mt-2 bg-cyan-50 border border-cyan-200 p-2.5 rounded-lg text-cyan-950 space-y-1">
                           <p className="font-bold text-[11px] flex items-center gap-1 text-cyan-800">
@@ -1473,7 +1438,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                       )}
                     </div>
 
-                    {/* Action Buttons */}
+
                     <div className="pt-2 flex flex-wrap gap-2">
                       {isPending && (
                         <button
@@ -1552,7 +1517,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     </div>
   );
 
-  // Render History Tab View
   const renderDispatchHistory = () => (
     <div className="space-y-6">
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1707,7 +1671,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     </div>
   );
 
-  // Render Fleet & Inventory Tab View (Matching Admin Dashboard Experience)
   const renderFleetInventory = () => {
     const filteredFleetDrones = fleet.filter((d: any) => {
       const isVerified = d.is_verified === true || d.verification_status === 'verified';
@@ -1756,7 +1719,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
 
     return (
       <div className="space-y-5">
-        {/* Top Fleet KPI Metrics Bar */}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
           <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center justify-between">
             <div>
@@ -1769,7 +1732,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
             </div>
           </div>
 
-          {/* Reserved for Customer Bookings */}
+
           <div
             onClick={() => {
               setDroneFilter(droneFilter === 'reserved' ? 'all' : 'reserved');
@@ -1797,7 +1760,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
             </div>
           </div>
 
-          {/* Available In-Stock */}
+
           <div
             onClick={() => {
               setDroneFilter(droneFilter === 'idle' ? 'all' : 'idle');
@@ -1819,7 +1782,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
             </div>
           </div>
 
-          {/* Under Maintenance KPI Card */}
+
           <div
             onClick={() => {
               setDroneFilter(droneFilter === 'maintenance' ? 'all' : 'maintenance');
@@ -1841,7 +1804,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
             </div>
           </div>
 
-          {/* Hardware Verification */}
+
           <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center justify-between">
             <div>
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Verified IDs</p>
@@ -1854,7 +1817,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
           </div>
         </div>
 
-        {/* Filters, Search & Action Buttons */}
+
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3.5 bg-white rounded-2xl border border-slate-200 shadow-xs">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
             <div className="relative flex-1 max-w-md">
@@ -1944,7 +1907,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
           </div>
         </div>
 
-        {/* Fleet Table */}
+
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
@@ -2100,7 +2063,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
             </table>
           </div>
 
-          {/* Pagination Controls */}
+
           {filteredFleetDrones.length > 0 && (
             <div className="p-3.5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
               <div className="text-slate-500 font-semibold">
@@ -2153,7 +2116,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
 
   const renderAllModals = () => (
     <>
-      {/* MODAL 1: ASSIGN DELIVERY PARTNER & DISPATCH WITH OTP */}
+
       {assignModalOpen && selectedOrder && (() => {
         const bookedDrones = getDronesForOrder(selectedOrder, fleet);
         const chosenDrone = selectedDroneId
@@ -2161,10 +2124,10 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
           : availableFleetDrones[0];
         const resolvedDroneId = chosenDrone ? (chosenDrone.drone_id || chosenDrone.id) : null;
 
-        const targetList = bookedDrones.length > 0 
-          ? bookedDrones 
+        const targetList = bookedDrones.length > 0
+          ? bookedDrones
           : (resolvedDroneId ? [{ id: resolvedDroneId, model: 'Fleet UAV' }] : []);
-        
+
         const uninspected = targetList.filter(d => !isDroneDepotInspected(d.id, selectedOrder, fleet));
         const isAllQcApproved = targetList.length > 0 && uninspected.length === 0;
         const isReadyToDispatch = Boolean(selectedPartnerId && isAllQcApproved && assignOtp.trim().length === 6);
@@ -2197,7 +2160,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
               </div>
 
               <div className="p-6 space-y-4 text-xs overflow-y-auto flex-1 max-h-[calc(90vh-140px)] overscroll-contain">
-                {/* Order Quick Summary */}
+
                 <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
                   <div className="flex justify-between font-bold text-slate-800">
                     <span>Customer: {selectedOrder.customer_name}</span>
@@ -2209,7 +2172,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                   </p>
                 </div>
 
-                {/* Mandatory Pre-Dispatch Drone Check Gate */}
+
                 {!isAllQcApproved ? (
                   <div className="p-4 bg-rose-50 border-2 border-rose-300 rounded-2xl space-y-2.5">
                     <div className="flex items-center justify-between">
@@ -2256,7 +2219,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                   </div>
                 )}
 
-              {/* Delivery Partner Selection */}
+
               <div>
                 <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider mb-2">
                   Select Active Delivery Partner:
@@ -2314,7 +2277,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 )}
               </div>
 
-              {/* Pre-allocated Order Drones Banner */}
+
               {(() => {
                 const bookedDrones = getDronesForOrder(selectedOrder, fleet);
                 if (bookedDrones.length === 0) return null;
@@ -2347,7 +2310,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 );
               })()}
 
-              {/* UAV Hardware Unit Selection */}
+
               <div className="pt-3 border-t border-slate-100">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">
@@ -2384,7 +2347,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 )}
               </div>
 
-              {/* Mandatory Dispatcher Security Authorization OTP */}
+
               <div className="pt-3 border-t border-slate-100 space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
@@ -2492,7 +2455,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       );
     })()}
 
-      {/* MODAL 2: LIVE RADAR & GPS MAP DRAWER */}
+
       {liveMapModalOpen && selectedOrder && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white text-slate-900 rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in max-h-[90vh] flex flex-col">
@@ -2510,7 +2473,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
             </div>
 
             <div className="p-6 space-y-4 overflow-y-auto flex-1">
-              {/* Telemetry Gauge Cards */}
+
               <div className="grid grid-cols-4 gap-2 text-center text-xs">
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
                   <p className="text-[10px] text-slate-500 font-bold uppercase">Speed</p>
@@ -2530,10 +2493,10 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 </div>
               </div>
 
-              {/* Live Interactive Map */}
+
               <CustomerOrderLiveMap order={selectedOrder} className="h-[380px] sm:h-[440px]" />
 
-              {/* Map Coordinates Visualizer */}
+
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
                 <div className="flex justify-between items-center text-slate-600">
                   <span>Current GPS Coordinates:</span>
@@ -2549,7 +2512,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 </div>
               </div>
 
-              {/* Customer Tracking URL Box */}
+
               <div className="bg-indigo-50/70 p-3 rounded-xl border border-indigo-100 flex items-center justify-between gap-3 text-xs">
                 <div className="truncate">
                   <p className="text-[10px] text-indigo-900 font-bold uppercase">Customer Tracking URL:</p>
@@ -2578,7 +2541,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         </div>
       )}
 
-      {/* ── MODAL 3: RESERVED DRONE & CUSTOMER ORDER INSPECTION ────────── */}
+
       {selectedReservedDrone && (() => {
         const drone = selectedReservedDrone;
         const linkedOrder = getLinkedOrderForDrone(drone);
@@ -2591,7 +2554,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         return (
           <div className="fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150 border border-slate-100">
-              {/* Modal Header */}
+
               <div className="flex items-start justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#3B0080] flex items-center justify-center font-black border border-purple-100 shrink-0">
@@ -2618,7 +2581,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 </button>
               </div>
 
-              {/* Drone Hardware Summary Banner */}
+
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3.5 w-full sm:w-auto">
                   {drone.image_url ? (
@@ -2644,7 +2607,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 </div>
               </div>
 
-              {/* Linked Booking Order Details */}
+
               {linkedOrder ? (
                 <div className="space-y-4">
                   <div className="p-4 sm:p-5 rounded-2xl bg-purple-50/40 border border-purple-200/70 space-y-4">
@@ -2675,9 +2638,9 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                       </div>
                     </div>
 
-                    {/* Customer & Recipient Grid */}
+
                     <div className="grid sm:grid-cols-2 gap-4 text-xs">
-                      {/* Customer Contact */}
+
                       <div className="p-3.5 rounded-xl bg-white border border-purple-100 space-y-1.5 shadow-2xs">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                           <User className="w-3 h-3 text-[#3B0080]" /> Customer Information
@@ -2697,7 +2660,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                         )}
                       </div>
 
-                      {/* Delivery Address */}
+
                       <div className="p-3.5 rounded-xl bg-white border border-purple-100 space-y-1.5 shadow-2xs">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                           <MapPin className="w-3 h-3 text-[#3B0080]" /> Delivery Destination
@@ -2711,7 +2674,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                       </div>
                     </div>
 
-                    {/* Order Units & Specification */}
+
                     <div className="p-3.5 rounded-xl bg-white border border-purple-100 space-y-2 text-xs shadow-2xs">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-slate-700">Consignment Summary:</span>
@@ -2740,7 +2703,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 </div>
               )}
 
-              {/* Modal Footer Actions */}
+
               <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
                 <div className="text-xs text-slate-400 font-medium">
                   {linkedOrder ? 'Live reservation data synced from Fleet API' : 'Direct Drone Unit view'}
@@ -2774,7 +2737,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         );
       })()}
 
-      {/* ── MODAL 4: ADD SINGLE DRONE ──────────────────────────────────── */}
+
       {showAddSingleDrone && (
         <div className="fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
@@ -2906,7 +2869,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         </div>
       )}
 
-      {/* ── MODAL 5: BULK BATCH ADD DRONES ──────────────────────────────── */}
+
       {showBulkDroneModal && (
         <div className="fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
@@ -3002,7 +2965,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         </div>
       )}
 
-      {/* ── MODAL 6: EDIT DRONE SPECIFICATION ───────────────────────────── */}
+
       {editingDrone && (
         <div className="fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
@@ -3113,7 +3076,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         </div>
       )}
 
-      {/* ── MODAL 7: MANAGE ORDER STATUS (HOLD / CANCEL / RESCHEDULE / RESUME) ──── */}
+
       {managingOrder && (
         <div className="fixed inset-0 z-[120] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
@@ -3127,7 +3090,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
               </button>
             </div>
 
-            {/* Current Order Summary */}
+
             <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1">
               <div className="flex justify-between">
                 <span className="text-slate-500">Customer:</span>
@@ -3144,7 +3107,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
             </div>
 
             <form onSubmit={handleManageOrderStatus} className="space-y-4 text-xs">
-              {/* Action Selection */}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">Select Action</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -3202,7 +3165,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 </div>
               </div>
 
-              {/* Reschedule Date and Time */}
+
               {manageAction === 'reschedule' && (
                 <div className="grid grid-cols-2 gap-3 p-3 bg-purple-50/50 rounded-2xl border border-purple-100">
                   <div>
@@ -3227,7 +3190,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 </div>
               )}
 
-              {/* Reason / Notes */}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Reason / Operational Notes {manageAction === 'cancel' || manageAction === 'hold' ? '*' : '(Optional)'}
@@ -3251,7 +3214,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 />
               </div>
 
-              {/* Hold Two-Factor Self-Verification */}
+
               {manageAction === 'hold' && (
                 <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 space-y-2.5 text-xs">
                   <div className="flex items-center justify-between">
@@ -3344,7 +3307,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         </div>
       )}
 
-      {/* ── 700 RPAV QR CODE LABEL MODAL ──── */}
+
       <DroneQRCodeModal
         isOpen={Boolean(selectedQrDrone)}
         onClose={() => setSelectedQrDrone(null)}
@@ -3352,7 +3315,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         onNavigate={onNavigate}
       />
 
-      {/* ── BULK QR CODE DOWNLOAD ZIP MODAL (ADMIN / FLEET / DISPATCHER) ──── */}
+
       <BulkQrDownloadModal
         isOpen={showBulkQrModal}
         onClose={() => setShowBulkQrModal(false)}
@@ -3361,12 +3324,11 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     </>
   );
 
-  // If embedded in Fleet Manager Tab, render full dispatch UI with tab pills (no inner sidebar)
   if (embedded) {
     const embeddedDispatchTabs = dispatchNavItems.filter(i => i.id !== 'profile');
     return (
       <div className="space-y-5 bg-[#F8FAFC] text-[#0F172A] pb-8">
-        {/* Horizontal Tab Pills */}
+
         <div className="bg-white border border-slate-200 rounded-2xl p-3 shadow-xs flex flex-wrap items-center gap-2">
           {embeddedDispatchTabs.map(({ id, label, icon: Icon, badge }) => (
             <button
@@ -3391,7 +3353,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
           ))}
         </div>
 
-        {/* Content Area */}
+
         <div>
           {activeSidebarTab === 'dispatch' && renderDispatchWorkbench()}
           {activeSidebarTab === 'tracking' && (
@@ -3400,16 +3362,15 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
           {activeSidebarTab === 'history' && renderDispatchHistory()}
           {activeSidebarTab === 'inventory' && renderFleetInventory()}
         </div>
-        {/* Render All Modals in Embedded Mode */}
+
         {renderAllModals()}
       </div>
     );
   }
 
-  // Standalone Dispatcher Command Portal with Full Sidebar
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] pt-28 sm:pt-32 pb-16">
-      {/* 🚨 SOS Emergency Banner */}
+
       <div className="max-w-[1560px] mx-auto px-4 sm:px-6">
         <SosAlertBanner
           alerts={sosAlerts}
@@ -3417,7 +3378,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
           resolvingId={resolvingSosId}
         />
       </div>
-      {/* ── MOBILE SLIDE-OVER DRAWER ────────────────────────────────────── */}
+
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-[120] md:hidden">
           <div
@@ -3427,7 +3388,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
 
           <div className="relative w-[85vw] max-w-[320px] bg-white h-full shadow-2xl flex flex-col justify-between p-5 z-10 animate-in slide-in-from-left duration-200 overflow-y-auto">
             <div className="space-y-5">
-              {/* Drawer Header */}
+
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-9 h-9 rounded-xl bg-purple-50 text-[#3B0080] flex items-center justify-center font-black shrink-0">
@@ -3448,7 +3409,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 </button>
               </div>
 
-              {/* Navigation Links */}
+
               <nav className="space-y-1.5 text-xs font-bold">
                 {dispatchNavItems.map(({ id, label, icon: Icon, badge }) => (
                   <button
@@ -3478,7 +3439,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
               </nav>
             </div>
 
-            {/* Current User Card at bottom of Drawer */}
+
             <div className="pt-4 border-t border-slate-100 flex items-center justify-between mt-6">
               <button
                 onClick={() => {
@@ -3519,9 +3480,9 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         </div>
       )}
 
-      {/* ── WORKSPACE CONTAINER WITH STICKY SIDEBAR ──────────────────────── */}
+
       <div className="max-w-[1560px] mx-auto px-4 sm:px-6">
-        {/* Mobile Header Toggle */}
+
         <div className="md:hidden mb-4 flex items-center justify-between bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
           <div className="flex items-center gap-2">
             <button
@@ -3550,12 +3511,10 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         </div>
 
         <div className="flex flex-col md:flex-row gap-6 items-start">
-          {/* ═════════════════════════════════════════════════════════════════
-             LEFT SIDEBAR: STICKY ON DESKTOP (HIDDEN ON MOBILE)
-             ═════════════════════════════════════════════════════════════════ */}
+
           <aside className="hidden md:block w-60 lg:w-64 xl:w-72 shrink-0 md:sticky md:top-28 md:self-start md:max-h-[calc(100vh-8rem)] md:overflow-y-auto space-y-4">
             <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-xs space-y-5">
-              {/* Sidebar Header */}
+
               <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
                 <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#3B0080] flex items-center justify-center font-black shadow-xs shrink-0">
                   <Package className="w-5 h-5 text-[#3B0080]" />
@@ -3566,7 +3525,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 </div>
               </div>
 
-              {/* Navigation Menu Links */}
+
               <nav className="space-y-1.5 text-xs font-bold">
                 {dispatchNavItems.map(({ id, label, icon: Icon, badge }) => (
                   <button
@@ -3593,7 +3552,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                 ))}
               </nav>
 
-              {/* Current User Card at bottom of Sidebar */}
+
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                 <button
                   onClick={() => {
@@ -3632,9 +3591,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
             </div>
           </aside>
 
-          {/* ═════════════════════════════════════════════════════════════════
-             RIGHT CONTENT AREA (SWITCHED BY ACTIVE TAB)
-             ═════════════════════════════════════════════════════════════════ */}
+
           <main className="flex-1 w-full min-w-0">
             {activeSidebarTab === 'dispatch' && renderDispatchWorkbench()}
             {activeSidebarTab === 'qc-scan' && (
@@ -3664,7 +3621,7 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
         </div>
       </div>
 
-      {/* Render All Modals in Standalone Mode */}
+
       {renderAllModals()}
     </div>
   );

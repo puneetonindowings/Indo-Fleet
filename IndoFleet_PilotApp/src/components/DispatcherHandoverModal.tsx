@@ -83,7 +83,7 @@ export const DispatcherHandoverModal: React.FC<DispatcherHandoverModalProps> = (
             Ready to depart for order <Text style={styles.highlight}>#{order.order_number}</Text>?
           </Text>
 
-          {/* Delivery Details Card */}
+
           <View style={styles.detailsCard}>
             <View style={styles.detailRow}>
               <User size={15} color="#64748B" />

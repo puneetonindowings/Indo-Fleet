@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { 
-  BookOpen, Shield, DownloadCloud, Book, Terminal, Compass, 
-  MapPin, Truck, CheckCircle2, ChevronRight, ArrowRight, ExternalLink, 
-  Sparkles, AlertCircle, Clock, Search, Layers, Radio, HelpCircle, 
+import {
+  BookOpen, Shield, DownloadCloud, Book, Terminal, Compass,
+  MapPin, Truck, CheckCircle2, ChevronRight, ArrowRight, ExternalLink,
+  Sparkles, AlertCircle, Clock, Search, Layers, Radio, HelpCircle,
   FileText, Zap, ShieldCheck, Check, Navigation, CreditCard, Award, User,
   Wrench, Activity, CheckSquare
 } from 'lucide-react';
@@ -13,10 +13,10 @@ interface DocsPageProps {
   onOpenDemoBooking?: () => void;
 }
 
-export const DocsPage: React.FC<DocsPageProps> = ({ 
-  onNavigate, 
-  onOpenCommandCenter, 
-  onOpenDemoBooking 
+export const DocsPage: React.FC<DocsPageProps> = ({
+  onNavigate,
+  onOpenCommandCenter,
+  onOpenDemoBooking
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'qc' | 'platform' | 'gcs' | 'admin' | 'safety'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -100,17 +100,17 @@ export const DocsPage: React.FC<DocsPageProps> = ({
 
   return (
     <div className="min-h-screen bg-[#f7f4fb] text-[#171222]">
-      {/* ── HERO SECTION ────────────────────────────────────────────────────── */}
-      <section 
-        className="relative text-white pt-28 sm:pt-36 pb-24 px-6 overflow-hidden" 
+
+      <section
+        className="relative text-white pt-28 sm:pt-36 pb-24 px-6 overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #1e0940 0%, #2b114d 50%, #1a0835 100%)' }}>
-        <div 
-          className="absolute inset-0 opacity-10" 
-          style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 70% 80%, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} 
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 70% 80%, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }}
         />
-        
+
         <div className="relative max-w-6xl mx-auto">
-          {/* Bookmark Icon Box */}
+
           <div className="w-14 h-14 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center mb-5 shadow-lg shadow-slate-950/30">
             <BookOpen className="w-7 h-7 text-white" />
           </div>
@@ -129,7 +129,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
         </div>
       </section>
 
-      {/* ── PUBLIC GUIDE SHOWCASE BANNER ────────────────────────────────────── */}
+
       <section className="max-w-6xl mx-auto px-6 -mt-10 relative z-10 mb-14">
         <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-950/5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -158,9 +158,9 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             </div>
           </div>
 
-          {/* 3 Visual Mini-Dashboards */}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Card 1: Corridor Lock */}
+
             <div className="bg-gradient-to-b from-[#0f172a] to-[#1e1b4b] rounded-2xl p-5 text-white border border-slate-800 shadow-md flex flex-col justify-between min-h-[220px]">
               <div>
                 <div className="flex items-center justify-between text-xs text-slate-400 mb-4">
@@ -184,7 +184,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
               </div>
             </div>
 
-            {/* Card 2: Mission Telemetry */}
+
             <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between min-h-[220px]">
               <div>
                 <div className="flex items-center justify-between text-xs text-slate-500 mb-4">
@@ -214,7 +214,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
               </div>
             </div>
 
-            {/* Card 3: Performance Insights */}
+
             <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between min-h-[220px]">
               <div>
                 <div className="flex items-center justify-between text-xs text-slate-500 mb-4">
@@ -245,7 +245,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
         </div>
       </section>
 
-      {/* ── STEP-BY-STEP OPERATIONAL SOP MANUAL ─────────────────────────────── */}
+
       <section className="max-w-6xl mx-auto px-6 mb-16">
         <div className="bg-gradient-to-br from-white via-orange-50/40 to-blue-50/30 border-2 border-purple-200/80 rounded-3xl p-6 sm:p-10 shadow-lg">
           <div className="max-w-3xl mb-8">
@@ -261,9 +261,9 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             </p>
           </div>
 
-          {/* 6 Step SOP Grid */}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {/* Step 1 */}
+
             <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-purple-300 transition-all flex flex-col justify-between">
               <div>
                 <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-bold text-sm font-mono mb-3">
@@ -282,7 +282,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
               </div>
             </div>
 
-            {/* Step 2 */}
+
             <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-purple-300 transition-all flex flex-col justify-between">
               <div>
                 <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-bold text-sm font-mono mb-3">
@@ -301,7 +301,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
               </div>
             </div>
 
-            {/* Step 3 */}
+
             <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-purple-300 transition-all flex flex-col justify-between">
               <div>
                 <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-bold text-sm font-mono mb-3">
@@ -320,7 +320,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
               </div>
             </div>
 
-            {/* Step 4 */}
+
             <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-purple-300 transition-all flex flex-col justify-between">
               <div>
                 <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-bold text-sm font-mono mb-3">
@@ -339,7 +339,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
               </div>
             </div>
 
-            {/* Step 5 */}
+
             <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-purple-300 transition-all flex flex-col justify-between">
               <div>
                 <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-bold text-sm font-mono mb-3">
@@ -358,7 +358,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
               </div>
             </div>
 
-            {/* Step 6 */}
+
             <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-purple-300 transition-all flex flex-col justify-between">
               <div>
                 <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-bold text-sm font-mono mb-3">
@@ -378,7 +378,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             </div>
           </div>
 
-          {/* Direct Action Banner inside Guide */}
+
           <div className="mt-8 pt-6 border-t border-purple-200/80 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#5a00b8] text-white flex items-center justify-center shrink-0">
@@ -399,10 +399,10 @@ export const DocsPage: React.FC<DocsPageProps> = ({
         </div>
       </section>
 
-      {/* ── DOCUMENTATION CATEGORY FILTER & SEARCH BAR ──────────────────────── */}
+
       <section className="max-w-6xl mx-auto px-6 mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-          {/* Categories */}
+
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
             {[
               { id: 'all', label: 'All Manuals' },
@@ -426,7 +426,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             ))}
           </div>
 
-          {/* Search */}
+
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
@@ -440,17 +440,17 @@ export const DocsPage: React.FC<DocsPageProps> = ({
         </div>
       </section>
 
-      {/* ── CORE DOCUMENTATION CARDS ────────────────────────────────────────── */}
+
       <section className="max-w-6xl mx-auto px-6 pb-20">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCards.map(card => {
             const Icon = card.icon;
             return (
-              <div 
+              <div
                 key={card.id}
                 className="bg-white border border-slate-200 hover:border-purple-300 rounded-2xl p-7 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
                 <div>
-                  {/* Card Tag Pill */}
+
                   <div className="flex items-center gap-2 mb-5">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${card.tagColor}`}>
                       <Icon className="w-4 h-4" />
@@ -460,18 +460,18 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                     </span>
                   </div>
 
-                  {/* Title */}
+
                   <h3 className="text-xl font-bold text-[#171222] mb-3 group-hover:text-[#5a00b8] transition-colors leading-snug">
                     {card.title}
                   </h3>
 
-                  {/* Description */}
+
                   <p className="text-slate-500 text-xs sm:text-sm leading-relaxed mb-6">
                     {card.desc}
                   </p>
                 </div>
 
-                {/* Footer Link */}
+
                 <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                   <button
                     onClick={() => {

@@ -19,7 +19,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({ chartData })
         </View>
       </View>
 
-      {/* Bar Chart Visualization */}
+
       <View style={styles.chartContainer}>
         <View style={styles.barsRow}>
           {chartData.weekly_trend.map((item, idx) => {
@@ -47,7 +47,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({ chartData })
         </View>
       </View>
 
-      {/* Hourly Dispatch Distribution Strip */}
+
       <View style={styles.hourlyStrip}>
         <Text style={styles.hourlyHeading}>PEAK TRANSIT HOURS (TODAY)</Text>
         <View style={styles.hourlyTags}>

@@ -15,7 +15,6 @@ export function setLocationUpdateListener(listener: ((data: any) => void) | null
   onLocationUpdateListener = listener;
 }
 
-// Calculate distance between two coordinates in km
 export function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Radius of the Earth in km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -30,7 +29,6 @@ export function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lo
   return R * c;
 }
 
-// Register background task (only on native platforms where TaskManager is supported)
 try {
   if (Platform.OS !== 'web' && TaskManager && typeof TaskManager.defineTask === 'function') {
     TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: any) => {
@@ -113,7 +111,6 @@ export async function requestLocationPermissions(): Promise<{ foreground: boolea
       const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
       return { foreground: true, background: bgStatus === 'granted' };
     } catch (err) {
-      // In Expo Go or some environments background permissions might fallback
       return { foreground: true, background: false };
     }
   } catch (err) {
@@ -132,12 +129,10 @@ export async function startTracking(orderId: string): Promise<boolean> {
       return false;
     }
 
-    // On web platform, TaskManager background tasks are not supported
     if (Platform.OS === 'web') {
       return true;
     }
 
-    // Check if task is already running
     const isRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
 
     if (isRegistered) {

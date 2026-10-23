@@ -59,7 +59,6 @@ export async function checkServerHealth(customUrl?: string): Promise<{ ok: boole
   }
 }
 
-// 1. Pilot Login
 export async function loginPilot(emailOrPhone: string, password: string): Promise<{
   success: boolean;
   token?: string;
@@ -84,7 +83,6 @@ export async function loginPilot(emailOrPhone: string, password: string): Promis
   return data;
 }
 
-// 2. Change Password
 export async function changePassword(
   userId: string,
   newPassword: string,
@@ -104,7 +102,6 @@ export async function changePassword(
   return data;
 }
 
-// 3. Fetch Dashboard (KPIs, Charts, Orders)
 export async function fetchPilotDashboard(pilotId?: string): Promise<{
   kpis: PilotKpis;
   chart_data: ChartData;
@@ -125,7 +122,6 @@ export async function fetchPilotDashboard(pilotId?: string): Promise<{
   return data;
 }
 
-// 3.1 Fetch Order History (Completed, Delivered, Cancelled)
 export async function fetchPilotOrderHistory(pilotId?: string): Promise<{
   success: boolean;
   orders: DeliveryOrder[];
@@ -144,7 +140,6 @@ export async function fetchPilotOrderHistory(pilotId?: string): Promise<{
   return data;
 }
 
-// Helper: Call Render First; if it fails or times out, immediately fall back to Local
 export async function geocodeDeliveryAddress(address: string): Promise<{ latitude: number; longitude: number } | null> {
   if (!address || typeof address !== 'string') return null;
   try {
@@ -187,7 +182,6 @@ async function fetchWithRenderAndLocalFallback(
     localCandidates.push('http://192.168.1.100:5000');
   }
 
-  // 1. FIRST: Attempt Render
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6000);
@@ -202,10 +196,8 @@ async function fetchWithRenderAndLocalFallback(
       return data;
     }
   } catch (err: any) {
-    // Render failed or timed out, proceed silently to Local
   }
 
-  // 2. SECOND: Attempt Local Fallback
   for (const localBase of Array.from(new Set(localCandidates))) {
     try {
       const controller = new AbortController();
@@ -221,13 +213,11 @@ async function fetchWithRenderAndLocalFallback(
         return data;
       }
     } catch {
-      // try next candidate
     }
   }
 
   throw new Error('Request failed on Render and Local fallback. Please check connection.');
 }
-// 3.5. Request Delivery Partner Self Acceptance OTP (Render First -> Local Fallback)
 export async function requestPilotAcceptanceOtp(
   orderId: string,
   extra?: { pilotId?: string; pilotEmail?: string; pilotPhone?: string }
@@ -244,7 +234,6 @@ export async function requestPilotAcceptanceOtp(
   });
 }
 
-// 4. Accept Assigned Order via OTP (Render First -> Local Fallback)
 export async function acceptAssignedOrder(
   orderId: string,
   otp: string,
@@ -267,7 +256,6 @@ export async function acceptAssignedOrder(
   });
 }
 
-// 5. Request Delivery Partner Departure / Pickup OTP
 export async function requestDispatcherHandoverOtp(
   orderId: string,
   pilotName: string,
@@ -293,7 +281,6 @@ export async function requestDispatcherHandoverOtp(
   return data;
 }
 
-// 6. Verify Dispatcher Handover & Start Flight (Triggers Customer Email & Live Tracking)
 export async function verifyHandoverAndStartFlight(payload: {
   order_id: string;
   dispatcher_otp?: string;
@@ -318,7 +305,6 @@ export async function verifyHandoverAndStartFlight(payload: {
   return data;
 }
 
-// 7. Update Live GPS Telemetry
 export async function updatePilotLocation(payload: PilotTelemetryPayload): Promise<any> {
   const baseUrl = await getServerUrl();
   const controller = new AbortController();
@@ -344,7 +330,6 @@ export async function updatePilotLocation(payload: PilotTelemetryPayload): Promi
   }
 }
 
-// 8. SOS Emergency Beacon Alert
 export async function triggerSosEmergency(payload: {
   pilot_name: string;
   pilot_phone?: string;
@@ -369,7 +354,6 @@ export async function triggerSosEmergency(payload: {
   return data;
 }
 
-// 9. Request Customer Delivery OTP
 export async function requestCustomerDeliveryOtp(orderId: string): Promise<{ success: boolean; customer_otp?: string; message: string }> {
   const baseUrl = await getServerUrl();
   const res = await fetch(`${baseUrl}/api/delivery/pilot/request-customer-otp`, {
@@ -385,7 +369,6 @@ export async function requestCustomerDeliveryOtp(orderId: string): Promise<{ suc
   return data;
 }
 
-// 9b. Request Pilot Self Verification Delivery OTP
 export async function requestPilotDeliveryOtp(
   orderId: string,
   pilotEmail?: string,
@@ -411,7 +394,6 @@ export async function requestPilotDeliveryOtp(
   return data;
 }
 
-// 10. Complete Handover with Proof of Delivery (POD) - Both Customer OTP and Pilot Self OTP Verified
 export async function completeDeliveryHandover(payload: {
   order_id: string;
   customer_otp: string;
@@ -439,7 +421,6 @@ export async function completeDeliveryHandover(payload: {
   return data;
 }
 
-// 11. Profile & Support
 export async function fetchPilotProfile(pilotId: string): Promise<UserProfile> {
   const baseUrl = await getServerUrl();
   const res = await fetch(`${baseUrl}/api/delivery/pilot/profile?pilotId=${encodeURIComponent(pilotId)}`, {
@@ -533,7 +514,6 @@ export async function submitPostDeliveryInspection(payload: {
   return data.inspection;
 }
 
-// 12. Verify Drone QR belongs to Order
 export async function verifyDroneForOrder(orderId: string, droneId: string): Promise<{
   success: boolean;
   matched: boolean;
@@ -553,7 +533,6 @@ export async function verifyDroneForOrder(orderId: string, droneId: string): Pro
 
     const contentType = res.headers.get('content-type') || '';
     if (!contentType.includes('application/json')) {
-      // Non-JSON response (e.g. server HTML error / cold start)
       return {
         success: false,
         matched: false,

@@ -49,7 +49,6 @@ const CALLBACK_TIMES = [
   'Evening (4 PM – 7 PM)'
 ];
 
-/* ── Troubleshooting guides (text unchanged) ──────────────────────────────── */
 interface FixItem {
   id: string;
   category: string;
@@ -143,7 +142,6 @@ const FIX_CATEGORIES = [
   { id: 'avionics', label: 'Avionics & IMU' }
 ];
 
-/* ── Customer guide content: how this platform actually works ─────────────── */
 const ORDER_STEPS = [
   {
     icon: User,
@@ -193,7 +191,6 @@ const PROTOCOL = [
 const inputCls =
   'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-medium text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-[#5a00b8] focus:ring-4 focus:ring-purple-100';
 
-/* Turns a guide's text into a clean paragraph + step list */
 const SolutionBody: React.FC<{ text: string }> = ({ text }) => {
   const lines = text
     .split('\n')
@@ -232,7 +229,6 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedKey, setCopiedKey] = useState('');
 
-  // Talk to Expert Form State
   const [name, setName] = useState(currentUser?.name || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
   const [email, setEmail] = useState(currentUser?.email || '');
@@ -247,11 +243,9 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
   const [submittedRequest, setSubmittedRequest] = useState<any>(null);
   const [formError, setFormError] = useState('');
 
-  // Fix Guide Accordion State
   const [openFixId, setOpenFixId] = useState<string | null>('fix-1');
   const [fixCategoryFilter, setFixCategoryFilter] = useState('all');
 
-  // Handle URL query param on mount or change
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
@@ -283,11 +277,10 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(''), 1800);
     } catch {
-      /* clipboard not available */
+
     }
   };
 
-  // The search box searches the troubleshooting guides, so typing jumps there
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
     if (value.trim() && activeTab !== 'fix') {
@@ -375,7 +368,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* ── HERO ─────────────────────────────────────────────────────────────── */}
+
       <section className="relative overflow-hidden bg-gradient-to-b from-purple-50 via-white to-white px-4 pb-24 pt-28 sm:px-6 sm:pt-36">
         <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-purple-200/50 blur-3xl" />
         <div className="pointer-events-none absolute -left-24 top-40 h-72 w-72 rounded-full bg-indigo-100/60 blur-3xl" />
@@ -416,7 +409,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
         </div>
       </section>
 
-      {/* ── CONTACT CARDS ────────────────────────────────────────────────────── */}
+
       <div className="relative z-10 mx-auto -mt-12 max-w-5xl px-4 sm:px-6">
         <div className="grid gap-4 sm:grid-cols-3">
           {contactCards.map((c) => {
@@ -454,7 +447,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
         </div>
       </div>
 
-      {/* ── TABS ─────────────────────────────────────────────────────────────── */}
+
       <div id="support-content" className="mx-auto max-w-5xl scroll-mt-24 px-4 pt-10 sm:px-6">
         <div
           className="flex items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm sm:gap-2"
@@ -487,12 +480,12 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
         </div>
       </div>
 
-      {/* ── CONTENT ──────────────────────────────────────────────────────────── */}
+
       <div className="mx-auto max-w-5xl px-4 py-10 pb-24 sm:px-6">
-        {/* ═══════════ TAB 1: TALK TO EXPERT ═══════════ */}
+
         {activeTab === 'expert' && (
           <div className="grid animate-in fade-in grid-cols-1 items-start gap-8 duration-200 lg:grid-cols-12">
-            {/* Form */}
+
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 lg:col-span-7">
               <div className="mb-6">
                 <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700">Support request</span>
@@ -546,7 +539,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                     </div>
                   )}
 
-                  {/* 1. Contact */}
+
                   <div className="space-y-4">
                     <h3 className="flex items-center gap-2 text-xs font-black text-slate-400">
                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-purple-100 text-[10px] text-[#5a00b8]">1</span>
@@ -590,7 +583,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                     </div>
                   </div>
 
-                  {/* 2. Issue */}
+
                   <div className="space-y-4 border-t border-slate-100 pt-5">
                     <h3 className="flex items-center gap-2 text-xs font-black text-slate-400">
                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-purple-100 text-[10px] text-[#5a00b8]">2</span>
@@ -660,7 +653,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
                     </div>
                   </div>
 
-                  {/* Optional references */}
+
                   <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/50">
                     <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-slate-700 group-open:border-b group-open:border-slate-200 group-open:bg-white">
                       <span>Add Order / Drone Serial Reference (Optional)</span>
@@ -721,7 +714,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
               )}
             </div>
 
-            {/* Side cards */}
+
             <div className="space-y-5 lg:col-span-5">
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="mb-4 flex items-center gap-3">
@@ -789,7 +782,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
           </div>
         )}
 
-        {/* ═══════════ TAB 2: CUSTOMER GUIDE ═══════════ */}
+
         {activeTab === 'guide' && (
           <div className="animate-in fade-in space-y-8 duration-200">
             <div className="max-w-2xl">
@@ -800,7 +793,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
               </p>
             </div>
 
-            {/* Order steps */}
+
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
               <h3 className="mb-6 text-lg font-black text-slate-900">Order in 4 steps</h3>
               <ol className="grid gap-4 sm:grid-cols-2">
@@ -830,7 +823,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
               </button>
             </section>
 
-            {/* Protocol */}
+
             <section>
               <h3 className="mb-1 text-lg font-black text-slate-900">Factory to site transit protocol</h3>
               <p className="mb-5 text-sm text-slate-500">
@@ -850,7 +843,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
               </div>
             </section>
 
-            {/* Track & manage */}
+
             <section className="grid gap-4 md:grid-cols-3">
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <Navigation className="h-5 w-5 text-[#5a00b8]" />
@@ -884,7 +877,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
           </div>
         )}
 
-        {/* ═══════════ TAB 3: FIX GUIDE ═══════════ */}
+
         {activeTab === 'fix' && (
           <div className="animate-in fade-in space-y-6 duration-200">
             <div>
@@ -892,7 +885,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
               <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">Fix Common Issues</h2>
               <p className="mt-2 text-sm text-slate-500">Resolve weather holds, RTK satellite fix, DGCA permission tokens, and telemetry links.</p>
 
-              {/* Category pills */}
+
               <div className="mt-5 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
                 {FIX_CATEGORIES.map((c) => (
                   <button
@@ -918,7 +911,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
               )}
             </div>
 
-            {/* Accordion */}
+
             <div className="space-y-3">
               {filteredFixes.map((fix) => {
                 const isOpen = openFixId === fix.id;
@@ -979,7 +972,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate, currentUse
               )}
             </div>
 
-            {/* Need more help */}
+
             <div className="space-y-2 rounded-3xl border border-purple-100 bg-purple-50/60 p-6 text-center">
               <h4 className="text-sm font-black text-slate-900">Still experiencing issues?</h4>
               <p className="mx-auto max-w-md text-xs text-slate-500">Send us the details and our team will review your case.</p>

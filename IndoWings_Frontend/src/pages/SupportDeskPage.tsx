@@ -55,7 +55,6 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
   onLogout,
   embedded = false
 }) => {
-  // Tabs: 'forms' (Website forms) | 'qr_scans' (Customer QR scans) | 'overview' | 'profile'
   const [activeTab, setActiveTab] = useState<'forms' | 'qr_scans' | 'overview' | 'profile'>('forms');
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,36 +64,30 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
   const [supportError, setSupportError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
 
-  // Modals
   const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
   const [resolvingTicket, setResolvingTicket] = useState<any | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState('');
   const [resolvingStatus, setResolvingStatus] = useState('resolved');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
-  // Email Reply Modal
   const [replyingTicket, setReplyingTicket] = useState<any | null>(null);
   const [replySubject, setReplySubject] = useState('');
   const [replyMessage, setReplyMessage] = useState('');
   const [isSendingReply, setIsSendingReply] = useState(false);
 
-  // Full-Page Detail View & In-Page Resolution State
   const [detailResolutionNotes, setDetailResolutionNotes] = useState('');
   const [detailStatus, setDetailStatus] = useState('resolved');
   const [detailSendEmail, setDetailSendEmail] = useState(true);
   const [isSubmittingDetailResolution, setIsSubmittingDetailResolution] = useState(false);
 
-  // Direct reply in detail view
   const [showDetailDirectReply, setShowDetailDirectReply] = useState(false);
   const [detailReplySubject, setDetailReplySubject] = useState('');
   const [detailReplyMessage, setDetailReplyMessage] = useState('');
   const [isSendingDetailReply, setIsSendingDetailReply] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  // Document Review & Preview Modal
   const [previewDocument, setPreviewDocument] = useState<any | null>(null);
 
-  // Linked Mission & Fleet Manifest Context
   const [missionContext, setMissionContext] = useState<any | null>(null);
   const [loadingMission, setLoadingMission] = useState(false);
 
@@ -140,7 +133,6 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
     setTimeout(() => setActionSuccess(''), 4000);
   };
 
-  // Split tickets between Website Form Submissions and Customer QR Scans
   const isQrScanTicket = (t: any) => {
     const src = String(t.source || '').toLowerCase();
     const cat = String(t.category || '').toLowerCase();
@@ -163,11 +155,9 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
     return tickets.filter((t) => isQrScanTicket(t));
   }, [tickets]);
 
-  // Active tickets according to current tab
   const activeList = useMemo(() => {
     const base = activeTab === 'qr_scans' ? customerQrTickets : websiteFormTickets;
     return base.filter((item) => {
-      // Status filter
       if (statusFilter !== 'all') {
         const itemStatus = String(item.status || 'open').toLowerCase();
         if (statusFilter === 'open' && itemStatus !== 'open' && itemStatus !== 'pending') return false;
@@ -175,7 +165,6 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
         if (statusFilter === 'resolved' && itemStatus !== 'resolved' && itemStatus !== 'closed') return false;
       }
 
-      // Search filter
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const str = `${item.id || ''} ${item.name || ''} ${item.email || ''} ${item.phone || ''} ${item.category || ''} ${item.message || ''} ${item.drone_serial || ''} ${item.order_id || ''}`.toLowerCase();
@@ -186,7 +175,6 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
     });
   }, [activeTab, websiteFormTickets, customerQrTickets, statusFilter, searchQuery]);
 
-  // Overall Stats
   const stats = useMemo(() => {
     const totalWeb = websiteFormTickets.length;
     const pendingWeb = websiteFormTickets.filter((t) => t.status !== 'resolved' && t.status !== 'closed').length;
@@ -197,7 +185,6 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
     return { totalWeb, pendingWeb, totalQr, pendingQr, totalResolved, totalOverall: tickets.length };
   }, [websiteFormTickets, customerQrTickets, tickets]);
 
-  // Update Status / Resolution handler
   const handleUpdateStatus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resolvingTicket) return;
@@ -230,7 +217,6 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
     }
   };
 
-  // Send Direct Email Reply
   const handleSendEmailReply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyingTicket || !replyingTicket.email) return;
@@ -263,7 +249,6 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
     }
   };
 
-  // Sync selectedTicket changes with detail view form
   useEffect(() => {
     if (selectedTicket) {
       setDetailResolutionNotes(selectedTicket.resolution_notes || selectedTicket.notes || '');
@@ -277,7 +262,6 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
       setDetailReplyMessage('');
       setShowDetailDirectReply(false);
 
-      // Fetch mission context (linked order & fleet manifest)
       setLoadingMission(true);
       fetch(`${API_BASE_URL}/api/delivery/support/tickets/${selectedTicket.id}/mission-context`, {
         headers: supportHeaders
@@ -312,7 +296,6 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  // Effective Customer and Mission details (resolved from linked order)
   const effectiveCustomerName = useMemo(() => {
     if (selectedTicket?.name && selectedTicket.name !== 'Verified Customer') {
       return selectedTicket.name;
@@ -337,12 +320,10 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
   const effectiveOrderId = missionContext?.order_id || selectedTicket?.order_id || null;
   const isEnrichedFromOrder = Boolean(missionContext && (missionContext.customer_name || missionContext.order_id));
 
-  // Customer Documents & Attachments from Ticket or Inbound Emails
   const customerDocuments = useMemo(() => {
     if (!selectedTicket) return [];
     const docs: any[] = [];
 
-    // 1. Direct ticket attachments
     const rawAttachments = selectedTicket.attachments || selectedTicket.documents || selectedTicket.files || selectedTicket.media;
     if (Array.isArray(rawAttachments)) {
       rawAttachments.forEach((att, idx) => {
@@ -369,7 +350,6 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
       });
     }
 
-    // 2. Attachments from inbound emails in email_thread
     if (Array.isArray(selectedTicket.email_thread)) {
       selectedTicket.email_thread.forEach((entry: any, eIdx: number) => {
         if (Array.isArray(entry.attachments)) {
@@ -480,7 +460,6 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
     }
   };
 
-  // Submit Official Resolution from Detail Page
   const handleSubmitDetailResolution = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTicket) return;
@@ -535,7 +514,6 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
     }
   };
 
-  // Send Direct Email Reply from Detail Page
   const handleSendDetailDirectReply = async (e: React.FormEvent) => {
     e.preventDefault();
     const targetRecipient = (selectedTicket?.email && selectedTicket.email !== 'connect@indowings.com')
@@ -626,7 +604,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
 
   return (
     <div className={`space-y-6 font-sans ${embedded ? '' : 'min-h-screen bg-[#f8fafc] pt-24 sm:pt-28 pb-16 px-4 sm:px-8 max-w-7xl mx-auto'}`}>
-      {/* Toast Alert */}
+
       {actionSuccess && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#5a00b8] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
           <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -636,7 +614,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
 
       {selectedTicket ? (
         <div className="space-y-6 animate-in fade-in duration-150">
-          {/* Top Bar: Back Button, Ticket ID, Status, Refresh */}
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-xs">
             <button
               type="button"
@@ -664,7 +642,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
             </div>
           </div>
 
-          {/* Support Error Banner if any */}
+
           {supportError && (
             <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center justify-between gap-3 text-rose-800 text-xs font-medium">
               <div className="flex items-center gap-2">
@@ -677,11 +655,11 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
             </div>
           )}
 
-          {/* Main 2-Column Grid */}
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left Column: Customer Dossier & Inquiry Details */}
+
             <div className="lg:col-span-7 space-y-6">
-              {/* Inquiry Header Card */}
+
               <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -714,7 +692,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                   </div>
                 </div>
 
-                {/* Customer Details Strip */}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-slate-100">
                   <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3.5 space-y-1">
                     <div className="flex items-center justify-between">
@@ -792,7 +770,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                 </div>
               </div>
 
-              {/* Linked Mission & Fleet Manifest (Order Context) Card */}
+
               {(loadingMission || missionContext) && (
                 <div className="bg-white border-2 border-purple-200 rounded-3xl p-6 shadow-sm space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-purple-100">
@@ -836,7 +814,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                     </div>
                   ) : missionContext ? (
                     <div className="space-y-4">
-                      {/* Mission Route & Dispatch Info */}
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs bg-slate-50 border border-slate-100 rounded-2xl p-4">
                         <div className="space-y-2">
                           <div className="flex items-start gap-2">
@@ -871,7 +849,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                         </div>
                       </div>
 
-                      {/* Fleet Manifest (All Drones in Order) */}
+
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <h5 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
@@ -960,7 +938,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                 </div>
               )}
 
-              {/* Message Description Card */}
+
               <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -974,7 +952,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                 </div>
               </div>
 
-              {/* Customer Uploaded Documents & Media Evidence Card */}
+
               <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1015,7 +993,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                           onClick={() => setPreviewDocument(doc)}
                           className="group relative bg-slate-50 hover:bg-purple-50/40 border border-slate-200 hover:border-purple-300 rounded-2xl p-3.5 transition-all cursor-pointer shadow-2xs flex flex-col justify-between space-y-3"
                         >
-                          {/* Image Thumbnail Preview if image */}
+
                           {isImg && docSrc && (
                             <div className="relative w-full h-36 rounded-xl overflow-hidden bg-slate-900/5 border border-slate-200 flex items-center justify-center">
                               <img
@@ -1030,7 +1008,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                             </div>
                           )}
 
-                          {/* Non-image File Header Icon */}
+
                           {!isImg && (
                             <div className="flex items-center gap-3">
                               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xs shrink-0 ${
@@ -1049,7 +1027,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                             </div>
                           )}
 
-                          {/* File Details Strip */}
+
                           <div>
                             {isImg && (
                               <p className="text-xs font-bold text-slate-800 truncate" title={doc.name}>
@@ -1066,7 +1044,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                             </div>
                           </div>
 
-                          {/* Action Buttons */}
+
                           <div className="flex items-center gap-2 pt-2 border-t border-slate-200/80">
                             <button
                               type="button"
@@ -1097,7 +1075,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                 )}
               </div>
 
-              {/* Resolution On File Card (if exists) */}
+
               {selectedTicket.resolution_notes && (
                 <div className="bg-white border border-emerald-200 rounded-3xl p-6 shadow-xs space-y-3">
                   <div className="flex items-center justify-between">
@@ -1115,7 +1093,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                 </div>
               )}
 
-              {/* Email Communications Thread (if any) */}
+
               {Array.isArray(selectedTicket.email_thread) && selectedTicket.email_thread.length > 0 && (
                 <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
                   <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -1140,9 +1118,9 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
               )}
             </div>
 
-            {/* Right Column: In-Page Resolution Form & Email Dispatch */}
+
             <div className="lg:col-span-5 space-y-6">
-              {/* Official Resolution Card */}
+
               <div className="bg-white border-2 border-purple-200 rounded-3xl p-6 shadow-md space-y-5">
                 <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
                   <div className="w-10 h-10 rounded-2xl bg-purple-100 text-[#5a00b8] flex items-center justify-center font-bold">
@@ -1155,7 +1133,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                 </div>
 
                 <form onSubmit={handleSubmitDetailResolution} className="space-y-4">
-                  {/* Status Dropdown */}
+
                   <div>
                     <label className="text-xs font-bold text-slate-700 block mb-1.5">
                       Ticket Status
@@ -1172,7 +1150,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                     </select>
                   </div>
 
-                  {/* Resolution Textarea */}
+
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="text-xs font-bold text-slate-700">
@@ -1190,7 +1168,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                     />
                   </div>
 
-                  {/* Email Dispatch Checkbox */}
+
                   <div className="bg-purple-50/60 border border-purple-200 rounded-2xl p-4 space-y-2">
                     <label className="flex items-start gap-2.5 cursor-pointer">
                       <input
@@ -1227,7 +1205,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Submit Button */}
+
                   <button
                     type="submit"
                     disabled={isSubmittingDetailResolution}
@@ -1253,7 +1231,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                 </form>
               </div>
 
-              {/* Direct Reply Collapsible Card */}
+
               {effectiveCustomerEmail && (
                 <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs space-y-3">
                   <div
@@ -1314,7 +1292,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
         </div>
       ) : (
         <>
-          {/* Top Header Card */}
+
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2.5">
@@ -1356,7 +1334,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
         </div>
       </div>
 
-      {/* KPI Counters */}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <div
           onClick={() => setActiveTab('forms')}
@@ -1413,7 +1391,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
         </div>
       </div>
 
-      {/* Main Tab Navigation Buttons */}
+
       <div className="bg-white border border-slate-200 rounded-2xl p-2 shadow-xs flex items-center justify-between gap-2 overflow-x-auto">
         <div className="flex items-center gap-1.5">
           <button
@@ -1458,9 +1436,9 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
         </div>
       </div>
 
-      {/* Search and Status Filters */}
+
       <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        {/* Status Filters */}
+
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
           <span className="text-xs font-bold text-slate-500 mr-1 whitespace-nowrap">Status:</span>
           <button
@@ -1509,7 +1487,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
           </button>
         </div>
 
-        {/* Search */}
+
         <div className="relative min-w-[240px]">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -1526,7 +1504,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
         </div>
       </div>
 
-      {/* Ticket Cards List */}
+
       <div className="space-y-3">
         {loading ? (
           <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center text-slate-400">
@@ -1557,14 +1535,14 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                 key={ticket.id}
                 className="bg-white border border-slate-200 hover:border-purple-300 rounded-2xl p-5 shadow-xs transition-all space-y-3.5"
               >
-                {/* Header Row */}
+
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <span className="font-mono text-xs font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg">
                       {ticket.id}
                     </span>
 
-                    {/* Source Tag */}
+
                     {isQr ? (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full">
                         <QrCode className="w-3 h-3" />
@@ -1577,7 +1555,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                       </span>
                     )}
 
-                    {/* Status Pill */}
+
                     {getStatusBadge(ticket.status)}
                   </div>
 
@@ -1587,7 +1565,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                   </div>
                 </div>
 
-                {/* Customer Details Strip */}
+
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">
@@ -1625,7 +1603,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Quick Action Buttons */}
+
                   <div className="flex items-center gap-2">
                     {ticket.email && (
                       <button
@@ -1666,12 +1644,12 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                   </div>
                 </div>
 
-                {/* Message Body */}
+
                 <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5 text-xs text-slate-700 leading-relaxed">
                   <p className="whitespace-pre-line">{ticket.message || 'No description provided.'}</p>
                 </div>
 
-                {/* Resolution Notes If Any */}
+
                 {ticket.resolution_notes && (
                   <div className="text-[11px] bg-emerald-50/80 border border-emerald-200 rounded-xl p-3 text-emerald-800">
                     <span className="font-bold uppercase tracking-wider block text-[10px] text-emerald-700 mb-0.5">
@@ -1686,7 +1664,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
         )}
       </div>
 
-      {/* MODAL 1: Update Ticket Status */}
+
       {resolvingTicket && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
@@ -1751,7 +1729,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
         </div>
       )}
 
-      {/* MODAL 2: Send Direct Email Reply */}
+
       {replyingTicket && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
@@ -1818,11 +1796,11 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
         </>
       )}
 
-      {/* DOCUMENT REVIEW & PREVIEW MODAL */}
+
       {previewDocument && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
-            {/* Modal Top Bar */}
+
             <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 bg-slate-50/80">
               <div className="flex items-center gap-3 truncate mr-3">
                 <div className="w-10 h-10 rounded-2xl bg-purple-100 text-[#5a00b8] flex items-center justify-center shrink-0">
@@ -1871,7 +1849,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
               </div>
             </div>
 
-            {/* Modal Body */}
+
             <div className="p-4 sm:p-6 overflow-auto flex items-center justify-center bg-slate-900/5 min-h-[340px]">
               {isImageDoc(previewDocument) ? (
                 <div className="max-h-[72vh] flex items-center justify-center">

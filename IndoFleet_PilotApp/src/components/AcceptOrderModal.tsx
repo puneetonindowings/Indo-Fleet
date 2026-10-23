@@ -41,7 +41,6 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
 
   const targetEmail = (currentUser?.email || order?.pilot_email || '').trim();
 
-  // Cooldown countdown timer
   useEffect(() => {
     if (cooldown > 0) {
       const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
@@ -49,7 +48,6 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
     }
   }, [cooldown]);
 
-  // Auto-request OTP on modal open
   useEffect(() => {
     if (visible && order) {
       setOtp('');
@@ -175,7 +173,7 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
               Order <Text style={styles.highlight}>#{order.order_number}</Text> was assigned to you. Enter your verification OTP to accept.
             </Text>
 
-            {/* If Profile Missing DL ID or Vehicle Number, show warning banner */}
+
             {!isProfileComplete ? (
               <View style={styles.warningCard}>
                 <View style={styles.warningHeader}>
@@ -200,9 +198,9 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
                 </TouchableOpacity>
               </View>
             ) : (
-              /* If Profile is complete, render OTP input & Request OTP button */
+
               <View style={styles.formGroup}>
-                {/* Dynamic Live Status Box */}
+
                 {requestingOtp ? (
                   <View style={styles.statusBoxSending}>
                     <ActivityIndicator size="small" color="#5A00B8" />
@@ -224,7 +222,7 @@ export const AcceptOrderModal: React.FC<AcceptOrderModalProps> = ({
                   </View>
                 ) : null}
 
-                {/* Resend Action Pill */}
+
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 10, marginTop: 4 }}>
                   <TouchableOpacity
                     style={[styles.resendBtn, (requestingOtp || cooldown > 0) && styles.resendBtnDisabled]}

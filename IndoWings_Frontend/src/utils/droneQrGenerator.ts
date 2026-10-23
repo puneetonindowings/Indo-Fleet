@@ -8,7 +8,6 @@ export interface DroneQRInfo {
   serial_number?: string;
 }
 
-// Exact official IndoWings center pill SVG badge matching Reference Image 2
 export const INDOWINGS_PILL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="40" viewBox="0 0 144 40">
   <rect width="144" height="40" rx="9" fill="#000000"/>
   <g transform="translate(13, 10.5) scale(0.62)">
@@ -44,11 +43,9 @@ export async function generateDroneQRCodeBlob(drone: DroneQRInfo): Promise<Blob>
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas rendering context is not supported');
 
-  // 1. Fill clean white background
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // 2. Load and draw QR Code
   const qrImg = new Image();
   qrImg.crossOrigin = 'anonymous';
   await new Promise<void>((resolve, reject) => {
@@ -62,7 +59,6 @@ export async function generateDroneQRCodeBlob(drone: DroneQRInfo): Promise<Blob>
   const qrY = 32;
   ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-  // 3. Draw exact IndoWings black pill badge in center
   const badgeImg = new Image();
   await new Promise<void>((resolve, reject) => {
     badgeImg.onload = () => resolve();
@@ -76,15 +72,12 @@ export async function generateDroneQRCodeBlob(drone: DroneQRInfo): Promise<Blob>
   const badgeY = qrY + (qrSize - badgeH) / 2;
   ctx.drawImage(badgeImg, badgeX, badgeY, badgeW, badgeH);
 
-  // 4. Draw ONLY Drone ID and Model below the QR code (strictly matching user instruction)
   ctx.textAlign = 'center';
 
-  // Drone ID (Bold monospace)
   ctx.fillStyle = '#0F172A';
   ctx.font = '900 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace';
   ctx.fillText(droneId, canvas.width / 2, qrY + qrSize + 48);
 
-  // Model Name
   ctx.fillStyle = '#64748B';
   ctx.font = '700 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   ctx.fillText(`Model: ${modelName}`, canvas.width / 2, qrY + qrSize + 74);
@@ -158,7 +151,6 @@ const isValidDroneId = (val: any, fleetList?: any[]): boolean => {
   const s = val.trim();
   if (!s || s.length < 3) return false;
 
-  // Strict check: reject emails, URLs, web paths, delivery/pilot emails
   if (
     s.includes('@') ||
     s.includes('.com') ||
@@ -175,7 +167,6 @@ const isValidDroneId = (val: any, fleetList?: any[]): boolean => {
   }
 
   const lower = s.toLowerCase();
-  // Reject usernames, roles, vehicle plates
   if (
     lower.startsWith('delivery') ||
     lower.startsWith('pilot') ||
@@ -190,7 +181,6 @@ const isValidDroneId = (val: any, fleetList?: any[]): boolean => {
     return false;
   }
 
-  // If found in fleet database, it's valid
   if (
     fleetList &&
     fleetList.some(
@@ -202,10 +192,8 @@ const isValidDroneId = (val: any, fleetList?: any[]): boolean => {
     return true;
   }
 
-  // Standard drone identifier patterns (INW-, 700RPAV, UAV-, DRONE-, IW-)
   if (/^(INW|IW|700RPAV|UAV|DRONE)[-_A-Z0-9]+/i.test(s)) return true;
 
-  // Monospace alphanumeric drone code (e.g. RPAV-01, 700-01)
   if (/^[A-Z0-9]+[-_][A-Z0-9-]+$/i.test(s)) return true;
 
   return false;
@@ -215,7 +203,6 @@ export function getDronesForOrder(order: any, fleetList?: any[]): DroneQRInfo[] 
   if (!order) return [];
   const ids = new Set<string>();
 
-  // 1. First priority: Multiple reserved inventory units (exact booking allocation)
   let reserved = order.reserved_inventory_ids;
   if (typeof reserved === 'string') {
     try {
@@ -233,7 +220,6 @@ export function getDronesForOrder(order: any, fleetList?: any[]): DroneQRInfo[] 
     });
   }
 
-  // 2. Second priority: Explicit assigned_drone_ids array
   let assignedIds = order.assigned_drone_ids;
   if (typeof assignedIds === 'string') {
     try {
@@ -251,7 +237,6 @@ export function getDronesForOrder(order: any, fleetList?: any[]): DroneQRInfo[] 
     });
   }
 
-  // 3. Fallback: Order items array (only if no reserved inventory was mapped)
   let items = order.items;
   if (typeof items === 'string') {
     try {
@@ -268,7 +253,6 @@ export function getDronesForOrder(order: any, fleetList?: any[]): DroneQRInfo[] 
     });
   }
 
-  // 4. Fallback ONLY if no multiple drones were found: single assigned_drone_id or drone_id
   if (ids.size === 0) {
     if (isValidDroneId(order.assigned_drone_id, fleetList)) {
       ids.add(order.assigned_drone_id.trim());

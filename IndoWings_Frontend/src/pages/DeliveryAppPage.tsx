@@ -54,8 +54,8 @@ export const DeliveryAppPage: React.FC<DeliveryAppPageProps> = ({
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#0f172a] pt-24 pb-24 sm:pb-20 px-4 sm:px-6 pb-[calc(5rem+env(safe-area-inset-bottom))]">
       <div className="max-w-4xl mx-auto space-y-6">
-        
-        {/* Welcome Header Card */}
+
+
         <div className="bg-white border border-[#e2e8f0] rounded-2xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -87,7 +87,7 @@ export const DeliveryAppPage: React.FC<DeliveryAppPageProps> = ({
             </button>
           </div>
 
-          {/* User Details Ribbon */}
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-5">
             <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-xl p-3">
               <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold mb-1">
@@ -127,7 +127,7 @@ export const DeliveryAppPage: React.FC<DeliveryAppPageProps> = ({
           </div>
         </div>
 
-        {/* App Download Primary Card */}
+
         <div className="bg-white border border-[#e2e8f0] rounded-2xl p-6 sm:p-8 shadow-sm">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#f1f5f9] pb-6 mb-6">
             <div>
@@ -150,9 +150,9 @@ export const DeliveryAppPage: React.FC<DeliveryAppPageProps> = ({
             </div>
           </div>
 
-          {/* Download Buttons */}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-            {/* Android Card */}
+
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -181,7 +181,7 @@ export const DeliveryAppPage: React.FC<DeliveryAppPageProps> = ({
               </a>
             </div>
 
-            {/* iOS Card */}
+
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -211,7 +211,7 @@ export const DeliveryAppPage: React.FC<DeliveryAppPageProps> = ({
             </div>
           </div>
 
-          {/* Release Notes */}
+
           <div className="bg-purple-50/60 border border-purple-100 rounded-xl p-4">
             <h4 className="text-xs font-bold text-[#5a00b8] uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
               <Info className="w-4 h-4" /> Latest Version Release Notes ({release.version})
@@ -222,7 +222,7 @@ export const DeliveryAppPage: React.FC<DeliveryAppPageProps> = ({
           </div>
         </div>
 
-        {/* Workflow Instructions Notice */}
+
         <div className="bg-white border border-[#e2e8f0] rounded-2xl p-6 shadow-sm">
           <h3 className="text-base font-bold text-[#0f172a] mb-4 flex items-center gap-2">
             <Smartphone className="w-5 h-5 text-[#5a00b8]" />

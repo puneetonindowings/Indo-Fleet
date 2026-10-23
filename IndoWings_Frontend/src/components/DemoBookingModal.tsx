@@ -56,7 +56,7 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-[#171222] border border-orange-500/40 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden text-white flex flex-col">
-        {/* Header */}
+
         <div className="flex items-center justify-between p-5 border-b border-slate-900/50 bg-black/40">
           <div className="flex items-center gap-2.5">
             <span className="p-2 rounded-xl bg-slate-900/50 text-purple-300">
@@ -67,7 +67,7 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
               <p className="text-[11px] text-slate-400">Direct evaluation with IndoFleet Flight Operations Engineers</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
           >
@@ -75,7 +75,7 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
           </button>
         </div>
 
-        {/* Content */}
+
         <div className="p-6">
           {submitted ? (
             <div className="text-center py-8 space-y-4">
@@ -86,7 +86,7 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
               <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
                 Your flight demonstration request for <strong>{droneInterest}</strong> has been saved directly to the IndoFleet Command Center database. Our technical team from Noida HQ will contact you within 24 hours.
               </p>
-              <button 
+              <button
                 onClick={() => { setSubmitted(false); onClose(); }}
                 className="mt-4 px-6 py-2.5 rounded-xl bg-[#5a00b8] hover:bg-[#6d28d9] text-white text-xs font-semibold"
               >
@@ -98,9 +98,9 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 mb-1 font-medium">Your Name *</label>
-                  <input 
-                    type="text" 
-                    required 
+                  <input
+                    type="text"
+                    required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Rahul Sharma"
@@ -109,9 +109,9 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
                 </div>
                 <div>
                   <label className="block text-slate-300 mb-1 font-medium">Corporate Email *</label>
-                  <input 
-                    type="email" 
-                    required 
+                  <input
+                    type="email"
+                    required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="rahul@enterprise.com"
@@ -134,8 +134,8 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
                 </div>
                 <div>
                   <label className="block text-slate-300 mb-1 font-medium">Organization / Agency</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={organization}
                     onChange={(e) => setOrganization(e.target.value)}
                     placeholder="e.g. State Forestry / Mining"
@@ -146,7 +146,7 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
 
               <div>
                 <label className="block text-slate-300 mb-1 font-medium">Aircraft / System of Interest *</label>
-                <select 
+                <select
                   value={droneInterest}
                   onChange={(e) => setDroneInterest(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg bg-[#171222] border border-slate-900/50 text-white focus:outline-none focus:border-orange-500"
@@ -163,7 +163,7 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
 
               <div>
                 <label className="block text-slate-300 mb-1 font-medium">Brief Requirements / Location</label>
-                <textarea 
+                <textarea
                   rows={3}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
@@ -172,8 +172,8 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
                 ></textarea>
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loading}
                 className="w-full py-3 rounded-xl bg-gradient-to-r from-[#6d28d9] to-[#5a00b8] hover:from-[#5a00b8] hover:to-[#191b30] text-white font-semibold flex items-center justify-center gap-2 shadow-lg shadow-slate-950/60"
               >

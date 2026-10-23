@@ -4,7 +4,6 @@ import { authenticateToken, AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
 
-// GET missions
 router.get('/', async (req, res) => {
   try {
     const missions = await dbService.getMissions();
@@ -14,7 +13,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST create mission
 router.post('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { title, drone_model, location_name, area_hectares, altitude_meters, waypoints } = req.body;
@@ -53,13 +51,12 @@ router.post('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
   }
 });
 
-// PATCH update status (Launch, Abort, Complete)
 router.patch('/:id/status', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { status } = req.body;
     const missionId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const mission = await dbService.updateMissionStatus(missionId, status);
-    
+
     if (!mission) {
       res.status(404).json({ error: 'Mission not found' });
       return;

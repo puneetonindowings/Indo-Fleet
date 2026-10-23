@@ -99,7 +99,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     const appNavUrl = `google.navigation:q=${destCoords}&mode=d`;
     const geoUrl = hasDirectCoords ? `geo:${lat},${lng}?q=${lat},${lng}(${address})` : `geo:0,0?q=${address}`;
 
-    // 1. Web Environment (Desktop & Mobile Browser in React Native Web)
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const w = window.open(webUrl, '_blank', 'noopener,noreferrer');
       if (!w || w.closed || typeof w.closed === 'undefined') {
@@ -108,7 +107,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       return;
     }
 
-    // 2. Native Mobile (Turn-by-turn navigation in Google Maps app)
     Linking.canOpenURL(appNavUrl)
       .then((canOpen) => {
         if (canOpen) return Linking.openURL(appNavUrl);
@@ -125,7 +123,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
   return (
     <View style={[styles.card, isInFlight && styles.cardInFlight]}>
-      {/* Card Header: Order # & Status */}
+
       <View style={styles.cardHeader}>
         <View style={styles.orderIdBadge}>
           <Package size={14} color="#8B5CF6" />
@@ -167,7 +165,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         </View>
       </View>
 
-      {/* Assignment By Dispatcher Tag */}
+
       {order.assigned_by_name ? (
         <View style={styles.assignedByRow}>
           <ShieldCheck size={13} color="#3B0080" />
@@ -177,7 +175,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         </View>
       ) : null}
 
-      {/* Customer & Phone Row */}
+
       <View style={styles.customerRow}>
         <View style={styles.customerNameGroup}>
           <User size={15} color="#64748B" />
@@ -192,7 +190,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         ) : null}
       </View>
 
-      {/* Destination Drop Location */}
+
       <View style={styles.addressBox}>
         <MapPin size={16} color="#DC2626" style={styles.pinIcon} />
         <Text style={styles.addressText} numberOfLines={2}>
@@ -200,7 +198,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         </Text>
       </View>
 
-      {/* Drone Specs & Units */}
+
       <View style={styles.specsRow}>
         <View style={styles.specItem}>
           <Truck size={13} color="#3B0080" />
@@ -214,11 +212,11 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         </View>
       </View>
 
-      {/* Action Buttons Section */}
+
       <View style={styles.actionsContainer}>
         {isPendingAcceptance && (
           <View style={styles.inFlightActionStack}>
-            {/* Hub Pre-Acceptance Drone Inspection Block */}
+
             <View style={styles.sortieSummaryCard}>
               <View style={styles.sortieSummaryHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
@@ -249,7 +247,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               </TouchableOpacity>
             </View>
 
-            {/* Accept Order Action */}
+
             <TouchableOpacity
               style={[
                 styles.acceptBtn,
@@ -306,7 +304,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
         {isInFlight && (
           <View style={styles.inFlightActionStack}>
-            {/* Sortie Airframes Inspection Summary Card (Navigates to Dedicated Screen) */}
+
             <View style={styles.sortieSummaryCard}>
               <View style={styles.sortieSummaryHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
@@ -337,7 +335,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               </TouchableOpacity>
             </View>
 
-            {/* If all inspected, show direct Complete Handover button */}
+
             {isAllInspected && (
               <TouchableOpacity
                 style={[styles.podPrimaryBtn, { backgroundColor: '#059669', marginTop: 4 }]}

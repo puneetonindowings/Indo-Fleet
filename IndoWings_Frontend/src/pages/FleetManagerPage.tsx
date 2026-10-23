@@ -67,11 +67,9 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   onLogout,
   onUpdateUser
 }) => {
-  // Navigation & View Tabs
   const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'qc-scan' | 'audits' | 'dispatch' | 'support' | 'maintenance' | 'profile' | 'app-release'>('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // 700 RPAV Quality & Inspection State
   const [inspectionStats, setInspectionStats] = useState<{
     passedCount: number;
     failedOrPendingCount: number;
@@ -86,7 +84,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   const [showQrScanner, setShowQrScanner] = useState(false);
   const [showBulkQrModal, setShowBulkQrModal] = useState(false);
 
-  // Data State
   const [drones, setDrones] = useState<any[]>([]);
   const [pilots, setPilots] = useState<any[]>([]);
   const [dispatchOrders, setDispatchOrders] = useState<any[]>([]);
@@ -95,14 +92,12 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   const [refreshing, setRefreshing] = useState(false);
   const [actionSuccess, setActionSuccess] = useState('');
 
-  // Inventory Filters & Pagination
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [verificationFilter, setVerificationFilter] = useState('all');
   const [droneCurrentPage, setDroneCurrentPage] = useState(1);
   const [dronePageSize, setDronePageSize] = useState(25);
 
-  // Single Drone Modal State
   const [showAddSingleDrone, setShowAddSingleDrone] = useState(false);
   const [newDroneModel, setNewDroneModel] = useState('700RPAV');
   const [newDroneId, setNewDroneId] = useState('');
@@ -113,14 +108,12 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   const [addDroneError, setAddDroneError] = useState('');
   const [addingDrone, setAddingDrone] = useState(false);
 
-  // Inventory Security OTP State for Add & Bulk Add Drones
   const [inventoryOtpChannel, setInventoryOtpChannel] = useState<'both' | 'email' | 'phone'>('both');
   const [inventoryOtpSent, setInventoryOtpSent] = useState(false);
   const [inventoryOtp, setInventoryOtp] = useState('');
   const [inventoryOtpLoading, setInventoryOtpLoading] = useState(false);
   const [inventoryOtpInfo, setInventoryOtpInfo] = useState('');
 
-  // Edit Drone Modal State
   const [editingDrone, setEditingDrone] = useState<any | null>(null);
   const [editingDroneModel, setEditingDroneModel] = useState('700RPAV');
   const [editingDroneSerial, setEditingDroneSerial] = useState('');
@@ -130,7 +123,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   const [editDroneError, setEditDroneError] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
 
-  // Bulk Batch Drone Modal State
   const [showBulkDroneModal, setShowBulkDroneModal] = useState(false);
   const [bulkCount, setBulkCount] = useState(50);
   const [bulkModel, setBulkModel] = useState('700RPAV');
@@ -140,7 +132,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
   const [bulkImportError, setBulkImportError] = useState('');
 
-  // Delete / Decommission Drone Modal State with Security OTP
   const [deletingDrone, setDeletingDrone] = useState<any | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [decommissionOtp, setDecommissionOtp] = useState('');
@@ -149,7 +140,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   const [decommissionError, setDecommissionError] = useState('');
   const [decommissionInfo, setDecommissionInfo] = useState('');
 
-  // Reserved Drone Order View Modal
   const [selectedReservedDrone, setSelectedReservedDrone] = useState<any | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
@@ -163,7 +153,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
     setTimeout(() => setActionSuccess(''), 4000);
   };
 
-  // Image Helper for Photo upload
   const readDroneImage = (file: File, setImage: (img: string) => void) => {
     if (!file.type.startsWith('image/')) {
       alert('Please choose a valid image file.');
@@ -178,7 +167,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // Fetch Central Fleet & Orders Data
   const fetchFleet = async () => {
     try {
       setRefreshing(true);
@@ -232,7 +220,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
     fetchFleet();
   }, []);
 
-  // Helper to find linked order for drone
   const getLinkedOrderForDrone = (drone: any) => {
     if (!drone) return null;
     const assignedId = drone.assigned_order || drone.delivery_data?.assigned_order;
@@ -247,7 +234,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
     return null;
   };
 
-  // Request Inventory Security OTP (Single Add or Bulk)
   const handleRequestInventoryOtp = async () => {
     setInventoryOtpLoading(true);
     setInventoryOtpInfo('');
@@ -273,7 +259,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
     }
   };
 
-  // Add Single Drone
   const handleAddSingleDrone = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDroneId.trim()) {
@@ -331,7 +316,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
     }
   };
 
-  // Open Edit Modal
   const openEditDroneModal = (drone: any) => {
     setEditingDrone(drone);
     setEditingDroneModel(drone.model || '700RPAV');
@@ -342,7 +326,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
     setEditDroneError('');
   };
 
-  // Save Drone Edit
   const handleSaveDroneEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingDrone) return;
@@ -376,7 +359,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
     }
   };
 
-  // Bulk Add Drones (50 to 1000+)
   const handleBulkAddDrones = async (e: React.FormEvent) => {
     e.preventDefault();
     if (bulkCount < 1) {
@@ -425,7 +407,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
     }
   };
 
-  // Toggle Drone Maintenance (1-Click)
   const handleToggleDroneMaintenance = async (drone: any) => {
     const isMaintenance = drone.status === 'maintenance';
     const nextStatus = isMaintenance ? 'idle' : 'maintenance';
@@ -460,7 +441,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
     }
   };
 
-  // Request Decommission OTP
   const handleRequestDecommissionOtp = async () => {
     if (!deletingDrone) return;
     setDecommissionLoading(true);
@@ -488,7 +468,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
     }
   };
 
-  // Delete Drone with Security OTP
   const handleDeleteDrone = async () => {
     if (!deletingDrone) return;
     if (!decommissionOtp.trim()) {
@@ -531,7 +510,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
     }
   };
 
-  // Filtered Drones
   const filteredDrones = useMemo(() => {
     return drones.filter((d) => {
       const matchesSearch =
@@ -556,7 +534,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
     });
   }, [drones, searchQuery, statusFilter, verificationFilter]);
 
-  // Paginated Drones
   const paginatedDrones = useMemo(() => {
     const startIndex = (droneCurrentPage - 1) * dronePageSize;
     return filteredDrones.slice(startIndex, startIndex + dronePageSize);
@@ -564,7 +541,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
 
   const totalDronePages = Math.ceil(filteredDrones.length / dronePageSize) || 1;
 
-  // Metrics
   const totalUnits = drones.length;
   const maintenanceUnits = drones.filter((d) => d.status === 'maintenance').length;
   const verifiedUnits = drones.filter((d) => d.is_verified === true || d.verification_status === 'verified').length;
@@ -587,7 +563,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 pt-24 sm:pt-28 pb-28 sm:pb-20 font-sans">
-      {/* Toast Notification Alert */}
+
       {actionSuccess && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#5a00b8] text-white px-5 py-3.5 rounded-2xl shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
@@ -595,7 +571,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
         </div>
       )}
 
-      {/* ── MOBILE SLIDE-OVER DRAWER ─────────────────────────────────────── */}
+
       {mobileSidebarOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div
@@ -725,10 +701,10 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
         </div>
       )}
 
-      {/* ── MAIN WORKSPACE CONTAINER WITH STICKY SIDEBAR ────────────────── */}
+
       <div className="max-w-[1560px] mx-auto px-4 sm:px-6">
         <div className="flex flex-col md:flex-row gap-6 items-start">
-          {/* LEFT SIDEBAR: STICKY ON DESKTOP */}
+
           <aside className="hidden md:block w-60 lg:w-64 xl:w-72 shrink-0 md:sticky md:top-24 md:self-start md:max-h-[calc(100vh-6.5rem)] md:overflow-y-auto space-y-4">
             <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-xs space-y-5">
               <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
@@ -836,9 +812,9 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
             </div>
           </aside>
 
-          {/* RIGHT WORKSPACE AREA */}
+
           <main className="flex-1 w-full min-w-0">
-            {/* Top Workspace Bar */}
+
             <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 mb-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <button
@@ -869,13 +845,13 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
               </div>
             </div>
 
-            {/* TAB: OVERVIEW */}
+
             {activeTab === 'overview' && (
               <div className="space-y-6">
-                {/* ── SECTION 1: HARDWARE, ORDER & 700 RPAV QUALITY KPI METRICS ── */}
-                {/* ── SECTION 1: HARDWARE & FLIGHT KPI METRICS (4 EXECUTIVE CARDS) ── */}
+
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Card 1: Total Fleet */}
+
                   <div
                     onClick={() => setActiveTab('inventory')}
                     className="bg-white border border-slate-200 hover:border-purple-300 rounded-3xl p-5 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
@@ -893,7 +869,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Card 2: Ready for Sorties */}
+
                   <div
                     onClick={() => setActiveTab('inventory')}
                     className="bg-white border border-emerald-200 hover:border-emerald-300 bg-emerald-50/20 rounded-3xl p-5 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
@@ -911,7 +887,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Card 3: In Transit */}
+
                   <div
                     onClick={() => setActiveTab('dispatch')}
                     className="bg-white border border-blue-200 hover:border-blue-300 bg-blue-50/20 rounded-3xl p-5 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
@@ -929,7 +905,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Card 4: Maintenance */}
+
                   <div
                     onClick={() => setActiveTab('maintenance')}
                     className="bg-white border border-amber-200 hover:border-amber-300 bg-amber-50/20 rounded-3xl p-5 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
@@ -948,9 +924,9 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                   </div>
                 </div>
 
-                {/* ── SECTION 1B: QUALITY & AIRFRAME VERIFICATION ROW ── */}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Verified Hardware IDs */}
+
                   <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-xs flex items-center justify-between">
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Verified Hardware IDs</span>
@@ -962,7 +938,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Inspections Passed */}
+
                   <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-xs flex items-center justify-between">
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Inspections Passed</span>
@@ -974,7 +950,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Flagged / Needs Review */}
+
                   <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-xs flex items-center justify-between">
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-rose-700">Flagged / Review</span>
@@ -986,7 +962,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Quick Airframe Operations Card - Clean White Style */}
+
                   <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-xs flex items-center justify-between">
                     <div className="flex-1 mr-3">
                       <div className="flex items-center gap-2">
@@ -1025,9 +1001,9 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                   </div>
                 </div>
 
-                {/* ── SECTION 2: VISUAL ANALYTICS CHARTS & ORDER BREAKDOWN ── */}
+
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Order Status Breakdown Chart */}
+
                   <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-5">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
                       <div>
@@ -1044,7 +1020,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                       </div>
                     </div>
 
-                    {/* Quick Metric Pills */}
+
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-100">
                         <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">In Transit</span>
@@ -1073,9 +1049,9 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     </div>
 
                     {dispatchOrders.length > 0 ? (
-                      /* Progress Bars Graph when orders exist */
+
                       <div className="space-y-4 pt-1">
-                        {/* Bar 1: Out for Delivery */}
+
                         <div>
                           <div className="flex justify-between items-center text-xs font-bold mb-1.5">
                             <span className="text-blue-800 flex items-center gap-1.5">
@@ -1105,7 +1081,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                           </div>
                         </div>
 
-                        {/* Bar 2: Delivered & Completed */}
+
                         <div>
                           <div className="flex justify-between items-center text-xs font-bold mb-1.5">
                             <span className="text-emerald-800 flex items-center gap-1.5">
@@ -1129,7 +1105,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                           </div>
                         </div>
 
-                        {/* Bar 3: Pending Dispatch Assignment */}
+
                         <div>
                           <div className="flex justify-between items-center text-xs font-bold mb-1.5">
                             <span className="text-purple-800 flex items-center gap-1.5">
@@ -1153,7 +1129,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                           </div>
                         </div>
 
-                        {/* Bar 4: On Hold / Paused */}
+
                         <div>
                           <div className="flex justify-between items-center text-xs font-bold mb-1.5">
                             <span className="text-amber-800 flex items-center gap-1.5">
@@ -1178,7 +1154,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                         </div>
                       </div>
                     ) : (
-                      /* High-Tech Standby Status State when 0 active orders */
+
                       <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-4">
                         <div className="w-12 h-12 rounded-2xl bg-white border border-purple-100 shadow-2xs flex items-center justify-center text-[#5a00b8] shrink-0">
                           <CheckCircle2 className="w-6 h-6 text-emerald-500" />
@@ -1202,7 +1178,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     )}
                   </div>
 
-                  {/* Consignment Fulfillment Health Card */}
+
                   <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-[#1e1338] text-white rounded-3xl p-6 sm:p-7 border border-slate-800 shadow-xl flex flex-col justify-between space-y-5">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -1253,9 +1229,9 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                   </div>
                 </div>
 
-                {/* ── SECTION 3: LIVE RECENT CONSIGNMENTS & INVENTORY ACTIONS ── */}
+
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Recent Consignments Orders Feed */}
+
                   <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                       <div>
@@ -1335,9 +1311,9 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Inventory Quick Controls & Maintenance */}
+
                   <div className="space-y-6">
-                    {/* Inventory Quick Controls */}
+
                     <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
@@ -1398,7 +1374,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                       </div>
                     </div>
 
-                    {/* Under Maintenance Mini Box */}
+
                     <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-3">
                       <div className="flex items-center justify-between">
                         <h4 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2">
@@ -1439,10 +1415,10 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
               </div>
             )}
 
-            {/* TAB: INVENTORY (Admin Standard Reference) */}
+
             {activeTab === 'inventory' && (
               <div className="space-y-6">
-                {/* Header Actions */}
+
                 <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-5">
                   <div>
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-purple-50 text-[#5a00b8] border border-purple-100 mb-2">
@@ -1499,7 +1475,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                   </div>
                 </div>
 
-                {/* Search & Filters Toolbar */}
+
                 <div className="bg-white rounded-2xl border border-slate-200/90 p-3 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
                   <div className="relative flex-1">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -1555,7 +1531,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                   </div>
                 </div>
 
-                {/* Inventory Table */}
+
                 <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs">
                   <div className="sm:hidden px-3.5 py-1.5 bg-slate-50 border-b border-slate-200/80 text-[11px] text-slate-500 font-medium flex items-center justify-between">
                     <span>Swipe horizontally to view full table &rarr;</span>
@@ -1585,7 +1561,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
 
                           return (
                             <tr key={d.id} className="hover:bg-purple-50/20 transition-colors">
-                              {/* Drone Photo */}
+
                               <td className="py-3 px-3.5">
                                 {d.image_url ? (
                                   <img src={d.image_url} alt={d.model} className="h-9 w-12 rounded-xl object-cover border border-slate-200 shadow-2xs" />
@@ -1596,23 +1572,23 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                                 )}
                               </td>
 
-                              {/* Drone ID & Serial Number - Protected with whitespace-nowrap */}
+
                               <td className="py-3 px-4 whitespace-nowrap">
                                 <span className="font-mono font-bold text-slate-900 text-xs block tracking-tight">{d.id}</span>
                                 <span className="text-[10px] text-slate-400 font-mono block tracking-tight">{d.serial_number || d.id}</span>
                               </td>
 
-                              {/* Model */}
+
                               <td className="py-3 px-4 font-bold text-[#5a00b8] whitespace-nowrap">{d.model}</td>
 
-                              {/* Category */}
+
                               <td className="py-3 px-4 whitespace-nowrap">
                                 <span className="inline-block px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium text-[11px]">
                                   {d.category || 'General UAV'}
                                 </span>
                               </td>
 
-                              {/* Status & Mission */}
+
                               <td className="py-3 px-4 whitespace-nowrap">
                                 {d.status === 'maintenance' ? (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
@@ -1642,7 +1618,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                                 )}
                               </td>
 
-                              {/* Condition & QC */}
+
                               <td className="py-3 px-4 whitespace-nowrap">
                                 <div className="flex items-center gap-1.5">
                                   <span
@@ -1673,7 +1649,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                                 </div>
                               </td>
 
-                              {/* ID Verification */}
+
                               <td className="py-3 px-4 whitespace-nowrap">
                                 {isVerified ? (
                                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/70">
@@ -1688,7 +1664,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                                 )}
                               </td>
 
-                              {/* Streamlined Actions Toolbar */}
+
                               <td className="py-3 px-4 text-right whitespace-nowrap">
                                 <div className="inline-flex items-center justify-end gap-1.5">
                                   {isReserved && (
@@ -1703,7 +1679,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                                     </button>
                                   )}
 
-                                  {/* Primary Quick Action: Inspect */}
+
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -1718,7 +1694,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                                     <span>Inspect</span>
                                   </button>
 
-                                  {/* Quick Action: QR Label */}
+
                                   <button
                                     type="button"
                                     onClick={() => setSelectedQrDrone(d)}
@@ -1729,7 +1705,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                                     <span>QR</span>
                                   </button>
 
-                                  {/* Secondary Tool Group (Maintenance, Edit, Decommission) */}
+
                                   <div className="inline-flex items-center rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs">
                                     <button
                                       type="button"
@@ -1778,7 +1754,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                     </table>
                   </div>
 
-                  {/* Pagination */}
+
                   {filteredDrones.length > 0 && (
                     <div className="p-3.5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
                       <div className="text-slate-500 font-semibold">
@@ -1830,7 +1806,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
               </div>
             )}
 
-            {/* TAB: AIRFRAME QC INSPECTION & SCANNING */}
+
             {activeTab === 'qc-scan' && (
               <AirframeQCInspectionConsole
                 currentUser={currentUser}
@@ -1843,7 +1819,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
               />
             )}
 
-            {/* TAB: DRONE AUDITS & QR SCAN LOGS */}
+
             {activeTab === 'audits' && (
               <DroneAuditLogConsole
                 currentUser={currentUser}
@@ -1856,7 +1832,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
               />
             )}
 
-            {/* TAB: DISPATCH (Live Fleet Dispatch Module) */}
+
             {activeTab === 'dispatch' && (
               <DroneDispatchModule
                 currentUser={currentUser}
@@ -1870,7 +1846,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
               />
             )}
 
-            {/* TAB: SUPPORT (Support Desk Module) */}
+
             {activeTab === 'support' && (
               <SupportDeskPage
                 currentUser={currentUser}
@@ -1883,7 +1859,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
               />
             )}
 
-            {/* TAB: UNDER MAINTENANCE */}
+
             {activeTab === 'maintenance' && (
               <div className="space-y-6">
                 <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1905,7 +1881,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                   </div>
                 </div>
 
-                {/* Drones Currently In Maintenance */}
+
                 <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4">
                   {maintenanceUnits === 0 ? (
                     <div className="p-12 text-center bg-emerald-50/40 rounded-2xl border border-emerald-100 text-xs">
@@ -1983,7 +1959,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
               </div>
             )}
 
-            {/* TAB: PROFILE */}
+
             {activeTab === 'profile' && (
               <ProfilePage
                 currentUser={currentUser}
@@ -1997,13 +1973,13 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
               />
             )}
 
-            {/* TAB: APP RELEASE */}
+
             {activeTab === 'app-release' && <AppReleaseConsole />}
           </main>
         </div>
       </div>
 
-      {/* ── MODAL 1: ADD SINGLE DRONE ───────────────────────────────────── */}
+
       {showAddSingleDrone && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
@@ -2106,7 +2082,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                 )}
               </div>
 
-              {/* Inventory Security OTP Challenge */}
+
               <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2 font-sans">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-[#5a00b8] flex items-center gap-1.5 uppercase tracking-wider">
@@ -2168,7 +2144,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
         </div>
       )}
 
-      {/* ── MODAL 2: BULK BATCH GENERATOR ─────────────────────────────────── */}
+
       {showBulkDroneModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
@@ -2267,7 +2243,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                 </p>
               </div>
 
-              {/* Inventory Security OTP Challenge */}
+
               <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2 font-sans">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-[#5a00b8] flex items-center gap-1.5 uppercase tracking-wider">
@@ -2329,7 +2305,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
         </div>
       )}
 
-      {/* ── MODAL 3: EDIT DRONE CONFIGURATION ───────────────────────────── */}
+
       {editingDrone && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
@@ -2441,7 +2417,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
         </div>
       )}
 
-      {/* ── MODAL 4: DELETE DRONE CONFIRMATION WITH SECURITY OTP ────────── */}
+
       {deletingDrone && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
@@ -2584,7 +2560,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
         </div>
       )}
 
-      {/* ── MODAL 5: RESERVED DRONE ORDER DETAILS ──────────────────────── */}
+
       {selectedReservedDrone && (() => {
         const drone = selectedReservedDrone;
         const linkedOrder = getLinkedOrderForDrone(drone);
@@ -2664,7 +2640,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
         );
       })()}
 
-      {/* ── 700 RPAV QR CODE LABEL MODAL ──── */}
+
       <DroneQRCodeModal
         isOpen={Boolean(selectedQrDrone)}
         onClose={() => setSelectedQrDrone(null)}
@@ -2678,14 +2654,14 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
         onNavigate={onNavigate}
       />
 
-      {/* ── BULK QR CODE DOWNLOAD ZIP MODAL (ADMIN / FLEET / DISPATCHER) ──── */}
+
       <BulkQrDownloadModal
         isOpen={showBulkQrModal}
         onClose={() => setShowBulkQrModal(false)}
         allDrones={drones}
       />
 
-      {/* ── 700 RPAV DRONE QR SCANNER MODAL ──── */}
+
       <DroneQRScannerModal
         isOpen={showQrScanner}
         onClose={() => setShowQrScanner(false)}
@@ -2702,7 +2678,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
         }}
       />
 
-      {/* ── 700 RPAV POST-DELIVERY CONDITION INSPECTION MODAL ──── */}
+
       <PostDeliveryInspectionModal
         isOpen={showInspectionModal}
         onClose={() => setShowInspectionModal(false)}

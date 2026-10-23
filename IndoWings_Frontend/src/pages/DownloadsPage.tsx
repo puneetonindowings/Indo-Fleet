@@ -27,11 +27,11 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
 
   return (
     <div className="min-h-screen bg-[#f7f4fb]">
-      {/* Hero */}
+
       <section className="relative text-white pt-28 sm:pt-36 pb-20 px-6 overflow-hidden" style={{ background: 'linear-gradient(135deg, #1e0940 0%, #2b114d 50%, #1a0835 100%)' }}>
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 70% 80%, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
         <div className="relative max-w-6xl mx-auto">
-          {/* Icon box — left aligned like SkyGrid */}
+
           <div className="w-14 h-14 bg-white/15 border border-white/20 rounded-xl flex items-center justify-center mb-5">
             <DownloadCloud className="w-7 h-7 text-white" />
           </div>
@@ -41,13 +41,13 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
         </div>
       </section>
 
-      {/* Main Content */}
+
       <section className="max-w-6xl mx-auto px-6 py-14">
         <div className="grid gap-6" style={{ gridTemplateColumns: 'minmax(0, 1.2fr) minmax(320px, 0.8fr)', alignItems: 'start' }}>
 
-          {/* LEFT CARD */}
+
           <div className="bg-white border border-[#e2e8f0] rounded-xl overflow-hidden shadow-sm">
-            {/* Card header — Stable pill left, Latest Version right (matches SkyGrid) */}
+
             <div className="flex items-center justify-between px-7 py-4 border-b border-[#e2e8f0]">
               <div className="inline-flex items-center gap-1.5 bg-purple-50 text-[#5a00b8] text-xs font-bold px-3 py-1 rounded-full border border-purple-200">
                 <CheckCircle className="w-3.5 h-3.5" />
@@ -62,7 +62,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
               The latest stable release of IndoFleet Ground Control Station. Includes enhanced mission planning, real-time telemetry improvements, and DGCA compliance reporting tools.
             </p>
 
-            {/* Metadata grid */}
+
             <div className="grid grid-cols-2 gap-5 my-7 py-7 border-y border-[#e2e8f0]">
               <div className="flex items-start gap-3">
                 <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
@@ -102,7 +102,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
               </div>
             </div>
 
-            {/* Download buttons */}
+
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleDownload}
@@ -121,10 +121,10 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
             </div>
           </div>
 
-          {/* RIGHT ASIDE */}
+
           <div className="space-y-5">
 
-            {/* Preview image */}
+
             <div className="bg-white border border-[#e2e8f0] rounded-xl overflow-hidden shadow-sm">
               <div style={{ aspectRatio: '16/9' }}>
                 <img
@@ -138,7 +138,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
               </div>
             </div>
 
-            {/* System requirements */}
+
             <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 shadow-sm">
               <h3 className="text-sm font-bold text-[#171222] mb-4 flex items-center gap-2">
                 <Monitor className="w-4 h-4 text-[#5a00b8]" />
@@ -161,7 +161,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
               </ul>
             </div>
 
-            {/* Account required */}
+
             <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 shadow-sm">
               <div className="flex items-start gap-3 bg-purple-50 border border-purple-100 rounded-lg p-4">
                 <User className="w-5 h-5 text-[#5a00b8] shrink-0 mt-0.5" />
@@ -172,7 +172,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
               </div>
             </div>
 
-            {/* Download process */}
+
             <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 shadow-sm">
               <h3 className="text-sm font-bold text-[#171222] mb-4 flex items-center gap-2">
                 <Shield className="w-4 h-4 text-[#5a00b8]" />
@@ -194,7 +194,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
               </ol>
             </div>
 
-            {/* SHA-256 checksum */}
+
             <div className="bg-[#171222] rounded-xl p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">SHA-256 Checksum</span>
@@ -212,7 +212,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({ onNavigate, onOpen
           </div>
         </div>
 
-        {/* Back link */}
+
         <div className="mt-10 pt-6 border-t border-[#e2e8f0]">
           <button
             onClick={() => { onNavigate('home'); window.history.pushState({}, '', '/'); }}

@@ -27,7 +27,6 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState<string>(localStorage.getItem('iw_token') || '');
 
-  // New Mission form state
   const [newTitle, setNewTitle] = useState('');
   const [newDrone, setNewDrone] = useState('Cyberone Pro');
   const [newLocation, setNewLocation] = useState('');
@@ -47,12 +46,10 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    // Load initial stats
     apiClient.getStats().then(data => {
       if (data) setStats(data);
     });
 
-    // If logged in, fetch data
     if (currentUser) {
       loadDashboardData();
     }
@@ -116,7 +113,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-[#171222] border border-orange-500/40 w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden text-white flex flex-col max-h-[90vh]">
-        {/* Modal Header */}
+
         <div className="flex items-center justify-between p-5 border-b border-slate-900/50 bg-black/40">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-slate-900/60 text-purple-300 border border-purple-600/40">
@@ -141,7 +138,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
             </div>
           </div>
 
-          <button 
+          <button
             onClick={onClose}
             className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
           >
@@ -149,23 +146,23 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
           </button>
         </div>
 
-        {/* Modal Navigation Tabs (When logged in) */}
+
         {currentUser && (
           <div className="flex items-center justify-between px-6 py-2.5 bg-slate-950/30 border-b border-slate-900/40 text-xs font-medium">
             <div className="flex gap-2">
-              <button 
+              <button
                 onClick={() => setActiveView('fleet')}
                 className={`px-3 py-1.5 rounded-lg transition-colors ${activeView === 'fleet' ? 'bg-[#5a00b8] text-white' : 'text-slate-400 hover:text-white'}`}
               >
                 Drone Fleet ({fleet.length})
               </button>
-              <button 
+              <button
                 onClick={() => setActiveView('missions')}
                 className={`px-3 py-1.5 rounded-lg transition-colors ${activeView === 'missions' ? 'bg-[#5a00b8] text-white' : 'text-slate-400 hover:text-white'}`}
               >
                 Missions & Flight Plans ({missions.length})
               </button>
-              <button 
+              <button
                 onClick={() => setActiveView('audit')}
                 className={`px-3 py-1.5 rounded-lg transition-colors ${activeView === 'audit' ? 'bg-[#5a00b8] text-white' : 'text-slate-400 hover:text-white'}`}
               >
@@ -177,7 +174,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
               <span className="text-slate-300">
                 Logged in as: <strong className="text-purple-300">{currentUser.full_name}</strong> ({currentUser.role})
               </span>
-              <button 
+              <button
                 onClick={() => { onLogout(); setActiveView('login'); }}
                 className="px-2.5 py-1 rounded bg-red-950/60 text-red-300 hover:bg-red-900 border border-red-800 text-[11px]"
               >
@@ -187,9 +184,9 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
           </div>
         )}
 
-        {/* Modal Body */}
+
         <div className="p-6 overflow-y-auto flex-1 space-y-6">
-          {/* LOGIN SCREEN WITH 1-CLICK DEMO ACCOUNTS */}
+
           {(!currentUser || activeView === 'login') && (
             <div className="space-y-6">
               <div className="text-center max-w-lg mx-auto space-y-2">
@@ -202,10 +199,10 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
                 </p>
               </div>
 
-              {/* Administrator demo account */}
+
               <div className="grid grid-cols-1 gap-3.5 max-w-2xl mx-auto">
-                {/* Admin */}
-                <button 
+
+                <button
                   onClick={() => handleQuickLogin(DEMO_ADMIN_EMAIL)}
                   disabled={loading}
                   className="p-4 rounded-xl bg-black/40 border border-purple-800/40 hover:border-orange-500 hover:bg-slate-950/40 text-left transition-all group"
@@ -221,7 +218,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
             </div>
           )}
 
-          {/* FLEET VIEW */}
+
           {currentUser && activeView === 'fleet' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -258,10 +255,10 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
             </div>
           )}
 
-          {/* MISSIONS VIEW */}
+
           {currentUser && activeView === 'missions' && (
             <div className="space-y-6">
-              {/* Create Mission Form */}
+
               <form onSubmit={handleCreateMission} className="p-4 rounded-xl bg-black/40 border border-slate-900/50 space-y-3">
                 <div className="flex items-center gap-2 font-bold text-sm text-purple-300">
                   <Plus className="w-4 h-4" />
@@ -269,16 +266,16 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                  <input 
-                    type="text" 
-                    placeholder="Mission Title" 
+                  <input
+                    type="text"
+                    placeholder="Mission Title"
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     required
                     className="sm:col-span-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:border-orange-500"
                   />
 
-                  <select 
+                  <select
                     value={newDrone}
                     onChange={(e) => setNewDrone(e.target.value)}
                     className="px-3 py-2 rounded-lg bg-[#171222] border border-white/10 text-xs text-white focus:outline-none focus:border-orange-500"
@@ -289,7 +286,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
                     <option value="S-Series Pro">S-Series Pro</option>
                   </select>
 
-                  <button 
+                  <button
                     type="submit"
                     className="px-4 py-2 rounded-lg bg-[#6d28d9] hover:bg-[#5a00b8] text-white text-xs font-semibold"
                   >
@@ -298,7 +295,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
                 </div>
               </form>
 
-              {/* Missions Table */}
+
               <div className="space-y-2">
                 <h4 className="font-bold text-sm text-purple-300">Registered Operations</h4>
                 {missions.map((m) => (
@@ -322,7 +319,7 @@ export const CommandCenterModal: React.FC<CommandCenterModalProps> = ({
             </div>
           )}
 
-          {/* AUDIT VIEW */}
+
           {currentUser && activeView === 'audit' && (
             <div className="space-y-4 font-mono text-xs">
               <div className="flex justify-between items-center">

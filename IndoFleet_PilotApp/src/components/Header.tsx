@@ -57,12 +57,12 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Official IndoFleet Brand Logo on Left */}
+
       <View style={styles.leftContainer}>
         <IndoFleetLogo size="small" showSubtitle={true} />
       </View>
 
-      {/* Right Container: Quick Help & Profile Avatar Circle */}
+
       <View style={styles.rightContainer}>
         {onNavigateSupport && (
           <TouchableOpacity
@@ -74,7 +74,7 @@ export const Header: React.FC<HeaderProps> = ({
           </TouchableOpacity>
         )}
 
-        {/* Circular Profile Avatar Button */}
+
         <TouchableOpacity
           style={styles.avatarButton}
           onPress={() => setProfileMenuVisible(true)}
@@ -84,7 +84,7 @@ export const Header: React.FC<HeaderProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* Profile Popup Menu Modal */}
+
       <Modal
         visible={profileMenuVisible}
         transparent={true}
@@ -96,9 +96,9 @@ export const Header: React.FC<HeaderProps> = ({
           onPress={() => setProfileMenuVisible(false)}
         >
           <Pressable style={styles.profileMenuCard} onPress={(e) => e.stopPropagation()}>
-            {/* Top Drag Handle */}
+
             <View style={styles.dragHandle} />
-            {/* Header / Pilot Info */}
+
             <View style={styles.cardHeader}>
               <View style={styles.cardAvatar}>
                 <Text style={styles.cardAvatarText}>{getInitials(user?.name)}</Text>
@@ -126,7 +126,7 @@ export const Header: React.FC<HeaderProps> = ({
               </TouchableOpacity>
             </View>
 
-            {/* Meta Tags */}
+
             {(user?.vehicle_id || user?.dl_id) && (
               <View style={styles.metaContainer}>
                 {user.vehicle_id ? (
@@ -144,9 +144,9 @@ export const Header: React.FC<HeaderProps> = ({
               </View>
             )}
 
-            {/* Menu Items */}
+
             <View style={styles.menuItemsList}>
-              {/* Profile Details Button */}
+
               <TouchableOpacity
                 style={styles.menuItem}
                 onPress={() => {
@@ -167,7 +167,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <ChevronRight size={16} color="#94A3B8" />
               </TouchableOpacity>
 
-              {/* Order History Button */}
+
               {onNavigateHistory && (
                 <TouchableOpacity
                   style={styles.menuItem}
@@ -190,7 +190,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </TouchableOpacity>
               )}
 
-              {/* Help & Support Desk Button */}
+
               {onNavigateSupport && (
                 <TouchableOpacity
                   style={styles.menuItem}
@@ -213,10 +213,10 @@ export const Header: React.FC<HeaderProps> = ({
                 </TouchableOpacity>
               )}
 
-              
+
             </View>
 
-            {/* Logout Button */}
+
             <View style={styles.logoutWrapper}>
               <TouchableOpacity
                 style={styles.logoutButton}

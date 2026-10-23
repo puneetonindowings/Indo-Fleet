@@ -125,7 +125,6 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
         const insData = await insRes.json();
         const records = insData.inspections || [];
         setInspections(records);
-        // By default, expand all orders so user immediately sees all drones cleanly
         const initialExpanded: Record<string, boolean> = {};
         records.forEach((r: InspectionLog) => {
           const key = r.delivery_id ? `${r.delivery_id}::${getItemStage(r)}` : `standalone::${r.drone_id}::${r.inspection_id}`;
@@ -150,7 +149,6 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
     fetchData();
   }, []);
 
-  // Helper to accurately classify each inspection into its dedicated stage
   const getItemStage = (item: InspectionLog): 'hub_pickup' | 'customer_delivery' | 'depot_dispatch' => {
     if (
       item.stage === 'hub_pickup' ||
@@ -170,27 +168,22 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
     return 'customer_delivery';
   };
 
-  // Filtered Inspections
   const filteredInspections = useMemo(() => {
     return inspections.filter((item) => {
-      // 1. Drone filter
       if (selectedDroneFilter !== 'all') {
         const targetDrone = selectedDroneFilter.toLowerCase().trim();
         const matchesDrone = String(item.drone_id || '').toLowerCase().trim() === targetDrone;
         if (!matchesDrone) return false;
       }
 
-      // 2. Stage Section filter
       if (activeSection !== 'all') {
         const stage = getItemStage(item);
         if (stage !== activeSection) return false;
       }
 
-      // 3. Status filter
       if (statusFilter === 'passed' && item.overall_inspection !== 'PASSED') return false;
       if (statusFilter === 'defect' && item.overall_inspection === 'PASSED') return false;
 
-      // 4. Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const str = `${item.drone_id} ${item.delivery_id || ''} ${item.inspector_name || ''} ${item.inspected_by || ''} ${item.remarks || ''} ${item.delivery_handover_notes || ''}`.toLowerCase();
@@ -201,7 +194,6 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
     });
   }, [inspections, selectedDroneFilter, activeSection, statusFilter, searchQuery]);
 
-  // Group filtered inspections ORDER-WISE
   const groupedOrders = useMemo(() => {
     const groupsMap = new Map<string, GroupedOrderInspection>();
 
@@ -234,8 +226,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
       }
 
       const grp = groupsMap.get(groupKey)!;
-      
-      // Deduplicate by normalized drone ID: if duplicate exists, prefer record with photos or newer timestamp
+
       const normDrone = String(item.drone_id || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
       const existingIdx = grp.inspections.findIndex(
         (existing) => String(existing.drone_id || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '') === normDrone
@@ -254,7 +245,6 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
         grp.inspections.push(item);
       }
 
-      // Recompute stats and media from unique inspections
       grp.totalDrones = grp.inspections.length;
       grp.passedDronesCount = grp.inspections.filter((i) => i.overall_inspection === 'PASSED').length;
       grp.overallStatus = grp.passedDronesCount === grp.totalDrones ? 'PASSED' : 'FAILED';
@@ -292,7 +282,6 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
     return Array.from(groupsMap.values());
   }, [filteredInspections]);
 
-  // Aggregate stats across distinct inspection categories
   const stats = useMemo(() => {
     const total = inspections.length;
     let hubCount = 0;
@@ -349,7 +338,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
+
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -394,7 +383,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
         </div>
       </div>
 
-      {/* KPI Stats Cards */}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <button
           type="button"
@@ -462,7 +451,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
         </button>
       </div>
 
-      {/* 4 Dedicated Section Tabs */}
+
       <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
         <button
           type="button"
@@ -517,9 +506,9 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
         </button>
       </div>
 
-      {/* Filter and Search Bar */}
+
       <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        {/* Drone Selector Dropdown */}
+
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-slate-700 whitespace-nowrap">Filter Drone:</span>
           <select
@@ -536,7 +525,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
           </select>
         </div>
 
-        {/* Status Filter */}
+
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-bold text-slate-700 whitespace-nowrap">Status:</span>
           <button
@@ -574,7 +563,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
           </button>
         </div>
 
-        {/* Free text search */}
+
         <div className="relative min-w-[200px]">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -587,7 +576,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
         </div>
       </div>
 
-      {/* Order-Wise Inspection Accordions */}
+
       <div className="space-y-4">
         {loading ? (
           <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center text-slate-400">
@@ -612,18 +601,18 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                 key={grp.key}
                 className="bg-white border border-slate-200 hover:border-purple-300 rounded-2xl overflow-hidden shadow-xs transition-all"
               >
-                {/* Order Header / Accordion Click Bar */}
+
                 <div
                   onClick={() => toggleOrder(grp.key)}
                   className="p-4 sm:p-5 cursor-pointer bg-slate-50/60 hover:bg-purple-50/30 border-b border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3 select-none transition-colors"
                 >
                   <div className="flex flex-wrap items-center gap-3">
-                    {/* Expand/Collapse Chevron Indicator */}
+
                     <div className="w-7 h-7 rounded-xl bg-purple-100 text-[#5a00b8] flex items-center justify-center font-bold shrink-0">
                       {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                     </div>
 
-                    {/* Order Title & Stage Info */}
+
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         {grp.orderId ? (
@@ -636,7 +625,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                           </span>
                         )}
 
-                        {/* Stage Badge */}
+
                         {grp.stage === 'hub_pickup' ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase bg-blue-50 text-blue-700 border border-blue-200">
                             <Building2 className="w-3 h-3" />
@@ -654,7 +643,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                           </span>
                         )}
 
-                        {/* Status Badge */}
+
                         <span
                           className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase ${
                             isPassed
@@ -680,14 +669,14 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                     </div>
                   </div>
 
-                  {/* Right Meta Info & Toggle Action */}
+
                   <div className="flex flex-wrap items-center gap-2">
-                    {/* Inspected Drones Badge */}
+
                     <span className="text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200 px-3 py-1 rounded-xl">
                       ✈️ {grp.totalDrones} Drone{grp.totalDrones > 1 ? 's' : ''} Inspected
                     </span>
 
-                    {/* Media Badge */}
+
                     {(grp.allPhotos.length > 0 || grp.allVideos.length > 0) && (
                       <span className="text-xs font-bold bg-purple-50 text-[#5a00b8] border border-purple-200 px-2.5 py-1 rounded-xl flex items-center gap-1">
                         <Camera className="w-3.5 h-3.5" />
@@ -710,10 +699,10 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                   </div>
                 </div>
 
-                {/* Expanded Order Drawer: Displays All Drones Inspected under this Order */}
+
                 {isExpanded && (
                   <div className="p-4 sm:p-5 bg-white space-y-4">
-                    {/* Order Media Evidence Gallery (Photos & Videos) */}
+
                     {(grp.allPhotos.length > 0 || grp.allVideos.length > 0) && (
                       <div className="bg-purple-50/50 border border-purple-200/80 rounded-2xl p-4 space-y-2.5">
                         <div className="flex items-center justify-between">
@@ -763,7 +752,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                       </div>
                     )}
 
-                    {/* Inspected Drone Cards Grid */}
+
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
                       {grp.inspections.map((droneItem) => {
                         const isDronePassed = droneItem.overall_inspection === 'PASSED';
@@ -772,7 +761,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                             key={droneItem.inspection_id}
                             className="bg-slate-50/70 border border-slate-200 rounded-xl p-4 space-y-3 hover:border-purple-300 transition-all"
                           >
-                            {/* Drone Top Header */}
+
                             <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
                               <div className="flex items-center gap-2">
                                 <span className="font-mono text-xs font-black text-slate-900 bg-white border border-slate-200 px-2 py-0.5 rounded-md">
@@ -803,7 +792,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                               </div>
                             </div>
 
-                            {/* Checklist Items */}
+
                             <div className="grid grid-cols-3 gap-2 text-xs">
                               <div>
                                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Rotor / Motors</span>
@@ -827,7 +816,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                               </div>
                             </div>
 
-                            {/* Remarks */}
+
                             {(droneItem.remarks || droneItem.delivery_handover_notes) && (
                               <div className="text-xs pt-2 border-t border-slate-200/50">
                                 <span className="text-[10px] text-slate-400 font-bold uppercase block mb-0.5">
@@ -839,7 +828,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                               </div>
                             )}
 
-                            {/* Drone Individual Photos/Videos if available */}
+
                             {(() => {
                               const itemPhotos: string[] = [];
                               const itemVideos: string[] = [];
@@ -911,7 +900,7 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
         )}
       </div>
 
-      {/* Media Lightbox Modal */}
+
       {previewMedia && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-white/20 rounded-2xl max-w-2xl w-full p-4 relative shadow-2xl">

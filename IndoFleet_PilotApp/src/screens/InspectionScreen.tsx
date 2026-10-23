@@ -108,7 +108,6 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
   const currentDroneNumber = Math.min(prevInspectedList.length + 1, totalDronesCount);
   const isFinalDrone = (prevInspectedList.length + 1) >= totalDronesCount;
 
-  // Hardware Back Button
   useEffect(() => {
     const onBackPress = () => {
       onBack();
@@ -118,7 +117,6 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
     return () => sub.remove();
   }, [onBack]);
 
-  // Field Verification Specific Checklist (Delivery Person)
   const [cargoBayCondition, setCargoBayCondition] = useState<string>('');
   const [landingSurface, setLandingSurface] = useState<string>('');
   const [propellerCheck, setPropellerCheck] = useState<string>('');
@@ -127,7 +125,6 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
   const [fieldNotes, setFieldNotes] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Handover Verification States
   const [recipientName, setRecipientName] = useState<string>(order?.recipient_name || order?.customer_name || '');
   const [customerOtp, setCustomerOtp] = useState<string>('');
   const [pilotOtp, setPilotOtp] = useState<string>('');
@@ -135,10 +132,8 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
   const [requestingCustOtp, setRequestingCustOtp] = useState<boolean>(false);
   const [requestingPilotOtp, setRequestingPilotOtp] = useState<boolean>(false);
 
-  // Photo & Video Media Evidence
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
 
-  // Isolate state per drone: Reset media evidence and checklist whenever inspectedDroneId changes
   useEffect(() => {
     if (inspectedDroneId) {
       setDroneId(inspectedDroneId);
@@ -152,7 +147,6 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
     }
   }, [inspectedDroneId]);
 
-  // Camera Modal States (Works seamlessly on Web & Mobile)
   const [cameraModalOpen, setCameraModalOpen] = useState<boolean>(false);
   const [cameraMode, setCameraMode] = useState<'photo' | 'video' | 'pod'>('photo');
   const [camStreamActive, setCamStreamActive] = useState<boolean>(false);
@@ -167,10 +161,8 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
   const recordedChunksRef = useRef<any[]>([]);
   const timerRef = useRef<any>(null);
 
-  // Native Camera Permissions
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
-  // Clean up camera stream and recording on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) {
@@ -266,7 +258,6 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
   };
 
   const captureFrameFromCamera = async () => {
-    // 1. Native Mobile Capture via expo-camera CameraView
     if (Platform.OS !== 'web') {
       if (nativeCameraRef.current) {
         try {
@@ -300,7 +291,6 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
       return;
     }
 
-    // 2. Web Browser Canvas Capture
     if (videoRef.current && typeof document !== 'undefined') {
       try {
         const video = videoRef.current;
@@ -334,12 +324,10 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
         console.warn('Canvas frame capture error:', e);
       }
     }
-    // Fallback if canvas capture failed
     triggerFallbackFileInput('image/*');
   };
 
   const startVideoRecording = async () => {
-    // 1. Native Mobile Video Recording via expo-camera CameraView
     if (Platform.OS !== 'web') {
       if (nativeCameraRef.current) {
         setIsRecordingVideo(true);
@@ -366,7 +354,6 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
       return;
     }
 
-    // 2. Web Browser MediaRecorder
     if (!streamRef.current) return;
     try {
       recordedChunksRef.current = [];
@@ -472,17 +459,14 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
     }
   };
 
-  // Camera Photo Capture (In-App live viewfinder for instant capture & auto-save)
   const handleTakePhoto = () => {
     openInAppCamera('photo');
   };
 
-  // Video Recording Capture (In-App 360° video recorder with live timer)
   const handleRecordVideo = () => {
     openInAppCamera('video');
   };
 
-  // Gallery Picker (Photos & Videos with multi-selection support)
   const handlePickFromGallery = async () => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       try {
@@ -591,7 +575,6 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
     }
   };
 
-  // POD Photo Capture (In-App Camera)
   const handleTakePodPhoto = () => {
     openInAppCamera('pod');
   };
@@ -599,7 +582,6 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
   const handleSubmit = async () => {
     const targetDrone = (droneId || cleanDroneSerial || inspectedDroneId || 'DRONE').trim();
 
-    // Airframe checks are required for every individual drone
     if (!cargoBayCondition) {
       Alert.alert('Cargo Bay Check Required', 'Please select the cargo bay condition.');
       return;
@@ -625,7 +607,6 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
       return;
     }
 
-    // Customer OTP is only mandatory when certifying the final drone for customer handover (never at hub)
     if (!isHub && isFinalDrone) {
       if (!recipientName.trim()) {
         Alert.alert('Recipient Name Required', 'Please enter the name of the recipient taking delivery.');
@@ -652,7 +633,6 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
     const overallVerdict = hasAnyDefect ? 'FAILED' : 'PASSED';
     const parsedBattery = parseInt(fieldBattery, 10);
 
-    // Prepare photos and videos
     const photoRefs = mediaItems
       .filter((m) => m.type === 'image')
       .map((m) => m.base64 || m.uri);
@@ -669,7 +649,6 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
 
     setLoading(true);
     try {
-      // 1. Submit Airframe & Payload Inspection Report for this drone
       const res = await submitPostDeliveryInspection({
         drone_id: targetDrone,
         delivery_id: order?.id,
@@ -714,7 +693,6 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
       }
 
       if (!isFinalDrone) {
-        // Multi-Drone: intermediate drone passed inspection!
         const remaining = totalDronesCount - (prevInspectedList.length + 1);
         Alert.alert(
           isHub ? 'Hub Airframe Certified' : 'Airframe Inspection Certified',
@@ -729,7 +707,6 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
         return;
       }
 
-      // Final Drone:
       if (isHub) {
         Alert.alert(
           'Hub Inspection Completed Successfully',
@@ -744,7 +721,6 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
         return;
       }
 
-      // 2. Final Drone at Customer Location: Complete Delivery Handover & Customer POD in Database
       if (order?.id) {
         await completeDeliveryHandover({
           order_id: order.id,
@@ -785,7 +761,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.container}
     >
-      {/* ── TOP HEADER BAR ────────────────────────────────────────── */}
+
       <View style={styles.headerBar}>
         <TouchableOpacity
           onPress={onBack}
@@ -813,7 +789,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Airframe Info Card (Auto-Fetched from Digital Flight Manifest) */}
+
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={styles.iconCircle}>
@@ -854,7 +830,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
           </View>
         </View>
 
-        {/* ── PHOTO & VIDEO EVIDENCE UPLOAD ────────────────────────── */}
+
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={[styles.iconCircle, { backgroundColor: '#EDE9FE' }]}>
@@ -873,7 +849,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
             </View>
           </View>
 
-          {/* Action Buttons Row */}
+
           <View style={styles.mediaActionRow}>
             <TouchableOpacity
               onPress={handleTakePhoto}
@@ -903,7 +879,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Media Items Gallery Grid */}
+
           {mediaItems.length === 0 ? (
             <View style={styles.emptyMediaBox}>
               <Camera size={26} color="#94A3B8" />
@@ -949,11 +925,11 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
           )}
         </View>
 
-        {/* ── AIRFRAME COMPONENT CHECKLIST ────────────────────────── */}
+
         <View style={styles.card}>
           <Text style={styles.sectionHeading}>Physical Safety Checklist</Text>
 
-          {/* 1. Propellers & Motors */}
+
           <View style={styles.checkItem}>
             <Text style={styles.itemTitle}>1. Propellers & Rotor Blades</Text>
             <View style={styles.optionRow}>
@@ -985,7 +961,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
             </View>
           </View>
 
-          {/* 2. Cargo Bay Release */}
+
           <View style={styles.checkItem}>
             <Text style={styles.itemTitle}>2. Cargo Bay & Release Mechanism</Text>
             <View style={styles.optionRow}>
@@ -1021,7 +997,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
             </View>
           </View>
 
-          {/* 3. Landing Surface & Landing Gear */}
+
           <View style={styles.checkItem}>
             <Text style={styles.itemTitle}>3. Landing Gear & Surface</Text>
             <View style={styles.optionRow}>
@@ -1057,7 +1033,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
             </View>
           </View>
 
-          {/* 4. Battery Level (Auto-Fetched from Live Telemetry) */}
+
           <View style={styles.checkItem}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={styles.itemTitle}>4. Battery Health Level (SOC)</Text>
@@ -1082,7 +1058,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
           </View>
         </View>
 
-        {/* ── ZERO-DEFECT QUALITY CERTIFICATION ────────────────────── */}
+
         <TouchableOpacity
           onPress={() => setZeroDefectCertified(!zeroDefectCertified)}
           style={[
@@ -1114,7 +1090,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
           </View>
         </TouchableOpacity>
 
-        {/* ── STEP 3: CUSTOMER DELIVERY HANDOVER & OTP VERIFICATION (Only for destination delivery handover) ── */}
+
         {!isHub && (
           isFinalDrone ? (
             <View style={styles.card}>
@@ -1130,7 +1106,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
                 </View>
               </View>
 
-              {/* Recipient Name */}
+
               <View style={styles.formItem}>
                 <Text style={styles.formItemLabel}>Recipient Name *</Text>
                 <View style={styles.inputFieldRow}>
@@ -1145,7 +1121,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
                 </View>
               </View>
 
-              {/* Customer OTP */}
+
               <View style={styles.formItem}>
                 <View style={styles.formItemHeaderRow}>
                   <Text style={styles.formItemLabel}>Customer Verification OTP *</Text>
@@ -1178,7 +1154,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
                 </View>
               </View>
 
-              {/* Delivery Partner OTP */}
+
               <View style={styles.formItem}>
                 <View style={styles.formItemHeaderRow}>
                   <Text style={styles.formItemLabel}>Delivery Partner OTP *</Text>
@@ -1211,7 +1187,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
                 </View>
               </View>
 
-              {/* POD Photo Capture */}
+
               <View style={styles.formItem}>
                 <Text style={styles.formItemLabel}>Proof of Delivery (POD) Photo (Optional)</Text>
                 {podPhoto ? (
@@ -1247,7 +1223,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
           )
         )}
 
-        {/* Hub Pre-Acceptance Confirmation Card */}
+
         {isHub && (
           <View style={[styles.card, { backgroundColor: '#F5F3FF', borderColor: '#DDD6FE' }]}>
             <View style={styles.cardHeader}>
@@ -1264,7 +1240,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
           </View>
         )}
 
-        {/* ── INSPECTION NOTES ────────────────────────────────────── */}
+
         <View style={styles.card}>
           <Text style={styles.sectionHeading}>Handover Notes & Remarks</Text>
           <TextInput
@@ -1278,7 +1254,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
           />
         </View>
 
-        {/* ── SUBMIT BUTTON ────────────────────────────────────────── */}
+
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={loading}
@@ -1306,7 +1282,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* ── LIVE AIRFRAME CAMERA & RECORDER MODAL ───────────────── */}
+
       <Modal
         visible={cameraModalOpen}
         animationType="slide"
@@ -1315,7 +1291,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
       >
         <View style={styles.camModalBackdrop}>
           <View style={styles.camModalCard}>
-            {/* Modal Header */}
+
             <View style={styles.camModalHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.camModalTitle}>
@@ -1342,9 +1318,9 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
               </TouchableOpacity>
             </View>
 
-            {/* Viewfinder Display */}
+
             <View style={styles.camViewfinderWrap}>
-              {/* Native Mobile CameraView */}
+
               {Platform.OS !== 'web' && (
                 cameraPermission?.granted ? (
                   <CameraView
@@ -1370,7 +1346,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
                 )
               )}
 
-              {/* HTML5 live camera video element for Web */}
+
               {Platform.OS === 'web' && (
                 <div
                   style={{
@@ -1409,7 +1385,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
                 </div>
               )}
 
-              {/* Viewfinder Reticle & Target Box */}
+
               <View style={[styles.camReticleFrame, { zIndex: 5 }]}>
                 <View style={[styles.cornerBracket, styles.topLeft]} />
                 <View style={[styles.cornerBracket, styles.topRight]} />
@@ -1436,7 +1412,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
                 )}
               </View>
 
-              {/* Recording Status Pill */}
+
               {isRecordingVideo && (
                 <View style={[styles.camRecordingBadge, { zIndex: 10 }]}>
                   <View style={styles.recordingRedDot} />
@@ -1448,7 +1424,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
               )}
             </View>
 
-            {/* Shutter / Action Controls */}
+
             <View style={styles.camControlsRow}>
               {cameraMode === 'video' ? (
                 isRecordingVideo ? (
@@ -1481,7 +1457,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
                 </TouchableOpacity>
               )}
 
-              {/* Secondary Upload Fallback */}
+
               <TouchableOpacity
                 onPress={() => triggerFallbackFileInput(cameraMode === 'video' ? 'video/*' : 'image/*')}
                 style={styles.camSecondaryUploadBtn}
@@ -2063,7 +2039,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  // In-App Camera Modal Styles
   camModalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.7)',

@@ -44,12 +44,10 @@ export const BulkQrDownloadModal: React.FC<BulkQrDownloadModalProps> = ({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Sort drones by ID or serial number logically
   const sortedDrones = useMemo(() => {
     return [...allDrones].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
   }, [allDrones]);
 
-  // Compute targets based on selected mode
   const targetDrones = useMemo(() => {
     if (mode === 'all') {
       return sortedDrones;
@@ -109,7 +107,6 @@ export const BulkQrDownloadModal: React.FC<BulkQrDownloadModalProps> = ({
     }
   };
 
-  // ── MINIMIZED FLOATING DOCK (CENTER BOTTOM) ──────────────────────────
   if (isMinimized) {
     return (
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[95vw] max-w-lg bg-slate-900/95 backdrop-blur-md text-white rounded-2xl p-3.5 shadow-2xl border border-purple-500/30 flex flex-col gap-2.5 transition-all animate-fadeIn">
@@ -169,7 +166,7 @@ export const BulkQrDownloadModal: React.FC<BulkQrDownloadModalProps> = ({
           </div>
         </div>
 
-        {/* Compact animated progress bar */}
+
         {downloading && (
           <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
             <div
@@ -182,12 +179,11 @@ export const BulkQrDownloadModal: React.FC<BulkQrDownloadModalProps> = ({
     );
   }
 
-  // ── FULL MODAL VIEW ──────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-fadeIn">
       <div className="w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden">
-        
-        {/* Header */}
+
+
         <div className="p-5 sm:p-6 bg-gradient-to-r from-purple-50 via-white to-white border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-purple-100 text-[#5a00b8] flex items-center justify-center shadow-xs">
@@ -218,9 +214,9 @@ export const BulkQrDownloadModal: React.FC<BulkQrDownloadModalProps> = ({
           </div>
         </div>
 
-        {/* Content Body */}
+
         <div className="p-5 sm:p-6 space-y-5 text-xs">
-          
+
           {error && (
             <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -235,7 +231,7 @@ export const BulkQrDownloadModal: React.FC<BulkQrDownloadModalProps> = ({
             </div>
           )}
 
-          {/* Mode Tabs */}
+
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
               Select Download Strategy:
@@ -282,7 +278,7 @@ export const BulkQrDownloadModal: React.FC<BulkQrDownloadModalProps> = ({
             </div>
           </div>
 
-          {/* Range Configuration */}
+
           {mode === 'range' && (
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
               <div className="flex items-center justify-between">
@@ -323,7 +319,7 @@ export const BulkQrDownloadModal: React.FC<BulkQrDownloadModalProps> = ({
             </div>
           )}
 
-          {/* All Drones Overview */}
+
           {mode === 'all' && (
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
               <p className="font-bold text-slate-800">Download Entire Fleet Inventory</p>
@@ -333,7 +329,7 @@ export const BulkQrDownloadModal: React.FC<BulkQrDownloadModalProps> = ({
             </div>
           )}
 
-          {/* Custom Paste IDs */}
+
           {mode === 'custom' && (
             <div className="space-y-2">
               <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
@@ -349,7 +345,7 @@ export const BulkQrDownloadModal: React.FC<BulkQrDownloadModalProps> = ({
             </div>
           )}
 
-          {/* Download Summary Pill */}
+
           <div className="p-3 rounded-xl bg-purple-50/80 border border-purple-200/80 flex items-center justify-between">
             <div className="flex items-center gap-2 font-bold text-purple-900">
               <PackageCheck className="w-4 h-4 text-purple-700" />
@@ -358,7 +354,7 @@ export const BulkQrDownloadModal: React.FC<BulkQrDownloadModalProps> = ({
             <span className="text-[11px] font-mono text-purple-700">PNG Label Format (Level H)</span>
           </div>
 
-          {/* Progress Bar (During Generation) */}
+
           {downloading && (
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5 animate-fadeIn">
               <div className="flex items-center justify-between font-bold text-slate-800">
@@ -390,7 +386,7 @@ export const BulkQrDownloadModal: React.FC<BulkQrDownloadModalProps> = ({
             </div>
           )}
 
-          {/* Action Buttons */}
+
           <div className="flex items-center gap-3 pt-2">
             <button
               type="button"

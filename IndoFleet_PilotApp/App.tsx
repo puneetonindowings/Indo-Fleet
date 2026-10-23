@@ -114,7 +114,6 @@ class RootErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundar
 }
 
 function MainApp() {
-  // Session & Auth State
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [mustChangePassword, setMustChangePassword] = useState<boolean>(false);
   const [serverConnected, setServerConnected] = useState<boolean>(false);
@@ -135,10 +134,8 @@ function MainApp() {
     });
   }, []);
 
-  // Modals
   const [sosModalOpen, setSosModalOpen] = useState<boolean>(false);
 
-  // Active Order & Sortie Action Modals
   const [selectedOrder, setSelectedOrder] = useState<DeliveryOrder | null>(null);
   const [acceptModalOpen, setAcceptModalOpen] = useState<boolean>(false);
   const [handoverModalOpen, setHandoverModalOpen] = useState<boolean>(false);
@@ -151,9 +148,7 @@ function MainApp() {
   const [orderHubInspectedDrones, setOrderHubInspectedDrones] = useState<Record<string, string[]>>({});
   const [orderInspectedDrones, setOrderInspectedDrones] = useState<Record<string, string[]>>({});
 
-  // Android Hardware / Swipe Back Button Handler
   const handleHardwareBack = useCallback(() => {
-    // 1. Close open modals first
     if (sosModalOpen) {
       setSosModalOpen(false);
       return true;
@@ -175,7 +170,6 @@ function MainApp() {
       return true;
     }
 
-    // 2. Specific Screen Back Routing
     if (activeScreen === 'scanner') {
       navigateTo(screenHistory.includes('sortie_drones') ? 'sortie_drones' : (selectedOrder ? 'radar' : 'dashboard'));
       return true;
@@ -189,7 +183,6 @@ function MainApp() {
       return true;
     }
 
-    // 3. Pop Screen History Stack
     if (screenHistory.length > 1) {
       const nextHistory = [...screenHistory];
       nextHistory.pop(); // Remove current screen
@@ -199,14 +192,12 @@ function MainApp() {
       return true;
     }
 
-    // 4. If not on dashboard, jump to dashboard
     if (activeScreen !== 'dashboard') {
       setActiveScreen('dashboard');
       setScreenHistory(['dashboard']);
       return true;
     }
 
-    // 5. On root dashboard with no modals open: double back to exit
     const now = Date.now();
     if (now - lastBackPressRef.current < 2000) {
       return false; // Let Android OS exit app
@@ -233,7 +224,6 @@ function MainApp() {
     return () => sub.remove();
   }, [handleHardwareBack]);
 
-  // Dashboard & Telemetry State
   const [orders, setOrders] = useState<DeliveryOrder[]>([]);
   const [historyOrders, setHistoryOrders] = useState<DeliveryOrder[]>([]);
   const [kpis, setKpis] = useState<PilotKpis>({
@@ -289,14 +279,12 @@ function MainApp() {
   useEffect(() => {
     bootstrapApp();
 
-    // Background location listener
     setLocationUpdateListener((data) => {
       if (data.success && data.payload) {
         handleIncomingTelemetry(data.payload);
       }
     });
 
-    // Health ping loop every 20s
     const healthInterval = setInterval(() => {
       checkServer();
     }, 20000);
@@ -327,13 +315,11 @@ function MainApp() {
       console.warn('Bootstrap auth read notice:', err);
     }
 
-    // Non-blocking background health check and battery check
     checkServer().catch(() => {});
     updateBatteryLevel().catch(() => {});
   };
 
   const fetchInitialLocation = async () => {
-    // 1. Direct Web Browser Standard Geolocation (for Web / Localhost / Chrome)
     if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'geolocation' in navigator) {
       try {
         navigator.geolocation.getCurrentPosition(
@@ -355,7 +341,6 @@ function MainApp() {
       return;
     }
 
-    // 2. Native Mobile (Android APK / iOS)
     try {
       if (!Location || !Location.getForegroundPermissionsAsync) {
         setCurrentCoords((prev) => prev || { latitude: 28.6037, longitude: 77.3661 });
@@ -367,7 +352,6 @@ function MainApp() {
         status = reqStatus;
       }
       if (status === 'granted') {
-        // Fast path: get last known cached position immediately
         try {
           const last = await Location.getLastKnownPositionAsync();
           if (last?.coords) {
@@ -378,7 +362,6 @@ function MainApp() {
           }
         } catch {}
 
-        // Fresh accurate GPS fix
         const loc = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
@@ -390,7 +373,6 @@ function MainApp() {
           return;
         }
       }
-      // Fallback only if no GPS fix available
       setCurrentCoords((prev) => prev || { latitude: 28.6037, longitude: 77.3661 });
     } catch (err) {
       console.warn('Initial location fetch error:', err);
@@ -570,7 +552,6 @@ function MainApp() {
     navigateTo('dashboard');
   };
 
-  // Sortie Flow Triggers
   const handleOpenAcceptModal = (order: DeliveryOrder) => {
     setSelectedOrder(order);
     setAcceptModalOpen(true);
@@ -625,16 +606,13 @@ function MainApp() {
     }
 
     if (!isAllCompleted) {
-      // Return to sortie drones list so pilot can scan next drone easily
       navigateTo('sortie_drones');
       loadDashboardData().catch(() => {});
     } else {
       if (inspectionStage === 'hub_pickup') {
-        // Return to sortie drones screen where Proceed to Accept Order button is now active
         navigateTo('sortie_drones');
         loadDashboardData().catch(() => {});
       } else {
-        // All customer handover inspections completed: finish mission
         await stopTracking();
         if (foregroundWatcherRef.current) {
           foregroundWatcherRef.current.remove();
@@ -685,7 +663,6 @@ function MainApp() {
     navigateTo('dashboard');
     await loadDashboardData();
 
-    // Transition to dedicated Full-Screen Airframe Inspection (700 RPAV Standard)
     if (targetOrder) {
       setInspectionOrder(targetOrder);
       navigateTo('inspection');
@@ -697,7 +674,6 @@ function MainApp() {
     navigateTo('inspection');
   };
 
-  // If not logged in, render Login Screen
   if (!currentUser) {
     return (
       <LoginScreen
@@ -710,7 +686,7 @@ function MainApp() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Top Header Bar with Profile Avatar and Logout */}
+
       <Header
         serverConnected={serverConnected}
         isTracking={isTracking}
@@ -722,7 +698,7 @@ function MainApp() {
         onLogout={handleLogout}
       />
 
-      {/* Active Screen View */}
+
       <View style={styles.screenBody}>
         {activeScreen === 'dashboard' && (
           <DashboardScreen
@@ -893,7 +869,7 @@ function MainApp() {
           </View>
         )}
       </View>
-      {/* Modern Bottom Navigation Menu with Center SOS Button (hidden during QR scanning, inspection & sortie verification) */}
+
       {!['scanner', 'inspection', 'sortie_drones'].includes(activeScreen) && (
         <BottomNav
           activeScreen={activeScreen}
@@ -902,7 +878,7 @@ function MainApp() {
         />
       )}
 
-      {/* Modals */}
+
       <FirstTimePasswordModal
         visible={mustChangePassword}
         userId={currentUser.id}
@@ -933,7 +909,6 @@ function MainApp() {
         onFlightStarted={handleFlightStarted}
       />
 
-
       <SosModal
         visible={sosModalOpen}
         onClose={() => setSosModalOpen(false)}
@@ -944,7 +919,7 @@ function MainApp() {
         batteryPct={telemetry.batteryPct}
       />
 
-      {/* Post-Delivery Airframe Inspection Modal (700 RPAV Standard) */}
+
       <PilotInspectionModal
         visible={inspectionModalOpen}
         order={inspectionOrder}

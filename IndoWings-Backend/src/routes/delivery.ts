@@ -201,19 +201,16 @@ async function verifyAdminOtp(admin: any, adminTarget: string, otp: string, purp
   const emailTarget = admin?.email ? admin.email.toLowerCase().trim() : '';
   const phoneTarget = admin?.phone ? admin.phone.replace(/[^0-9]/g, '').slice(-10) : '';
 
-  // 1. Try cleanTarget if provided and not generic
   if (cleanTarget && cleanTarget !== 'both') {
     const validRes = await fileDB.verifyOTP(cleanTarget, otp.trim());
     if (validRes.valid) return true;
   }
 
-  // 2. Try admin email
   if (emailTarget && emailTarget !== cleanTarget) {
     const emailRes = await fileDB.verifyOTP(emailTarget, otp.trim());
     if (emailRes.valid) return true;
   }
 
-  // 3. Try admin phone
   if (phoneTarget && phoneTarget !== cleanTarget) {
     const phoneRes = await fileDB.verifyOTP(phoneTarget, otp.trim());
     if (phoneRes.valid) return true;
@@ -230,7 +227,6 @@ function maskEmail(email: string): string {
   return `${user.slice(0, 2)}${'*'.repeat(Math.min(user.length - 2, 4))}${user.slice(-1)}@${domain}`;
 }
 
-// Auth: Direct Email or Phone + Password Login (Default password: 123 123)
 router.post('/auth/login', authLimiter, async (req, res) => {
   const { email, phone, password } = req.body;
   if ((!email && !phone) || !password) {
@@ -285,7 +281,6 @@ router.post('/auth/login', authLimiter, async (req, res) => {
   });
 });
 
-// Auth: Step 2 - Verify Password and automatically dispatch 6-digit Security OTP
 router.post('/auth/verify-password-and-send-otp', otpLimiter, async (req, res) => {
   const { email, phone, password } = req.body;
   if ((!email && !phone) || !password) {
@@ -323,11 +318,9 @@ router.post('/auth/verify-password-and-send-otp', otpLimiter, async (req, res) =
     return;
   }
 
-  // Password is valid -> Generate and automatically dispatch 6-digit OTP
   const otp = crypto.randomInt(100000, 1000000).toString();
   const isEmail = Boolean(cleanEmail || (!cleanPhone && user.email));
 
-  // Save OTP under both Email and Phone so user can verify with either!
   let emailSentSuccessfully = false;
   let emailDeliveryError = '';
 
@@ -351,7 +344,6 @@ router.post('/auth/verify-password-and-send-otp', otpLimiter, async (req, res) =
     await fileDB.saveOTP(targetPhone, otp, { name: user.name, email: user.email, phone: fullPhone, purpose: 'login' });
   }
 
-  // If user requested email authentication and email failed, return error to screen
   if (isEmail && !emailSentSuccessfully) {
     res.status(502).json({
       error: `Verification code could not be sent to ${user.email || cleanEmail}. ${emailDeliveryError || 'Please check your email address or network connection.'}`,
@@ -378,7 +370,6 @@ router.post('/auth/verify-password-and-send-otp', otpLimiter, async (req, res) =
   });
 });
 
-// Auth: Verify whether user account exists before showing password / OTP step
 router.post('/auth/check-user', async (req, res) => {
   const { email, phone } = req.body;
   const cleanEmail = email ? email.toLowerCase().trim() : '';
@@ -411,7 +402,6 @@ router.post('/auth/check-user', async (req, res) => {
   });
 });
 
-// Auth: Send OTP verification code (Phone SMS OTP)
 router.post('/auth/send-otp', otpLimiter, async (req, res) => {
   const { phone, email, purpose } = req.body;
   if (!phone && !email) {
@@ -428,7 +418,6 @@ router.post('/auth/send-otp', otpLimiter, async (req, res) => {
     return;
   }
 
-  // STRICT CHECK: Account MUST be pre-provisioned by Admin
   let existingUser: any = null;
   if (cleanEmail) existingUser = await fileDB.findUserByEmail(cleanEmail);
   if (!existingUser && cleanPhone) existingUser = await fileDB.findUserByPhone(cleanPhone);
@@ -445,10 +434,8 @@ router.post('/auth/send-otp', otpLimiter, async (req, res) => {
     return;
   }
 
-  // Generate 6-digit cryptographic-grade numeric OTP
   const otp = crypto.randomInt(100000, 1000000).toString();
 
-  // 1. Direct Email OTP
   if (isEmail && cleanEmail) {
     await fileDB.saveOTP(cleanEmail, otp, { name: existingUser.name, email: cleanEmail, purpose: otpPurpose });
 
@@ -481,7 +468,6 @@ router.post('/auth/send-otp', otpLimiter, async (req, res) => {
     return;
   }
 
-  // 2. Real Mobile Phone SMS OTP
   const fullPhone = `+91${cleanPhone}`;
   await fileDB.saveOTP(cleanPhone, otp, { name: existingUser.name, email: existingUser.email, phone: fullPhone, purpose: otpPurpose });
 
@@ -502,7 +488,6 @@ router.post('/auth/send-otp', otpLimiter, async (req, res) => {
   });
 });
 
-// Auth: Verify OTP and login strictly for provisioned users
 router.post('/auth/verify-otp', otpLimiter, async (req, res) => {
   const { phone, email, otp } = req.body;
   if ((!phone && !email) || !otp) {
@@ -514,7 +499,6 @@ router.post('/auth/verify-otp', otpLimiter, async (req, res) => {
   const cleanEmail = email ? email.toLowerCase().trim() : '';
   const trimmedOtp = otp.toString().trim();
 
-  // Look up pre-provisioned user first
   let user: any = null;
   if (cleanEmail) user = await fileDB.findUserByEmail(cleanEmail);
   if (!user && cleanPhone) user = await fileDB.findUserByPhone(cleanPhone);
@@ -534,7 +518,6 @@ router.post('/auth/verify-otp', otpLimiter, async (req, res) => {
   const targetPhone = cleanPhone || (user.phone ? user.phone.replace(/[^0-9]/g, '').slice(-10) : '');
   const targetEmail = cleanEmail || (user.email ? user.email.toLowerCase().trim() : '');
 
-  // 1. Verify via Phone OTP session if registered under phone
   if (targetPhone) {
     const localPhoneRes = await fileDB.verifyOTP(targetPhone, trimmedOtp);
     if (localPhoneRes.valid) {
@@ -543,7 +526,6 @@ router.post('/auth/verify-otp', otpLimiter, async (req, res) => {
     }
   }
 
-  // 2. Verify via Email OTP directly through database session
   if (!isValid && targetEmail) {
     const localEmailRes = await fileDB.verifyOTP(targetEmail, trimmedOtp);
     if (localEmailRes.valid) {
@@ -559,7 +541,6 @@ router.post('/auth/verify-otp', otpLimiter, async (req, res) => {
 
   console.log(`[auth] User authenticated via OTP:`, user.name, `[Role: ${user.role}]`);
 
-  // Send login alert email
   const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'Localhost';
   sendLoginAlertEmail(user.email, user.name, user.role, clientIp).catch((err) => console.error('Login alert error:', err));
 
@@ -573,21 +554,16 @@ router.post('/auth/verify-otp', otpLimiter, async (req, res) => {
   });
 });
 
-// ADMIN USER & PERSONNEL MANAGEMENT ENDPOINTS
-
-// Admin-only account directory; never return password fields.
 router.get('/users', async (req, res) => {
   if (!(await requireAdmin(req, res))) return;
   const users = await fileDB.getUsers();
   res.json({ users: users.map(publicUser) });
 });
 
-// Legacy endpoint disabled so account creation always goes through the OTP flow below.
 router.post('/users', async (req, res) => {
   res.status(410).json({ error: 'Use the administrator OTP-protected account provisioning flow.' });
 });
 
-// Admin: Update User
 router.patch('/users/:id', async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -624,7 +600,6 @@ router.patch('/users/:id', async (req, res) => {
   res.json({ message: 'User updated successfully', user: safeUser });
 });
 
-// Admin: Delete User
 router.delete('/users/:id', async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -647,9 +622,6 @@ router.delete('/users/:id', async (req, res) => {
   res.json({ message: 'User removed successfully' });
 });
 
-// FLEET QC & CLIENT HANDOVER ENDPOINTS
-
-// Fleet Manager QC Clearance
 router.post('/drones/:id/qc', async (req, res) => {
   const user = await getAuthenticatedUser(req);
   if (!user) {
@@ -675,7 +647,6 @@ router.post('/drones/:id/qc', async (req, res) => {
   res.json({ message: 'QC Clearance updated', drone: updated });
 });
 
-// Client Drone Handover / Acceptance
 router.post('/orders/:id/handover', async (req, res) => {
   const { id } = req.params;
   const { inspector_name, condition_rating, remarks } = req.body;
@@ -697,9 +668,6 @@ router.post('/orders/:id/handover', async (req, res) => {
   res.json({ message: 'Drone shipment successfully accepted and handed over', order: updated });
 });
 
-// ADMIN PERSONNEL PROVISIONING WITH ADMIN OTP VERIFICATION
-
-// 1. Admin requests Security OTP to authorize user provisioning
 router.post('/admin/request-provision-otp', async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -790,7 +758,6 @@ router.post('/admin/request-inventory-otp', async (req, res) => {
   });
 });
 
-// Request OTP to permanently decommission/delete a drone
 router.post('/admin/request-decommission-otp', async (req, res) => {
   const admin = await requireFleetManagerOrAdmin(req, res);
   if (!admin) return;
@@ -832,7 +799,6 @@ router.post('/admin/request-decommission-otp', async (req, res) => {
   });
 });
 
-// 2. Admin verifies OTP & provisions new user account with temporary password
 router.post('/admin/provision-user', async (req, res) => {
   const admin = await requireAdmin(req, res);
   const { adminTarget, otp, name, email, phone, role, station, organization, temporaryPassword } = req.body;
@@ -940,7 +906,6 @@ router.post('/admin/provision-user', async (req, res) => {
   });
 });
 
-// 2B. Admin: Resend credentials email to an existing user if delivery failed earlier
 router.post('/admin/resend-credentials-email', async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -959,7 +924,6 @@ router.post('/admin/resend-credentials-email', async (req, res) => {
 
   const passToSend = (temporaryPassword && String(temporaryPassword).trim()) || `IW-${crypto.randomBytes(3).toString('hex').toUpperCase()}9!`;
 
-  // CRITICAL: Always update database with the password being sent in email!
   await fileDB.updateUser(user.id, {
     password: passToSend,
     must_change_password: true,
@@ -1001,7 +965,6 @@ router.post('/admin/resend-credentials-email', async (req, res) => {
   });
 });
 
-// 3. User First-Time Login: Mandatory Password Change via OTP
 router.post('/auth/first-time-change-password', async (req, res) => {
   const { userId, target, otp, newPassword } = req.body;
   if (!userId || !newPassword || typeof otp !== 'string' || !otp.trim()) {
@@ -1068,9 +1031,6 @@ router.post('/auth/first-time-change-password', async (req, res) => {
   });
 });
 
-// PASSWORD MANAGEMENT & SECURITY OTP (PROFILE & AUTH RECOVERY)
-
-// In-memory record for admin password reset audit requests
 interface PasswordResetAudit {
   id: string;
   user_id?: string;
@@ -1084,7 +1044,6 @@ interface PasswordResetAudit {
 }
 const passwordResetAuditLog: PasswordResetAudit[] = [];
 
-// 1. Profile: Step 1 - Validate current password & send 10-minute OTP
 router.post('/profile/request-change-password-otp', async (req, res) => {
   try {
     const { userId, email, currentPassword, newPassword, confirmPassword } = req.body;
@@ -1130,7 +1089,6 @@ router.post('/profile/request-change-password-otp', async (req, res) => {
       return;
     }
 
-    // Generate 6-digit OTP (Strictly valid for 10 minutes)
     const otp = crypto.randomInt(100000, 1000000).toString();
     await fileDB.saveOTP(targetEmail, otp, {
       purpose: 'profile_password_change',
@@ -1157,7 +1115,6 @@ router.post('/profile/request-change-password-otp', async (req, res) => {
   }
 });
 
-// 2. Profile: Step 2 - Verify OTP & Commit Password Change
 router.post('/profile/verify-change-password-otp', async (req, res) => {
   try {
     const { userId, email, otp, newPassword } = req.body;
@@ -1176,7 +1133,6 @@ router.post('/profile/verify-change-password-otp', async (req, res) => {
       res.status(400).json({ success: false, error: 'New password must be at least 6 characters.' });
       return;
     }
-    // OTP verification temporarily bypassed per system configuration
 
     const cleanNewPass = newPassword.trim();
     const updated = await fileDB.updateUser(user.id, {
@@ -1207,7 +1163,6 @@ router.post('/profile/verify-change-password-otp', async (req, res) => {
   }
 });
 
-// 3. Auth: Forgot Password Request (From Login Page or Profile)
 router.post('/auth/forgot-password-request', async (req, res) => {
   try {
     const { email, phone, identifier } = req.body;
@@ -1243,11 +1198,9 @@ router.post('/auth/forgot-password-request', async (req, res) => {
       return;
     }
 
-    // Generate secure 10-minute temporary password
     const tempPass = `IW-${crypto.randomBytes(3).toString('hex').toUpperCase()}9!`;
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-    // Update user in DB with temporary password and flag must_change_password
     await fileDB.updateUser(user.id, {
       password: tempPass,
       must_change_password: true,
@@ -1255,7 +1208,6 @@ router.post('/auth/forgot-password-request', async (req, res) => {
       password_updated_at: new Date().toISOString()
     });
 
-    // Record audit entry for admin visibility
     passwordResetAuditLog.unshift({
       id: crypto.randomUUID(),
       user_id: user.id,
@@ -1268,7 +1220,6 @@ router.post('/auth/forgot-password-request', async (req, res) => {
       expires_at: expiresAt
     });
 
-    // Send email with temporary password & 10-minute validity instructions
     sendTemporaryPasswordEmail({
       email: targetEmail,
       name: user.name,
@@ -1288,7 +1239,6 @@ router.post('/auth/forgot-password-request', async (req, res) => {
   }
 });
 
-// 3B. Auth: Forgot Password Request via 6-digit OTP (Direct Reset)
 router.post('/auth/forgot-password/send-otp', async (req, res) => {
   try {
     const { identifier, email, phone } = req.body;
@@ -1378,7 +1328,6 @@ router.post('/auth/forgot-password/verify-and-reset', async (req, res) => {
       return;
     }
 
-    // Set new permanent password
     await fileDB.updateUser(user.id, {
       password: cleanPass,
       must_change_password: false,
@@ -1404,7 +1353,6 @@ router.post('/auth/forgot-password/verify-and-reset', async (req, res) => {
   }
 });
 
-// 4. Admin: Generate & Dispatch 10-Minute Temporary Password for Any User
 router.post('/admin/generate-temp-password', async (req, res) => {
   try {
     const admin = await requireAdmin(req, res);
@@ -1464,7 +1412,6 @@ router.post('/admin/generate-temp-password', async (req, res) => {
   }
 });
 
-// 5. Admin: Get List of Password Reset Requests
 router.get('/admin/password-reset-requests', async (req, res) => {
   try {
     const admin = await requireAdmin(req, res);
@@ -1479,15 +1426,11 @@ router.get('/admin/password-reset-requests', async (req, res) => {
   }
 });
 
-// DRONES MANAGEMENT (GET, SINGLE ADD & BULK BATCH PROVISIONING)
-
-// Get all drones
 router.get('/drones', async (req, res) => {
   const fleet = await fileDB.getFleet();
   res.json({ drones: fleet, count: fleet.length });
 });
 
-// Single Drone Add (Drone Name, ID, Image URL, Optional Category, Verification)
 router.post('/drones', async (req, res) => {
   const admin = await requireFleetManagerOrAdmin(req, res);
   if (!admin) return;
@@ -1504,13 +1447,13 @@ router.post('/drones', async (req, res) => {
   const idNum = fleet.length + 1;
   const droneId = typeof id === 'string' && id.trim() ? id.trim() : `INW-UAV-${String(idNum).padStart(4, '0')}`;
   const droneSerial = typeof serial_number === 'string' && serial_number.trim() ? serial_number.trim() : droneId;
-  
+
   if (fleet.some((drone) => drone.id.toLowerCase() === droneId.toLowerCase())) {
     res.status(409).json({ error: 'A drone with this Drone ID already exists.' });
     return;
   }
   if (!(await verifyAdminOtp(admin, adminTarget, otp, 'admin-inventory', res))) return;
-  
+
   const verified = is_verified === true || verification_status === 'verified';
   const newDrone = {
     id: droneId,
@@ -1539,7 +1482,6 @@ router.post('/drones', async (req, res) => {
   res.status(201).json({ message: 'Drone added successfully', drone: newDrone });
 });
 
-// Bulk Batch Drone Provisioning (Scale up to 1000+ Drones)
 router.post('/drones/bulk', async (req, res) => {
   const admin = await requireFleetManagerOrAdmin(req, res);
   if (!admin) return;
@@ -1647,7 +1589,6 @@ router.post('/drones/bulk', async (req, res) => {
   });
 });
 
-// Edit / Update Drone Details (Drone Name, ID/Serial, Image, Category, Verification, Status/Maintenance)
 router.all(['/drones/:id', '/fleet/drones/:id'], async (req, res, next) => {
   if (req.method !== 'PATCH' && req.method !== 'PUT') return next();
   const admin = await requireFleetManagerOrAdmin(req, res);
@@ -1695,7 +1636,6 @@ router.all(['/drones/:id', '/fleet/drones/:id'], async (req, res, next) => {
   res.json({ message: 'Drone updated successfully.', drone: updated });
 });
 
-// Delete Drone (Fleet Manager or Super Admin with Decommission Security OTP)
 router.all(['/drones/:id', '/fleet/drones/:id'], async (req, res, next) => {
   if (req.method !== 'DELETE') return next();
   const admin = await requireFleetManagerOrAdmin(req, res);
@@ -1716,7 +1656,6 @@ router.all(['/drones/:id', '/fleet/drones/:id'], async (req, res, next) => {
   res.json({ success: true, message: `Drone ${droneId} decommissioned and permanently removed from fleet registry.` });
 });
 
-// Auth: Session verification
 router.get('/auth/me', async (req, res) => {
   const user = await getAuthenticatedUser(req);
   if (!user) {
@@ -1727,7 +1666,6 @@ router.get('/auth/me', async (req, res) => {
   res.json({ user: safeUser });
 });
 
-// Profile: Get profile and saved addresses
 router.get('/profile', async (req, res) => {
   const user = await getAuthenticatedUser(req);
   if (!user) {
@@ -1745,7 +1683,6 @@ router.get('/profile', async (req, res) => {
   });
 });
 
-// Profile: Update profile details
 router.put('/profile', async (req, res) => {
   const decoded = await getAuthenticatedUser(req);
   if (!decoded) {
@@ -1825,7 +1762,6 @@ router.post('/profile/send-verify-otp', async (req, res) => {
   res.status(400).json({ error: 'Invalid verification target' });
 });
 
-// Profile: Confirm verification OTP
 router.post('/profile/verify-otp', async (req, res) => {
   const decoded = await getAuthenticatedUser(req);
   if (!decoded) {
@@ -1902,8 +1838,6 @@ router.post('/profile/verify-otp', async (req, res) => {
   res.status(400).json({ error: 'Invalid target' });
 });
 
-// Customer storefront catalog. Stock is calculated from the same inventory the
-// fleet team provisions, with reserved/sold units excluded from availability.
 router.get('/dispatch/dashboard', async (req, res) => {
   if (!(await requireDispatchOperator(req, res))) return;
   const [users, allOrders, fleet, history] = await Promise.all([fileDB.getUsers(), fileDB.getOrders(), fileDB.getFleet(), fileDB.getDispatchHistory()]);
@@ -2053,7 +1987,6 @@ router.get('/store/products', async (_req, res) => {
       const inventory = await fileDB.getFleet();
       const orders = await fileDB.getOrders();
 
-      // Find all drone IDs currently booked, reserved, or assigned in active orders
       const activeOrders = orders.filter((o) => !['delivered', 'cancelled', 'rejected'].includes(o.status));
       const bookedDroneIds = new Set<string>();
       for (const o of activeOrders) {
@@ -2282,7 +2215,6 @@ router.post('/store/orders/:id/cancel', async (req, res) => {
   res.json({ message: 'Booking cancelled.', order: updated });
 });
 
-// Orders: Create delivery order
 router.post('/orders', async (req, res) => {
   const auth = req.headers.authorization;
   let user: any = null;
@@ -2412,13 +2344,11 @@ router.post('/orders', async (req, res) => {
   const savedOrder = await fileDB.addOrder(newOrder);
   console.log(`[order] Created order: ${orderId} (${newOrder.payment_method.toUpperCase()}) assigned to ${newOrder.drone_id}`);
 
-  // Send Order Placed Notification Email
   sendOrderPlacedEmail(savedOrder).catch((err) => console.error('Order email error:', err));
 
   res.status(201).json({ message: 'Delivery order placed successfully', order: savedOrder });
 });
 
-// Orders: List orders
 router.get('/orders', async (req, res) => {
   const auth = req.headers.authorization;
   let user: any = null;
@@ -2818,7 +2748,6 @@ router.post('/delivery/actions/confirm', async (req, res) => {
   res.json({ success: true, order: updated, audit: auditEntry });
 });
 
-// Orders: Fetch order by ID
 router.get('/orders/:id', async (req, res) => {
   const order = await fileDB.findOrderById(req.params.id);
   if (!order) {
@@ -2828,7 +2757,6 @@ router.get('/orders/:id', async (req, res) => {
   res.json({ order });
 });
 
-// Operations: Request Operator Self-Verification OTP for placing an order on hold
 router.post('/orders/:id/hold-request-otp', async (req, res) => {
   const operator = await requireDeliveryOperator(req, res);
   if (!operator) return;
@@ -2875,7 +2803,6 @@ router.post('/orders/:id/hold-request-otp', async (req, res) => {
   });
 });
 
-// Operations Order Management: Hold, Cancel, Reschedule, Resume (Dispatcher, Admin, Fleet Manager)
 router.post('/orders/:id/manage-status', async (req, res) => {
   const operator = await requireDeliveryOperator(req, res);
   if (!operator) return;
@@ -2968,7 +2895,6 @@ router.post('/orders/:id/manage-status', async (req, res) => {
   });
 });
 
-// Orders: Update status and telemetry with strict state machine validation
 router.patch('/orders/:id/status', async (req, res) => {
   const operator = await requireDeliveryOperator(req, res);
   if (!operator) return;
@@ -3013,7 +2939,6 @@ router.patch('/orders/:id/status', async (req, res) => {
   res.json({ success: true, order: updated });
 });
 
-// Orders: Cancel order
 router.post('/orders/:id/cancel', async (req, res) => {
   const user = await getAuthenticatedUser(req);
   if (!user) {
@@ -3065,7 +2990,6 @@ router.post('/orders/:id/cancel', async (req, res) => {
   res.json({ message: 'Order cancelled successfully', order: updated });
 });
 
-// Fleet: Get fleet status
 router.get('/fleet', async (req, res) => {
   const payload = await apiCache.getOrSet('delivery:fleet:synced', 5000, async () => {
     const fleet = await fileDB.getFleet();
@@ -3125,7 +3049,6 @@ router.get('/fleet', async (req, res) => {
   res.json(payload);
 });
 
-// Fleet: Update drone telemetry (Fleet Manager or Admin only)
 router.patch('/fleet/:id', async (req, res) => {
   const admin = await requireFleetManagerOrAdmin(req, res);
   if (!admin) return;
@@ -3150,7 +3073,6 @@ router.patch('/fleet/:id', async (req, res) => {
   res.json({ message: `Drone ${drone.id} telemetry updated`, drone: updatedDrone });
 });
 
-// Fleet: Register new drone (Fleet Manager or Admin only)
 router.post('/fleet', async (req, res) => {
   const admin = await requireFleetManagerOrAdmin(req, res);
   if (!admin) return;
@@ -3186,7 +3108,6 @@ router.post('/fleet', async (req, res) => {
   res.status(201).json({ message: 'Drone successfully registered to fleet', drone: newDrone });
 });
 
-// Analytics: Flight metrics and statistics
 router.get('/analytics', async (req, res) => {
   try {
     const from = typeof req.query.from === 'string' ? req.query.from : undefined;
@@ -3205,7 +3126,6 @@ function validateBase64Attachment(attachment: any): { valid: boolean; error?: st
   const size = attachment.size;
 
   if (typeof data === 'string' && data.length > 0) {
-    // 35MB base64 string length limit (~25MB binary)
     if (data.length > 35_000_000) {
       return { valid: false, error: 'Attachment file size exceeds maximum limit of 25 MB.' };
     }
@@ -3234,13 +3154,10 @@ function validateBase64Attachment(attachment: any): { valid: boolean; error?: st
   return { valid: true };
 }
 
-// Support: Expert consultation requests
-// Submit a support query / technical consultation request
 router.post(['/support/expert-request', '/support/ticket', '/support/expert-requests'], async (req, res) => {
   try {
     let { name, phone, email, category, query_type, message, preferred_time, preferred_callback, order_id, delivery_address, drone_serial, priority, attachments } = req.body;
 
-    // Auto-resolve contact info if customer scanned QR code without manual input
     if (!phone && !email) {
       if (order_id || drone_serial) {
         const orders = await fileDB.getOrders();
@@ -3315,10 +3232,8 @@ router.post(['/support/expert-request', '/support/ticket', '/support/expert-requ
     console.log(`\n[support] Support query logged: ${requestId}`);
     console.log(`Customer: ${newRequest.name} | Phone: ${newRequest.phone} | Order: ${newRequest.order_id || 'N/A'} | Topic: ${newRequest.category}\n`);
 
-    // 1. Dispatch real-time alert email to Support Team (connect@IndoFleet.com)
     sendSupportQueryAlertToTeam(saved).catch((err) => console.error('[support] Team notification email failed:', err));
 
-    // 2. Dispatch automated confirmation email to customer
     if (saved.email) {
       sendExpertRequestCreatedEmail(saved).catch((err) => console.error('[support] Customer confirmation email failed:', err));
     }
@@ -3333,7 +3248,6 @@ router.post(['/support/expert-request', '/support/ticket', '/support/expert-requ
   }
 });
 
-// User Support Queries (for Profile & Status Tracking)
 router.get(['/profile/support-queries', '/support/my-queries'], async (req, res) => {
   try {
     const user = await getAuthenticatedUser(req);
@@ -3364,7 +3278,6 @@ router.get(['/profile/support-queries', '/support/my-queries'], async (req, res)
   }
 });
 
-// Get all support tickets / expert requests (for Support Desk & Admin)
 router.get(['/support/expert-requests', '/support/tickets'], async (req, res) => {
   try {
     const actor = await requireSupportOperator(req, res);
@@ -3379,7 +3292,6 @@ router.get(['/support/expert-requests', '/support/tickets'], async (req, res) =>
   }
 });
 
-// Resolve Linked Order and Fleet Manifest for a Support Ticket / Drone
 router.get(['/support/expert-requests/:id/mission-context', '/support/tickets/:id/mission-context'], async (req, res) => {
   try {
     const actor = await requireSupportOperator(req, res);
@@ -3394,7 +3306,6 @@ router.get(['/support/expert-requests/:id/mission-context', '/support/tickets/:i
     const droneSerial = String(ticket.drone_serial || '').trim();
     const orderId = String(ticket.order_id || '').trim();
 
-    // Parse issue part from ticket category or message
     let issuePart = 'Component';
     if (ticket.category && ticket.category.includes(':')) {
       issuePart = ticket.category.split(':')[1].trim();
@@ -3403,7 +3314,6 @@ router.get(['/support/expert-requests/:id/mission-context', '/support/tickets/:i
       if (match) issuePart = match[1].trim();
     }
 
-    // Search existing DB orders
     const allOrders = await fileDB.getOrders();
     const matchedOrder = allOrders.find((o: any) =>
       (orderId && (String(o.id) === String(orderId) || String(o.order_number) === String(orderId))) ||
@@ -3415,7 +3325,6 @@ router.get(['/support/expert-requests/:id/mission-context', '/support/tickets/:i
       ))
     );
 
-    // Fetch fleet to dynamically resolve real model names
     const allFleet = await fileDB.getFleet();
     const getModelForSerial = (serial: string) => {
       const match = allFleet.find((d: any) =>
@@ -3468,7 +3377,6 @@ router.get(['/support/expert-requests/:id/mission-context', '/support/tickets/:i
       return;
     }
 
-    // Realistic linked mission context when no active order in DB yet
     const targetSerial = droneSerial || 'IW-700RPAV-2026-0004';
     const serialBase = targetSerial.replace(/\d+$/, '');
     const numPart = targetSerial.match(/\d+$/)?.[0] || '0004';
@@ -3610,7 +3518,6 @@ router.post('/support/call-log', async (req, res) => {
   }
 });
 
-// Update status / resolve support ticket
 router.patch(['/support/expert-requests/:id', '/support/tickets/:id'], async (req, res) => {
   try {
     const actor = await requireSupportOperator(req, res);
@@ -3719,7 +3626,6 @@ router.patch(['/support/expert-requests/:id', '/support/tickets/:id'], async (re
       return;
     }
 
-    // If resolved or closed with notes, send resolution notification email to user
     const statusChanged = Boolean(updates.status && updates.status !== existing.status);
     const recipientEmail = req.body.customer_email || updated.email;
     const shouldSendResolutionEmail = Boolean(
@@ -3745,7 +3651,6 @@ router.patch(['/support/expert-requests/:id', '/support/tickets/:id'], async (re
   }
 });
 
-// Log a phone call to a customer
 router.post('/support/tickets/:id/call-log', async (req, res) => {
   try {
     const actor = await requireSupportOperator(req, res);
@@ -3793,7 +3698,6 @@ router.post('/support/tickets/:id/call-log', async (req, res) => {
   }
 });
 
-// Send direct email reply from support dashboard to customer
 router.post('/support/tickets/:id/send-email', async (req, res) => {
   try {
     const actor = await requireSupportOperator(req, res);
@@ -3946,7 +3850,6 @@ router.get('/feedbacks', async (req, res) => {
   }
 });
 
-// Public: Submit feedback (associated with an order or standalone)
 router.post('/feedbacks', async (req, res) => {
   try {
     const { order_id, user_name, user_email, user_phone, drone_name, rating, category, message } = req.body;
@@ -3995,7 +3898,6 @@ router.post('/feedbacks', async (req, res) => {
   }
 });
 
-// Admin: Update feedback (status or notes)
 router.patch('/feedbacks/:id', async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -4014,7 +3916,6 @@ router.patch('/feedbacks/:id', async (req, res) => {
   }
 });
 
-// Admin: Delete feedback
 router.delete('/feedbacks/:id', async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -4028,8 +3929,6 @@ router.delete('/feedbacks/:id', async (req, res) => {
   }
 });
 
-// Chatbot: Virtual flight assistant
-// Track order by Order ID with Customer Name Verification
 router.post('/chatbot/track-by-id', async (req, res) => {
   try {
     const { order_id, customer_name, verification_name, name: altName, skip_name_check } = req.body;
@@ -4051,7 +3950,6 @@ router.post('/chatbot/track-by-id', async (req, res) => {
       return;
     }
 
-    // Check if customer name is provided (unless already verified via OTP)
     if (!skip_name_check && !providedName) {
       res.json({
         success: true,
@@ -4064,12 +3962,10 @@ router.post('/chatbot/track-by-id', async (req, res) => {
     }
 
     if (!skip_name_check) {
-      // Verify customer name (case-insensitive fuzzy/contains)
       const inputName = providedName.toLowerCase();
       const actualCustomer = (order.customer_name || '').toLowerCase();
       const actualRecipient = (order.recipient_name || '').toLowerCase();
 
-      // Check if input name matches first name, full name, or is contained
       const matchesCustomer =
         actualCustomer && (actualCustomer.includes(inputName) || inputName.includes(actualCustomer) || actualCustomer.split(' ').some((part: string) => part.length >= 3 && inputName.includes(part)));
       const matchesRecipient =
@@ -4086,7 +3982,6 @@ router.post('/chatbot/track-by-id', async (req, res) => {
       }
     }
 
-    // Name verified! Calculate live flight parameters
     const fleet = await fileDB.getFleet();
     const drone = fleet.find((d: any) => d.id === order.drone_id || d.model === order.drone_model) || {
       model: order.drone_model || 'Cyberone Pro',
@@ -4097,7 +3992,6 @@ router.post('/chatbot/track-by-id', async (req, res) => {
       speed: '65 km/h'
     };
 
-    // Calculate dynamic ETA & location based on order status
     let current_location = 'Preparing on Helipad';
     let estimated_remaining_time = 'Calculating...';
     let distance_remaining = `${order.aerial_distance_km || 14.2} km`;
@@ -4174,7 +4068,6 @@ router.post('/chatbot/track-by-id', async (req, res) => {
   }
 });
 
-// Request OTP to retrieve Order ID via Phone or Email
 router.post('/chatbot/request-id-otp', async (req, res) => {
   try {
     const { identifier } = req.body;
@@ -4193,7 +4086,6 @@ router.post('/chatbot/request-id-otp', async (req, res) => {
       return;
     }
 
-    // Resolve linked account identifiers from Supabase.
     const users = await fileDB.getUsers();
     let linkedEmail = cleanEmail;
     let linkedPhone = cleanPhone;
@@ -4211,10 +4103,8 @@ router.post('/chatbot/request-id-otp', async (req, res) => {
       }
     }
 
-    // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Save OTP challenges in Supabase under primary and linked identifiers.
     if (cleanEmail) await fileDB.saveOTP(cleanEmail, otp, { email: cleanEmail, phone: linkedPhone ? `+91${linkedPhone}` : undefined });
     if (cleanPhone) await fileDB.saveOTP(cleanPhone, otp, { phone: `+91${cleanPhone}`, email: linkedEmail || undefined });
     if (linkedEmail && linkedEmail !== cleanEmail) await fileDB.saveOTP(linkedEmail, otp, { email: linkedEmail, phone: cleanPhone ? `+91${cleanPhone}` : undefined });
@@ -4222,7 +4112,6 @@ router.post('/chatbot/request-id-otp', async (req, res) => {
 
     console.log(`[bot] Verification OTP dispatched to ${cleanEmail || cleanPhone}`);
 
-    // Dispatch Email OTP through Supabase
     const targetEmail = cleanEmail || linkedEmail;
     if (targetEmail) {
       sendOtpNotification({ email: targetEmail, otp, phone: cleanPhone || linkedPhone })
@@ -4243,7 +4132,6 @@ router.post('/chatbot/request-id-otp', async (req, res) => {
   }
 });
 
-// Verify OTP & return list of user orders
 router.post('/chatbot/verify-id-otp', async (req, res) => {
   try {
     const { identifier, otp } = req.body;
@@ -4259,7 +4147,6 @@ router.post('/chatbot/verify-id-otp', async (req, res) => {
     const fullPhone = cleanPhone ? `+91${cleanPhone}` : '';
     const trimmedOtp = otp.toString().trim();
 
-    // Resolve linked account identifiers from Supabase.
     const users = await fileDB.getUsers();
     let linkedEmail = cleanEmail;
     let linkedPhone = cleanPhone;
@@ -4275,7 +4162,6 @@ router.post('/chatbot/verify-id-otp', async (req, res) => {
 
     let isValid = false;
 
-    // Check database session for phone, email, or linked accounts
     const checkKeys = [cleanPhone, cleanEmail, linkedEmail, linkedPhone].filter(Boolean);
     for (const k of checkKeys) {
       const localRes = await fileDB.verifyOTP(k, trimmedOtp);
@@ -4294,7 +4180,6 @@ router.post('/chatbot/verify-id-otp', async (req, res) => {
       return;
     }
 
-    // Validated! Gather all identifiers for this user & find orders
     const allOrders = await fileDB.getOrders();
     const searchEmails = new Set<string>();
     const searchPhones = new Set<string>();
@@ -4304,7 +4189,6 @@ router.post('/chatbot/verify-id-otp', async (req, res) => {
     if (cleanPhone) searchPhones.add(cleanPhone);
     if (linkedPhone) searchPhones.add(linkedPhone);
 
-    // Cross-match linked accounts loaded from Supabase.
     users.forEach((u: any) => {
       const uEmail = (u.email || '').toLowerCase().trim();
       const uPhone = (u.phone || '').replace(/[^0-9]/g, '').slice(-10);
@@ -4348,7 +4232,6 @@ router.post('/chatbot/verify-id-otp', async (req, res) => {
   }
 });
 
-// Chatbot: Direct Order ID Lookup by Name + Phone/Email + Booking Date
 router.post('/chatbot/lookup-order', async (req, res) => {
   try {
     const { name, phone, email, date } = req.body;
@@ -4371,7 +4254,6 @@ router.post('/chatbot/lookup-order', async (req, res) => {
       const oPhone = (o.customer_phone || '').replace(/[^0-9]/g, '').slice(-10);
       const oEmail = (o.customer_email || '').toLowerCase().trim();
 
-      // Name match
       let nameMatched = false;
       if (cleanName) {
         nameMatched =
@@ -4382,12 +4264,10 @@ router.post('/chatbot/lookup-order', async (req, res) => {
           oCust.split(' ').some((p: string) => p.length >= 3 && cleanName.includes(p));
       }
 
-      // Phone / Email match
       let contactMatched = false;
       if (cleanPhone && oPhone.endsWith(cleanPhone)) contactMatched = true;
       if (cleanEmail && oEmail === cleanEmail) contactMatched = true;
 
-      // If both name and phone/email are provided, both must match
       if (cleanName && (cleanPhone || cleanEmail)) {
         if (!nameMatched || !contactMatched) return false;
       } else if (cleanName) {
@@ -4396,7 +4276,6 @@ router.post('/chatbot/lookup-order', async (req, res) => {
         if (!contactMatched) return false;
       }
 
-      // Optional date filter if provided
       if (date && String(date).trim() && o.created_at) {
         const dStr = String(date).trim().toLowerCase();
         const oDate = new Date(o.created_at).toISOString().slice(0, 10);
@@ -4407,12 +4286,9 @@ router.post('/chatbot/lookup-order', async (req, res) => {
           const yest = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
           if (oDate !== yest) return false;
         } else if (dStr.length >= 4) {
-          // Check if date substring matches
           if (!o.created_at.toLowerCase().includes(dStr) && !oDate.includes(dStr)) {
-            // Also check formatted date e.g. "07 Oct"
             const formatted = new Date(o.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }).toLowerCase();
             if (!formatted.includes(dStr)) {
-              // lenient date match
             }
           }
         }
@@ -4450,21 +4326,16 @@ router.post('/chatbot/lookup-order', async (req, res) => {
   }
 });
 
-// ── PILOT MOBILE APP & DISPATCH LIFECYCLE API ─────────────────────────────
-
-// In-memory / cache store for active SOS emergencies and dispatcher OTPs
 const activeSosAlerts: any[] = [];
 const dispatcherHandoverOtps: Record<string, { otp: string; orderId: string; expiresAt: number }> = {};
 const customerDeliveryOtps: Record<string, { otp: string; orderId: string; expiresAt: number }> = {};
 
-// Helper to calculate today's start in local/ISO
 function getTodayStartIso() {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   return d.toISOString();
 }
 
-// 1. Pilot Authentication (Only Pilot / Delivery personnel allowed)
 router.post('/pilot/login', async (req, res) => {
   try {
     const { email, phone, password } = req.body;
@@ -4490,7 +4361,6 @@ router.post('/pilot/login', async (req, res) => {
       return;
     }
 
-    // Role verification: allow strictly admin and delivery/pilot roles
     const userRole = (user.role || '').toLowerCase();
     const allowedRoles = ['delivery', 'pilot', 'admin'];
     if (!allowedRoles.includes(userRole)) {
@@ -4530,7 +4400,6 @@ router.post('/pilot/login', async (req, res) => {
   }
 });
 
-// 2. Pilot Password Change (First login force change or profile change)
 router.post('/pilot/change-password', async (req, res) => {
   try {
     const { userId, email, oldPassword, newPassword } = req.body;
@@ -4548,7 +4417,6 @@ router.post('/pilot/change-password', async (req, res) => {
       return;
     }
 
-    // If not first-time mandatory, verify old password if supplied
     if (!user.must_change_password && oldPassword) {
       const validOld = user.password_hash
         ? await fileDB.verifyPassword(oldPassword, user.password_hash)
@@ -4578,19 +4446,16 @@ router.post('/pilot/change-password', async (req, res) => {
   }
 });
 
-// 3. Pilot Dashboard KPIs, Performance Metrics, and Orders
 router.get('/pilot/dashboard', async (req, res) => {
   try {
     const pilotId = (req.query.pilotId as string) || '';
     const orders = await fileDB.getOrders();
     const todayStart = getTodayStartIso();
 
-    // Filter orders relevant to this pilot (or all active if unassigned/admin view)
     const pilotOrders = pilotId
       ? orders.filter((o: any) => o.assigned_pilot_id === pilotId || o.pilot_assigned === pilotId || !o.assigned_pilot_id)
       : orders;
 
-    // KPI Metrics calculation
     const totalAssigned = pilotOrders.filter((o: any) => ['pending', 'assigned', 'taking-off', 'in-flight', 'out-for-delivery'].includes(o.status)).length;
     const totalDelivered = pilotOrders.filter((o: any) => o.status === 'delivered').length;
     const totalInTransit = pilotOrders.filter((o: any) => ['taking-off', 'in-flight', 'out-for-delivery'].includes(o.status)).length;
@@ -4610,12 +4475,10 @@ router.get('/pilot/dashboard', async (req, res) => {
     const todaysMissed = 0;
     const todaysQueue = 0;
 
-    // Performance trends (hourly / completion rate)
     const completionRate = totalDelivered + totalMissed > 0
       ? Math.round((totalDelivered / (totalDelivered + totalMissed)) * 100)
       : 100;
 
-    // Active orders list formatted for Delivery App
     const activeOrders = pilotOrders
       .filter((o: any) => ['pending', 'assigned', 'taking-off', 'in-flight', 'out-for-delivery'].includes(o.status))
       .map((o: any) => ({
@@ -4663,8 +4526,6 @@ router.get('/pilot/dashboard', async (req, res) => {
         created_at: o.created_at
       }));
 
-
-    // History orders list (delivered, completed, cancelled, missed)
     const historyOrders = pilotOrders
       .filter((o: any) => ['delivered', 'completed', 'cancelled', 'missed'].includes(o.status))
       .map((o: any) => ({
@@ -4712,7 +4573,6 @@ router.get('/pilot/dashboard', async (req, res) => {
       }))
       .sort((a: any, b: any) => new Date(b.delivered_at || b.created_at).getTime() - new Date(a.delivered_at || a.created_at).getTime());
 
-    // Real Weekly Trend (Past 7 Days computed dynamically)
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const now = new Date();
     const weekly_trend = [];
@@ -4729,7 +4589,6 @@ router.get('/pilot/dashboard', async (req, res) => {
       weekly_trend.push({ day: dayName, completed, missed });
     }
 
-    // Real Hourly Active (Today computed dynamically)
     const hourly_active: { time: string; orders: number }[] = [];
     const hours = ['08:00', '11:00', '14:00', '17:00', '20:00'];
     for (const h of hours) {
@@ -4774,7 +4633,6 @@ router.get('/pilot/dashboard', async (req, res) => {
   }
 });
 
-// 3.1 Dedicated Pilot Order History Route
 router.get('/pilot/history', async (req, res) => {
   try {
     const pilotId = (req.query.pilotId as string) || '';
@@ -4839,12 +4697,9 @@ router.get('/pilot/history', async (req, res) => {
   }
 });
 
-
-// Helper: Verify if all drones allocated to an order have passed Depot Pre-Dispatch QC Inspection
 async function checkOrderDepotInspectionPassed(order: any, requestedDroneId?: string): Promise<{ passed: boolean; requiredDrones: string[]; uninspectedDrones: string[] }> {
   const normId = (val: string) => String(val || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
-  // 1. Gather all required drones for this order
   const rawList: string[] = Array.from(new Set([
     ...(Array.isArray(order.reserved_inventory_ids) ? order.reserved_inventory_ids : []),
     ...(Array.isArray(order.assigned_drone_ids) ? order.assigned_drone_ids : []),
@@ -4857,7 +4712,6 @@ async function checkOrderDepotInspectionPassed(order: any, requestedDroneId?: st
     return { passed: true, requiredDrones: [], uninspectedDrones: [] };
   }
 
-  // 2. Gather all inspected drone IDs (from order flags & direct inspection records)
   const inspectedNormSet = new Set<string>();
   if (Array.isArray(order.depot_inspected_drone_ids)) {
     order.depot_inspected_drone_ids.forEach((d: string) => inspectedNormSet.add(normId(d)));
@@ -4872,7 +4726,6 @@ async function checkOrderDepotInspectionPassed(order: any, requestedDroneId?: st
     Object.keys(order.delivery_data.hub_inspections).forEach((k: string) => inspectedNormSet.add(normId(k)));
   }
 
-  // Fetch direct inspection records for this delivery_id
   try {
     const existing = await fileDB.getInspections({ delivery_id: String(order.id) });
     existing.forEach((insp: any) => {
@@ -4885,7 +4738,6 @@ async function checkOrderDepotInspectionPassed(order: any, requestedDroneId?: st
     console.warn('[CheckQC] Inspection read notice:', err);
   }
 
-  // Also check fleet status if drone is marked verified/passed in fleet database
   try {
     const fleet = await fileDB.getFleet();
     rawList.forEach((rId) => {
@@ -4904,7 +4756,6 @@ async function checkOrderDepotInspectionPassed(order: any, requestedDroneId?: st
   };
 }
 
-// 4. Admin / Dispatcher Order Assignment with Mandatory Depot Inspection & Mandatory OTP Protection
 router.post('/orders/:id/assign-pilot-request-otp', async (req, res) => {
   const operator = await requireDispatchOperator(req, res);
   if (!operator) return;
@@ -4916,7 +4767,6 @@ router.post('/orders/:id/assign-pilot-request-otp', async (req, res) => {
     return;
   }
 
-  // Guard: Verify all drones have undergone Pre-Dispatch / Depot QC Inspection
   const qcCheck = await checkOrderDepotInspectionPassed(order, req.body?.drone_id);
   if (!qcCheck.passed) {
     res.status(400).json({
@@ -4968,7 +4818,6 @@ router.post('/orders/:id/assign-pilot', async (req, res) => {
       return;
     }
 
-    // 1. Mandatory Depot QC Inspection Check for ALL drones of this order
     const qcCheck = await checkOrderDepotInspectionPassed(order, drone_id);
     if (!qcCheck.passed) {
       res.status(400).json({
@@ -4978,7 +4827,6 @@ router.post('/orders/:id/assign-pilot', async (req, res) => {
       return;
     }
 
-    // 2. Mandatory Dispatcher Security OTP Check
     if (!otp || typeof otp !== 'string' || !otp.trim()) {
       res.status(400).json({
         success: false,
@@ -5008,7 +4856,6 @@ router.post('/orders/:id/assign-pilot', async (req, res) => {
       return;
     }
 
-    // Generate 6-digit Acceptance OTP for Pilot
     const pilotAcceptanceOtp = crypto.randomInt(100000, 1000000).toString();
 
     let pilotUser: any = null;
@@ -5065,7 +4912,6 @@ router.post('/orders/:id/assign-pilot', async (req, res) => {
   }
 });
 
-// 5A. Delivery Partner Requests Acceptance OTP to their own registered Phone/Email
 router.post('/pilot/request-acceptance-otp', async (req, res) => {
   try {
     const { order_id, pilot_id, pilot_email, pilot_phone } = req.body;
@@ -5124,7 +4970,6 @@ router.post('/pilot/request-acceptance-otp', async (req, res) => {
   }
 });
 
-// 5B. Delivery Partner Accepts Order via Self Acceptance OTP
 router.post('/pilot/accept-order', async (req, res) => {
   try {
     const { order_id, otp, pilot_name, pilot_id, pilot_email, pilot_phone, dl_id, vehicle_id } = req.body;
@@ -5139,7 +4984,6 @@ router.post('/pilot/accept-order', async (req, res) => {
       return;
     }
 
-    // Lookup Delivery Partner Profile to verify DL ID and Vehicle ID
     let deliveryUser: any = null;
     if (order.assigned_pilot_id) {
       deliveryUser = await fileDB.findUserById(order.assigned_pilot_id);
@@ -5157,7 +5001,6 @@ router.post('/pilot/accept-order', async (req, res) => {
     const partnerDl = (dl_id || deliveryUser?.dl_id || deliveryUser?.metadata?.dl_id || '').toString().trim();
     const partnerVehicle = (vehicle_id || deliveryUser?.vehicle_id || deliveryUser?.metadata?.vehicle_id || '').toString().trim();
 
-    // Operational fallback: Ensure DL and vehicle are recorded
     const finalPartnerDl = partnerDl || 'DL-VERIFIED';
     const finalPartnerVehicle = partnerVehicle || order.drone_id || 'IND-DL-772';
 
@@ -5183,7 +5026,6 @@ router.post('/pilot/accept-order', async (req, res) => {
       return;
     }
 
-    // Preserve actual drone airframe ID: DO NOT overwrite drone_id with pilot vehicle if order has reserved drones
     const effectiveDroneId = (Array.isArray(order.reserved_inventory_ids) && order.reserved_inventory_ids.length > 0)
       ? order.reserved_inventory_ids[0]
       : (order.drone_id && !order.drone_id.includes('@') && !order.drone_id.includes('delivery') ? order.drone_id : finalPartnerVehicle);
@@ -5198,7 +5040,6 @@ router.post('/pilot/accept-order', async (req, res) => {
       dl_id: finalPartnerDl
     });
 
-    // Notify Dispatcher that Delivery Partner accepted order
     const dispatcherEmail = order.assigned_by_email || process.env.DISPATCH_OPS_EMAIL || process.env.ADMIN_EMAIL || 'ops@indowings.com';
     sendOrderAcceptedByDeliveryAlert({
       dispatcherEmail,
@@ -5221,7 +5062,6 @@ router.post('/pilot/accept-order', async (req, res) => {
   }
 });
 
-// 6. Request Delivery Partner Departure / Pickup OTP to Start Delivery / Flight
 router.post('/pilot/request-handover-otp', async (req, res) => {
   try {
     const { order_id, pilot_name, pilot_id, pilot_email, pilot_phone } = req.body;
@@ -5254,7 +5094,6 @@ router.post('/pilot/request-handover-otp', async (req, res) => {
       expiresAt
     };
 
-    // Persist to database so it survives server reboots
     await fileDB.updateOrder(order_id, {
       delivery_data: {
         ...(order.delivery_data || {}),
@@ -5283,7 +5122,6 @@ router.post('/pilot/request-handover-otp', async (req, res) => {
   }
 });
 
-// 6.5 Verify Scanned Drone QR against Order Drones Fleet
 router.post('/pilot/verify-drone-order', async (req, res) => {
   try {
     const { order_id, drone_id } = req.body;
@@ -5301,10 +5139,8 @@ router.post('/pilot/verify-drone-order', async (req, res) => {
       return;
     }
 
-    // Normalization
     const normScanned = cleanDroneId.toUpperCase().replace(/[^A-Z0-9-]/g, '');
 
-    // Collect all expected drone IDs & serial numbers for this order
     const fleet = await fileDB.getFleet();
     const expected = new Set<string>();
     const candidateIds = new Set<string>();
@@ -5324,7 +5160,6 @@ router.post('/pilot/verify-drone-order', async (req, res) => {
       });
     }
 
-    // Expand candidate IDs with matching fleet units (both ID and Serial Number)
     candidateIds.forEach((c) => {
       const clean = c.trim();
       if (!clean) return;
@@ -5339,7 +5174,6 @@ router.post('/pilot/verify-drone-order', async (req, res) => {
       }
     });
 
-    // Check match
     let matchedDroneId: string | null = null;
     for (const exp of Array.from(expected)) {
       const normExp = exp.toUpperCase().replace(/[^A-Z0-9-]/g, '');
@@ -5349,16 +5183,14 @@ router.post('/pilot/verify-drone-order', async (req, res) => {
       }
     }
 
-    // If expected list was empty but order exists, check if drone exists in fleet
     if (!matchedDroneId && expected.size === 0) {
       const fleet = await fileDB.getFleet();
-      const inFleet = fleet.find(d => 
-        String(d.id).toUpperCase() === normScanned || 
+      const inFleet = fleet.find(d =>
+        String(d.id).toUpperCase() === normScanned ||
         String(d.serial_number || '').toUpperCase() === normScanned
       );
       if (inFleet) {
         matchedDroneId = inFleet.id || inFleet.serial_number;
-        // Associate with order
         await fileDB.updateOrder(order.id, {
           reserved_inventory_ids: [matchedDroneId],
           drone_id: matchedDroneId
@@ -5375,9 +5207,8 @@ router.post('/pilot/verify-drone-order', async (req, res) => {
       return;
     }
 
-    // Fetch drone details from fleet
-    const droneRecord = fleet.find(d => 
-      String(d.id).toLowerCase() === matchedDroneId!.toLowerCase() || 
+    const droneRecord = fleet.find(d =>
+      String(d.id).toLowerCase() === matchedDroneId!.toLowerCase() ||
       String(d.serial_number || '').toLowerCase() === matchedDroneId!.toLowerCase()
     );
 
@@ -5395,7 +5226,6 @@ router.post('/pilot/verify-drone-order', async (req, res) => {
   }
 });
 
-// 7. Delivery Partner Starts Live Delivery Flight (Direct 1-tap departure - No OTP required)
 router.post('/pilot/verify-handover-and-start-flight', async (req, res) => {
   try {
     const { order_id, pilot_name, pilot_phone, vehicle_id, initial_lat, initial_lng } = req.body;
@@ -5429,7 +5259,6 @@ router.post('/pilot/verify-handover-and-start-flight', async (req, res) => {
       } : {})
     });
 
-    // Update all assigned drones to 'in-flight' in fleet inventory (removes from idle depot inventory)
     const departureDrones = Array.isArray(order.reserved_inventory_ids) && order.reserved_inventory_ids.length > 0
       ? order.reserved_inventory_ids
       : [effectiveFlightDroneId].filter(Boolean);
@@ -5466,7 +5295,6 @@ router.post('/pilot/verify-handover-and-start-flight', async (req, res) => {
   }
 });
 
-// 8. Real-time Live GPS Coordinates Stream
 router.post('/pilot/update-location', async (req, res) => {
   try {
     const {
@@ -5537,7 +5365,6 @@ router.post('/pilot/update-location', async (req, res) => {
   }
 });
 
-// 9. SOS Emergency Alert Beacon with Database & Local File Persistence
 router.post('/pilot/sos-emergency', async (req, res) => {
   try {
     const { pilot_name, pilot_phone, vehicle_id, latitude, longitude, battery_pct, audio_base64, notes } = req.body;
@@ -5568,14 +5395,12 @@ router.post('/pilot/sos-emergency', async (req, res) => {
 
     activeSosAlerts.unshift(sosEvent);
 
-    // Save to dedicated persistent file
     try {
       saveSosAlertToFile(sosEvent);
     } catch (fErr) {
       console.warn('[SOS File] Persistence notice:', fErr);
     }
 
-    // Save to Supabase support_requests with full details
     try {
       await fileDB.saveExpertRequest({
         id: sosEvent.id,
@@ -5606,7 +5431,6 @@ router.post('/pilot/sos-emergency', async (req, res) => {
       console.warn('[SOS DB] Could not persist SOS to Supabase:', dbErr);
     }
 
-    // Send high-priority alert email to Super Admin & Operations Team
     const adminEmail = process.env.ADMIN_ALERT_EMAIL || process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'admin@indowings.com';
     sendSosEmergencyAlertEmail({
       adminEmail,
@@ -5631,12 +5455,10 @@ router.post('/pilot/sos-emergency', async (req, res) => {
   }
 });
 
-// 10. Admin endpoint to view active and past SOS alerts from database & local storage
 router.get('/admin/sos-alerts', async (req, res) => {
   try {
     const alertsMap = new Map<string, any>();
 
-    // 1. Load from persistent file
     try {
       const fileAlerts = loadSosAlertsFromFile();
       for (const a of fileAlerts) {
@@ -5646,7 +5468,6 @@ router.get('/admin/sos-alerts', async (req, res) => {
       console.warn('[SOS File] Load notice:', e);
     }
 
-    // 2. Load from in-memory array
     for (const mem of activeSosAlerts) {
       if (mem && mem.id) {
         const existing = alertsMap.get(mem.id);
@@ -5654,19 +5475,17 @@ router.get('/admin/sos-alerts', async (req, res) => {
       }
     }
 
-    // 3. Load from database support_requests
     try {
       const requests = await fileDB.getExpertRequests();
       const dbSos = requests.filter((r: any) => r.category === 'SOS_EMERGENCY' || r.id?.startsWith('SOS'));
       for (const r of dbSos) {
         const rd = r.request_data?.request_data || r.request_data || {};
         const id = rd.sos_id || r.id;
-        
+
         let lat = Number(rd.latitude ?? r.latitude);
         let lng = Number(rd.longitude ?? r.longitude);
         let bat = Number(rd.battery_pct ?? r.battery_pct);
 
-        // Robust fallback: parse real Lat/Lng and Battery from message string if available
         if (r.message) {
           const matchCoords = r.message.match(/Lat\/Lng:\s*\[([0-9.-]+),\s*([0-9.-]+)\]/i);
           if (matchCoords && Number.isFinite(parseFloat(matchCoords[1])) && Number.isFinite(parseFloat(matchCoords[2]))) {
@@ -5697,7 +5516,6 @@ router.get('/admin/sos-alerts', async (req, res) => {
         if (!alertsMap.has(id)) {
           alertsMap.set(id, fallbackItem);
         } else {
-          // Merge to preserve audio_base64 if in file
           const current = alertsMap.get(id);
           alertsMap.set(id, {
             ...fallbackItem,
@@ -5732,7 +5550,6 @@ router.get('/admin/sos-alerts', async (req, res) => {
   }
 });
 
-// 10b. Admin endpoint to resolve/acknowledge SOS emergency beacon
 router.post('/admin/sos-alerts/:id/resolve', async (req, res) => {
   try {
     const { id } = req.params;
@@ -5785,7 +5602,6 @@ router.post('/admin/sos-alerts/:id/resolve', async (req, res) => {
   }
 });
 
-// 10c. Admin endpoint to dismiss/remove SOS emergency beacon
 router.delete('/admin/sos-alerts/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -5807,7 +5623,6 @@ router.delete('/admin/sos-alerts/:id', async (req, res) => {
 
 const pilotDeliveryOtps: Record<string, { otp: string; orderId: string; expiresAt: number }> = {};
 
-// 11. Request Customer Delivery Handover OTP
 router.post('/pilot/request-customer-otp', async (req, res) => {
   try {
     const { order_id } = req.body;
@@ -5830,7 +5645,6 @@ router.post('/pilot/request-customer-otp', async (req, res) => {
       expiresAt
     };
 
-    // Persist to Supabase so it survives restarts
     await fileDB.updateOrder(order_id, {
       delivery_data: {
         ...(order.delivery_data || {}),
@@ -5855,7 +5669,6 @@ router.post('/pilot/request-customer-otp', async (req, res) => {
   }
 });
 
-// 11b. Request Pilot Self Verification Delivery OTP
 router.post('/pilot/request-pilot-delivery-otp', async (req, res) => {
   try {
     const { order_id, pilot_email, pilot_phone, pilot_name } = req.body;
@@ -5878,7 +5691,6 @@ router.post('/pilot/request-pilot-delivery-otp', async (req, res) => {
       expiresAt
     };
 
-    // Persist to Supabase
     await fileDB.updateOrder(order_id, {
       delivery_data: {
         ...(order.delivery_data || {}),
@@ -5902,7 +5714,6 @@ router.post('/pilot/request-pilot-delivery-otp', async (req, res) => {
   }
 });
 
-// 12. Complete Delivery with Customer OTP, Pilot OTP, Photo POD & GPS Tag
 router.post('/pilot/complete-delivery', async (req, res) => {
   try {
     const {
@@ -5930,7 +5741,6 @@ router.post('/pilot/complete-delivery', async (req, res) => {
       return;
     }
 
-    // 1. Strict Customer Verification OTP check
     const expectedCustomerOtp = order.delivery_data?.customer_delivery_otp || customerDeliveryOtps[order_id]?.otp;
     const customerOtpExpiresAt = order.delivery_data?.customer_delivery_otp_expires_at || customerDeliveryOtps[order_id]?.expiresAt;
 
@@ -5949,7 +5759,6 @@ router.post('/pilot/complete-delivery', async (req, res) => {
       return;
     }
 
-    // 2. Strict Pilot Self Verification OTP check
     const expectedPilotOtp = order.delivery_data?.pilot_delivery_otp || pilotDeliveryOtps[order_id]?.otp;
     const pilotOtpExpiresAt = order.delivery_data?.pilot_delivery_otp_expires_at || pilotDeliveryOtps[order_id]?.expiresAt;
 
@@ -6001,7 +5810,6 @@ router.post('/pilot/complete-delivery', async (req, res) => {
       }
     });
 
-    // Update all assigned drones to 'delivered' in fleet inventory (permanently archived with handover history)
     const completedDrones = Array.isArray(order.reserved_inventory_ids) && order.reserved_inventory_ids.length > 0
       ? order.reserved_inventory_ids
       : [order.drone_id].filter(Boolean);
@@ -6017,7 +5825,6 @@ router.post('/pilot/complete-delivery', async (req, res) => {
       } catch (dErr) {}
     }
 
-    // Notify Admin and Operations Desk with proof of delivery
     const adminEmail = process.env.ADMIN_ALERT_EMAIL || process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'admin@indowings.com';
     sendDeliveryCompletedEmail({
       to: adminEmail,
@@ -6041,7 +5848,6 @@ router.post('/pilot/complete-delivery', async (req, res) => {
   }
 });
 
-// 13. Pilot Profile Endpoints
 router.get('/pilot/profile', async (req, res) => {
   try {
     const pilotId = req.query.pilotId as string;
@@ -6091,7 +5897,6 @@ router.patch('/pilot/profile', async (req, res) => {
   }
 });
 
-// 14. Pilot Support Ticket
 router.post('/pilot/support-ticket', async (req, res) => {
   try {
     const { pilot_id, pilot_name, order_id, issue_category, message, priority } = req.body;
@@ -6120,7 +5925,6 @@ router.post('/pilot/support-ticket', async (req, res) => {
   }
 });
 
-// 15. App Release Management (Get & Publish Releases + Email Delivery Partners)
 let activeAppRelease = {
   version: 'v1.2.4',
   build_number: 24,
@@ -6201,11 +6005,6 @@ router.post('/app-release', async (req, res) => {
   }
 });
 
-// =========================================================================
-// 700 RPAV Quality & Condition Management (Post-Delivery Inspections & QR)
-// =========================================================================
-
-// 1. Submit Post-Delivery Inspection (Admin, Fleet Manager, Dispatcher, Delivery Person / Pilot)
 router.post('/inspections', async (req, res) => {
   const user = await requireDeliveryOperator(req, res);
   if (!user) return;
@@ -6216,21 +6015,18 @@ router.post('/inspections', async (req, res) => {
       delivery_id,
       inspection_type,
       stage,
-      // Delivery Person Specific Field Checks
       cargo_bay_condition,
       landing_surface,
       propeller_debris_check,
       field_battery_level,
       zero_defect_certified,
       delivery_handover_notes,
-      // Depot Technical Checks
       body_condition,
       propeller_condition,
       battery_condition,
       landing_gear_condition,
       depot_avionics_cleared,
       ready_for_next_sortie,
-      // Common
       overall_inspection,
       remarks,
       photo_references
@@ -6246,21 +6042,18 @@ router.post('/inspections', async (req, res) => {
       delivery_id: delivery_id ? String(delivery_id).trim() : null,
       inspection_type,
       stage,
-      // Delivery Person fields
       cargo_bay_condition,
       landing_surface,
       propeller_debris_check,
       field_battery_level,
       zero_defect_certified,
       delivery_handover_notes,
-      // Depot fields
       body_condition,
       propeller_condition,
       battery_condition,
       landing_gear_condition,
       depot_avionics_cleared,
       ready_for_next_sortie,
-      // Common
       overall_inspection,
       remarks,
       photo_references: Array.isArray(photo_references) ? photo_references : (Array.isArray(req.body.photos) ? req.body.photos : []),
@@ -6341,7 +6134,6 @@ router.post('/inspections', async (req, res) => {
   }
 });
 
-// 2. List Inspections History (Append-only)
 router.get('/inspections', async (req, res) => {
   const user = await requireDeliveryOperator(req, res);
   if (!user) return;
@@ -6359,7 +6151,6 @@ router.get('/inspections', async (req, res) => {
   }
 });
 
-// 3. Inspections Stats (Passed vs Failed/Pending KPI counters for Admin & Fleet Manager)
 router.get('/inspections/stats', async (req, res) => {
   const user = await requireDeliveryOperator(req, res);
   if (!user) return;
@@ -6372,7 +6163,6 @@ router.get('/inspections/stats', async (req, res) => {
   }
 });
 
-// 4. Public Safe Drone QR Landing API (No Customer PII, Approved Airframe Data Only)
 router.get('/public/drone/:drone_id', async (req, res) => {
   try {
     const rawId = req.params.drone_id.trim();
@@ -6393,7 +6183,6 @@ router.get('/public/drone/:drone_id', async (req, res) => {
     const inspections = await fileDB.getInspections({ drone_id: drone.id });
     const latestInspection = inspections[0] || null;
 
-    // Dynamically find latest or active order linked to this drone
     const orders = await fileDB.getOrders();
     const targetId = String(drone.id).toLowerCase();
     const targetSn = String(drone.serial_number || '').toLowerCase();
@@ -6430,7 +6219,6 @@ router.get('/public/drone/:drone_id', async (req, res) => {
         last_inspected_at: latestInspection?.inspected_at || drone.updated_at || drone.created_at,
         support_hotline: process.env.SUPPORT_PHONE || '1800 572 7363',
         support_email: process.env.SUPPORT_EMAIL || 'connect@indowings.com',
-        // Dynamic order & customer details:
         assigned_order: matchedOrder?.id || null,
         order_number: matchedOrder?.order_number || null,
         order_status: matchedOrder?.status || null,
@@ -6447,7 +6235,6 @@ router.get('/public/drone/:drone_id', async (req, res) => {
   }
 });
 
-// 4b. Dynamic Geocoding API (OpenStreetMap & Google Maps Hybrid)
 router.get('/geocode', async (req, res) => {
   try {
     const address = String(req.query.address || '').trim();
@@ -6466,7 +6253,6 @@ router.get('/geocode', async (req, res) => {
   }
 });
 
-// 5. Public Safe Delivery QR Tracking API (No PII)
 router.get('/public/track/:delivery_id', async (req, res) => {
   try {
     const rawId = req.params.delivery_id.trim();
@@ -6504,5 +6290,4 @@ router.get('/public/track/:delivery_id', async (req, res) => {
 });
 
 export default router;
-
 

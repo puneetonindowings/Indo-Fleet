@@ -31,7 +31,6 @@ interface DroneQRCodeModalProps {
   onNavigate?: (page: string) => void;
 }
 
-// Exact official IndoWings center pill SVG badge from Reference Image 2
 const INDOWINGS_PILL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="40" viewBox="0 0 144 40">
   <rect width="144" height="40" rx="9" fill="#000000"/>
   <g transform="translate(13, 10.5) scale(0.62)">
@@ -63,8 +62,7 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
   const droneId = drone.id;
   const modelName = drone.model_name || drone.model || '700 RPAV';
   const permanentUrl = `${PUBLIC_PORTAL_URL}/drone/${encodeURIComponent(droneId)}`;
-  
-  // High-density QR Code with Level H error correction
+
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=450x450&ecc=H&margin=4&data=${encodeURIComponent(permanentUrl)}`;
 
   const handleCopyUrl = async () => {
@@ -73,7 +71,6 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback
     }
   };
 
@@ -193,7 +190,7 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
       <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-200/90 flex flex-col max-h-[92vh]">
-        {/* Modal Header */}
+
         <div className="px-6 py-5 bg-gradient-to-r from-slate-950 via-[#3a0075] to-slate-950 text-white flex items-center justify-between border-b border-white/10">
           <div className="flex items-center gap-3.5">
             <div className="w-11 h-11 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white shadow-inner">
@@ -222,13 +219,13 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
           </button>
         </div>
 
-        {/* Modal Body */}
+
         <div className="p-6 space-y-5 overflow-y-auto">
-          {/* Minimalist QR Card: No Top Text, Official Black IndoWings Pill in Center, Only ID & Model Below */}
+
           <div className="flex flex-col items-center justify-center p-5 bg-slate-50/90 border border-slate-200/90 rounded-3xl">
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/90 text-center flex flex-col items-center w-full max-w-[280px]">
-              
-              {/* QR Container with Centered Official IndoWings Pill Badge (Matching Reference Image 2) */}
+
+
               <div className="relative p-2 bg-white rounded-xl border border-slate-100 shadow-2xs">
                 <img
                   src={qrImageUrl}
@@ -236,7 +233,7 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
                   className="w-48 h-48 object-contain rounded-lg"
                 />
 
-                {/* Exact IndoWings Black Pill Badge Overlay from Image 2 */}
+
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none drop-shadow-md">
                   <img
                     src={BADGE_DATA_URI}
@@ -246,7 +243,7 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
                 </div>
               </div>
 
-              {/* OUTSIDE Below QR: Only Drone ID & Model (Clean & uncluttered) */}
+
               <div className="mt-4 w-full text-center">
                 <span className="font-mono font-black text-slate-900 text-base tracking-wider block whitespace-nowrap select-all">
                   {droneId}
@@ -258,7 +255,7 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
             </div>
           </div>
 
-          {/* Airframe Details Grid (2x2 sleek cards) */}
+
           <div className="grid grid-cols-2 gap-2.5">
             <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Model / Series</span>
@@ -292,7 +289,7 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
             </div>
           </div>
 
-          {/* Permanent URL Box */}
+
           <div className="space-y-1.5">
             <label className="block text-[11px] font-bold text-slate-700">
               Direct Airframe Link
@@ -316,7 +313,7 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
             </div>
           </div>
 
-          {/* Action Buttons: 2x2 Grid */}
+
           <div className="space-y-2 pt-1">
             <div className="grid grid-cols-2 gap-2.5">
               <button

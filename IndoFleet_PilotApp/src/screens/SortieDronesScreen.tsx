@@ -59,7 +59,6 @@ export const SortieDronesScreen: React.FC<SortieDronesScreenProps> = ({
 
   const cleanOrderNumber = order.order_number || order.id.slice(0, 8).toUpperCase();
 
-  // Calculate total airframes in this sortie
   const totalDroneCount = Math.max(
     order.units_count || 1,
     (order.reserved_inventory_ids || []).length,
@@ -112,7 +111,7 @@ export const SortieDronesScreen: React.FC<SortieDronesScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Top Header */}
+
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.7}>
           <ArrowLeft size={20} color="#0F172A" />
@@ -136,7 +135,7 @@ export const SortieDronesScreen: React.FC<SortieDronesScreenProps> = ({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Sortie Mission Card */}
+
         <View style={styles.missionCard}>
           <View style={styles.missionHeader}>
             <View style={styles.missionTag}>
@@ -150,7 +149,7 @@ export const SortieDronesScreen: React.FC<SortieDronesScreenProps> = ({
             </View>
           </View>
 
-          {/* Customer & Address Details */}
+
           <View style={styles.detailRow}>
             <View style={styles.customerBlock}>
               <User size={15} color="#64748B" />
@@ -173,7 +172,7 @@ export const SortieDronesScreen: React.FC<SortieDronesScreenProps> = ({
             </Text>
           </View>
 
-          {/* Progress Bar */}
+
           <View style={styles.progressContainer}>
             <View style={styles.progressLabelRow}>
               <Text style={styles.progressLabel}>
@@ -195,7 +194,7 @@ export const SortieDronesScreen: React.FC<SortieDronesScreenProps> = ({
           </View>
         </View>
 
-        {/* Section Title */}
+
         <View style={styles.sectionHeader}>
           <ShieldCheck size={18} color="#4F46E5" />
           <Text style={styles.sectionTitle}>
@@ -208,7 +207,7 @@ export const SortieDronesScreen: React.FC<SortieDronesScreenProps> = ({
             : 'Scan physical QR on each aircraft before customer handover. Each drone is authenticated against the order booked inventory.'}
         </Text>
 
-        {/* Drone Cards List */}
+
         <View style={styles.dronesList}>
           {Array.from({ length: totalDroneCount }).map((_, idx) => {
             const verifiedDroneId = inspectedList[idx];
@@ -268,7 +267,7 @@ export const SortieDronesScreen: React.FC<SortieDronesScreenProps> = ({
                   </View>
                 </View>
 
-                {/* Card Action Button */}
+
                 {!isVerified ? (
                   <TouchableOpacity
                     style={styles.scanActionBtn}
@@ -306,7 +305,7 @@ export const SortieDronesScreen: React.FC<SortieDronesScreenProps> = ({
           })}
         </View>
 
-        {/* Guidance Notice if incomplete */}
+
         {!isAllInspected && (
           <View style={styles.guidanceCard}>
             <AlertTriangle size={18} color="#D97706" style={{ marginTop: 2 }} />
@@ -318,7 +317,7 @@ export const SortieDronesScreen: React.FC<SortieDronesScreenProps> = ({
           </View>
         )}
 
-        {/* Action CTA when all verified */}
+
         {isAllInspected && (
           <View style={styles.allCompleteCard}>
             <View style={styles.allCompleteTop}>

@@ -89,12 +89,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [activeTab, setActiveTab] = useState<'overview' | 'personnel' | 'provision' | 'fleet' | 'qc-scan' | 'audits' | 'dispatch' | 'secure-dispatch' | 'delivery' | 'support' | 'profile' | 'app-release' | 'sos-alerts'>('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // SOS Emergency Alerts State
   const [sosAlerts, setSosAlerts] = useState<any[]>([]);
   const [activeSosCount, setActiveSosCount] = useState<number>(0);
   const [resolvingSosId, setResolvingSosId] = useState<string | null>(null);
 
-  // Data States
   const [users, setUsers] = useState<any[]>([]);
   const [drones, setDrones] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -102,7 +100,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [adminTrackingOrder, setAdminTrackingOrder] = useState<any | null>(null);
 
-  // 700 RPAV Quality, Inspection & QR State
   const [inspectionStats, setInspectionStats] = useState<{
     passedCount: number;
     failedOrPendingCount: number;
@@ -118,7 +115,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [selectedInspectionDeliveryId, setSelectedInspectionDeliveryId] = useState('');
   const [showInspectionModal, setShowInspectionModal] = useState(false);
 
-  // Order-wise Bulk Drone QR Download Handler
   const handleDownloadOrderZip = async (order: any) => {
     const dronesForOrder = getDronesForOrder(order, drones);
     if (!dronesForOrder || dronesForOrder.length === 0) {
@@ -139,8 +135,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
       setTimeout(() => setToastMessage(''), 4500);
     }
   };
-  
-  // Single Drone Form State
+
   const [showAddSingleDrone, setShowAddSingleDrone] = useState(false);
   const [newDroneModel, setNewDroneModel] = useState('700RPAV');
   const [newDroneId, setNewDroneId] = useState('');
@@ -152,7 +147,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [newDroneBattery, setNewDroneBattery] = useState(100);
   const [newDronePayload, setNewDronePayload] = useState(5);
 
-  // Edit Drone Form State
   const [editingDrone, setEditingDrone] = useState<any | null>(null);
   const [editingDroneModel, setEditingDroneModel] = useState('');
   const [editingDroneSerial, setEditingDroneSerial] = useState('');
@@ -160,7 +154,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [editingDroneCategory, setEditingDroneCategory] = useState('');
   const [editingDroneIsVerified, setEditingDroneIsVerified] = useState(false);
 
-  // Bulk Drone Import State
   const [showBulkDroneModal, setShowBulkDroneModal] = useState(false);
   const [bulkCount, setBulkCount] = useState(50);
   const [bulkModel, setBulkModel] = useState('700RPAV');
@@ -173,19 +166,16 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [bulkImportError, setBulkImportError] = useState('');
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
 
-  // Admin Security OTP for Fleet & Provisioning
   const [inventoryOtpSent, setInventoryOtpSent] = useState(false);
   const [inventoryOtp, setInventoryOtp] = useState('');
   const [inventoryOtpChannel, setInventoryOtpChannel] = useState<'email' | 'phone' | 'both'>('both');
 
-  // Simple Team Member Provisioning State
   const [provName, setProvName] = useState('');
   const [provEmail, setProvEmail] = useState('');
   const [provPhone, setProvPhone] = useState('');
   const [provRole, setProvRole] = useState<'admin' | 'fleet_manager' | 'dispatcher' | 'support' | 'customer'>('dispatcher');
   const [provTempPass, setProvTempPass] = useState('');
 
-  // Admin Security OTP State for Provisioning
   const [adminOtpChannel, setAdminOtpChannel] = useState<'email' | 'phone' | 'both'>('both');
   const [adminOtpSent, setAdminOtpSent] = useState(false);
   const [adminOtp, setAdminOtp] = useState('');
@@ -197,7 +187,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [refreshing, setRefreshing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Search & Filters & Pagination
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [droneFilter, setDroneFilter] = useState('all');
@@ -206,7 +195,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [dronePageSize, setDronePageSize] = useState(50);
   const [supportFilter, setSupportFilter] = useState('all');
 
-  // Drone Shipment Dispatch State (Shipping manufactured drones to clients)
   const [showDispatchModal, setShowDispatchModal] = useState(false);
   const [dispatchClient, setDispatchClient] = useState('');
   const [dispatchContact, setDispatchContact] = useState('');
@@ -217,7 +205,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [dispatchCarrier, setDispatchCarrier] = useState('IndoFleet Secured Fleet Van');
   const [dispatchNotes, setDispatchNotes] = useState('Pre-dispatch hardware QC verified');
 
-  // Reserved Drone & Customer Booking Inspection
   const [selectedReservedDrone, setSelectedReservedDrone] = useState<any | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
@@ -279,7 +266,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
             return;
           }
         } catch {
-          // Fallback to raw if canvas compression fails
         }
         setImage(rawResult);
         setAdminOtpError('');
@@ -415,7 +401,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     return () => clearInterval(interval);
   }, []);
 
-  // 1. ADMIN REQUESTS OTP TO AUTHORIZE USER CREATION
   const handleRequestAdminOtp = async () => {
     setAdminOtpLoading(true);
     setAdminOtpError('');
@@ -453,7 +438,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     }
   };
 
-  // 2. ADMIN PROVISIONS NEW USER DIRECTLY (NO OTP REQUIRED)
   const handleProvisionUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!provName.trim() || !provEmail.trim() || !provTempPass.trim()) {
@@ -623,7 +607,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     }
   };
 
-  // Delete User
   const handleDeleteUser = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to revoke access for ${name}?`)) return;
     try {
@@ -646,7 +629,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     }
   };
 
-  // Add Single Drone
   const handleAddSingleDrone = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -687,7 +669,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     }
   };
 
-  // Bulk Add Drones (50, 100, 250, 500, 1000+)
   const handleBulkAddDrones = async (e: React.FormEvent) => {
     e.preventDefault();
     if (bulkImportError) return;
@@ -790,7 +771,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     setAdminOtpError('');
   };
 
-  // Toggle Drone QC Status
   const handleToggleDroneQC = async (droneId: string, currentQC: string) => {
     const nextQC = currentQC === 'passed' ? 'inspection_required' : 'passed';
     try {
@@ -810,7 +790,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     } catch {}
   };
 
-  // Update Support Ticket Status
   const handleUpdateSupportStatus = async (ticketId: string, status: string) => {
     try {
       await fetch(`${API_BASE_URL}/api/delivery/support/expert-requests/${ticketId}`, {
@@ -823,7 +802,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     } catch {}
   };
 
-  // Dispatch Drones to Client
   const handleDispatchDrones = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!dispatchClient.trim() || !dispatchAddress.trim()) {
@@ -857,7 +835,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     } catch {}
   };
 
-  // Manage Order State (Hold, Cancel, Reschedule, Resume)
   const [managingOrder, setManagingOrder] = useState<any | null>(null);
   const [manageAction, setManageAction] = useState<'hold' | 'cancel' | 'reschedule' | 'resume'>('hold');
   const [manageReason, setManageReason] = useState('');
@@ -870,7 +847,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   const [manageSubmitting, setManageSubmitting] = useState(false);
   const [manageError, setManageError] = useState('');
 
-  // Handle Request Security Verification OTP for placing order on hold
   const handleRequestHoldOtp = async () => {
     if (!managingOrder) return;
     if (manageReason.trim().length < 5) {
@@ -907,7 +883,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     }
   };
 
-  // Handle Toggle Drone Maintenance
   const handleToggleDroneMaintenance = async (drone: any) => {
     const isMaint = drone.status === 'maintenance';
     const nextStatus = isMaint ? 'idle' : 'maintenance';
@@ -945,7 +920,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     }
   };
 
-  // Handle Manage Order Status (Hold, Cancel, Reschedule, Resume)
   const handleManageOrderStatus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!managingOrder) return;
@@ -999,7 +973,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     }
   };
 
-  // Filtered Lists
   const filteredUsers = users.filter((u) => {
     const matchesSearch =
       (u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (u.email || '').toLowerCase().includes(searchQuery.toLowerCase()) || (u.phone || '').includes(searchQuery);
@@ -1063,7 +1036,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
   }).length;
   const activeAccountsCount = users.filter((user) => user.status === 'active').length;
 
-  // Actionable Operational Counts for Sidebar Badges
   const pendingDispatchCount = orders.filter((o) => ['pending', 'assigned', 'ready'].includes(o.status)).length;
   const inFlightCount = orders.filter((o) => ['in-flight', 'in-transit', 'dispatched'].includes(o.status)).length;
   const dispatchHistoryCount = orders.filter((o) => ['delivered', 'cancelled'].includes(o.status)).length;
@@ -1091,7 +1063,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 pt-24 sm:pt-28 pb-28 sm:pb-20 font-sans">
-      {/* Toast Notification */}
+
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#5a00b8] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
           <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -1099,19 +1071,19 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         </div>
       )}
 
-      {/* ── MOBILE SLIDE-OVER DRAWER (OFF-CANVAS) ─────────────────────────── */}
+
       {mobileSidebarOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
-          {/* Backdrop Blur Overlay */}
+
           <div
             className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in"
             onClick={() => setMobileSidebarOpen(false)}
           />
 
-          {/* Drawer Content */}
+
           <div className="relative w-[85vw] max-w-[320px] bg-white h-full shadow-2xl flex flex-col justify-between p-5 z-10 animate-in slide-in-from-left duration-200 overflow-y-auto">
             <div className="space-y-5">
-              {/* Drawer Header */}
+
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-9 h-9 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black shrink-0">
@@ -1132,7 +1104,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </button>
               </div>
 
-              {/* Navigation Links */}
+
               <nav className="space-y-1.5 text-xs font-bold">
                 {adminNavItems.map(({ id, label, icon: Icon, badge }) => (
                   <button
@@ -1158,7 +1130,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 ))}
               </nav>
 
-              {/* Profile Shortcut */}
+
               <div className="pt-2 border-t border-slate-100">
                 <button
                   onClick={() => {
@@ -1177,7 +1149,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               </div>
             </div>
 
-            {/* Current User Card at bottom */}
+
             <div className="pt-4 border-t border-slate-100 flex items-center justify-between mt-6">
               <button
                 onClick={() => {
@@ -1204,15 +1176,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         </div>
       )}
 
-      {/* ── MAIN WORKSPACE CONTAINER WITH STICKY SIDEBAR ────────────────── */}
+
       <div className="max-w-[1560px] mx-auto px-4 sm:px-6">
         <div className="flex flex-col md:flex-row gap-6 items-start">
-          {/* ═════════════════════════════════════════════════════════════════
-             LEFT SIDEBAR: STUCK (STICKY) ON DESKTOP (HIDDEN ON MOBILE)
-             ═════════════════════════════════════════════════════════════════ */}
+
           <aside className="hidden md:block w-60 lg:w-64 xl:w-72 shrink-0 md:sticky md:top-24 md:self-start md:max-h-[calc(100vh-6.5rem)] md:overflow-y-auto space-y-4">
             <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-xs space-y-5">
-              {/* Sidebar Header */}
+
               <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
                 <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black shadow-xs shrink-0">
                   <Shield className="w-5 h-5 text-[#5a00b8]" />
@@ -1223,7 +1193,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </div>
               </div>
 
-              {/* Navigation Menu Links */}
+
               <nav className="space-y-1.5 text-xs font-bold">
                 {adminNavItems.map(({ id, label, icon: Icon, badge }) => (
                   <button
@@ -1247,7 +1217,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 ))}
               </nav>
 
-              {/* Sidebar shortcuts */}
+
               <div className="pt-3 border-t border-slate-100 space-y-2">
                 <button
                   onClick={() => {
@@ -1263,7 +1233,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </button>
               </div>
 
-              {/* Current User Card at bottom of Sidebar */}
+
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                 <button
                   onClick={() => {
@@ -1287,11 +1257,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               </div>
             </div>
           </aside>
-          {/* ═════════════════════════════════════════════════════════════════
-             RIGHT CONTENT WORKSPACE
-             ═════════════════════════════════════════════════════════════════ */}
+
           <main className="flex-1 min-w-0 w-full space-y-6">
-            {/* Mobile Drawer Trigger Header Bar */}
+
             <div className="md:hidden flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-9 h-9 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black shrink-0">
@@ -1318,7 +1286,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               </button>
             </div>
 
-            {/* 🚨 CRITICAL LIVE SOS EMERGENCY BANNER 🚨 */}
+
             <SosAlertBanner
               alerts={sosAlerts}
               onResolve={(id) => handleResolveSos(id)}
@@ -1326,7 +1294,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               onViewDetails={() => setActiveTab('sos-alerts')}
             />
 
-            {/* ANALYTICS DASHBOARD — data-driven business overview */}
+
             {activeTab === 'overview' && (
               <AnalyticsDashboard currentUser={currentUser} onQuickAction={(tab) => setActiveTab(tab as typeof activeTab)} />
             )}
@@ -1334,10 +1302,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
             {activeTab === 'delivery' && <DeliveryTrackingModule currentUser={currentUser} onNavigate={onNavigate} />}
             {activeTab === 'profile' && <ProfilePage onNavigate={onNavigate} currentUser={currentUser} onUpdateUser={onUpdateUser} embedded onBack={() => setActiveTab('overview')} />}
 
-            {/* ── TAB 1: OUTBOUND DRONE SHIPMENTS (operational supplement) ──── */}
+
             {activeTab === 'overview' && (
               <div className="space-y-6">
-                {/* Outbound Drone Shipments Table */}
+
                 <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
                   <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3">
                     <div>
@@ -1469,7 +1437,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               </div>
             )}
 
-            {/* ── TAB 2: PERSONNEL MANAGEMENT DIRECTORY ────────────────────── */}
+
             {activeTab === 'personnel' && (
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 bg-white rounded-2xl border border-slate-200">
@@ -1594,7 +1562,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               </div>
             )}
 
-            {/* ── TAB 3: PROVISION TEAM MEMBER (SIMPLE LANGUAGE) ───────────── */}
+
             {activeTab === 'provision' && (
               <div className="max-w-2xl mx-auto space-y-6">
                 <div>
@@ -1602,7 +1570,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   <p className="text-xs text-slate-500 mt-1">Enter details below. Verify with your Admin OTP to activate the account and email them credentials with next steps.</p>
                 </div>
 
-                {/* Success Card when created */}
+
                 {provisioningSuccess ? (
                   <div className={`bg-white border rounded-3xl p-6 sm:p-8 text-center shadow-sm space-y-4 ${
                     provisioningSuccess.emailSent ? 'border-emerald-200' : 'border-rose-300 ring-1 ring-rose-200'
@@ -1621,7 +1589,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         : 'Account Created — Email Delivery Failed!'}
                     </h3>
 
-                    {/* Email Failure Alert Box directly on screen */}
+
                     {!provisioningSuccess.emailSent && (
                       <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl p-4 text-xs text-left space-y-1.5 max-w-lg mx-auto">
                         <div className="font-bold flex items-center gap-1.5 text-rose-950 text-sm">
@@ -1777,7 +1745,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         </div>
                       </div>
 
-                      {/* Direct Account Activation Notice */}
+
                       <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 flex items-start gap-3">
                         <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                         <div className="text-xs text-slate-700 space-y-1">
@@ -1818,12 +1786,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               </div>
             )}
 
-            {/* ── TAB 4: FLEET & INVENTORY (SCALE UP TO 1000+ DRONES WITH REAL ID VERIFICATION) ─ */}
+
             {activeTab === 'fleet' && (
               <div className="space-y-6">
-                {/* ── TIER 1: 4 EXECUTIVE FLEET KPI CARDS ── */}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Total Fleet */}
+
                   <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-xs flex items-center justify-between">
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Fleet</span>
@@ -1835,7 +1803,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     </div>
                   </div>
 
-                  {/* Ready for Sorties / In-Stock */}
+
                   <div
                     onClick={() => {
                       setDroneFilter(droneFilter === 'idle' ? 'all' : 'idle');
@@ -1857,7 +1825,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     </div>
                   </div>
 
-                  {/* Reserved / Active Sorties */}
+
                   <div
                     onClick={() => {
                       setDroneFilter(droneFilter === 'reserved' ? 'all' : 'reserved');
@@ -1882,7 +1850,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     </div>
                   </div>
 
-                  {/* Under Maintenance */}
+
                   <div
                     onClick={() => {
                       setDroneFilter(droneFilter === 'maintenance' ? 'all' : 'maintenance');
@@ -1905,9 +1873,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   </div>
                 </div>
 
-                {/* ── ROW 2: QUALITY & AIRFRAME VERIFICATION CARDS ── */}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Verified Hardware IDs */}
+
                   <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-xs flex items-center justify-between">
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Verified Hardware IDs</span>
@@ -1919,7 +1887,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     </div>
                   </div>
 
-                  {/* Inspections Passed */}
+
                   <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-xs flex items-center justify-between">
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Inspections Passed</span>
@@ -1931,7 +1899,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     </div>
                   </div>
 
-                  {/* Flagged / Needs Review */}
+
                   <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-xs flex items-center justify-between">
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">Flagged / Review</span>
@@ -1943,7 +1911,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     </div>
                   </div>
 
-                  {/* Quick Airframe Operations Card - Clean White Style */}
+
                   <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-xs flex items-center justify-between">
                     <div className="flex-1 mr-2 sm:mr-3">
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Airframe Actions</span>
@@ -1976,7 +1944,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   </div>
                 </div>
 
-                {/* Filters, Search & Action Buttons */}
+
                 <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3.5 bg-white rounded-2xl border border-slate-200/90 shadow-xs">
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
                     <div className="relative flex-1 max-w-md">
@@ -2070,7 +2038,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                   </div>
                 </div>
 
-                {/* Fleet Table */}
+
                 <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs">
                   <div className="sm:hidden px-3.5 py-1.5 bg-slate-50 border-b border-slate-200/80 text-[11px] text-slate-500 font-medium flex items-center justify-between">
                     <span>Swipe horizontally to view full table &rarr;</span>
@@ -2100,7 +2068,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
 
                           return (
                             <tr key={d.id} className="hover:bg-purple-50/20 transition-colors">
-                              {/* Drone Photo */}
+
                               <td className="py-3 px-3.5">
                                 {d.image_url ? (
                                   <img src={d.image_url} alt={d.model} className="h-9 w-12 rounded-xl object-cover border border-slate-200 shadow-2xs" />
@@ -2111,23 +2079,23 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                 )}
                               </td>
 
-                              {/* Drone ID & Serial Number - Protected with whitespace-nowrap */}
+
                               <td className="py-3 px-4 whitespace-nowrap">
                                 <span className="font-mono font-bold text-slate-900 text-xs block tracking-tight">{d.id}</span>
                                 <span className="text-[10px] text-slate-400 font-mono block tracking-tight">{d.serial_number || d.id}</span>
                               </td>
 
-                              {/* Model */}
+
                               <td className="py-3 px-4 font-bold text-[#5a00b8] whitespace-nowrap">{d.model}</td>
 
-                              {/* Category */}
+
                               <td className="py-3 px-4 whitespace-nowrap">
                                 <span className="inline-block px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium text-[11px]">
                                   {d.category || 'General UAV'}
                                 </span>
                               </td>
 
-                              {/* Status & Reservation */}
+
                               <td className="py-3 px-4 whitespace-nowrap">
                                 {d.status === 'maintenance' ? (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
@@ -2157,7 +2125,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                 )}
                               </td>
 
-                              {/* Condition & QC */}
+
                               <td className="py-3 px-4 whitespace-nowrap">
                                 <div className="flex items-center gap-1.5">
                                   <span
@@ -2188,7 +2156,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                 </div>
                               </td>
 
-                              {/* ID Verification */}
+
                               <td className="py-3 px-4 whitespace-nowrap">
                                 {isVerified ? (
                                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/70">
@@ -2203,7 +2171,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                 )}
                               </td>
 
-                              {/* Streamlined Actions Toolbar */}
+
                               <td className="py-3 px-4 text-right whitespace-nowrap">
                                 <div className="inline-flex items-center justify-end gap-1.5">
                                   {isReserved && (
@@ -2218,7 +2186,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                     </button>
                                   )}
 
-                                  {/* Primary Quick Action: Inspect */}
+
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -2233,7 +2201,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                     <span>Inspect</span>
                                   </button>
 
-                                  {/* Quick Action: QR Label */}
+
                                   <button
                                     type="button"
                                     onClick={() => setSelectedQrDrone(d)}
@@ -2244,7 +2212,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                     <span>QR</span>
                                   </button>
 
-                                  {/* Secondary Tool Group (Maintenance, Edit, Decommission) */}
+
                                   <div className="inline-flex items-center rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs">
                                     <button
                                       type="button"
@@ -2309,7 +2277,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     </table>
                   </div>
 
-                  {/* Pagination Controls */}
+
                   {filteredDrones.length > 0 && (
                     <div className="p-3.5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
                       <div className="text-slate-500 font-semibold">
@@ -2359,7 +2327,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               </div>
             )}
 
-            {/* ── TAB: AIRFRAME QC INSPECTION & SCANNING DESK ─────────────── */}
+
             {activeTab === 'qc-scan' && (
               <AirframeQCInspectionConsole
                 currentUser={currentUser}
@@ -2372,7 +2340,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               />
             )}
 
-            {/* ── TAB: DRONE AUDITS & QR SCAN LOGS ──────────────────────────── */}
+
             {activeTab === 'audits' && (
               <DroneAuditLogConsole
                 currentUser={currentUser}
@@ -2385,7 +2353,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               />
             )}
 
-            {/* ── TAB 5: CLIENT DRONE DISPATCHES & SHIPMENTS ───────────────── */}
+
             {activeTab === 'dispatch' && (
               <div className="space-y-4">
                 <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2641,7 +2609,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         </div>
       )}
 
-      {/* ── MODAL: EDIT DRONE DETAILS & REAL HARDWARE ID ────────────────── */}
+
       {editingDrone && (
         <div className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <form onSubmit={handleEditDrone} className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
@@ -2745,7 +2713,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         </div>
       )}
 
-      {/* ── MODAL 1: ADD SINGLE DRONE ──────────────────────────────────── */}
+
       {showAddSingleDrone && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
@@ -2848,7 +2816,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 )}
               </div>
 
-              {/* Admin Inventory OTP Security Challenge */}
+
               <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2 font-sans">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-[#5a00b8] flex items-center gap-1.5 uppercase tracking-wider">
@@ -2908,7 +2876,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         </div>
       )}
 
-      {/* ── MODAL 2: BULK BATCH GENERATOR ───────────────────────────────── */}
+
       {showBulkDroneModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
@@ -3008,7 +2976,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </p>
               </div>
 
-              {/* Admin Inventory OTP Security Challenge */}
+
               <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2 font-sans">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-[#5a00b8] flex items-center gap-1.5 uppercase tracking-wider">
@@ -3070,7 +3038,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         </div>
       )}
 
-      {/* ── MODAL 3: DISPATCH DRONES TO CLIENT ─────────────────────────── */}
+
       {showDispatchModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-4">
@@ -3174,7 +3142,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         </div>
       )}
 
-      {/* ── MODAL 4: RESERVED DRONE & CUSTOMER ORDER INSPECTION ────────── */}
+
       {selectedReservedDrone && (() => {
         const drone = selectedReservedDrone;
         const linkedOrder = getLinkedOrderForDrone(drone);
@@ -3187,7 +3155,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         return (
           <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150 border border-slate-100">
-              {/* Modal Header */}
+
               <div className="flex items-start justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center font-black border border-purple-100 shrink-0">
@@ -3214,7 +3182,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </button>
               </div>
 
-              {/* Drone Hardware Summary Banner */}
+
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3.5 w-full sm:w-auto">
                   {drone.image_url ? (
@@ -3240,7 +3208,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </div>
               </div>
 
-              {/* Linked Booking Order Details */}
+
               {linkedOrder ? (
                 <div className="space-y-4">
                   <div className="p-4 sm:p-5 rounded-2xl bg-purple-50/40 border border-purple-200/70 space-y-4">
@@ -3271,9 +3239,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                       </div>
                     </div>
 
-                    {/* Customer & Recipient Grid */}
+
                     <div className="grid sm:grid-cols-2 gap-4 text-xs">
-                      {/* Customer Contact */}
+
                       <div className="p-3.5 rounded-xl bg-white border border-purple-100 space-y-1.5 shadow-2xs">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                           <User className="w-3 h-3 text-purple-600" /> Customer Information
@@ -3293,7 +3261,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                         )}
                       </div>
 
-                      {/* Delivery Address */}
+
                       <div className="p-3.5 rounded-xl bg-white border border-purple-100 space-y-1.5 shadow-2xs">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                           <MapPin className="w-3 h-3 text-purple-600" /> Delivery Destination
@@ -3308,7 +3276,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                       </div>
                     </div>
 
-                    {/* Order Units & Specification */}
+
                     <div className="p-3.5 rounded-xl bg-white border border-purple-100 space-y-2 text-xs shadow-2xs">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-slate-700">Consignment Summary:</span>
@@ -3326,7 +3294,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                       )}
                     </div>
 
-                    {/* All Drones in this Reservation */}
+
                     {Array.isArray(linkedOrder.reserved_inventory_ids) && linkedOrder.reserved_inventory_ids.length > 0 && (
                       <div className="space-y-1.5">
                         <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
@@ -3364,7 +3332,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </div>
               )}
 
-              {/* Modal Footer Actions */}
+
               <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
                 <div className="text-xs text-slate-400 font-medium">
                   {linkedOrder ? 'Live reservation data synced from Supabase' : 'Direct Drone Unit view'}
@@ -3398,7 +3366,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         );
       })()}
 
-      {/* ── MODAL: MANAGE ORDER STATUS (HOLD / CANCEL / RESCHEDULE / RESUME) ──── */}
+
       {managingOrder && (
         <div className="fixed inset-0 z-[120] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
@@ -3412,7 +3380,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               </button>
             </div>
 
-            {/* Current Order Summary */}
+
             <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1">
               <div className="flex justify-between">
                 <span className="text-slate-500">Customer / Client:</span>
@@ -3429,7 +3397,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
             </div>
 
             <form onSubmit={handleManageOrderStatus} className="space-y-4 text-xs">
-              {/* Action Selection */}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">Select Action</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -3487,7 +3455,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </div>
               </div>
 
-              {/* Reschedule Date and Time */}
+
               {manageAction === 'reschedule' && (
                 <div className="grid grid-cols-2 gap-3 p-3 bg-purple-50/50 rounded-2xl border border-purple-100">
                   <div>
@@ -3512,7 +3480,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 </div>
               )}
 
-              {/* Reason / Notes */}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Reason / Operational Notes {manageAction === 'cancel' || manageAction === 'hold' ? '*' : '(Optional)'}
@@ -3536,7 +3504,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                 />
               </div>
 
-              {/* Hold Two-Factor Self-Verification */}
+
               {manageAction === 'hold' && (
                 <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 space-y-2.5 text-xs">
                   <div className="flex items-center justify-between">
@@ -3629,7 +3597,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         </div>
       )}
 
-      {/* ── MODAL: ADMIN LIVE RADAR & FLIGHT TRACKING ──── */}
+
       {adminTrackingOrder && (
         <div className="fixed inset-0 z-[130] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-3xl w-full max-h-[92vh] overflow-y-auto shadow-2xl space-y-4">
@@ -3651,12 +3619,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               </button>
             </div>
 
-            {/* Live Interactive Flight Map */}
+
             <div className="space-y-2">
               <CustomerOrderLiveMap order={adminTrackingOrder} />
             </div>
 
-            {/* Mission Key Logistics Info */}
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Customer / Enterprise</span>
@@ -3679,7 +3647,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               </div>
             </div>
 
-            {/* Pickup & Destination Address Bar */}
+
             <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1.5">
               <div className="flex items-start gap-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shrink-0">
@@ -3695,7 +3663,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
               </div>
             </div>
 
-            {/* Modal Actions */}
+
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
               <button
                 onClick={() => {
@@ -3721,7 +3689,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         </div>
       )}
 
-      {/* ── 700 RPAV QR CODE LABEL MODAL ──── */}
+
       <DroneQRCodeModal
         isOpen={Boolean(selectedQrDrone)}
         onClose={() => setSelectedQrDrone(null)}
@@ -3735,14 +3703,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         onNavigate={onNavigate}
       />
 
-      {/* ── BULK QR CODE DOWNLOAD ZIP MODAL (ADMIN / FLEET / DISPATCHER) ──── */}
+
       <BulkQrDownloadModal
         isOpen={showBulkQrModal}
         onClose={() => setShowBulkQrModal(false)}
         allDrones={drones}
       />
 
-      {/* ── 700 RPAV DRONE QR SCANNER MODAL ──── */}
+
       <DroneQRScannerModal
         isOpen={showQrScanner}
         onClose={() => setShowQrScanner(false)}
@@ -3759,7 +3727,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         }}
       />
 
-      {/* ── 700 RPAV POST-DELIVERY CONDITION INSPECTION MODAL ──── */}
+
       <PostDeliveryInspectionModal
         isOpen={showInspectionModal}
         onClose={() => setShowInspectionModal(false)}

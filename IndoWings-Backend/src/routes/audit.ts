@@ -4,7 +4,6 @@ import { authenticateToken, requireRoles, AuthenticatedRequest } from '../middle
 
 const router = Router();
 
-// GET audit logs (Admin only)
 router.get('/', authenticateToken, requireRoles('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const logs = await dbService.getAuditLogs();

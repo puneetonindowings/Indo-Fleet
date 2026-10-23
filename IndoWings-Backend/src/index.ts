@@ -48,7 +48,6 @@ const isAllowedOrigin = (origin: string): boolean => {
   if (/^https?:\/\/localhost(?::\d+)?$/i.test(origin)) return true;
   if (/^https?:\/\/127\.0\.0\.1(?::\d+)?$/i.test(origin)) return true;
   if (/^https?:\/\/(?:192\.168|10|172\.(?:1[6-9]|2\d|3[01]))\.\d+\.\d+(?::\d+)?$/i.test(origin)) return true;
-  // Specific trusted domains and their subdomains only (no arbitrary *.vercel.app or *.onrender.com)
   if (/^https:\/\/(?:[a-zA-Z0-9-]+\.)?indowfleet\.com$/i.test(origin)) return true;
   if (/^https:\/\/(?:[a-zA-Z0-9-]+\.)?indowings\.com$/i.test(origin)) return true;
   if (/^https:\/\/(?:indo-fleet|indowfleet)\.vercel\.app$/i.test(origin)) return true;

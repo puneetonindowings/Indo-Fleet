@@ -20,7 +20,6 @@ export const getAutoServerUrl = (): string => {
     }
     return 'https://indo-fleet.onrender.com';
   }
-  // On mobile device APK / Expo Go, default to live cloud API so it works across any network
   return 'https://indo-fleet.onrender.com';
 };
 
@@ -116,5 +115,4 @@ export const getSupportPhone = (): string => {
 export const getDefaultDroneModel = (): string => {
   return process.env.EXPO_PUBLIC_DEFAULT_DRONE_MODEL || 'RPAV-000001';
 };
-
 

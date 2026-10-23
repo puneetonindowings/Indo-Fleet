@@ -31,7 +31,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', authenticateToken, requireRoles('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const { model_name, category, serial_number, max_range_km, endurance_mins, max_speed_kmh, payload_capacity_kg, image_url } = req.body;
-    
+
     if (!model_name || !serial_number) {
       res.status(400).json({ error: 'Model name and serial number are required' });
       return;

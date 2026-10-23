@@ -50,7 +50,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
   const [verifiedSuccess, setVerifiedSuccess] = useState(false);
   const [verifiedDroneId, setVerifiedDroneId] = useState<string | null>(null);
 
-  // Native Camera Permissions
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
   useEffect(() => {
@@ -61,18 +60,15 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     }
   }, [cameraPermission]);
 
-  // Mismatch Error Modal state
   const [mismatchError, setMismatchError] = useState<{
     scanned: string;
     message?: string;
     expectedList?: string[];
   } | null>(null);
 
-  // Manual code entry state
   const [manualCode, setManualCode] = useState('');
   const [showManualInput, setShowManualInput] = useState(false);
 
-  // Live Camera Viewfinder State
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isInitializingCam, setIsInitializingCam] = useState(false);
@@ -84,7 +80,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
 
   const cleanOrderNumber = order?.order_number || order?.id || 'DELIVERY';
 
-  // Collect all valid expected drone IDs for this order (hidden from pre-scan UI)
   const getExpectedDroneIds = useCallback((): string[] => {
     if (!order) return [];
     const ids = new Set<string>();
@@ -113,24 +108,19 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
       ids.add(s);
     };
 
-    // 1. Reserved inventory units (exact booking allocation)
     if (Array.isArray(order.reserved_inventory_ids) && order.reserved_inventory_ids.length > 0) {
       order.reserved_inventory_ids.forEach(addClean);
     }
-    // 2. Explicit assigned_drone_ids array
     if (Array.isArray(order.assigned_drone_ids) && order.assigned_drone_ids.length > 0) {
       order.assigned_drone_ids.forEach(addClean);
     }
-    // 3. Drones array
     if (Array.isArray(order.drones) && order.drones.length > 0) {
       order.drones.forEach(addClean);
     }
-    // 4. Fallback only if no multi-drone array exists: single drone field
     if (ids.size === 0) {
       addClean(order.assigned_drone_id);
       addClean(order.drone_id);
     }
-    // 5. Fallback items list
     if (ids.size === 0 && Array.isArray(order.items)) {
       order.items.forEach((it) => {
         addClean(it.serial_number || it.serial || it.drone_id || it.id);
@@ -139,7 +129,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     return Array.from(ids);
   }, [order]);
 
-  // Hardware Back Button
   useEffect(() => {
     const onBackPress = () => {
       onBack();
@@ -149,7 +138,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     return () => sub.remove();
   }, [onBack]);
 
-  // Animate laser scanner line
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -167,7 +155,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     ).start();
   }, [scanAnim]);
 
-  // Request live camera stream
   const startCamera = async () => {
     setIsInitializingCam(true);
     setCameraError(null);
@@ -180,7 +167,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
 
         let stream: any = null;
 
-        // Try rear / environment camera first (smartphones / tablets)
         try {
           stream = await navigator.mediaDevices.getUserMedia({
             video: {
@@ -191,7 +177,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
             audio: false,
           });
         } catch (firstErr) {
-          // Fallback to any attached webcam
           try {
             stream = await navigator.mediaDevices.getUserMedia({
               video: true,
@@ -248,7 +233,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     };
   }, []);
 
-  // Continuous frame analysis via jsQR on web live stream
   useEffect(() => {
     let animId: number;
 
@@ -301,7 +285,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     };
   }, [cameraActive, verifiedSuccess, isVerifying, mismatchError]);
 
-  // Decode QR from Image URI via Canvas + jsQR
   const decodeQrFromUri = async (uri: string): Promise<string | null> => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       return new Promise((resolve) => {
@@ -309,7 +292,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
         img.crossOrigin = 'anonymous';
         img.onload = () => {
           try {
-            // Pass 1: Native Image Scale
             const canvas1 = document.createElement('canvas');
             canvas1.width = img.width;
             canvas1.height = img.height;
@@ -323,7 +305,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
               if (code1?.data) return resolve(code1.data.trim());
             }
 
-            // Pass 2: Normalized 600x600 Scale (High tolerance for centered logo badges)
             const canvas2 = document.createElement('canvas');
             canvas2.width = 600;
             canvas2.height = 600;
@@ -349,11 +330,9 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     return null;
   };
 
-  // Extract Clean Drone Serial from Scanned Text (URLs, JSON, or plain text)
   const extractDroneId = (text: string): string => {
     if (!text) return '';
     let raw = text.trim();
-    // Case 1: JSON payload
     if (raw.startsWith('{') && raw.endsWith('}')) {
       try {
         const parsed = JSON.parse(raw);
@@ -362,7 +341,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
         }
       } catch {}
     }
-    // Case 2: URL like https://indo-fleet.vercel.app/drone/INW-700RPAV-0004
     if (raw.includes('/drone/')) {
       const parts = raw.split('/drone/');
       if (parts[1]) {
@@ -373,7 +351,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
         }
       }
     }
-    // Case 3: Prefixed format INDOFLEET:DRONE:RPAV-700-01
     if (raw.includes(':') && !raw.startsWith('http')) {
       const parts = raw.split(':');
       const last = parts[parts.length - 1];
@@ -382,7 +359,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     return raw;
   };
 
-  // Main Validation: Compare Scanned Drone ID vs Order's Assigned Drones Fleet
   const handleValidateScannedCode = async (scannedRaw: string) => {
     if (isVerifying || verifiedSuccess) return;
 
@@ -392,11 +368,9 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     setIsVerifying(true);
     setMismatchError(null);
 
-    // Normalization for comparison
     const normScanned = extractedCode.toUpperCase().replace(/[^A-Z0-9]/g, '');
     let expectedList = getExpectedDroneIds();
 
-    // If expected list in memory is still empty, dynamically fetch active orders
     if (expectedList.length === 0 && order?.id) {
       try {
         const fresh = await fetchPilotDashboard();
@@ -424,14 +398,12 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
 
     let matchedId: string | null = null;
 
-    // 1. Direct comparison with order assigned / reserved drones
     for (const exp of expectedList) {
       const normExp = exp.toUpperCase().replace(/[^A-Z0-9]/g, '');
       if (normScanned === normExp || normScanned.includes(normExp) || normExp.includes(normScanned)) {
         matchedId = exp;
         break;
       }
-      // Tail 4-digit unit check (e.g. 0004 from INW-700RPAV-0004 matches IW-700RPAV-2026-0004)
       const scannedDigits = normScanned.match(/\d{4}$/)?.[0];
       const expDigits = normExp.match(/\d{4}$/)?.[0];
       if (scannedDigits && expDigits && scannedDigits === expDigits) {
@@ -440,7 +412,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
       }
     }
 
-    // 2. If not matched locally or expected list empty, verify with backend API
     if (!matchedId && order?.id) {
       try {
         const verifyRes = await verifyDroneForOrder(order.id, extractedCode);
@@ -455,7 +426,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     setIsVerifying(false);
 
     if (matchedId) {
-      // Check if already inspected
       const alreadyInspected = (inspectedDroneIds || []).includes(matchedId);
       if (alreadyInspected) {
         const finalId = matchedId;
@@ -486,18 +456,15 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
         return;
       }
 
-      // MATCH SUCCESS!
       setVerifiedDroneId(matchedId);
       setVerifiedSuccess(true);
       setMismatchError(null);
 
-      // Proceed to Pre/Post-Flight Inspection for this specific drone
       const finalId = matchedId;
       setTimeout(() => {
         onScannedSuccess(finalId);
       }, 800);
     } else {
-      // MISMATCH ERROR! DO NOT PROCEED!
       setVerifiedSuccess(false);
       setMismatchError({
         scanned: extractedCode,
@@ -507,7 +474,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     }
   };
 
-  // Take photo of drone QR with phone camera
   const handleTakePhotoScan = async () => {
     try {
       if (Platform.OS === 'web') {
@@ -560,7 +526,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
         if (decoded) {
           handleValidateScannedCode(decoded);
         } else {
-          // If optical image couldn't read QR, prompt pilot with manual serial prompt
           Alert.alert(
             'QR Not Recognized',
             'Could not clearly detect a QR code in the captured photo. Please hold camera closer to the sticker or enter the Drone ID below.',
@@ -576,7 +541,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     }
   };
 
-  // Upload QR photo from gallery
   const handleUploadPhotoScan = async () => {
     try {
       if (Platform.OS === 'web') {
@@ -629,7 +593,6 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
     }
   };
 
-  // Handle Manual Code Submit
   const handleManualSubmit = () => {
     if (!manualCode.trim()) {
       Alert.alert('Empty Code', 'Please enter the drone ID (e.g. RPAV-700-01) printed on the airframe.');
@@ -645,7 +608,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* ── Top Header (Order ID Only - Drone ID is Hidden Until Scanned) ── */}
+
       <View style={styles.header}>
         <TouchableOpacity
           onPress={onBack}
@@ -667,7 +630,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32 }}>
-        {/* Notice for web / emulator without physical webcam */}
+
         {Boolean(cameraError) && (
           <View style={styles.webcamNoticeBanner}>
             <AlertTriangle size={16} color="#B45309" style={{ marginTop: 1 }} />
@@ -692,10 +655,10 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
           </View>
         )}
 
-        {/* ── Scanner Viewport Container ─────────────────────────── */}
+
         <View style={styles.scannerWrapper}>
           <View style={styles.viewfinderCard}>
-            {/* Native Mobile Live CameraView */}
+
             {Platform.OS !== 'web' && (
               cameraPermission?.granted ? (
                 <CameraView
@@ -726,7 +689,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
               )
             )}
 
-            {/* HTML5 live camera video element for Web */}
+
             {Platform.OS === 'web' && (
               <div
                 style={{
@@ -766,14 +729,14 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
               </div>
             )}
 
-            {/* Optical viewfinder backdrop (shown only before camera starts) */}
+
             {!cameraActive && !(Platform.OS !== 'web' && cameraPermission?.granted) && (
               <View style={[styles.cameraPlaceholder, { zIndex: 2 }]}>
                 <View style={styles.simulatedGrid} />
               </View>
             )}
 
-            {/* Viewfinder Top HUD */}
+
             <View style={[styles.scannerTopHud, { zIndex: 12 }]}>
               <View style={styles.scannerLivePill}>
                 <View
@@ -795,7 +758,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
               </View>
             </View>
 
-            {/* Target Reticle Overlay */}
+
             <View style={[styles.reticleContainer, { zIndex: 10 }]}>
               <View
                 style={[
@@ -804,13 +767,13 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
                   Boolean(mismatchError) && styles.reticleBoxError,
                 ]}
               >
-                {/* 4 Corner Targeting Brackets */}
+
                 <View style={[styles.cornerBracket, styles.topLeft, verifiedSuccess && styles.bracketSuccess, Boolean(mismatchError) && styles.bracketError]} />
                 <View style={[styles.cornerBracket, styles.topRight, verifiedSuccess && styles.bracketSuccess, Boolean(mismatchError) && styles.bracketError]} />
                 <View style={[styles.cornerBracket, styles.bottomLeft, verifiedSuccess && styles.bracketSuccess, Boolean(mismatchError) && styles.bracketError]} />
                 <View style={[styles.cornerBracket, styles.bottomRight, verifiedSuccess && styles.bracketSuccess, Boolean(mismatchError) && styles.bracketError]} />
 
-                {/* Animated Laser Scanning Line */}
+
                 {!verifiedSuccess && !mismatchError && (
                   <Animated.View
                     style={[
@@ -822,7 +785,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
                   />
                 )}
 
-                {/* Center Status / Icon */}
+
                 <View style={styles.reticleCenter}>
                   {verifiedSuccess ? (
                     <View style={styles.successCircle}>
@@ -854,7 +817,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
               </View>
             </View>
 
-            {/* Bottom Viewfinder Hint */}
+
             <View style={[styles.viewfinderBottomHud, { zIndex: 12 }]}>
               <Text style={styles.viewfinderBottomText}>
                 Locate QR sticker on drone chassis or battery compartment
@@ -863,7 +826,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
           </View>
         </View>
 
-        {/* ── MISMATCH ERROR BANNER (When wrong drone is scanned) ──── */}
+
         {mismatchError && (
           <View style={styles.mismatchBanner}>
             <View style={styles.mismatchHeader}>
@@ -900,9 +863,9 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
           </View>
         )}
 
-        {/* ── Controls & Authentic Actions (No Dummy Instant Verify) ── */}
+
         <View style={styles.controlPanel}>
-          {/* Order Details Card (Only Order info, NO pre-revealed drone ID) */}
+
           <View style={styles.orderCard}>
             <View style={styles.orderCardHeader}>
               <View style={{ flex: 1, minWidth: 140, marginRight: 6 }}>
@@ -918,7 +881,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
             </Text>
           </View>
 
-          {/* Primary Action: Open Hardware Camera Shutter */}
+
           <TouchableOpacity
             style={[styles.primaryActionBtn, isVerifying && { opacity: 0.7 }]}
             onPress={handleTakePhotoScan}
@@ -935,7 +898,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
             )}
           </TouchableOpacity>
 
-          {/* Secondary Actions: Gallery Upload & Manual Code Entry */}
+
           <View style={styles.secondaryActionRow}>
             <TouchableOpacity
               style={styles.secondaryBtn}
@@ -960,7 +923,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Manual Drone Serial Entry Input Box */}
+
           {showManualInput && (
             <View style={styles.manualEntryCard}>
               <Text style={styles.manualEntryTitle}>Enter Drone Serial / QR Text</Text>
@@ -990,7 +953,7 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
             </View>
           )}
 
-          {/* Success Reveal Card (Shown ONLY after successful match) */}
+
           {verifiedSuccess && verifiedDroneId && (
             <View style={styles.verifiedSuccessCard}>
               <View style={styles.verifiedSuccessRow}>
