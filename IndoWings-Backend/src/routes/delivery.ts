@@ -235,6 +235,13 @@ function maskPhone(phone?: string | null): string {
   return `${digits.slice(0, 2)}${'*'.repeat(Math.max(digits.length - 4, 3))}${digits.slice(-2)}`;
 }
 
+function maskName(name?: string | null): string {
+  if (!name || typeof name !== 'string') return 'Customer';
+  const trimmed = name.trim();
+  if (trimmed.length <= 2) return trimmed[0] + '*';
+  return trimmed.slice(0, 3) + '*'.repeat(Math.min(5, Math.max(1, trimmed.length - 3)));
+}
+
 function sanitizeOrderForPublic(order: any) {
   if (!order || typeof order !== 'object') return order;
   const clone = JSON.parse(JSON.stringify(order));
@@ -3986,7 +3993,7 @@ router.delete('/feedbacks/:id', async (req, res) => {
 
 router.post('/chatbot/track-by-id', async (req, res) => {
   try {
-    const { order_id, customer_name, verification_name, name: altName, skip_name_check } = req.body;
+    const { order_id, customer_name, verification_name, name: altName } = req.body;
     const providedName = (customer_name || verification_name || altName || '').trim();
 
     if (!order_id) {
@@ -4005,7 +4012,10 @@ router.post('/chatbot/track-by-id', async (req, res) => {
       return;
     }
 
-    if (!skip_name_check && !providedName) {
+    const actor = await getAuthenticatedUser(req);
+    const isStaffOrOwner = actor && (['admin', 'dispatcher', 'fleet_manager', 'support'].includes(actor.role) || actor.id === order.creator_id || actor.email === order.customer_email);
+
+    if (!isStaffOrOwner && !providedName) {
       res.json({
         success: true,
         verified: false,
@@ -4016,7 +4026,7 @@ router.post('/chatbot/track-by-id', async (req, res) => {
       return;
     }
 
-    if (!skip_name_check) {
+    if (!isStaffOrOwner) {
       const inputName = providedName.toLowerCase();
       const actualCustomer = (order.customer_name || '').toLowerCase();
       const actualRecipient = (order.recipient_name || '').toLowerCase();
@@ -4287,17 +4297,17 @@ router.post('/chatbot/verify-id-otp', async (req, res) => {
   }
 });
 
-router.post('/chatbot/lookup-order', async (req, res) => {
+router.post('/chatbot/lookup-order', authLimiter, async (req, res) => {
   try {
     const { name, phone, email, date } = req.body;
     const cleanName = (name || '').trim().toLowerCase();
     const cleanPhone = (phone || '').replace(/[^0-9]/g, '').slice(-10);
     const cleanEmail = (email || '').toLowerCase().trim();
 
-    if (!cleanName && !cleanPhone && !cleanEmail) {
+    if (!cleanName || cleanName.length < 3 || (!cleanPhone && !cleanEmail)) {
       res.status(400).json({
         success: false,
-        message: 'Please provide your registered Name and Phone number or Email.'
+        message: 'Please provide both your registered full Name (minimum 3 characters) and Phone number or Email address.'
       });
       return;
     }
