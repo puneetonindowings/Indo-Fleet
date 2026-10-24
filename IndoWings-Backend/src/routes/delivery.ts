@@ -3014,8 +3014,11 @@ router.post('/orders/:id/cancel', async (req, res) => {
     return;
   }
 
-  if (user?.role === 'customer' && (order.creator_id !== user.id || order.order_type !== 'drone_purchase' || order.status !== 'pending')) {
-    res.status(403).json({ error: 'This booking can no longer be cancelled online.' });
+  const isAuthorizedStaff = ['admin', 'dispatcher', 'fleet_manager'].includes(user.role);
+  const isOwnerCustomer = user.role === 'customer' && order.creator_id === user.id && order.status === 'pending';
+
+  if (!isAuthorizedStaff && !isOwnerCustomer) {
+    res.status(403).json({ error: 'You do not have permission to cancel this order.' });
     return;
   }
 
