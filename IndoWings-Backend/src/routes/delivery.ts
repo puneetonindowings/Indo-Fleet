@@ -39,7 +39,7 @@ import { sendPushToUser, broadcastPushToPilots } from '../firebaseService.js';
 import { JWT_SECRET } from '../middleware/auth.js';
 import { createRateLimiter } from '../middleware/rateLimiter.js';
 import { apiCache } from '../utils/cache.js';
-import { geocodeAddress, getRoadRoute } from '../geocodingService.js';
+import { geocodeAddress, getRoadRoute, checkRouteDeviation } from '../geocodingService.js';
 
 function calculateAerialDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
@@ -5335,6 +5335,64 @@ router.post('/pilot/update-location', async (req, res) => {
       updated_at: now
     };
 
+    let dropLng = Number(
+      order.drop_lng ??
+      order.destination_lng ??
+      order.delivery_lng ??
+      order.destination_location?.longitude ??
+      order.destination_location?.lng
+    );
+    let dropLat = Number(
+      order.drop_lat ??
+      order.destination_lat ??
+      order.delivery_lat ??
+      order.destination_location?.latitude ??
+      order.destination_location?.lat
+    );
+
+    if (!Number.isFinite(dropLng) || !Number.isFinite(dropLat) || (dropLng === 0 && dropLat === 0)) {
+      const dropAddr = String(order.drop_address || order.destination_address || order.delivery_address || '').trim();
+      if (dropAddr) {
+        const geo = await geocodeAddress(dropAddr);
+        if (geo) {
+          dropLng = geo.lng;
+          dropLat = geo.lat;
+        }
+      }
+    }
+
+    const pickupLng = Number(order.pickup_lng ?? order.pickup_location?.longitude ?? 77.3661);
+    const pickupLat = Number(order.pickup_lat ?? order.pickup_location?.latitude ?? 28.6037);
+
+    let plannedCoords: [number, number][] = Array.isArray(order.planned_route_coords) ? order.planned_route_coords : [];
+    if (plannedCoords.length < 2 && Number.isFinite(dropLng) && Number.isFinite(dropLat) && (dropLng !== 0 || dropLat !== 0)) {
+      const baseRoute = await getRoadRoute([pickupLng, pickupLat], [dropLng, dropLat]);
+      if (baseRoute?.coordinates?.length) {
+        plannedCoords = baseRoute.coordinates;
+      }
+    }
+
+    let isOffRoute = false;
+    let deviationMeters = 0;
+    let reroutedCoords: [number, number][] | null = null;
+    let recalculatedDurationMins: number | null = null;
+    let recalculatedDistanceKm: number | null = null;
+
+    if (plannedCoords.length >= 2) {
+      const devCheck = checkRouteDeviation([liveLocation.lng, liveLocation.lat], plannedCoords, 150);
+      isOffRoute = devCheck.isOffRoute;
+      deviationMeters = devCheck.deviationMeters;
+
+      if (isOffRoute && Number.isFinite(dropLng) && Number.isFinite(dropLat)) {
+        const newRoute = await getRoadRoute([liveLocation.lng, liveLocation.lat], [dropLng, dropLat]);
+        if (newRoute?.coordinates?.length) {
+          reroutedCoords = newRoute.coordinates;
+          recalculatedDistanceKm = newRoute.distanceKm;
+          recalculatedDurationMins = newRoute.durationMins;
+        }
+      }
+    }
+
     const updatedOrder = await fileDB.updateOrder(order_id, {
       last_known_location: `${liveLocation.lat.toFixed(6)}, ${liveLocation.lng.toFixed(6)}`,
       current_location_coords: { lat: liveLocation.lat, lng: liveLocation.lng },
@@ -5350,6 +5408,16 @@ router.post('/pilot/update-location', async (req, res) => {
       battery_pct: liveLocation.battery_pct,
       last_location_updated_at: now,
       location_is_live: true,
+      is_off_route: isOffRoute,
+      route_deviation_meters: deviationMeters,
+      route_status: isOffRoute ? 'deviated' : 'on_track',
+      planned_route_coords: plannedCoords,
+      current_route_coords: reroutedCoords || (isOffRoute ? undefined : plannedCoords),
+      ...(isOffRoute && reroutedCoords ? {
+        rerouted_at: now,
+        recalculated_distance_km: recalculatedDistanceKm,
+        recalculated_duration_mins: recalculatedDurationMins
+      } : {}),
       ...(order.status === 'pending' || order.status === 'assigned' ? { status: 'in-flight' } : {})
     });
 
@@ -5358,6 +5426,10 @@ router.post('/pilot/update-location', async (req, res) => {
       order_id,
       timestamp: now,
       recorded_location: liveLocation,
+      is_off_route: isOffRoute,
+      deviation_meters: deviationMeters,
+      route_status: isOffRoute ? 'deviated' : 'on_track',
+      rerouted: Boolean(reroutedCoords),
       status: updatedOrder?.status || 'in-flight'
     });
   } catch (err: any) {

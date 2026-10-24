@@ -1,16 +1,16 @@
 /**
  * IndoFleet Dynamic Geocoding & Routing Service
  * Provides real-world address geocoding (Nominatim / Google) and road routing (OSRM)
- * with robust address normalization and high-performance caching.
+ * with robust address normalization, dynamic route recalculation, and high-performance caching.
  */
 
-interface GeocodeResult {
+export interface GeocodeResult {
   lat: number;
   lng: number;
   displayName: string;
 }
 
-interface RouteResult {
+export interface RouteResult {
   distanceKm: number;
   durationMins: number;
   coordinates: [number, number][]; // [lng, lat] GeoJSON format
@@ -154,4 +154,85 @@ export async function getRoadRoute(
     console.warn('[Routing] OSRM fetch failed:', err);
   }
   return null;
+}
+
+export function haversineDistMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3;
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+export function distToSegmentMeters(
+  pLat: number,
+  pLng: number,
+  aLat: number,
+  aLng: number,
+  bLat: number,
+  bLng: number
+): number {
+  const dAB = haversineDistMeters(aLat, aLng, bLat, bLng);
+  if (dAB === 0) return haversineDistMeters(pLat, pLng, aLat, aLng);
+
+  const midLat = ((aLat + bLat) / 2 * Math.PI) / 180;
+  const kx = Math.cos(midLat);
+  const ax = aLng * kx, ay = aLat;
+  const bx = bLng * kx, by = bLat;
+  const px = pLng * kx, py = pLat;
+
+  const dx = bx - ax;
+  const dy = by - ay;
+  const denom = dx * dx + dy * dy;
+  if (denom === 0) return haversineDistMeters(pLat, pLng, aLat, aLng);
+
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / denom));
+  const projLat = aLat + t * (bLat - aLat);
+  const projLng = aLng + t * (bLng - aLng);
+  return haversineDistMeters(pLat, pLng, projLat, projLng);
+}
+
+export function minDistanceToPolylineMeters(
+  point: [number, number], // [lng, lat]
+  polyline: [number, number][] // [lng, lat][]
+): number {
+  if (!polyline || polyline.length < 2) return 0;
+  let minDist = Infinity;
+  for (let i = 0; i < polyline.length - 1; i++) {
+    const d = distToSegmentMeters(
+      point[1],
+      point[0],
+      polyline[i][1],
+      polyline[i][0],
+      polyline[i + 1][1],
+      polyline[i + 1][0]
+    );
+    if (d < minDist) minDist = d;
+  }
+  return minDist;
+}
+
+export interface RouteDeviationCheck {
+  isOffRoute: boolean;
+  deviationMeters: number;
+}
+
+export function checkRouteDeviation(
+  currentCoords: [number, number], // [lng, lat]
+  plannedCoordinates: [number, number][], // [lng, lat][]
+  thresholdMeters: number = 150
+): RouteDeviationCheck {
+  if (!plannedCoordinates || plannedCoordinates.length < 2) {
+    return { isOffRoute: false, deviationMeters: 0 };
+  }
+  const deviationMeters = Math.round(minDistanceToPolylineMeters(currentCoords, plannedCoordinates));
+  return {
+    isOffRoute: deviationMeters > thresholdMeters,
+    deviationMeters
+  };
 }

@@ -260,6 +260,7 @@ function toOrder(order: JsonRecord) {
   const { row, metadata } = splitMetadata(order, orderColumns);
   if (row.fare !== undefined && row.fare_inr === undefined) row.fare_inr = row.fare;
   delete row.fare;
+  if (row.weight_kg !== undefined) row.weight_kg = Math.round(Number(row.weight_kg) || 1);
 
   const existingDeliveryData = typeof order.delivery_data === 'object' && order.delivery_data !== null
     ? { ...order.delivery_data }

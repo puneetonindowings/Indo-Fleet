@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Navigation, ZoomIn, ZoomOut, Layers, Truck, MapPin, Building2, Clock, Route as RouteIcon, Eye, EyeOff, ChevronUp, ChevronDown } from 'lucide-react';
+import { Navigation, ZoomIn, ZoomOut, Layers, Truck, MapPin, Building2, Clock, Route as RouteIcon, Eye, EyeOff, ChevronUp, ChevronDown, AlertTriangle } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
 if (typeof (maplibregl as any).setWorkerUrl === 'function') {
@@ -66,7 +66,68 @@ const GOOGLE_SATELLITE_STYLE = {
   ]
 };
 
-export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ order, className = 'h-[440px] sm:h-[500px]' }) => {
+function haversineDistMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3;
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function distToSegmentMeters(
+  pLat: number,
+  pLng: number,
+  aLat: number,
+  aLng: number,
+  bLat: number,
+  bLng: number
+): number {
+  const dAB = haversineDistMeters(aLat, aLng, bLat, bLng);
+  if (dAB === 0) return haversineDistMeters(pLat, pLng, aLat, aLng);
+
+  const midLat = ((aLat + bLat) / 2 * Math.PI) / 180;
+  const kx = Math.cos(midLat);
+  const ax = aLng * kx, ay = aLat;
+  const bx = bLng * kx, by = bLat;
+  const px = pLng * kx, py = pLat;
+
+  const dx = bx - ax;
+  const dy = by - ay;
+  const denom = dx * dx + dy * dy;
+  if (denom === 0) return haversineDistMeters(pLat, pLng, aLat, aLng);
+
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / denom));
+  const projLat = aLat + t * (bLat - aLat);
+  const projLng = aLng + t * (bLng - aLng);
+  return haversineDistMeters(pLat, pLng, projLat, projLng);
+}
+
+function minDistanceToPolylineMeters(
+  point: [number, number],
+  polyline: [number, number][]
+): number {
+  if (!polyline || polyline.length < 2) return 0;
+  let minDist = Infinity;
+  for (let i = 0; i < polyline.length - 1; i++) {
+    const d = distToSegmentMeters(
+      point[1],
+      point[0],
+      polyline[i][1],
+      polyline[i][0],
+      polyline[i + 1][1],
+      polyline[i + 1][0]
+    );
+    if (d < minDist) minDist = d;
+  }
+  return minDist;
+}
+
+export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ order, className = 'h-[460px] sm:h-[540px]' }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<MapLibreMap | null>(null);
   const vehicleMarkerRef = useRef<maplibregl.Marker | null>(null);
@@ -233,15 +294,38 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
   }, [order, isCancelled, isDelivered, isPending, pickupCoords, dropCoords]);
 
   const [roadCoordinates, setRoadCoordinates] = useState<[number, number][]>([]);
+  const [plannedBaseCoordinates, setPlannedBaseCoordinates] = useState<[number, number][]>([]);
+
+  const isOffRoute = useMemo(() => {
+    if (order?.is_off_route === true || order?.route_status === 'deviated') return true;
+    if (currentVehicleCoords && plannedBaseCoordinates.length >= 2 && isActiveInFlight) {
+      const d = minDistanceToPolylineMeters(currentVehicleCoords, plannedBaseCoordinates);
+      return d > 150;
+    }
+    return false;
+  }, [order?.is_off_route, order?.route_status, currentVehicleCoords, plannedBaseCoordinates, isActiveInFlight]);
+
+  const deviationMeters = useMemo(() => {
+    if (order?.route_deviation_meters) return Number(order.route_deviation_meters);
+    if (currentVehicleCoords && plannedBaseCoordinates.length >= 2) {
+      return Math.round(minDistanceToPolylineMeters(currentVehicleCoords, plannedBaseCoordinates));
+    }
+    return 0;
+  }, [order?.route_deviation_meters, currentVehicleCoords, plannedBaseCoordinates]);
 
   useEffect(() => {
     if (!pickupCoords || !dropCoords) {
-      setRoadCoordinates([]);
+      setPlannedBaseCoordinates([]);
+      return;
+    }
+
+    if (Array.isArray(order?.planned_route_coords) && order.planned_route_coords.length >= 2) {
+      setPlannedBaseCoordinates(order.planned_route_coords);
       return;
     }
 
     let cancelled = false;
-    const fetchRoadRoute = async () => {
+    const fetchBaseRoute = async () => {
       try {
         const url = `https://router.project-osrm.org/route/v1/driving/${pickupCoords[0]},${pickupCoords[1]};${dropCoords[0]},${dropCoords[1]}?overview=full&geometries=geojson`;
         const res = await fetch(url);
@@ -251,24 +335,69 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
 
         if (data?.routes?.[0]?.geometry?.coordinates?.length) {
           const coords = data.routes[0].geometry.coordinates as [number, number][];
-          setRoadCoordinates(coords);
-          const distanceKm = Number((data.routes[0].distance / 1000).toFixed(1));
-          const durationMins = Math.round(data.routes[0].duration / 60);
-          setRoadInfo({ distanceKm, durationMins });
+          setPlannedBaseCoordinates(coords);
+          if (!order?.current_route_coords) {
+            setRoadCoordinates(coords);
+            const distanceKm = Number((data.routes[0].distance / 1000).toFixed(1));
+            const durationMins = Math.round(data.routes[0].duration / 60);
+            setRoadInfo({ distanceKm, durationMins });
+          }
         }
       } catch (err) {
         if (!cancelled) {
-          console.warn('[Routing] Using fallback trajectory:', err);
-          setRoadCoordinates([pickupCoords, dropCoords]);
+          setPlannedBaseCoordinates([pickupCoords, dropCoords]);
         }
       }
     };
 
-    fetchRoadRoute();
-    return () => {
-      cancelled = true;
-    };
-  }, [pickupCoords, dropCoords]);
+    fetchBaseRoute();
+    return () => { cancelled = true; };
+  }, [pickupCoords, dropCoords, order?.planned_route_coords]);
+
+  useEffect(() => {
+    if (Array.isArray(order?.current_route_coords) && order.current_route_coords.length >= 2) {
+      setRoadCoordinates(order.current_route_coords);
+      if (order?.recalculated_distance_km != null) {
+        setRoadInfo({
+          distanceKm: Number(order.recalculated_distance_km),
+          durationMins: Number(order.recalculated_duration_mins ?? Math.round(order.recalculated_distance_km * 2.5))
+        });
+      }
+      return;
+    }
+
+    if (!dropCoords) return;
+
+    if (isOffRoute && currentVehicleCoords) {
+      let cancelled = false;
+      const fetchReroutedPath = async () => {
+        try {
+          const url = `https://router.project-osrm.org/route/v1/driving/${currentVehicleCoords[0]},${currentVehicleCoords[1]};${dropCoords[0]},${dropCoords[1]}?overview=full&geometries=geojson`;
+          const res = await fetch(url);
+          if (!res.ok) throw new Error('OSRM rerouting unavailable');
+          const data = await res.json();
+          if (cancelled) return;
+
+          if (data?.routes?.[0]?.geometry?.coordinates?.length) {
+            const coords = data.routes[0].geometry.coordinates as [number, number][] ;
+            setRoadCoordinates(coords);
+            const distanceKm = Number((data.routes[0].distance / 1000).toFixed(1));
+            const durationMins = Math.round(data.routes[0].duration / 60);
+            setRoadInfo({ distanceKm, durationMins });
+          }
+        } catch (err) {
+          if (!cancelled && currentVehicleCoords && dropCoords) {
+            setRoadCoordinates([currentVehicleCoords, dropCoords]);
+          }
+        }
+      };
+
+      fetchReroutedPath();
+      return () => { cancelled = true; };
+    } else if (plannedBaseCoordinates.length >= 2) {
+      setRoadCoordinates(plannedBaseCoordinates);
+    }
+  }, [isOffRoute, currentVehicleCoords, dropCoords, order?.current_route_coords, plannedBaseCoordinates]);
 
   useEffect(() => {
     if (!mapContainer.current || !pickupCoords || !dropCoords || !currentVehicleCoords) return;
@@ -294,12 +423,12 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
             properties: {},
             geometry: {
               type: 'LineString',
-              coordinates: roadCoordinates
+              coordinates: roadCoordinates.length >= 2 ? roadCoordinates : [pickupCoords, dropCoords]
             }
           }
         });
 
-        const routeColor = isCancelled ? '#e11d48' : isDelivered ? '#10b981' : isOnHold ? '#f59e0b' : '#2563eb';
+        const routeColor = isCancelled ? '#e11d48' : isDelivered ? '#10b981' : isOnHold ? '#f59e0b' : isOffRoute ? '#ea580c' : '#2563eb';
 
         map.addLayer({
           id: 'road-route-glow',
@@ -308,8 +437,9 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
           layout: { 'line-join': 'round', 'line-cap': 'round' },
           paint: {
             'line-color': routeColor,
-            'line-width': 7,
-            'line-opacity': 0.3
+            'line-width': isOffRoute ? 12 : 9,
+            'line-opacity': 0.35,
+            'line-blur': 3
           }
         });
 
@@ -320,7 +450,7 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
           layout: { 'line-join': 'round', 'line-cap': 'round' },
           paint: {
             'line-color': routeColor,
-            'line-width': 4,
+            'line-width': isOffRoute ? 6 : 5,
             'line-opacity': 0.95
           }
         });
@@ -329,11 +459,11 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
       const hubEl = document.createElement('div');
       hubEl.className = 'flex flex-col items-center cursor-pointer';
       hubEl.innerHTML = `
-        <div style="background: #059669; color: white; padding: 7px; border-radius: 50%; box-shadow: 0 4px 14px rgba(5,150,105,0.45); border: 2.5px solid white;">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 21h18M3 7v14M21 7v14M6 11h4M6 15h4M14 11h4M14 15h4M9 3l3-2 3 2v4H9V3z"/></svg>
+        <div style="background: #2563eb; color: white; padding: 7px; border-radius: 50%; box-shadow: 0 4px 14px rgba(37,99,235,0.45); border: 2.5px solid white;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
         </div>
-        <span style="font-size: 10px; font-weight: 800; background: #0f172a; color: #34d399; padding: 2px 7px; border-radius: 6px; margin-top: 3px; box-shadow: 0 2px 6px rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.15); white-space: nowrap;">
-          Dispatch Hub
+        <span style="font-size: 10px; font-weight: 800; background: #0f172a; color: #93c5fd; padding: 2px 7px; border-radius: 6px; margin-top: 3px; box-shadow: 0 2px 6px rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.15); white-space: nowrap;">
+          IndoFleet Hub
         </span>
       `;
       hubMarkerRef.current = new maplibregl.Marker({ element: hubEl })
@@ -358,11 +488,11 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
 
       const vehicleEl = document.createElement('div');
       vehicleEl.className = 'relative flex items-center justify-center cursor-pointer transition-transform duration-700 ease-out';
-      const markerBg = isCancelled ? '#e11d48' : isDelivered ? '#10b981' : isOnHold ? '#f59e0b' : isPending ? '#64748b' : '#2563eb';
-      const markerLabel = isCancelled ? 'Cancelled' : isDelivered ? 'Delivered' : isOnHold ? 'On Hold' : isPending ? 'At Hub' : 'In Transit';
+      const markerBg = isCancelled ? '#e11d48' : isDelivered ? '#10b981' : isOnHold ? '#f59e0b' : isOffRoute ? '#ea580c' : isPending ? '#64748b' : '#2563eb';
+      const markerLabel = isCancelled ? 'Cancelled' : isDelivered ? 'Delivered' : isOnHold ? 'On Hold' : isOffRoute ? 'Diverted' : isPending ? 'At Hub' : 'In Transit';
 
       vehicleEl.innerHTML = `
-        <div style="position: absolute; width: 44px; height: 44px; border-radius: 50%; background: rgba(37,99,235,0.25); animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+        <div style="position: absolute; width: 44px; height: 44px; border-radius: 50%; background: ${isOffRoute ? 'rgba(234,88,12,0.3)' : 'rgba(37,99,235,0.25)'}; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
         <div style="position: relative; width: 36px; height: 36px; background: ${markerBg}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,0.35); border: 2.5px solid white;">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>
         </div>
@@ -372,7 +502,7 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
       `;
       vehicleMarkerRef.current = new maplibregl.Marker({ element: vehicleEl })
         .setLngLat(currentVehicleCoords)
-        .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<strong>Delivery Vehicle</strong><br/>Order #${order?.order_number || order?.id}<br/>Driver: ${order?.pilot_assigned || 'IndoFleet Pilot'}`))
+        .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<strong>Delivery Vehicle</strong><br/>Order #${order?.order_number || order?.id}<br/>Driver: ${order?.pilot_assigned || 'IndoFleet Pilot'}${isOffRoute ? '<br/><span style=\"color:#ea580c;font-weight:bold;\">⚠️ Off-Route Diverted</span>' : ''}`))
         .addTo(map);
 
       const bounds = new maplibregl.LngLatBounds(pickupCoords, pickupCoords);
@@ -396,7 +526,7 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
     if (!map || !map.isStyleLoaded()) return;
 
     const source = map.getSource('road-route') as maplibregl.GeoJSONSource;
-    if (source) {
+    if (source && roadCoordinates.length >= 2) {
       source.setData({
         type: 'Feature',
         properties: {},
@@ -405,18 +535,24 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
           coordinates: roadCoordinates
         }
       });
+
+      const routeColor = isCancelled ? '#e11d48' : isDelivered ? '#10b981' : isOnHold ? '#f59e0b' : isOffRoute ? '#ea580c' : '#2563eb';
+      if (map.getLayer('road-route-line')) {
+        map.setPaintProperty('road-route-line', 'line-color', routeColor);
+        map.setPaintProperty('road-route-glow', 'line-color', routeColor);
+      }
     }
 
     if (hubMarkerRef.current && pickupCoords) hubMarkerRef.current.setLngLat(pickupCoords);
     if (dropMarkerRef.current && dropCoords) dropMarkerRef.current.setLngLat(dropCoords);
 
-    if (pickupCoords && dropCoords) {
+    if (pickupCoords && dropCoords && roadCoordinates.length >= 2) {
       const bounds = new maplibregl.LngLatBounds(pickupCoords, pickupCoords);
       roadCoordinates.forEach(pt => bounds.extend(pt));
       bounds.extend(dropCoords);
       map.fitBounds(bounds, { padding: { top: 55, bottom: 65, left: 35, right: 35 }, maxZoom: 14 });
     }
-  }, [roadCoordinates, pickupCoords, dropCoords]);
+  }, [roadCoordinates, pickupCoords, dropCoords, isOffRoute, isCancelled, isDelivered, isOnHold]);
 
   useEffect(() => {
     if (vehicleMarkerRef.current && currentVehicleCoords) {
@@ -439,47 +575,70 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
 
   if (!hasValidPickup || !hasValidDrop || !pickupCoords || !dropCoords || !currentVehicleCoords) {
     return (
-      <div className={`relative rounded-3xl overflow-hidden border border-slate-200 shadow-md bg-white flex flex-col items-center justify-center p-8 text-center min-h-[360px] w-full ${className}`}>
-        <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 mb-4 shadow-sm">
-          <MapPin className="w-7 h-7" />
+      <div className={`relative w-full rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 flex flex-col items-center justify-center p-6 text-center ${className}`}>
+        <div className="w-12 h-12 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-center text-blue-400 mb-3 animate-pulse">
+          <Truck className="w-6 h-6" />
         </div>
-        <h3 className="text-base font-bold text-slate-900 tracking-wide">Live Route Pending Geolocation</h3>
-        <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-md leading-relaxed">
-          This order does not have verified GPS coordinates configured yet. Turn-by-turn road tracking and live map telemetry will activate once pickup &amp; delivery coordinates are initialized.
+        <h4 className="text-sm font-bold text-slate-200 mb-1">
+          {isCancelled ? 'Delivery Cancelled' : 'Preparing Real-Time Trajectory'}
+        </h4>
+        <p className="text-xs text-slate-400 max-w-sm">
+          {isCancelled
+            ? 'This flight consignment was cancelled. GPS trajectory logging is permanently closed.'
+            : 'Resolving destination geocodes and establishing live road routing connection...'}
         </p>
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5 text-xs">
-          <span className="px-3 py-1.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 font-mono">
-            Origin: {order?.pickup_address || 'Dispatch Hub Pending'}
-          </span>
-          <span className="px-3 py-1.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 font-mono">
-            Drop: {order?.destination_address || order?.drop_address || 'Delivery Address Pending'}
-          </span>
-        </div>
       </div>
     );
   }
 
   return (
-    <div className={`relative rounded-3xl overflow-hidden border border-slate-200 shadow-md bg-slate-100 group w-full ${className}`}>
+    <div className={`relative w-full rounded-2xl overflow-hidden border border-slate-200/80 shadow-inner bg-slate-100 ${className}`}>
+      <div ref={mapContainer} className="w-full h-full" />
 
-      <div ref={mapContainer} className="w-full h-full min-h-[280px]" />
-
+      {isOffRoute && (
+        <div className="absolute top-3 left-3 right-14 z-20 pointer-events-auto animate-fadeIn">
+          <div className="bg-amber-600/95 backdrop-blur-md text-white px-3.5 py-2.5 rounded-xl shadow-xl border border-amber-400/80 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="p-1.5 bg-black/20 rounded-lg shrink-0">
+                <AlertTriangle className="w-4 h-4 text-amber-200 animate-bounce" />
+              </span>
+              <div className="min-w-0">
+                <div className="text-[10px] font-black uppercase tracking-wider text-amber-100 flex items-center gap-1.5">
+                  <span>Route Diverted</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                  <span>Dynamically Redirected</span>
+                </div>
+                <p className="text-xs font-bold text-white truncate">
+                  Courier turned off planned road corridor ({deviationMeters}m off). Route dynamically recalculated to drop point.
+                </p>
+              </div>
+            </div>
+            <div className="hidden sm:block text-right shrink-0 bg-black/25 px-2.5 py-1 rounded-lg border border-white/20">
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-200 block">Status</span>
+              <span className="text-xs font-mono font-bold text-white">Rerouted</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showHud && (
-        <div className="absolute top-3 left-3 z-10 pointer-events-none max-w-[calc(100%-140px)] flex flex-col gap-1.5">
+        <div className={`absolute ${isOffRoute ? 'top-16' : 'top-3'} left-3 z-10 flex flex-col gap-1.5 pointer-events-auto transition-all max-w-[calc(100%-80px)]`}>
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-md text-slate-800 text-[11px] font-bold shadow-md border border-slate-200/90 truncate">
-            <span className={`w-2 h-2 rounded-full ${hasRealLiveGps ? 'bg-emerald-500 animate-ping' : 'bg-blue-600 animate-pulse'} shrink-0`} />
-            <span className="truncate">{hasRealLiveGps ? 'Live GPS Uplink' : 'Live Road Route'}</span>
+            <span className={`w-2 h-2 rounded-full ${isOffRoute ? 'bg-amber-500 animate-ping' : hasRealLiveGps ? 'bg-emerald-500 animate-ping' : 'bg-blue-600 animate-pulse'} shrink-0`} />
+            <span className="truncate">{isOffRoute ? 'Diverted & Recalculating' : hasRealLiveGps ? 'Live GPS Uplink' : 'Live Road Route'}</span>
             {roadInfo.durationMins !== null && (
               <span className="text-slate-500 font-semibold shrink-0">· ~{roadInfo.durationMins}m ETA</span>
+            )}
+            {isOffRoute && (
+              <span className="text-amber-700 bg-amber-100 px-1.5 py-0.2 rounded text-[10px] font-black shrink-0">
+                +{Math.max(2, Math.round(deviationMeters / 100))}m delay
+              </span>
             )}
           </div>
         </div>
       )}
 
-
       <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5 pointer-events-auto">
-
         <button
           type="button"
           onClick={() => setShowHud(prev => !prev)}
@@ -488,7 +647,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
         >
           {showHud ? <EyeOff className="w-4 h-4 text-slate-600" /> : <Eye className="w-4 h-4 text-[#5a00b8]" />}
         </button>
-
 
         <button
           type="button"
@@ -499,7 +657,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
           <Layers className="w-4 h-4 text-blue-600" />
         </button>
 
-
         <button
           type="button"
           onClick={handleRecenter}
@@ -508,7 +665,6 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
         >
           <Navigation className="w-4 h-4" />
         </button>
-
 
         <div className="hidden sm:flex flex-col rounded-xl overflow-hidden bg-white/95 shadow-md border border-slate-200/90 backdrop-blur">
           <button
@@ -530,24 +686,29 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
         </div>
       </div>
 
-
       {showHud && (
         <div className="absolute bottom-3 left-3 right-3 z-10 pointer-events-auto">
           <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-xl p-2.5 sm:p-3 text-slate-900 transition-all">
-
             {!isHudExpanded ? (
               <div
                 className="flex items-center justify-between gap-2 cursor-pointer"
                 onClick={() => setIsHudExpanded(true)}
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                  <div className={`w-8 h-8 rounded-xl ${isOffRoute ? 'bg-amber-100 border border-amber-200 text-amber-700' : 'bg-blue-50 border border-blue-100 text-blue-600'} flex items-center justify-center shrink-0`}>
                     <Truck className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-slate-900 truncate">
-                      {order?.destination_address || order?.drop_address || 'Delivery Destination'}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold text-slate-900 truncate">
+                        {order?.destination_address || order?.drop_address || 'Delivery Destination'}
+                      </p>
+                      {isOffRoute && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500 text-white shrink-0">
+                          REROUTED
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 text-[10px] text-slate-500 font-semibold mt-0.5">
                       <span>{order?.order_number ? `#${order.order_number}` : 'Active Delivery'}</span>
                       {order?.customer_name && <span>· {order.customer_name}</span>}
@@ -557,7 +718,7 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
 
                 <div className="flex items-center gap-1.5 shrink-0">
                   {roadInfo.distanceKm !== null && (
-                    <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 font-black text-[11px] border border-blue-100">
+                    <span className={`px-2 py-1 rounded-lg font-black text-[11px] border ${isOffRoute ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
                       {roadInfo.distanceKm} km
                     </span>
                   )}
@@ -580,15 +741,21 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
                 </div>
               </div>
             ) : (
-
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                    <div className={`w-8 h-8 rounded-xl ${isOffRoute ? 'bg-amber-100 border border-amber-200 text-amber-700' : 'bg-blue-50 border border-blue-100 text-blue-600'} flex items-center justify-center`}>
                       <Truck className="w-4 h-4" />
                     </div>
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Road Delivery Route</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Road Delivery Route</span>
+                        {isOffRoute && (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-500 text-white">
+                            OFF-ROUTE AUTO-REROUTED
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs font-bold text-slate-900">
                         {order?.order_number ? `#${order.order_number}` : 'Active Delivery'}
                         {order?.customer_name && <span className="font-normal text-slate-500 ml-1.5">({order.customer_name})</span>}
@@ -616,9 +783,9 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
                 <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-100 text-xs">
                   <div className="flex items-center gap-3">
                     {roadInfo.distanceKm !== null && (
-                      <div className="flex items-center gap-1.5 text-blue-700 font-bold">
-                        <RouteIcon className="w-3.5 h-3.5 text-blue-600" />
-                        <span>{roadInfo.distanceKm} km road</span>
+                      <div className={`flex items-center gap-1.5 font-bold ${isOffRoute ? 'text-amber-700' : 'text-blue-700'}`}>
+                        <RouteIcon className={`w-3.5 h-3.5 ${isOffRoute ? 'text-amber-600' : 'text-blue-600'}`} />
+                        <span>{roadInfo.distanceKm} km {isOffRoute ? 'redirected' : 'road'}</span>
                       </div>
                     )}
                     {roadInfo.durationMins !== null && (
@@ -626,6 +793,11 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
                         <Clock className="w-3.5 h-3.5 text-emerald-600" />
                         <span>~{roadInfo.durationMins} mins drive</span>
                       </div>
+                    )}
+                    {isOffRoute && (
+                      <span className="text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded text-[10px] font-black">
+                        ⚠️ Deviation: {deviationMeters}m
+                      </span>
                     )}
                   </div>
 
