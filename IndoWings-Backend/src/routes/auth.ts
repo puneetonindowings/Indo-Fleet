@@ -1,3 +1,5 @@
+import { getClientDetails } from '../utils/clientInfo.js';
+import { sendLoginAlertEmail } from '../emailService.js';
 import '../env.js';
 import { Router, Response } from 'express';
 import jwt from 'jsonwebtoken';
@@ -65,12 +67,16 @@ router.post('/login', authLimiter, async (req, res) => {
     { expiresIn: '24h' }
   );
 
+  const clientInfo = getClientDetails(req);
+  if (user.email) {
+    sendLoginAlertEmail(user.email, user.name, user.role, clientInfo.displayIp, clientInfo.device).catch((err) => console.error('Login alert error:', err));
+  }
   await dbService.logAudit({
     user_email: user.email,
     role: user.role,
     action: 'USER_LOGIN',
     resource: 'Web Command Center GCS',
-    ip_address: req.ip || '127.0.0.1',
+    ip_address: clientInfo.displayIp,
     severity: 'INFO'
   }).catch(() => {});
 

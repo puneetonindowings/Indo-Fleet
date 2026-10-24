@@ -40,6 +40,7 @@ import { sendPushToUser, broadcastPushToPilots } from '../firebaseService.js';
 import { JWT_SECRET } from '../middleware/auth.js';
 import { createRateLimiter } from '../middleware/rateLimiter.js';
 import { apiCache } from '../utils/cache.js';
+import { getClientDetails } from '../utils/clientInfo.js';
 import { geocodeAddress, getRoadRoute, checkRouteDeviation } from '../geocodingService.js';
 
 function calculateAerialDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -313,9 +314,9 @@ router.post('/auth/login', authLimiter, async (req, res) => {
 
   console.log(`[auth] User authenticated via password: ${user.name} (${user.email || user.phone}) [Role: ${user.role}] (mustChange: ${!!user.must_change_password})`);
 
-  const clientIp = (req.ip || req.socket.remoteAddress || '127.0.0.1').replace(/^::ffff:/, '');
+  const clientInfo = getClientDetails(req);
   if (user.email) {
-    sendLoginAlertEmail(user.email, user.name, user.role, clientIp).catch((err) => console.error('Login alert error:', err));
+    sendLoginAlertEmail(user.email, user.name, user.role, clientInfo.displayIp, clientInfo.device).catch((err) => console.error('Login alert error:', err));
   }
 
   const safeUser = publicUser(user);
@@ -584,8 +585,8 @@ router.post('/auth/verify-otp', otpLimiter, async (req, res) => {
 
   console.log(`[auth] User authenticated via OTP:`, user.name, `[Role: ${user.role}]`);
 
-  const clientIp = (req.ip || req.socket.remoteAddress || '127.0.0.1').replace(/^::ffff:/, '');
-  sendLoginAlertEmail(user.email, user.name, user.role, clientIp).catch((err) => console.error('Login alert error:', err));
+  const clientInfo = getClientDetails(req);
+  sendLoginAlertEmail(user.email, user.name, user.role, clientInfo.displayIp, clientInfo.device).catch((err) => console.error('Login alert error:', err));
 
   const safeUser = publicUser(user);
   const token = jwt.sign(safeUser, JWT_SECRET, { expiresIn: '7d' });
@@ -4455,6 +4456,11 @@ router.post('/pilot/login', async (req, res) => {
 
     const safeUser = publicUser(user);
     const token = jwt.sign(safeUser, JWT_SECRET, { expiresIn: '30d' });
+
+    if (user.email) {
+      const clientInfo = getClientDetails(req);
+      sendLoginAlertEmail(user.email, user.name, user.role || 'pilot', clientInfo.displayIp, clientInfo.device).catch((err) => console.error('Login alert error:', err));
+    }
 
     res.json({
       success: true,

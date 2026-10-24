@@ -342,7 +342,7 @@ export async function sendPasswordChangedEmail(to: string, name: string) {
   });
 }
 
-export async function sendLoginAlertEmail(to: string, name: string, role: string, ip?: string) {
+export async function sendLoginAlertEmail(to: string, name: string, role: string, ip?: string, device?: string) {
   const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
   const subject = `Security Alert: Login Detected for ${name} (${role.toUpperCase()})`;
   const text = `
@@ -354,7 +354,8 @@ Login Information:
 - Account: ${to}
 - Role: ${role.toUpperCase()}
 - Date & Time: ${timestamp} IST
-- Client IP: ${ip || '127.0.0.1 (Local)'}
+- Client IP: ${ip || '127.0.0.1 (Localhost / Development)'}
+- Device / Client: ${device || 'Web Browser / Secure Client'}
 
 If this was you, no action is needed. If you did not authorize this session, please contact IndoFleet security immediately.
 
