@@ -406,7 +406,7 @@ router.post('/auth/verify-password-and-send-otp', otpLimiter, async (req, res) =
   });
 });
 
-router.post('/auth/check-user', async (req, res) => {
+router.post('/auth/check-user', authLimiter, async (req, res) => {
   const { email, phone } = req.body;
   const cleanEmail = email ? email.toLowerCase().trim() : '';
   const cleanPhone = phone ? phone.replace(/[^0-9]/g, '').slice(-10) : '';
@@ -837,6 +837,7 @@ router.post('/admin/request-decommission-otp', async (req, res) => {
 
 router.post('/admin/provision-user', async (req, res) => {
   const admin = await requireAdmin(req, res);
+  if (!admin) return;
   const { adminTarget, otp, name, email, phone, role, station, organization, temporaryPassword } = req.body;
   if (typeof name !== 'string' || !name.trim() || typeof email !== 'string' || !email.trim() || !role) {
     res.status(400).json({ error: 'Full name, email address, and role are required' });
@@ -875,9 +876,7 @@ router.post('/admin/provision-user', async (req, res) => {
     res.status(400).json({ error: 'Temporary password must be at least 6 characters long.' });
     return;
   }
-  if (otp && typeof otp === 'string' && otp.trim()) {
-    if (!(await verifyAdminOtp(admin, adminTarget, otp, 'admin-provision', res))) return;
-  }
+  if (!(await verifyAdminOtp(admin, adminTarget, otp, 'admin-provision', res))) return;
 
   const rolePrefix = role === 'admin' ? 'ADM' : role === 'fleet_manager' ? 'FLT' : role === 'dispatcher' ? 'DSP' : role === 'support' ? 'SUPP' : role === 'pilot' || role === 'delivery' ? 'PLT' : 'CUS';
   const tempPass = temporaryPassword.trim();
@@ -1165,6 +1164,18 @@ router.post('/profile/verify-change-password-otp', async (req, res) => {
       return;
     }
 
+    if (!otp || typeof otp !== 'string' || !otp.trim()) {
+      res.status(400).json({ success: false, error: 'Security OTP code is required.' });
+      return;
+    }
+
+    const cleanTarget = (user.email || '').toLowerCase().trim();
+    const verification = await fileDB.verifyOTP(cleanTarget, otp.trim());
+    if (!verification.valid || verification.meta?.purpose !== 'profile_password_change') {
+      res.status(400).json({ success: false, error: verification.reason || 'Invalid or expired OTP code.' });
+      return;
+    }
+
     if (!newPassword || newPassword.trim().length < 6) {
       res.status(400).json({ success: false, error: 'New password must be at least 6 characters.' });
       return;
@@ -1199,7 +1210,7 @@ router.post('/profile/verify-change-password-otp', async (req, res) => {
   }
 });
 
-router.post('/auth/forgot-password-request', async (req, res) => {
+router.post('/auth/forgot-password-request', authLimiter, async (req, res) => {
   try {
     const { email, phone, identifier } = req.body;
     const rawInput = (identifier || email || phone || '').toString().trim();
@@ -4446,22 +4457,23 @@ router.post('/pilot/login', async (req, res) => {
 
 router.post('/pilot/change-password', async (req, res) => {
   try {
-    const { userId, email, oldPassword, newPassword } = req.body;
+    const { oldPassword, newPassword } = req.body;
+    const user = await getAuthenticatedUser(req, true);
+    if (!user) {
+      res.status(401).json({ success: false, error: 'Authentication required. Please log in.' });
+      return;
+    }
+
     if (!newPassword || newPassword.trim().length < 6) {
       res.status(400).json({ success: false, error: 'New password must be at least 6 characters long.' });
       return;
     }
 
-    let user: any = null;
-    if (userId) user = await fileDB.findUserById(userId);
-    if (!user && email) user = await fileDB.findUserByEmail(email.toLowerCase().trim());
-
-    if (!user) {
-      res.status(404).json({ success: false, error: 'Pilot account not found' });
-      return;
-    }
-
-    if (!user.must_change_password && oldPassword) {
+    if (!user.must_change_password) {
+      if (!oldPassword) {
+        res.status(400).json({ success: false, error: 'Current password is required.' });
+        return;
+      }
       const validOld = user.password_hash
         ? await fileDB.verifyPassword(oldPassword, user.password_hash)
         : (oldPassword === user.password && user.password);
@@ -5580,6 +5592,8 @@ router.post('/pilot/sos-emergency', async (req, res) => {
 });
 
 router.get('/admin/sos-alerts', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
   try {
     const alertsMap = new Map<string, any>();
 
@@ -5675,6 +5689,8 @@ router.get('/admin/sos-alerts', async (req, res) => {
 });
 
 router.post('/admin/sos-alerts/:id/resolve', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
   try {
     const { id } = req.params;
     const { resolved_by, notes } = req.body || {};
@@ -5727,6 +5743,8 @@ router.post('/admin/sos-alerts/:id/resolve', async (req, res) => {
 });
 
 router.delete('/admin/sos-alerts/:id', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
   try {
     const { id } = req.params;
     const idx = activeSosAlerts.findIndex((a: any) => a.id === id);
@@ -5997,9 +6015,18 @@ router.get('/pilot/profile', async (req, res) => {
 
 router.patch('/pilot/profile', async (req, res) => {
   try {
+    const authUser = await getAuthenticatedUser(req);
+    if (!authUser) {
+      res.status(401).json({ success: false, error: 'Authentication required. Please log in.' });
+      return;
+    }
     const { userId, name, phone, dl_id, employee_id, vehicle_id } = req.body;
     if (!userId) {
       res.status(400).json({ success: false, error: 'User ID is required' });
+      return;
+    }
+    if (authUser.id !== userId && authUser.role !== 'admin') {
+      res.status(403).json({ success: false, error: 'Unauthorized to modify another pilot profile.' });
       return;
     }
 
@@ -6082,6 +6109,8 @@ router.get('/app-release', async (req, res) => {
 });
 
 router.post('/app-release', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
   try {
     const { version, release_notes, android_url, ios_url, notify_partners } = req.body;
 

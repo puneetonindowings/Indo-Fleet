@@ -1,6 +1,6 @@
 ﻿import { Router } from 'express';
 import { dbService } from '../supabase.js';
-import { authenticateToken, AuthenticatedRequest } from '../middleware/auth.js';
+import { authenticateToken, requireRoles, AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
+router.post('/', authenticateToken, requireRoles('admin', 'dispatcher', 'fleet_manager'), async (req: AuthenticatedRequest, res) => {
   try {
     const { title, drone_model, location_name, area_hectares, altitude_meters, waypoints } = req.body;
 
@@ -51,7 +51,7 @@ router.post('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
   }
 });
 
-router.patch('/:id/status', authenticateToken, async (req: AuthenticatedRequest, res) => {
+router.patch('/:id/status', authenticateToken, requireRoles('admin', 'dispatcher', 'fleet_manager', 'pilot'), async (req: AuthenticatedRequest, res) => {
   try {
     const { status } = req.body;
     const missionId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

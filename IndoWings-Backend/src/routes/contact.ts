@@ -1,10 +1,12 @@
+import { createRateLimiter } from '../middleware/rateLimiter.js';
+const contactLimiter = createRateLimiter(15 * 60 * 1000, 10, 'Too many requests. Please wait before submitting again.');
 ﻿import { Router } from 'express';
 import { dbService } from '../supabase.js';
 import { fileDB } from '../db.js';
 
 const router = Router();
 
-router.post('/demo-request', async (req, res) => {
+router.post('/demo-request', contactLimiter, async (req, res) => {
   try {
     const { name, email, phone, organization, drone_interest, use_case, message } = req.body;
 
@@ -42,7 +44,7 @@ router.post('/demo-request', async (req, res) => {
   }
 });
 
-router.post('/contact', async (req, res) => {
+router.post('/contact', contactLimiter, async (req, res) => {
   try {
     const { name, email, message, subject } = req.body;
     if (!name || !email || !message) {
@@ -64,7 +66,7 @@ router.post('/contact', async (req, res) => {
   }
 });
 
-router.post('/feedback', async (req, res) => {
+router.post('/feedback', contactLimiter, async (req, res) => {
   try {
     const { name, email, rating, category, message } = req.body;
     if (!message) {

@@ -1,3 +1,4 @@
+import { authenticateToken, requireRoles, AuthenticatedRequest } from '../middleware/auth.js';
 import { Router, Request, Response } from 'express';
 import {
   registerDeviceToken,
@@ -31,7 +32,7 @@ router.post('/unregister-token', (req: Request, res: Response) => {
   res.json({ success: true, message: 'Device token unregistered successfully' });
 });
 
-router.post('/send-test', async (req: Request, res: Response) => {
+router.post('/send-test', authenticateToken, requireRoles('admin'), async (req: AuthenticatedRequest, res: Response) => {
   const { token, userId, title, body, data } = req.body;
 
   if (token) {
