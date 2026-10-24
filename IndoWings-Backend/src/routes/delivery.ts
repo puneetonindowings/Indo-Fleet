@@ -2288,7 +2288,7 @@ router.post('/orders', async (req, res) => {
   const clientName = req.body.client_name || req.body.customer_name || user?.name || 'Enterprise Client';
   const dropAddress = req.body.destination_address || req.body.drop_address;
   const droneModel = req.body.drone_model || req.body.drones_shipped || 'Cyberone Pro';
-  const unitsCount = Number(req.body.units_count || req.body.weight_kg) || 1;
+  const unitsCount = Math.max(1, Math.round(Number(req.body.units_count || 1)));
   const carrier = req.body.carrier || req.body.package_type || 'IndoFleet Secured Fleet Van';
   const pickupAddress = req.body.pickup_address || 'IndoFleet Manufacturing Plant, Sector 62, Noida';
 

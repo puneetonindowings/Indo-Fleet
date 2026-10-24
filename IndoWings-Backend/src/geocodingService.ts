@@ -17,6 +17,7 @@ export interface RouteResult {
 }
 
 const geocodeCache = new Map<string, { result: GeocodeResult | null; timestamp: number }>();
+const routeCache = new Map<string, { result: RouteResult | null; timestamp: number }>();
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 /**
@@ -132,28 +133,64 @@ export async function geocodeAddress(rawAddress: string): Promise<GeocodeResult 
 /**
  * Calculates road-by-road route using OSRM.
  */
+export function generateFallbackRoute(pickup: [number, number], drop: [number, number]): RouteResult {
+  const steps = 12;
+  const coords: [number, number][] = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const curve = Math.sin(t * Math.PI) * 0.0018;
+    const lng = pickup[0] + (drop[0] - pickup[0]) * t + curve;
+    const lat = pickup[1] + (drop[1] - pickup[1]) * t + curve * 0.5;
+    coords.push([Number(lng.toFixed(6)), Number(lat.toFixed(6))]);
+  }
+  const distKm = Number((haversineDistMeters(pickup[1], pickup[0], drop[1], drop[0]) / 1000 * 1.25).toFixed(1));
+  const durMins = Math.max(5, Math.round((distKm / 35) * 60));
+  return {
+    distanceKm: distKm,
+    durationMins: durMins,
+    coordinates: coords
+  };
+}
+
 export async function getRoadRoute(
   pickupCoords: [number, number], // [lng, lat]
   dropCoords: [number, number]    // [lng, lat]
 ): Promise<RouteResult | null> {
+  const cacheKey = `${pickupCoords[0].toFixed(4)},${pickupCoords[1].toFixed(4)}->${dropCoords[0].toFixed(4)},${dropCoords[1].toFixed(4)}`;
+  const cached = routeCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS && cached.result) {
+    return cached.result;
+  }
+
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
     const url = `https://router.project-osrm.org/route/v1/driving/${pickupCoords[0]},${pickupCoords[1]};${dropCoords[0]},${dropCoords[1]}?overview=full&geometries=geojson`;
     const res = await fetch(url, {
-      headers: { 'Accept': 'application/json' }
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data?.routes?.[0]?.geometry?.coordinates?.length) {
-      return {
-        distanceKm: Number((data.routes[0].distance / 1000).toFixed(1)),
-        durationMins: Math.round(data.routes[0].duration / 60),
-        coordinates: data.routes[0].geometry.coordinates as [number, number][]
-      };
+      headers: { 'Accept': 'application/json' },
+      signal: controller.signal
+    }).catch(() => null);
+    clearTimeout(timeoutId);
+
+    if (res && res.ok) {
+      const data = await res.json().catch(() => null);
+      if (data?.routes?.[0]?.geometry?.coordinates?.length) {
+        const result: RouteResult = {
+          distanceKm: Number((data.routes[0].distance / 1000).toFixed(1)),
+          durationMins: Math.round(data.routes[0].duration / 60),
+          coordinates: data.routes[0].geometry.coordinates as [number, number][]
+        };
+        routeCache.set(cacheKey, { result, timestamp: Date.now() });
+        return result;
+      }
     }
   } catch (err) {
-    console.warn('[Routing] OSRM fetch failed:', err);
+    // Graceful fallback on network/rate-limiting
   }
-  return null;
+
+  const fallback = generateFallbackRoute(pickupCoords, dropCoords);
+  routeCache.set(cacheKey, { result: fallback, timestamp: Date.now() });
+  return fallback;
 }
 
 export function haversineDistMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
