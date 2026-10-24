@@ -11,6 +11,8 @@ import { createRateLimiter } from '../middleware/rateLimiter.js';
 const authLimiter = createRateLimiter(15 * 60 * 1000, 15, 'Too many login attempts. Please wait 15 minutes before retrying.');
 
 import { fileDB } from '../db.js';
+const DUMMY_HASH = 'scrypt:c2VjdXJpdHlzYWx0:7b49463c6c10b42c4bca28014022830ad1675276eab883ee1097ecdc9851613ea2f63ee18d7f4be47078e0ad19a7101859be615488a05c7471900bfca559ad39';
+
 
 router.get('/demo-accounts', async (req, res) => {
   if (process.env.NODE_ENV === 'production') {
@@ -33,18 +35,14 @@ router.post('/login', authLimiter, async (req, res) => {
   const cleanPass = password.toString().replace(/\s+/g, '');
 
   const user = await fileDB.findUserByEmail(cleanEmail);
-  if (!user) {
-    res.status(401).json({ error: 'Invalid credentials. User not found.' });
+  if (!user || !user.password_hash) {
+    await fileDB.verifyPassword(cleanPass, DUMMY_HASH).catch(() => {});
+    res.status(401).json({ error: 'Invalid email or password' });
     return;
   }
 
   if (user.status !== 'active') {
     res.status(403).json({ error: 'This account has been restricted. Contact Administrator.' });
-    return;
-  }
-
-  if (!user.password_hash) {
-    res.status(401).json({ error: 'Account credentials not provisioned. Contact Administrator.' });
     return;
   }
 

@@ -16,11 +16,17 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000);
 
+export function getClientIp(req: Request): string {
+  let ip = req.ip || req.socket?.remoteAddress || '127.0.0.1';
+  if (ip.startsWith('::ffff:')) {
+    ip = ip.substring(7);
+  }
+  return ip;
+}
+
 /**
- * Creates an Express rate limiting middleware.
- * @param windowMs Time window in milliseconds (default 15 minutes)
- * @param maxRequests Maximum requests allowed per window (default 10)
- * @param message Error response message when rate limit is exceeded
+ * Creates an Express rate limiting middleware with IP spoof protection
+ * and account-level brute-force defense.
  */
 export const createRateLimiter = (
   windowMs: number = 15 * 60 * 1000,
@@ -28,32 +34,38 @@ export const createRateLimiter = (
   message: string = 'Too many requests. Please try again after a few minutes.'
 ) => {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
-    const key = `${req.path}:${clientIp}`;
+    const clientIp = getClientIp(req);
+    const basePath = `${req.baseUrl || ''}${req.path}`;
     const now = Date.now();
 
-    const record = rateLimitStore.get(key);
-
-    if (!record || now > record.resetTime) {
-      rateLimitStore.set(key, {
-        count: 1,
-        resetTime: now + windowMs
-      });
-      next();
-      return;
+    const keys: string[] = [`${basePath}:ip:${clientIp}`];
+    const rawTarget = req.body?.email || req.body?.phone;
+    if (rawTarget && typeof rawTarget === 'string' && rawTarget.trim()) {
+      keys.push(`${basePath}:target:${rawTarget.toLowerCase().trim()}`);
     }
 
-    if (record.count >= maxRequests) {
-      const retryAfterSeconds = Math.ceil((record.resetTime - now) / 1000);
-      res.setHeader('Retry-After', retryAfterSeconds);
-      res.status(429).json({
-        error: message,
-        retryAfterSeconds
-      });
-      return;
+    for (const key of keys) {
+      const record = rateLimitStore.get(key);
+      if (record && now <= record.resetTime && record.count >= maxRequests) {
+        const retryAfterSeconds = Math.ceil((record.resetTime - now) / 1000);
+        res.setHeader('Retry-After', retryAfterSeconds);
+        res.status(429).json({
+          error: message,
+          retryAfterSeconds
+        });
+        return;
+      }
     }
 
-    record.count += 1;
+    for (const key of keys) {
+      const record = rateLimitStore.get(key);
+      if (!record || now > record.resetTime) {
+        rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
+      } else {
+        record.count += 1;
+      }
+    }
+
     next();
   };
 };

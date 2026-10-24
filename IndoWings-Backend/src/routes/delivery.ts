@@ -1,3 +1,4 @@
+const DUMMY_HASH = 'scrypt:c2VjdXJpdHlzYWx0:7b49463c6c10b42c4bca28014022830ad1675276eab883ee1097ecdc9851613ea2f63ee18d7f4be47078e0ad19a7101859be615488a05c7471900bfca559ad39';
 import '../env.js';
 import fs from 'fs';
 import path from 'path';
@@ -227,6 +228,50 @@ function maskEmail(email: string): string {
   return `${user.slice(0, 2)}${'*'.repeat(Math.min(user.length - 2, 4))}${user.slice(-1)}@${domain}`;
 }
 
+function maskPhone(phone?: string | null): string {
+  if (!phone || typeof phone !== 'string') return '';
+  const digits = phone.replace(/[^0-9]/g, '');
+  if (digits.length <= 4) return '****';
+  return `${digits.slice(0, 2)}${'*'.repeat(Math.max(digits.length - 4, 3))}${digits.slice(-2)}`;
+}
+
+function sanitizeOrderForPublic(order: any) {
+  if (!order || typeof order !== 'object') return order;
+  const clone = JSON.parse(JSON.stringify(order));
+
+  delete clone.pilot_acceptance_otp;
+  delete clone.customer_otp;
+  delete clone.delivery_handover_otp;
+  delete clone.handover_otp;
+  delete clone.hold_otp;
+  delete clone.cancellation_otp;
+  delete clone.dispatcher_otp;
+  delete clone.security_otp;
+  delete clone.otp;
+  delete clone.payment_id;
+
+  if (clone.delivery_data && typeof clone.delivery_data === 'object') {
+    delete clone.delivery_data.pilot_acceptance_otp;
+    delete clone.delivery_data.customer_otp;
+    delete clone.delivery_data.delivery_handover_otp;
+    delete clone.delivery_data.handover_otp;
+    delete clone.delivery_data.hold_otp;
+    delete clone.delivery_data.cancellation_otp;
+    delete clone.delivery_data.dispatcher_otp;
+    delete clone.delivery_data.security_otp;
+    delete clone.delivery_data.otp;
+    delete clone.delivery_data.payment_id;
+  }
+
+  if (clone.customer_phone) clone.customer_phone = maskPhone(clone.customer_phone);
+  if (clone.recipient_phone) clone.recipient_phone = maskPhone(clone.recipient_phone);
+  if (clone.customer_email) clone.customer_email = maskEmail(clone.customer_email);
+  if (clone.recipient_email) clone.recipient_email = maskEmail(clone.recipient_email);
+  if (clone.pilot_phone) clone.pilot_phone = maskPhone(clone.pilot_phone);
+
+  return clone;
+}
+
 router.post('/auth/login', authLimiter, async (req, res) => {
   const { email, phone, password } = req.body;
   if ((!email && !phone) || !password) {
@@ -242,10 +287,9 @@ router.post('/auth/login', authLimiter, async (req, res) => {
   if (cleanEmail) user = await fileDB.findUserByEmail(cleanEmail);
   if (!user && cleanPhone) user = await fileDB.findUserByPhone(cleanPhone);
 
-  if (!user) {
-    res.status(403).json({
-      error: 'Access Denied: Account not found. Please contact Administrator for ID provisioning.'
-    });
+  if (!user || !user.password_hash) {
+    await fileDB.verifyPassword(cleanPass, DUMMY_HASH).catch(() => {});
+    res.status(401).json({ error: 'Invalid email or password.' });
     return;
   }
 
@@ -253,19 +297,16 @@ router.post('/auth/login', authLimiter, async (req, res) => {
     res.status(403).json({ error: 'This account is restricted. Contact an administrator.' });
     return;
   }
-  if (!user.password_hash) {
-    res.status(401).json({ error: 'Account password not configured. Please contact Administrator for credentials.' });
-    return;
-  }
+
   const validPassword = await fileDB.verifyPassword(cleanPass, user.password_hash);
   if (!validPassword) {
-    res.status(401).json({ error: 'Invalid password. Please check and retry.' });
+    res.status(401).json({ error: 'Invalid email or password.' });
     return;
   }
 
   console.log(`[auth] User authenticated via password: ${user.name} (${user.email || user.phone}) [Role: ${user.role}] (mustChange: ${!!user.must_change_password})`);
 
-  const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'Localhost';
+  const clientIp = (req.ip || req.socket.remoteAddress || '127.0.0.1').replace(/^::ffff:/, '');
   if (user.email) {
     sendLoginAlertEmail(user.email, user.name, user.role, clientIp).catch((err) => console.error('Login alert error:', err));
   }
@@ -296,10 +337,9 @@ router.post('/auth/verify-password-and-send-otp', otpLimiter, async (req, res) =
   if (cleanEmail) user = await fileDB.findUserByEmail(cleanEmail);
   if (!user && cleanPhone) user = await fileDB.findUserByPhone(cleanPhone);
 
-  if (!user) {
-    res.status(403).json({
-      error: 'Access Denied: Account not found. Please contact Administrator for ID provisioning.'
-    });
+  if (!user || !user.password_hash) {
+    await fileDB.verifyPassword(cleanPass, DUMMY_HASH).catch(() => {});
+    res.status(401).json({ error: 'Invalid credentials. Please verify and retry.' });
     return;
   }
 
@@ -308,13 +348,9 @@ router.post('/auth/verify-password-and-send-otp', otpLimiter, async (req, res) =
     return;
   }
 
-  if (!user.password_hash) {
-    res.status(401).json({ error: 'Account password not configured. Please contact Administrator for credentials.' });
-    return;
-  }
   const validPassword = await fileDB.verifyPassword(cleanPass, user.password_hash);
   if (!validPassword) {
-    res.status(401).json({ error: 'Invalid password. Please check and retry.' });
+    res.status(401).json({ error: 'Invalid credentials. Please verify and retry.' });
     return;
   }
 
@@ -541,7 +577,7 @@ router.post('/auth/verify-otp', otpLimiter, async (req, res) => {
 
   console.log(`[auth] User authenticated via OTP:`, user.name, `[Role: ${user.role}]`);
 
-  const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'Localhost';
+  const clientIp = (req.ip || req.socket.remoteAddress || '127.0.0.1').replace(/^::ffff:/, '');
   sendLoginAlertEmail(user.email, user.name, user.role, clientIp).catch((err) => console.error('Login alert error:', err));
 
   const safeUser = publicUser(user);
@@ -2754,7 +2790,15 @@ router.get('/orders/:id', async (req, res) => {
     res.status(404).json({ error: 'Order not found' });
     return;
   }
-  res.json({ order });
+
+  const user = await getAuthenticatedUser(req);
+  const isOperator = user && ['admin', 'dispatcher', 'fleet_manager', 'delivery'].includes(user.role);
+
+  if (isOperator) {
+    res.json({ order });
+  } else {
+    res.json({ order: sanitizeOrderForPublic(order) });
+  }
 });
 
 router.post('/orders/:id/hold-request-otp', async (req, res) => {
@@ -5010,19 +5054,27 @@ router.post('/pilot/accept-order', async (req, res) => {
     const targetPhone = pilot_phone || deliveryUser?.phone || order.pilot_phone || '';
 
     let isOtpValid = false;
-    if (expectedOtp && cleanOtp === expectedOtp) {
-      isOtpValid = true;
-    } else if (targetEmail) {
+    let failReason = 'Invalid or expired Acceptance OTP. Please tap Request OTP to receive a new code.';
+    if (targetEmail) {
       const v = await fileDB.verifyOTP(targetEmail, cleanOtp);
       if (v.valid) isOtpValid = true;
+      else if (v.reason) failReason = v.reason;
     }
     if (!isOtpValid && targetPhone) {
       const v = await fileDB.verifyOTP(targetPhone.replace(/[^0-9]/g, '').slice(-10), cleanOtp);
       if (v.valid) isOtpValid = true;
+      else if (v.reason) failReason = v.reason;
+    }
+    if (!isOtpValid && expectedOtp && !failReason.includes('Too many incorrect attempts')) {
+      const candidate = Buffer.from(cleanOtp);
+      const expected = Buffer.from(expectedOtp);
+      if (candidate.length === expected.length && crypto.timingSafeEqual(candidate, expected)) {
+        isOtpValid = true;
+      }
     }
 
     if (!isOtpValid) {
-      res.status(400).json({ success: false, error: 'Invalid or expired Acceptance OTP. Please tap Request OTP to receive a new code.' });
+      res.status(400).json({ success: false, error: failReason });
       return;
     }
 
@@ -6279,6 +6331,17 @@ router.get('/public/drone/:drone_id', async (req, res) => {
       }
     }
 
+    const user = await getAuthenticatedUser(req);
+    const isOperator = user && ['admin', 'dispatcher', 'fleet_manager', 'delivery'].includes(user.role);
+
+    const safeCustomerName = isOperator ? (matchedOrder?.customer_name || null) : (matchedOrder?.customer_name ? `${matchedOrder.customer_name.slice(0, 3)}***` : null);
+    const safeCustomerPhone = isOperator ? (matchedOrder?.customer_phone || null) : maskPhone(matchedOrder?.customer_phone);
+    const safeCustomerEmail = isOperator ? (matchedOrder?.customer_email || null) : maskEmail(matchedOrder?.customer_email);
+    const safeDropAddress = isOperator
+      ? (matchedOrder?.drop_address || matchedOrder?.delivery_address || null)
+      : (matchedOrder?.drop_address ? matchedOrder.drop_address.split(',').slice(-2).join(', ').trim() : null);
+    const safePilotPhone = isOperator ? driverPhone : maskPhone(driverPhone);
+
     res.json({
       success: true,
       drone: {
@@ -6294,12 +6357,12 @@ router.get('/public/drone/:drone_id', async (req, res) => {
         assigned_order: matchedOrder?.id || null,
         order_number: matchedOrder?.order_number || null,
         order_status: matchedOrder?.status || null,
-        customer_name: matchedOrder?.customer_name || null,
-        customer_phone: matchedOrder?.customer_phone || null,
-        customer_email: matchedOrder?.customer_email || null,
-        drop_address: matchedOrder?.drop_address || matchedOrder?.delivery_address || null,
+        customer_name: safeCustomerName,
+        customer_phone: safeCustomerPhone,
+        customer_email: safeCustomerEmail,
+        drop_address: safeDropAddress,
         assigned_pilot_name: driverName,
-        assigned_pilot_phone: driverPhone,
+        assigned_pilot_phone: safePilotPhone,
       }
     });
   } catch (err: any) {

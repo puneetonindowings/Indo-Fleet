@@ -15,6 +15,14 @@ import { seedDefaultAccounts } from './seed.js';
 import { securityShield } from './middleware/securityShield.js';
 
 const app = express();
+const trustProxy = process.env.TRUST_PROXY;
+if (trustProxy) {
+  app.set('trust proxy', trustProxy === 'true' ? true : isNaN(Number(trustProxy)) ? trustProxy : Number(trustProxy));
+} else if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+} else {
+  app.set('trust proxy', false);
+}
 const PORT = process.env.PORT || 5000;
 
 app.use(helmet({

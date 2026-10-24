@@ -889,7 +889,36 @@ export const deliveryStore = {
     const candidate = Buffer.from(otpHash(identifier, cleanOtp));
     const expected = Buffer.from(data.otp_hash || '');
     if (candidate.length !== expected.length || !crypto.timingSafeEqual(candidate, expected)) {
-      return { valid: false, reason: 'Invalid verification code. Please check and try again.' };
+      const challengeData = (data.challenge_data && typeof data.challenge_data === 'object') ? data.challenge_data : {};
+      const attempts = (typeof challengeData.attempts === 'number' ? challengeData.attempts : 0) + 1;
+      const MAX_ATTEMPTS = 5;
+
+      if (attempts >= MAX_ATTEMPTS) {
+        await db().from('otp_challenges')
+          .update({
+            consumed_at: new Date().toISOString(),
+            challenge_data: { ...challengeData, attempts }
+          })
+          .eq('id', data.id)
+          .is('consumed_at', null);
+        return {
+          valid: false,
+          reason: 'Too many incorrect attempts. This verification code has been invalidated for security. Please request a new code.'
+        };
+      }
+
+      await db().from('otp_challenges')
+        .update({
+          challenge_data: { ...challengeData, attempts }
+        })
+        .eq('id', data.id)
+        .is('consumed_at', null);
+
+      const remaining = MAX_ATTEMPTS - attempts;
+      return {
+        valid: false,
+        reason: `Invalid verification code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`
+      };
     }
 
     await db().from('otp_challenges')
