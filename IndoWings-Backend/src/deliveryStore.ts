@@ -622,15 +622,39 @@ export const deliveryStore = {
     return Boolean(data);
   },
 
-  async getOrders() {
+  async getOrders(limitCount: number = 150) {
     const cached = memoryCache.get<JsonRecord[]>('orders:all');
     if (cached) return cached;
-    const { data, error } = await db().from('delivery_orders').select('*').order('created_at', { ascending: false });
-    fail('list delivery orders', error);
-    const orders = (data || []).map(fromOrder);
+    
+    let rawData: any[] = [];
+    try {
+      const { data, error } = await db()
+        .from('delivery_orders')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limitCount);
+
+      if (error) {
+        console.warn('[supabase] list delivery orders warning:', error.message);
+        // Fallback: if timeout, try smaller limit or cached
+        const retry = await db().from('delivery_orders').select('*').order('created_at', { ascending: false }).limit(50);
+        rawData = retry.data || [];
+      } else {
+        rawData = data || [];
+      }
+    } catch (dbErr: any) {
+      console.warn('[supabase] list delivery orders exception:', dbErr.message);
+      rawData = [];
+    }
+
+    const orders = rawData.map(fromOrder);
 
     try {
-      const { data: insList } = await db().from('inspections').select('inspection_id,delivery_id,drone_id,stage,inspection_type,overall_inspection');
+      const { data: insList } = await db()
+        .from('inspections')
+        .select('inspection_id,delivery_id,drone_id,stage,inspection_type,overall_inspection')
+        .order('inspected_at', { ascending: false })
+        .limit(100);
       if (Array.isArray(insList) && insList.length > 0) {
         const byOrd = new Map<string, any[]>();
         for (const ins of insList) {
@@ -1049,7 +1073,7 @@ export const deliveryStore = {
       if (filter?.inspection_type) {
         query = query.eq('inspection_type', filter.inspection_type.trim().toUpperCase());
       }
-      const { data, error } = await query.order('inspected_at', { ascending: false });
+      const { data, error } = await query.order('inspected_at', { ascending: false }).limit(150);
       if (!error && Array.isArray(data)) {
         data.forEach((item: any) => {
           if (item?.inspection_id) mergedMap.set(item.inspection_id, item);
