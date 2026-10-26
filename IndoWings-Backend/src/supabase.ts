@@ -32,7 +32,7 @@ function getConfigurationError(): string | null {
       const projectRef = String(claims.ref || '');
       const host = new URL(supabaseUrl).hostname;
       if (projectRef && host.endsWith('.supabase.co') && host !== `${projectRef}.supabase.co`) {
-        return 'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY belong to different Supabase projects.';
+        return 'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY belong to different Supabase projects.';   
       }
     } catch {
       return 'SUPABASE_SERVICE_ROLE_KEY is not a valid Supabase key.';

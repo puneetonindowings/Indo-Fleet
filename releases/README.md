@@ -1,6 +1,33 @@
 # IndoFleet Delivery Mobile App - Android Releases
 
-## Latest Release: v1.2.4 (Build 24 - Android Navigation Insets Fix, Silent Local Fallback & Order-Wise Inspection Console)
+## Latest Release: v1.2.5 (Build 25 - Dynamic Geocoding, Audit Photo Isolation & Mobile Layout Optimization)
+
+- **Version:** 1.2.5 (Build Code 25)
+- **Date:** October 26, 2026
+- **Architecture:** Android (arm64-v8a, armeabi-v7a)
+- **Package Size:** ~54.9 MB (Optimized standalone APK)
+
+### Direct Download Options:
+1. **Local Direct Build:** `IndoFleet_PilotApp/android/app/build/outputs/apk/release/app-release.apk`
+2. **Web Portal Direct Download:** `/api/delivery/download-apk`
+3. **Local Release Archive:** `releases/IndoFleet_Delivery_latest.apk` & `releases/IndoFleet_Delivery_v1.2.5.apk`
+4. **GitHub Official Release:** [v1.2.5 Release](https://github.com/puneetonindowings/Indo-Fleet/releases/tag/v1.2.5)
+
+### What Was Fixed & Added in v1.2.5:
+- **Dynamic Geocoding & Road Route Sync:**
+  - Integrated real-time geocoding and road waypoint tracking with fallback corridor calculations.
+- **Drone Photo Evidence Isolation:**
+  - Isolated physical drone photo evidence in audit log console preventing cross-order leakage.
+- **Mobile Modal Layout & Scroll Optimization:**
+  - Improved modal scroll containers and touch responsiveness across smaller and larger Android screens.
+- **Codebase Cleanliness & Performance:**
+  - General cleanup and performance optimizations across 24 screens and components.
+
+---
+
+## Previous Releases
+
+### v1.2.4 (Build 24)
 
 - **Version:** 1.2.4 (Build Code 24)
 - **Date:** October 22, 2026
