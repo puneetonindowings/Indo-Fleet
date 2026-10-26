@@ -359,7 +359,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
 
 
       {(canDispatch || canSupport) && (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 gap-5">
           <SectionCard
             title="Today's Deliveries"
             subtitle={`${data.todaysDeliveries.counts.total} deliveries · ${data.todaysDeliveries.counts.delivered} delivered`}
@@ -414,9 +414,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
             </div>
           </SectionCard>
 
-          <SectionCard title="Live Delivery Map" subtitle="Active deliveries, routes and status across the network">
-            <LiveDeliveryMap key={range.label} deliveries={filteredMapDeliveries} center={data.map.center} />
-          </SectionCard>
+          
         </div>
       )}
 
