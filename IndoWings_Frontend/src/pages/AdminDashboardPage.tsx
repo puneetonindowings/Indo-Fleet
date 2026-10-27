@@ -1030,10 +1030,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
     return d.status !== 'maintenance' && (d.status === 'reserved' || d.status === 'en-route' || Boolean(linked));
   });
   const reservedDronesCount = reservedDrones.length;
-  const idleDronesCount = drones.filter((d) => {
+  // A drone can ONLY be Sortie-Ready if its physical hardware ID is verified, not in maintenance, and not reserved/en-route
+  const sortieReadyDronesCount = drones.filter((d) => {
+    const isVerified = d.is_verified === true || d.verification_status === 'verified';
     const linked = getLinkedOrderForDrone(d);
-    return d.status !== 'maintenance' && !linked && d.status !== 'reserved' && d.status !== 'en-route';
+    const isBusy = d.status === 'reserved' || d.status === 'in-flight' || d.status === 'en-route' || Boolean(linked);
+    return isVerified && d.status !== 'maintenance' && !isBusy;
   }).length;
+  const idleDronesCount = sortieReadyDronesCount;
   const activeAccountsCount = users.filter((user) => user.status === 'active').length;
 
   const pendingDispatchCount = orders.filter((o) => ['pending', 'assigned', 'ready'].includes(o.status)).length;
@@ -1816,9 +1820,17 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                     }`}
                   >
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Sortie-Ready</span>
-                      <h4 className="text-3xl font-black text-emerald-950 mt-0.5 tracking-tight">{idleDronesCount}</h4>
-                      <p className="text-xs text-emerald-600 font-medium mt-0.5">Ready for booking</p>
+                      <p className={`text-[10px] font-black uppercase tracking-widest ${
+                        sortieReadyDronesCount > 0 ? 'text-emerald-700' : 'text-amber-800'
+                      }`}>Sortie-Ready</p>
+                      <h4 className={`text-3xl font-black mt-0.5 tracking-tight ${
+                        sortieReadyDronesCount > 0 ? 'text-emerald-950' : 'text-slate-800'
+                      }`}>{sortieReadyDronesCount}</h4>
+                      <p className={`text-xs font-medium mt-0.5 ${
+                        sortieReadyDronesCount > 0 ? 'text-emerald-600' : 'text-amber-700 font-semibold'
+                      }`}>
+                        {sortieReadyDronesCount > 0 ? 'Ready for booking' : '0 Airframes Verified'}
+                      </p>
                     </div>
                     <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black shrink-0 border border-emerald-100 shadow-2xs">
                       <CheckCircle2 className="w-6 h-6" />
@@ -1970,11 +1982,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                       className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-slate-50 hover:border-slate-300 focus:outline-none cursor-pointer"
                     >
                       <option value="all">All Fleet UAVs ({drones.length})</option>
+                      <option value="ready">Sortie-Ready ({sortieReadyDronesCount})</option>
+                      <option value="unverified">Pending QC Verification ({unverifiedDronesCount})</option>
                       <option value="reserved">Reserved for Bookings ({reservedDronesCount})</option>
-                      <option value="idle">Available / In-Stock ({idleDronesCount})</option>
+                      <option value="idle">Available / In-Stock ({sortieReadyDronesCount})</option>
                       <option value="maintenance">Under Maintenance ({maintenanceDronesCount})</option>
                       <option value="verified">Verified IDs ({verifiedDronesCount})</option>
-                      <option value="unverified">Unverified IDs ({unverifiedDronesCount})</option>
                     </select>
                   </div>
 
@@ -2117,10 +2130,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
                                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
                                     <span>In Flight</span>
                                   </span>
+                                ) : !isVerified ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                    <span>Pending QC Verification</span>
+                                  </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                    <span>Ready / In Stock</span>
+                                    <span>Sortie-Ready / In Stock</span>
                                   </span>
                                 )}
                               </td>

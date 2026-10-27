@@ -253,7 +253,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
           drone.id.toLowerCase().includes(q) ||
           drone.model.toLowerCase().includes(q) ||
           (drone.serial_number || '').toLowerCase().includes(q)
-        );
+        );  
       });
     }
     return [...list].sort((a, b) => {

@@ -518,13 +518,19 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
         (d.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (d.category || '').toLowerCase().includes(searchQuery.toLowerCase());
 
+      const isVerified = d.is_verified === true || d.verification_status === 'verified';
+      const linked = getLinkedOrderForDrone(d);
+      const isReserved = d.status !== 'maintenance' && (d.status === 'reserved' || Boolean(linked));
+      const isSortieReady = isVerified && d.status !== 'maintenance' && !isReserved && d.status !== 'in-flight' && d.status !== 'dispatched';
+
       const matchesStatus =
         statusFilter === 'all' ||
+        (statusFilter === 'ready' && isSortieReady) ||
+        (statusFilter === 'idle' && isSortieReady) ||
+        (statusFilter === 'unverified' && !isVerified) ||
         (statusFilter === 'maintenance' && d.status === 'maintenance') ||
-        (statusFilter === 'idle' && (d.status === 'idle' || !d.status)) ||
-        (statusFilter === 'in-flight' && (d.status === 'in-flight' || d.status === 'dispatched'));
+        (statusFilter === 'in-flight' && (d.status === 'in-flight' || d.status === 'dispatched' || d.status === 'en-route'));
 
-      const isVerified = d.is_verified === true || d.verification_status === 'verified';
       const matchesVerification =
         verificationFilter === 'all' ||
         (verificationFilter === 'verified' && isVerified) ||
@@ -545,14 +551,20 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   const maintenanceUnits = drones.filter((d) => d.status === 'maintenance').length;
   const verifiedUnits = drones.filter((d) => d.is_verified === true || d.verification_status === 'verified').length;
   const unverifiedUnits = totalUnits - verifiedUnits;
-  const inFlightUnits = drones.filter((d) => d.status === 'in-flight' || d.status === 'dispatched').length;
-  const idleUnits = drones.filter((d) => (d.status === 'idle' || !d.status) && d.status !== 'maintenance').length;
-  const readinessRate = totalUnits > 0 ? Math.round(((totalUnits - maintenanceUnits) / totalUnits) * 100) : 0;
+  const inFlightUnits = drones.filter((d) => d.status === 'in-flight' || d.status === 'dispatched' || d.status === 'en-route').length;
+  const sortieReadyUnits = drones.filter((d) => {
+    const isVerified = d.is_verified === true || d.verification_status === 'verified';
+    const linked = getLinkedOrderForDrone(d);
+    const isBusy = d.status === 'reserved' || d.status === 'in-flight' || d.status === 'en-route' || Boolean(linked);
+    return isVerified && d.status !== 'maintenance' && !isBusy;
+  }).length;
+  const idleUnits = sortieReadyUnits;
+  const readinessRate = totalUnits > 0 ? Math.round((sortieReadyUnits / totalUnits) * 100) : 0;
   const pendingDispatchUnits = dispatchOrders.filter((o) => ['pending', 'assigned', 'ready'].includes(o.status)).length;
 
   const fleetNavItems = [
     { id: 'overview', label: 'Overview', icon: Gauge, badge: null },
-    { id: 'inventory', label: 'Inventory', icon: Boxes, badge: idleUnits },
+    { id: 'inventory', label: 'Inventory', icon: Boxes, badge: sortieReadyUnits > 0 ? `${sortieReadyUnits} Ready` : `${totalUnits} Total` },
     { id: 'qc-scan', label: 'Scan & Inspect Drone', icon: ScanLine, badge: 'QC' },
     { id: 'audits', label: 'QR Scans & Audits', icon: QrCode, badge: null },
     { id: 'dispatch', label: 'Dispatch', icon: Send, badge: pendingDispatchUnits > 0 ? pendingDispatchUnits : null },
@@ -758,7 +770,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                 <div>
                   <div className="flex justify-between text-xs font-semibold mb-1">
                     <span className="text-slate-600">Stock Availability</span>
-                    <span className="text-emerald-700 font-bold">{idleUnits} / {totalUnits} Units</span>
+                    <span className="text-emerald-700 font-bold">{sortieReadyUnits} / {totalUnits} Units</span>
                   </div>
                   <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
                     <div
@@ -871,18 +883,37 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
 
 
                   <div
-                    onClick={() => setActiveTab('inventory')}
-                    className="bg-white border border-emerald-200 hover:border-emerald-300 bg-emerald-50/20 rounded-3xl p-5 shadow-xs flex items-center justify-between cursor-pointer transition-all group"
+                    onClick={() => {
+                      setStatusFilter(sortieReadyUnits > 0 ? 'ready' : 'unverified');
+                      setActiveTab('inventory');
+                    }}
+                    className={`bg-white border rounded-3xl p-5 shadow-xs flex items-center justify-between cursor-pointer transition-all group ${
+                      sortieReadyUnits > 0
+                        ? 'border-emerald-200 hover:border-emerald-300 bg-emerald-50/20'
+                        : 'border-slate-200 hover:border-amber-300 bg-amber-50/15'
+                    }`}
                   >
                     <div>
-                      <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Sortie-Ready</p>
-                      <h4 className="text-3xl font-black text-emerald-800 mt-1">{idleUnits}</h4>
+                      <p className={`text-[11px] font-bold uppercase tracking-wider ${
+                        sortieReadyUnits > 0 ? 'text-emerald-700' : 'text-amber-800'
+                      }`}>Sortie-Ready</p>
+                      <h4 className={`text-3xl font-black mt-1 ${
+                        sortieReadyUnits > 0 ? 'text-emerald-800' : 'text-slate-800'
+                      }`}>{sortieReadyUnits}</h4>
                       <div className="flex items-center gap-1.5 mt-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <p className="text-xs text-emerald-600 font-medium">Ready for Dispatch</p>
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          sortieReadyUnits > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'
+                        }`}></span>
+                        <p className={`text-xs font-medium ${
+                          sortieReadyUnits > 0 ? 'text-emerald-600' : 'text-amber-700 font-semibold'
+                        }`}>
+                          {sortieReadyUnits > 0 ? 'Ready for Dispatch' : '0 Airframes Verified'}
+                        </p>
                       </div>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black group-hover:scale-105 transition-transform">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black group-hover:scale-105 transition-transform ${
+                      sortieReadyUnits > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                    }`}>
                       <CheckCircle2 className="w-6 h-6" />
                     </div>
                   </div>
@@ -930,7 +961,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                   <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-xs flex items-center justify-between">
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Verified Hardware IDs</span>
-                      <h4 className="text-2xl font-black text-slate-900 mt-0.5 tracking-tight font-mono">{drones.filter((d: any) => d.hardwareSerial && d.hardwareSerial !== 'N/A').length} <span className="text-sm font-semibold text-slate-400">/ {totalUnits}</span></h4>
+                      <h4 className="text-2xl font-black text-slate-900 mt-0.5 tracking-tight font-mono">{verifiedUnits} <span className="text-sm font-semibold text-slate-400">/ {totalUnits}</span></h4>
                       <p className="text-xs text-purple-700 font-medium mt-0.5">Tamper-Proof QR Linked</p>
                     </div>
                     <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#5a00b8] flex items-center justify-center font-black shrink-0 border border-purple-100 shadow-2xs">
@@ -1153,19 +1184,18 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                           </div>
                         </div>
                       </div>
-                    ) : (
-
+                    ) : sortieReadyUnits > 0 ? (
                       <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-4">
                         <div className="w-12 h-12 rounded-2xl bg-white border border-purple-100 shadow-2xs flex items-center justify-center text-[#5a00b8] shrink-0">
                           <CheckCircle2 className="w-6 h-6 text-emerald-500" />
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-xs text-slate-900">Fleet Operations Standby • 100% Ready</h4>
+                            <h4 className="font-bold text-xs text-slate-900">Fleet Operations Standby • {readinessRate}% Ready</h4>
                             <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Optimal</span>
                           </div>
                           <p className="text-[11px] text-slate-500 mt-0.5">
-                            All 700 RPAV units calibrated and available for assignment. Consignment sorties booked through the Customer Portal or Dispatch Workbench appear in real time.
+                            {sortieReadyUnits} of {totalUnits} RPAV units calibrated and verified for sortie assignment. Consignment sorties booked through the Customer Portal or Dispatch Workbench appear in real time.
                           </p>
                         </div>
                         <button
@@ -1173,6 +1203,27 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                           className="px-3 py-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 transition-colors shrink-0 cursor-pointer"
                         >
                           Dispatch Desk &rarr;
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-5 rounded-2xl bg-amber-50/60 border border-amber-200/80 flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-white border border-amber-200 shadow-2xs flex items-center justify-center text-amber-600 shrink-0">
+                          <AlertTriangle className="w-6 h-6 text-amber-500" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-xs text-amber-950">Fleet Staged • Hardware Verification Required</h4>
+                            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px]">Awaiting QC</span>
+                          </div>
+                          <p className="text-[11px] text-amber-800/90 mt-0.5">
+                            {unverifiedUnits} of {totalUnits} RPAV units are staged in catalog. Zero airframes are currently verified for flight. Scan physical drone QR or complete pre-flight inspection to certify units for sortie dispatch.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setActiveTab('qc-scan')}
+                          className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-colors shrink-0 cursor-pointer shadow-xs"
+                        >
+                          Scan Drone QR &rarr;
                         </button>
                       </div>
                     )}
@@ -1205,7 +1256,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                       <div className="p-3.5 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between">
                         <span className="text-xs font-medium text-slate-300">Airframe Readiness:</span>
                         <span className="font-mono font-black text-purple-300 text-sm">
-                          {totalUnits > 0 ? Math.round((idleUnits / totalUnits) * 100) : 100}% Ready
+                          {readinessRate}% Ready ({sortieReadyUnits}/{totalUnits})
                         </span>
                       </div>
 
@@ -1511,7 +1562,8 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                       className="px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer w-full sm:w-auto"
                     >
                       <option value="all">All Statuses ({totalUnits})</option>
-                      <option value="idle">Ready / Available ({idleUnits})</option>
+                      <option value="ready">Sortie-Ready ({sortieReadyUnits})</option>
+                      <option value="unverified">Pending QC Verification ({unverifiedUnits})</option>
                       <option value="maintenance">Under Maintenance ({maintenanceUnits})</option>
                       <option value="in-flight">Out for Delivery ({inFlightUnits})</option>
                     </select>
@@ -1610,10 +1662,15 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
                                     <span>In Flight</span>
                                   </span>
+                                ) : !isVerified ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                    <span>Pending QC Verification</span>
+                                  </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                    <span>Ready / In Stock</span>
+                                    <span>Sortie-Ready / In Stock</span>
                                   </span>
                                 )}
                               </td>
