@@ -6097,7 +6097,7 @@ router.post('/pilot/support-ticket', async (req, res) => {
 
 let activeAppRelease = {
   version: 'v1.2.5',
-  build_number: 24,
+  build_number: 25,
   package_size: '~54.9 MB',
   release_notes: 'IndoFleet v1.2.5 (Build 25): Integrated dynamic geocoding, isolated audit log drone photo evidence, improved mobile modal scroll layout, and optimized build stability.',
   android_url: 'https://github.com/puneetonindowings/Indo-Fleet/releases/download/v1.2.5/IndoFleet_Delivery_v1.2.5.apk',

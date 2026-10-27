@@ -9,13 +9,16 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.indofleet.delivery",
+      "buildNumber": "25",
       "infoPlist": {
         "UIBackgroundModes": [
           "location",
           "fetch"
         ],
         "NSLocationWhenInUseUsageDescription": "IndoFleet Delivery App needs location access to track real-time delivery telemetry.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "IndoFleet Delivery App requires continuous background GPS to sync delivery tracking with Command Center."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "IndoFleet Delivery App requires continuous background GPS to sync delivery tracking with Command Center.",
+        "NSCameraUsageDescription": "IndoFleet Delivery App needs camera access to scan drone QR codes and airframe safety inspections."
       }
     },
     "android": {
