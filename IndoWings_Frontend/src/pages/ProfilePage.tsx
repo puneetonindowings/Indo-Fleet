@@ -2371,32 +2371,44 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
               </h4>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
-                <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 shadow-xs space-y-2">
-                  <div className="w-7 h-7 rounded-xl bg-purple-50 text-[#5a00b8] border border-purple-100 text-xs font-black flex items-center justify-center">1</div>
+                <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 hover:border-purple-200 hover:shadow-xs transition-all space-y-2 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <div className="w-7 h-7 rounded-xl bg-purple-50 text-[#5a00b8] border border-purple-100 text-xs font-black flex items-center justify-center">1</div>
+                    <Download className="w-3.5 h-3.5 text-[#5a00b8]" />
+                  </div>
                   <h5 className="text-xs font-bold text-slate-900">Scan or Download APK</h5>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
                     Download the direct Android APK or scan the QR code from your mobile device camera.
                   </p>
                 </div>
 
-                <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 shadow-xs space-y-2">
-                  <div className="w-7 h-7 rounded-xl bg-purple-50 text-[#5a00b8] border border-purple-100 text-xs font-black flex items-center justify-center">2</div>
+                <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 hover:border-indigo-200 hover:shadow-xs transition-all space-y-2 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <div className="w-7 h-7 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 text-xs font-black flex items-center justify-center">2</div>
+                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                  </div>
                   <h5 className="text-xs font-bold text-slate-900">Allow Installation</h5>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
                     Tap the downloaded APK and allow "Install from this source" when prompted by Android.
                   </p>
                 </div>
 
-                <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 shadow-xs space-y-2">
-                  <div className="w-7 h-7 rounded-xl bg-purple-50 text-[#5a00b8] border border-purple-100 text-xs font-black flex items-center justify-center">3</div>
+                <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 hover:border-sky-200 hover:shadow-xs transition-all space-y-2 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <div className="w-7 h-7 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 text-xs font-black flex items-center justify-center">3</div>
+                    <Smartphone className="w-3.5 h-3.5 text-sky-600" />
+                  </div>
                   <h5 className="text-xs font-bold text-slate-900">Grant Permissions</h5>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
                     Allow Camera (for drone airframe QR scans) and Location access (for live road GPS routing).
                   </p>
                 </div>
 
-                <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 shadow-xs space-y-2">
-                  <div className="w-7 h-7 rounded-xl bg-purple-50 text-[#5a00b8] border border-purple-100 text-xs font-black flex items-center justify-center">4</div>
+                <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 hover:border-emerald-200 hover:shadow-xs transition-all space-y-2 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <div className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-black flex items-center justify-center">4</div>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  </div>
                   <h5 className="text-xs font-bold text-slate-900">Sign In &amp; Execute</h5>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
                     Log in with registered email ({profile?.email || email}) to receive real-time drone deliveries.
@@ -2404,7 +2416,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                 </div>
               </div>
             </div>
-
 
             <div className="bg-purple-50/50 border border-purple-100 rounded-3xl p-6 space-y-3">
               <h5 className="text-xs font-bold text-[#5a00b8] uppercase tracking-wider flex items-center gap-1.5">
