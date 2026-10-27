@@ -223,10 +223,10 @@ export const AnalyticsDashboard: React.FC<Props> = ({ currentUser, onQuickAction
           tone="text-rose-700 bg-rose-50"
         />
         <KpiCard
-          label="Available 700RPAV"
+          label="Sortie-Ready 700RPAV"
           value={formatNumber(k.availableDrones.value)}
           icon={Plane}
-          subtitle={`${formatNumber(k.dispatchedDrones.value)} dispatched`}
+          subtitle={`${formatNumber(k.dispatchedDrones.value)} dispatched · ${formatNumber(data.inventory?.total || 1000)} total fleet`}
           tone="text-purple-700 bg-purple-50"
         />
       </div>
