@@ -151,23 +151,22 @@ export const DeliveryAppPage: React.FC<DeliveryAppPageProps> = ({
           </div>
 
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col justify-between">
+          <div className="max-w-xl mx-auto mb-8">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 flex flex-col justify-between shadow-xs">
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 rounded-xl bg-purple-100 text-[#5a00b8] flex items-center justify-center font-bold">
                     APK
                   </div>
-                  <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
                     Android 8.0+
                   </span>
                 </div>
                 <h3 className="text-base font-bold text-[#0f172a] mb-1">
-                  Android App (.apk)
+                  Android Standalone Native App (.apk)
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                  Direct Android installation package with offline map caching and background GPS telemetry.
+                  Official high-performance native APK release with in-app QR laser scanner, offline map caching, and live road GPS telemetry.
                 </p>
               </div>
 
@@ -175,38 +174,9 @@ export const DeliveryAppPage: React.FC<DeliveryAppPageProps> = ({
                 href={release.android_url || '#'}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full inline-flex items-center justify-center gap-2 bg-[#5a00b8] hover:bg-[#4a0098] text-white font-bold text-sm py-3 px-4 rounded-xl transition-all shadow-md shadow-purple-900/10"
+                className="w-full inline-flex items-center justify-center gap-2 bg-[#5a00b8] hover:bg-[#4a0098] text-white font-bold text-sm py-3.5 px-4 rounded-xl transition-all shadow-md shadow-purple-900/10"
               >
-                <Download className="w-4 h-4" /> Download Android APK
-              </a>
-            </div>
-
-
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
-                    IPA
-                  </div>
-                  <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
-                    iOS 14.0+
-                  </span>
-                </div>
-                <h3 className="text-base font-bold text-[#0f172a] mb-1">
-                  iOS App Build (.ipa)
-                </h3>
-                <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                  Direct iOS installation package for enterprise installation on Apple iOS devices.
-                </p>
-              </div>
-
-              <a
-                href={release.ios_url || '#'}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm py-3 px-4 rounded-xl transition-all shadow-md shadow-slate-900/10"
-              >
-                <Download className="w-4 h-4" /> Download iOS IPA
+                <Download className="w-4 h-4" /> Download Android APK ({release.version})
               </a>
             </div>
           </div>

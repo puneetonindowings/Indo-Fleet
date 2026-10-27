@@ -2260,50 +2260,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
               </div>
 
 
-              <div className="flex items-center gap-1.5 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/80 self-start lg:self-auto">
-                <button
-                  type="button"
-                  onClick={() => setPlatformFilter('all')}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    platformFilter === 'all'
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  All Platforms
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPlatformFilter('android')}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    platformFilter === 'android'
-                      ? 'bg-white text-[#5a00b8] shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Android</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPlatformFilter('ios')}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    platformFilter === 'ios'
-                      ? 'bg-white text-[#5a00b8] shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Apple className="w-3.5 h-3.5 text-slate-800" />
-                  <span>Apple iOS</span>
-                </button>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-purple-50 text-[#5a00b8] border border-purple-200 shadow-xs">
+                  <Smartphone className="w-3.5 h-3.5 text-[#5a00b8]" />
+                  <span>Android Edition (.APK)</span>
+                </span>
               </div>
             </div>
 
 
-            <div className={`grid grid-cols-1 ${platformFilter === 'all' ? 'lg:grid-cols-2' : 'max-w-2xl mx-auto'} gap-6 items-stretch`}>
-
-
-              {(platformFilter === 'all' || platformFilter === 'android') && (
+            <div className="max-w-2xl mx-auto w-full">
                 <div className="bg-white border-2 border-slate-100 hover:border-purple-200 rounded-3xl p-6 sm:p-7 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-6">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -2384,96 +2350,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                     </div>
                   </div>
                 </div>
-              )}
-
-
-              {(platformFilter === 'all' || platformFilter === 'ios') && (
-                <div className="bg-white border-2 border-slate-100 hover:border-blue-200 rounded-3xl p-6 sm:p-7 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full">
-                        <Apple className="w-3.5 h-3.5 text-slate-900" />
-                        Apple iOS (TestFlight / PWA)
-                      </span>
-                      <span className="text-xs text-slate-400 font-semibold">Active Beta</span>
-                    </div>
-
-                    <div>
-                      <h3 className="text-xl font-black text-slate-900 tracking-tight">
-                        IndoFleet Pilot for iOS
-                      </h3>
-                      <p className="text-xs text-slate-600 leading-relaxed mt-1">
-                        Tailored for iPhone and iPad devices. Join the official Apple TestFlight pilot program or open directly in Safari and tap <strong>"Add to Home Screen"</strong> for full offline capability.
-                      </p>
-                    </div>
-
-
-                    <div className="grid grid-cols-3 gap-2.5 pt-1">
-                      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-2.5 text-center">
-                        <span className="block text-[10px] text-slate-500 uppercase font-semibold">Channel</span>
-                        <span className="block text-xs font-bold text-slate-900 mt-0.5">TestFlight</span>
-                      </div>
-                      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-2.5 text-center">
-                        <span className="block text-[10px] text-slate-500 uppercase font-semibold">Devices</span>
-                        <span className="block text-xs font-bold text-slate-900 mt-0.5">iPhone &amp; iPad</span>
-                      </div>
-                      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-2.5 text-center">
-                        <span className="block text-[10px] text-slate-500 uppercase font-semibold">Min iOS</span>
-                        <span className="block text-xs font-bold text-blue-700 mt-0.5">iOS 15.0+</span>
-                      </div>
-                    </div>
-
-
-                    <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-center gap-4">
-                      <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-xs shrink-0">
-                        <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(appRelease.ios_url)}`}
-                          alt="Scan to Join Apple TestFlight"
-                          className="w-28 h-28 object-contain rounded-lg"
-                        />
-                      </div>
-                      <div className="text-center sm:text-left space-y-1">
-                        <div className="flex items-center justify-center sm:justify-start gap-1.5 text-xs font-black text-slate-900">
-                          <QrCode className="w-3.5 h-3.5 text-blue-600" /> Scan with iPhone Camera
-                        </div>
-                        <p className="text-[11px] text-slate-500 leading-relaxed">
-                          Scan with your iPhone Camera to open the official TestFlight invitation or add IndoFleet web app to your iOS home screen.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 pt-2">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <a
-                        href={appRelease.ios_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="w-full py-3.5 px-4 rounded-2xl font-black text-xs text-white bg-slate-900 hover:bg-slate-800 transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-                      >
-                        <Apple className="w-4 h-4 text-white" />
-                        <span>Join TestFlight Beta</span>
-                      </a>
-                      <a
-                        href="/pilot-app"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="w-full py-3.5 px-4 rounded-2xl font-black text-xs text-[#5a00b8] bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-                      >
-                        <ExternalLink className="w-4 h-4 text-[#5a00b8]" />
-                        <span>Launch Web Pilot App</span>
-                      </a>
-                    </div>
-
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
-                      <span className="flex items-center gap-1 font-medium text-slate-700">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" /> Apple Sandbox Certified
-                      </span>
-                      <span className="text-slate-400">PWA Safari Ready</span>
-                    </div>
-                  </div>
-                </div>
-              )}
 
             </div>
 
@@ -2486,9 +2362,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
                 <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 shadow-xs space-y-2">
                   <div className="w-7 h-7 rounded-xl bg-purple-50 text-[#5a00b8] border border-purple-100 text-xs font-black flex items-center justify-center">1</div>
-                  <h5 className="text-xs font-bold text-slate-900">Choose Android or iOS</h5>
+                  <h5 className="text-xs font-bold text-slate-900">Scan or Download APK</h5>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Download the direct Android APK or scan the Apple TestFlight QR code from your mobile device.
+                    Download the direct Android APK or scan the QR code from your mobile device camera.
                   </p>
                 </div>
 
@@ -2496,7 +2372,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                   <div className="w-7 h-7 rounded-xl bg-purple-50 text-[#5a00b8] border border-purple-100 text-xs font-black flex items-center justify-center">2</div>
                   <h5 className="text-xs font-bold text-slate-900">Allow Installation</h5>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
-                    On Android, allow "Install from this source". On iOS, accept the TestFlight beta agreement.
+                    Tap the downloaded APK and allow "Install from this source" when prompted by Android.
                   </p>
                 </div>
 
