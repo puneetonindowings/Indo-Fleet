@@ -9,7 +9,8 @@ import {
   Truck,
   LogOut,
   Sparkles,
-  Info
+  Info,
+  QrCode
 } from 'lucide-react';
 import { DeliveryUser } from '../types';
 import { API_BASE_URL } from '../config/api';
@@ -35,7 +36,7 @@ export const DeliveryAppPage: React.FC<DeliveryAppPageProps> = ({
   const [release, setRelease] = useState<AppReleaseInfo>({
     version: 'v1.2.5',
     release_notes: 'IndoFleet v1.2.5 (Build 25): Integrated dynamic geocoding, isolated audit log drone photo evidence, improved mobile modal scroll layout, and optimized build stability.',
-    android_url: `${API_BASE_URL}/api/delivery/download-apk`,
+    android_url: 'https://indowing-my.sharepoint.com/:u:/g/personal/puneet_kushwaha_indowings_com/IQAZAVvyW80PSqC5-dm-BWobAYd5lZ_033VxC31LMTVXYmg?e=S78MPU',
     ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
     updated_at: new Date().toISOString(),
   });
@@ -168,15 +169,35 @@ export const DeliveryAppPage: React.FC<DeliveryAppPageProps> = ({
                 <p className="text-xs text-slate-500 leading-relaxed mb-4">
                   Official high-performance native APK release with in-app QR laser scanner, offline map caching, and live road GPS telemetry.
                 </p>
+
+                {release.android_url && (
+                  <div className="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col sm:flex-row items-center gap-4 mb-5 shadow-xs">
+                    <div className="p-2 bg-slate-50 rounded-xl border border-slate-200 shrink-0">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(release.android_url)}`}
+                        alt="Scan QR to Download IndoFleet Pilot APK"
+                        className="w-28 h-28 object-contain rounded-lg"
+                      />
+                    </div>
+                    <div className="text-center sm:text-left space-y-1">
+                      <div className="flex items-center justify-center sm:justify-start gap-1.5 text-xs font-black text-slate-900">
+                        <QrCode className="w-3.5 h-3.5 text-[#5a00b8]" /> Scan with Mobile Camera
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">
+                        Scan this QR code using your Android camera or barcode scanner to download and install the pilot app directly.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <a
                 href={release.android_url || '#'}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full inline-flex items-center justify-center gap-2 bg-[#5a00b8] hover:bg-[#4a0098] text-white font-bold text-sm py-3.5 px-4 rounded-xl transition-all shadow-md shadow-purple-900/10"
+                className="w-full inline-flex items-center justify-center gap-2 bg-[#5a00b8] hover:bg-[#4a0098] text-white font-bold text-sm py-3.5 px-4 rounded-xl transition-all shadow-md shadow-purple-900/10 cursor-pointer active:scale-95"
               >
-                <Download className="w-4 h-4" /> Download Android APK ({release.version})
+                <Download className="w-4 h-4 text-white" /> Download Android APK ({release.version})
               </a>
             </div>
           </div>

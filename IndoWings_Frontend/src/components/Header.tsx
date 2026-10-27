@@ -243,7 +243,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
                       className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#5a00b8] text-xs font-bold transition-colors cursor-pointer"
                     >
                       <Smartphone className="w-4 h-4 text-[#5a00b8]" />
-                      <span>Download Pilot App (v1.1.3)</span>
+                      <span>Download Pilot App (v1.2.5)</span>
                     </button>
                   )}
 

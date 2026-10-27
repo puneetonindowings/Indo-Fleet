@@ -19,7 +19,7 @@ export const AppReleaseConsole: React.FC = () => {
     'IndoFleet v1.2.0 (Build 20): Permanent drone inspection persistence to Supabase, verified multi-session state sync, zero Hindi UI, transparent HUD reticle viewfinder, and animated navigation tabs.'
   );
   const [androidUrl, setAndroidUrl] = useState(
-    'https://expo.dev/artifacts/eas/ky_DWar8qpMmInwY2aYzMC9ZibSC48cc5GJcsAbt-bA.apk'
+    'https://indowing-my.sharepoint.com/:u:/g/personal/puneet_kushwaha_indowings_com/IQAZAVvyW80PSqC5-dm-BWobAYd5lZ_033VxC31LMTVXYmg?e=S78MPU'
   );
   const [iosUrl, setIosUrl] = useState(
     'https://testflight.apple.com/join/IndoFleetDeliveryApp'

@@ -6101,7 +6101,7 @@ let activeAppRelease = {
   build_number: 25,
   package_size: '~54.9 MB',
   release_notes: 'IndoFleet v1.2.5 (Build 25): Integrated dynamic geocoding, isolated audit log drone photo evidence, improved mobile modal scroll layout, and optimized build stability.',
-  android_url: 'https://github.com/puneetonindowings/Indo-Fleet/releases/download/v1.2.5/IndoFleet_Delivery_v1.2.5.apk',
+  android_url: 'https://indowing-my.sharepoint.com/:u:/g/personal/puneet_kushwaha_indowings_com/IQAZAVvyW80PSqC5-dm-BWobAYd5lZ_033VxC31LMTVXYmg?e=S78MPU',
   ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
   updated_at: new Date().toISOString()
 };

@@ -165,6 +165,8 @@ export const App: React.FC = () => {
           routeToDesk(fallback.page, fallback.path);
         } else if (currentPage === 'fleet' && !['fleet_manager', 'admin'].includes(role)) {
           routeToDesk(fallback.page, fallback.path);
+        } else if (currentPage === 'delivery-app' && !['delivery', 'pilot', 'delivery_partner'].includes(role)) {
+          routeToDesk(fallback.page, fallback.path);
         } else if (currentPage === 'support-desk' && !['support', 'admin', 'fleet_manager'].includes(role)) {
           routeToDesk(fallback.page, fallback.path);
         }

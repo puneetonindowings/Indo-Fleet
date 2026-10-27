@@ -74,7 +74,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
       if (q === 'orders') return 'orders';
       if (q === 'addresses') return 'addresses';
       if (window.location.pathname.includes('/orders')) return 'orders';
-      if (q === 'downloads' || q === 'app' || q === 'apk' || q === 'pilot-app') return 'downloads';
+      const role = (currentUser?.role || '').toLowerCase();
+      const isPilot = ['delivery', 'pilot', 'delivery_partner'].includes(role);
+      if ((q === 'downloads' || q === 'app' || q === 'apk' || q === 'pilot-app') && isPilot) return 'downloads';
     }
     return 'details';
   };
@@ -162,11 +164,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
     ios_url: string;
     updated_at: string;
   }>({
-    version: 'v1.2.4',
-    build_number: 24,
+    version: 'v1.2.5',
+    build_number: 25,
     package_size: '~54.9 MB',
-    release_notes: 'IndoFleet v1.2.4 (Build 24): Android 3-button system navigation bar insets fix, silent Render-to-Local API fallback for OTP/inspections without test banners, order-wise drone inspection grouping with photo/video media evidence preview in Admin Console, and optimized ~54.9 MB APK.',
-    android_url: `${API_BASE_URL}/api/delivery/download-apk`,
+    release_notes: 'IndoFleet v1.2.5 (Build 25): Integrated dynamic geocoding, isolated audit log drone photo evidence, improved mobile modal scroll layout, and optimized build stability.',
+    android_url: 'https://indowing-my.sharepoint.com/:u:/g/personal/puneet_kushwaha_indowings_com/IQAZAVvyW80PSqC5-dm-BWobAYd5lZ_033VxC31LMTVXYmg?e=S78MPU',
     ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
     updated_at: new Date().toISOString()
   });
@@ -987,7 +989,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
 
   const activeOrdersCount = orders.filter((o) => !['delivered', 'cancelled'].includes(o.status)).length;
 
-  const isDeliveryRole = ['delivery', 'pilot', 'delivery_partner'].includes((profile?.role || '').toLowerCase());
+  const isDeliveryRole = ['delivery', 'pilot', 'delivery_partner'].includes(((profile?.role || currentUser?.role || '')).toLowerCase());
+
+  useEffect(() => {
+    if (!isDeliveryRole && activeTab === 'downloads') {
+      setActiveTab('details');
+      if (!embedded && typeof window !== 'undefined') {
+        window.history.replaceState({}, '', '/profile?tab=details');
+      }
+    }
+  }, [isDeliveryRole, activeTab, embedded]);
 
   const profileTabs: { id: 'details' | 'addresses' | 'orders' | 'queries' | 'security' | 'downloads'; label: string; icon: any; count?: number; badge?: string }[] = [
     { id: 'details', label: 'Personal Details', icon: User },
@@ -995,8 +1006,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
     { id: 'addresses', label: 'Saved Addresses', icon: MapPin, count: addresses.length },
     { id: 'orders', label: 'My Orders', icon: Clock, count: orders.length },
     { id: 'queries', label: 'Support', icon: HelpCircle, count: queries.length },
-    { id: 'security', label: 'Password & Security', icon: KeyRound },
-    ...(!isDeliveryRole ? [{ id: 'downloads' as const, label: 'Pilot Mobile App', icon: Smartphone, badge: 'APK' }] : [])
+    { id: 'security', label: 'Password & Security', icon: KeyRound }
   ];
 
   const switchTab = (id: 'details' | 'addresses' | 'orders' | 'queries' | 'security' | 'downloads') => {
@@ -2235,7 +2245,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
         )}
 
 
-        {activeTab === 'downloads' && (
+        {activeTab === 'downloads' && isDeliveryRole && (
           <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-8 animate-in fade-in duration-200">
 
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-6">
@@ -2328,7 +2338,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                   <div className="space-y-3 pt-2">
                     <a
                       href={appRelease.android_url}
-                      download={`IndoFleet_Delivery_${appRelease.version}.apk`}
+                      target="_blank"
+                      rel="noreferrer"
                       className="w-full py-3.5 px-6 rounded-2xl font-black text-xs text-white bg-[#5a00b8] hover:bg-[#480094] transition-all shadow-xs shadow-purple-900/15 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                     >
                       <Download className="w-4 h-4 text-white" />
