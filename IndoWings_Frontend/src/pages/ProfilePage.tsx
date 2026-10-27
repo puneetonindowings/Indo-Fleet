@@ -2370,7 +2370,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                 <Smartphone className="w-4 h-4 text-[#5a00b8]" /> Quick Installation Guide for Delivery Partners
               </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                 <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 hover:border-purple-200 hover:shadow-xs transition-all space-y-2 shadow-2xs">
                   <div className="flex items-center justify-between">
                     <div className="w-7 h-7 rounded-xl bg-purple-50 text-[#5a00b8] border border-purple-100 text-xs font-black flex items-center justify-center">1</div>
