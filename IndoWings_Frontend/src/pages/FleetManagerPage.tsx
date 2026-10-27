@@ -564,7 +564,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
 
   const fleetNavItems = [
     { id: 'overview', label: 'Overview', icon: Gauge, badge: null },
-    { id: 'inventory', label: 'Inventory', icon: Boxes, badge: sortieReadyUnits > 0 ? `${sortieReadyUnits} Ready` : `${totalUnits} Total` },
+    { id: 'inventory', label: 'Inventory', icon: Boxes, badge: totalUnits },
     { id: 'qc-scan', label: 'Scan & Inspect Drone', icon: ScanLine, badge: 'QC' },
     { id: 'audits', label: 'QR Scans & Audits', icon: QrCode, badge: null },
     { id: 'dispatch', label: 'Dispatch', icon: Send, badge: pendingDispatchUnits > 0 ? pendingDispatchUnits : null },

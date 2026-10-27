@@ -2054,8 +2054,9 @@ router.get('/store/products', async (_req, res) => {
 
       const available = inventory.filter(
         (d) =>
-          d.status === 'idle' &&
-          (d.qc_status === 'passed' || !d.qc_status) &&
+          d.status !== 'maintenance' &&
+          d.status !== 'in-flight' &&
+          (d.status === 'idle' || d.status === 'ready' || !d.status) &&
           !bookedDroneIds.has(String(d.id).toLowerCase()) &&
           !bookedDroneIds.has(String(d.serial_number || '').toLowerCase())
       );

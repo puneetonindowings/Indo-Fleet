@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  AlertCircle,
   ArrowLeft,
   ArrowRight,
   Check,
   CheckCircle2,
+  Clock,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -46,6 +48,7 @@ export interface StoreDrone {
   qc_status?: string;
   status?: string;
   is_verified?: boolean;
+  verification_status?: string;
 }
 
 interface AddressDraft {
@@ -164,7 +167,7 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Could not load drone inventory.');
         const rawList = data.drones || data.products || [];
-        const loadedDrones = rawList.filter((d: StoreDrone) => (!d.status || d.status === 'idle') && (!d.qc_status || d.qc_status === 'passed'));
+        const loadedDrones = rawList.filter((d: StoreDrone) => d.status !== 'maintenance');
         setDrones(loadedDrones);
 
         setCart(prev => {
@@ -789,21 +792,20 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
 
   const detailInfo = detailDrone ? getUnitInfo(detailDrone) : [];
 
-  const renderChips = (drone: StoreDrone) =>
-    drone.qc_status === 'passed' || drone.current_city ? (
-      <div className="flex flex-wrap gap-1.5">
-        {drone.qc_status === 'passed' && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-            <ShieldCheck className="h-3 w-3" /> QC passed
-          </span>
-        )}
-        {drone.current_city && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-            <MapPin className="h-3 w-3" /> {drone.current_city}
-          </span>
-        )}
-      </div>
-    ) : null;
+  const renderChips = (drone: StoreDrone) => (
+    <div className="flex flex-wrap gap-1.5">
+      {drone.category && (
+        <span className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-[10px] font-bold text-[#5a00b8]">
+          {drone.category}
+        </span>
+      )}
+      {drone.current_city && (
+        <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[10px] font-semibold text-slate-600">
+          <MapPin className="h-3 w-3" /> {drone.current_city}
+        </span>
+      )}
+    </div>
+  );
 
   const renderActions = (drone: StoreDrone) => {
     const isSelected = Boolean(cart[drone.id]);
@@ -1287,9 +1289,14 @@ export const StorePage: React.FC<StorePageProps> = ({ currentUser, onNavigate, e
                 <span className="rounded-xl border border-purple-100 bg-purple-50 px-3 py-1 font-mono text-xs font-bold text-[#5a00b8]">
                   {detailDrone.id}
                 </span>
-                {detailDrone.qc_status === 'passed' && (
-                  <span className="flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
-                    <ShieldCheck className="h-3.5 w-3.5" /> QC Passed
+                {detailDrone.category && (
+                  <span className="rounded-xl border border-purple-200 bg-purple-50/70 px-2.5 py-1 text-xs font-bold text-[#5a00b8]">
+                    {detailDrone.category}
+                  </span>
+                )}
+                {detailDrone.current_city && (
+                  <span className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                    <MapPin className="h-3.5 w-3.5 text-slate-400" /> {detailDrone.current_city}
                   </span>
                 )}
               </div>
