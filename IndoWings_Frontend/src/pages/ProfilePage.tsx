@@ -2365,54 +2365,95 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
             </div>
 
 
-            <div className="bg-slate-50/80 border border-slate-200 rounded-3xl p-6 sm:p-7 space-y-4">
-              <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <Smartphone className="w-4 h-4 text-[#5a00b8]" /> Quick Installation Guide for Delivery Partners
-              </h4>
+            <div className="bg-slate-50/80 border border-slate-200 rounded-3xl p-6 sm:p-7 space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-200/70 pb-3.5">
+                <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-[#5a00b8]" /> Quick Installation Guide for Delivery Partners
+                </h4>
+                <span className="text-xs font-bold text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-2xs">
+                  4-Step Setup
+                </span>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 hover:border-purple-200 hover:shadow-xs transition-all space-y-2 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <div className="w-7 h-7 rounded-xl bg-purple-50 text-[#5a00b8] border border-purple-100 text-xs font-black flex items-center justify-center">1</div>
-                    <Download className="w-3.5 h-3.5 text-[#5a00b8]" />
+                {/* Step 1 */}
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 hover:border-purple-300 hover:shadow-md transition-all min-h-[145px] flex flex-col justify-between shadow-xs group">
+                  <div>
+                    <div className="flex items-center justify-between mb-3.5">
+                      <div className="w-8 h-8 rounded-xl bg-purple-100 text-[#5a00b8] border border-purple-200/60 text-xs font-black flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                        1
+                      </div>
+                      <div className="w-8 h-8 rounded-xl bg-purple-50 text-[#5a00b8] flex items-center justify-center">
+                        <Download className="w-4 h-4 text-[#5a00b8]" />
+                      </div>
+                    </div>
+                    <h5 className="text-sm font-black text-slate-900 tracking-tight">
+                      Scan or Download APK
+                    </h5>
+                    <p className="text-xs text-slate-600 leading-relaxed mt-2">
+                      Download the direct Android APK or scan the on-screen QR code from your mobile device camera.
+                    </p>
                   </div>
-                  <h5 className="text-xs font-bold text-slate-900">Scan or Download APK</h5>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Download the direct Android APK or scan the QR code from your mobile device camera.
-                  </p>
                 </div>
 
-                <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 hover:border-indigo-200 hover:shadow-xs transition-all space-y-2 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <div className="w-7 h-7 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 text-xs font-black flex items-center justify-center">2</div>
-                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                {/* Step 2 */}
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 hover:border-indigo-300 hover:shadow-md transition-all min-h-[145px] flex flex-col justify-between shadow-xs group">
+                  <div>
+                    <div className="flex items-center justify-between mb-3.5">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 border border-indigo-200/60 text-xs font-black flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                        2
+                      </div>
+                      <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                        <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                      </div>
+                    </div>
+                    <h5 className="text-sm font-black text-slate-900 tracking-tight">
+                      Allow Installation
+                    </h5>
+                    <p className="text-xs text-slate-600 leading-relaxed mt-2">
+                      Tap the downloaded APK and toggle <strong className="text-slate-800 font-bold">"Install from this source"</strong> when prompted by Android.
+                    </p>
                   </div>
-                  <h5 className="text-xs font-bold text-slate-900">Allow Installation</h5>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Tap the downloaded APK and allow "Install from this source" when prompted by Android.
-                  </p>
                 </div>
 
-                <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 hover:border-sky-200 hover:shadow-xs transition-all space-y-2 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <div className="w-7 h-7 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 text-xs font-black flex items-center justify-center">3</div>
-                    <Smartphone className="w-3.5 h-3.5 text-sky-600" />
+                {/* Step 3 */}
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 hover:border-sky-300 hover:shadow-md transition-all min-h-[145px] flex flex-col justify-between shadow-xs group">
+                  <div>
+                    <div className="flex items-center justify-between mb-3.5">
+                      <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 border border-sky-200/60 text-xs font-black flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                        3
+                      </div>
+                      <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
+                        <Smartphone className="w-4 h-4 text-sky-600" />
+                      </div>
+                    </div>
+                    <h5 className="text-sm font-black text-slate-900 tracking-tight">
+                      Grant Permissions
+                    </h5>
+                    <p className="text-xs text-slate-600 leading-relaxed mt-2">
+                      Allow <strong className="text-slate-800 font-bold">Camera</strong> (for drone airframe QR scans) and <strong className="text-slate-800 font-bold">Location</strong> access (for live road GPS routing).
+                    </p>
                   </div>
-                  <h5 className="text-xs font-bold text-slate-900">Grant Permissions</h5>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Allow Camera (for drone airframe QR scans) and Location access (for live road GPS routing).
-                  </p>
                 </div>
 
-                <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 hover:border-emerald-200 hover:shadow-xs transition-all space-y-2 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <div className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-black flex items-center justify-center">4</div>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                {/* Step 4 */}
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all min-h-[145px] flex flex-col justify-between shadow-xs group">
+                  <div>
+                    <div className="flex items-center justify-between mb-3.5">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 border border-emerald-200/60 text-xs font-black flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                        4
+                      </div>
+                      <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      </div>
+                    </div>
+                    <h5 className="text-sm font-black text-slate-900 tracking-tight">
+                      Sign In &amp; Execute
+                    </h5>
+                    <p className="text-xs text-slate-600 leading-relaxed mt-2">
+                      Log in with registered email <span className="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 font-semibold border border-slate-200/80 text-[11px]">{profile?.email || email}</span> to receive real-time drone deliveries.
+                    </p>
                   </div>
-                  <h5 className="text-xs font-bold text-slate-900">Sign In &amp; Execute</h5>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Log in with registered email ({profile?.email || email}) to receive real-time drone deliveries.
-                  </p>
                 </div>
               </div>
             </div>
