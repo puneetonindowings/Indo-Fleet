@@ -57,7 +57,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
   const [loginError, setLoginError] = useState('');
 
   // Extract Drone ID from URL path: /drone/:droneId
-  
+
   useEffect(() => {
     const path = window.location.pathname;
     const parts = path.split('/').filter(Boolean);
@@ -70,6 +70,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
   }, []);
 
   // Fetch Drone Data (Requires Staff Auth Token)
+  
   const fetchDroneData = useCallback(async (tokenOverride?: string, isSilent = false) => {
     if (!droneId) return;
     const token = tokenOverride || localStorage.getItem('iw_delivery_token') || '';
