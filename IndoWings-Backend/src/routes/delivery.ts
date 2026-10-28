@@ -2103,7 +2103,7 @@ router.post('/store/orders', async (req, res) => {
 
   if (droneIdsInput.length > 0) {
     for (const dId of droneIdsInput) {
-      const drone = inventory.find((d) => d.id === dId && d.qc_status === 'passed' && d.status === 'idle');
+      const drone = inventory.find((d) => d.id === dId && d.status === 'idle');
       if (!drone) {
         res.status(409).json({ error: `Drone ${dId} is no longer available. Please select another drone.` });
         return;
@@ -2130,7 +2130,7 @@ router.post('/store/orders', async (req, res) => {
     }
 
     for (const [model, quantity] of requested) {
-      const available = inventory.filter((drone) => drone.model === model && drone.qc_status === 'passed' && drone.status === 'idle');
+      const available = inventory.filter((drone) => drone.model === model && drone.status === 'idle');
       if (available.length < quantity) {
         res.status(409).json({
           error: `Only ${available.length} ${model} unit${available.length === 1 ? '' : 's'} currently available. Please update your cart.`
