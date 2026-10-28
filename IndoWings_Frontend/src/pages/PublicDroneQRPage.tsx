@@ -57,6 +57,7 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
   const [loginError, setLoginError] = useState('');
 
   // Extract Drone ID from URL path: /drone/:droneId
+  
   useEffect(() => {
     const path = window.location.pathname;
     const parts = path.split('/').filter(Boolean);
@@ -180,9 +181,8 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
     setTimeout(() => setInspectionSuccessMsg(''), 6000);
   };
 
-  // =========================================================================
-  // VIEW 1: UNAUTHENTICATED / NORMAL SCANNER (RESTRICTED ASSET GATE)
-  // =========================================================================
+  // UNAUTHENTICATED / NORMAL SCANNER (RESTRICTED ASSET GATE)
+
   if (!canInspect) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased w-full pt-28 sm:pt-36 pb-20 px-4 sm:px-6 flex items-center justify-center relative overflow-hidden">
@@ -324,9 +324,8 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
     );
   }
 
-  // =========================================================================
-  // VIEW 2: AUTHENTICATED STAFF (AIRFRAME QC & OPERATIONS CONSOLE)
-  // =========================================================================
+  //AUTHENTICATED STAFF (AIRFRAME QC & OPERATIONS CONSOLE)
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased w-full pt-28 sm:pt-32 pb-20 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-4xl mx-auto space-y-6">
