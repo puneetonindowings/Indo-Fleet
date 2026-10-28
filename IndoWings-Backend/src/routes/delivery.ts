@@ -6393,7 +6393,6 @@ router.get('/public/drone/:drone_id', async (req, res) => {
       }
     }
 
-    const user = await getAuthenticatedUser(req);
     const isOperator = user && ['admin', 'dispatcher', 'fleet_manager', 'delivery'].includes(user.role);
 
     const safeCustomerName = isOperator ? (matchedOrder?.customer_name || null) : (matchedOrder?.customer_name ? `${matchedOrder.customer_name.slice(0, 3)}***` : null);
