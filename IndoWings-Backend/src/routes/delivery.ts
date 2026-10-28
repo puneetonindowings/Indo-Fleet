@@ -6339,6 +6339,19 @@ router.get('/inspections/stats', async (req, res) => {
 router.get('/public/drone/:drone_id', async (req, res) => {
   try {
     const rawId = req.params.drone_id.trim();
+
+    const user = await getAuthenticatedUser(req);
+    const isStaff = user && ['admin', 'dispatcher', 'fleet_manager', 'delivery', 'pilot'].includes(user.role);
+
+    if (!isStaff) {
+      res.status(401).json({
+        success: false,
+        requires_auth: true,
+        error: 'Access Restricted: This physical airframe asset is restricted to authorized IndoWings flight operations personnel.'
+      });
+      return;
+    }
+
     const fleet = await fileDB.getFleet();
     const drone = fleet.find(d =>
       String(d.id).toLowerCase() === rawId.toLowerCase() ||

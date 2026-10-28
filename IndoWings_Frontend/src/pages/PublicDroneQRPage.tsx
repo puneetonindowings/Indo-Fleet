@@ -3,25 +3,21 @@ import {
   ShieldCheck,
   AlertTriangle,
   CheckCircle2,
-  Phone,
-  Mail,
   Wrench,
   Loader2,
-  UserCheck,
-  CheckSquare,
-  AlertCircle,
-  Camera,
-  Video,
-  X,
-  FileCheck2,
-  Package,
-  Truck,
+  Lock,
+  Eye,
+  EyeOff,
+  LogIn,
+  LogOut,
   RefreshCw,
-  MapPin,
+  BatteryCharging,
+  Plane,
   Clock,
   Sparkles,
-  ExternalLink,
-  ChevronRight
+  Layers,
+  ChevronRight,
+  ShieldAlert
 } from 'lucide-react';
 import { API_BASE_URL, SUPPORT_EMAIL, SUPPORT_PHONE } from '../config/api';
 import { PostDeliveryInspectionModal } from '../components/PostDeliveryInspectionModal';
@@ -30,68 +26,37 @@ interface PublicDroneQRPageProps {
   onNavigate?: (page: string) => void;
 }
 
-interface UploadedMedia {
-  name: string;
-  type: string;
-  size: number;
-  data: string; // base64
-  previewUrl: string;
-}
-
 export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate }) => {
   const [droneId, setDroneId] = useState<string>('');
   const [droneData, setDroneData] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [showInspectionModal, setShowInspectionModal] = useState(false);
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date>(new Date());
+  const [inspectionSuccessMsg, setInspectionSuccessMsg] = useState('');
 
-  const [showFeedbackForm, setShowFeedbackForm] = useState(true); // Open by default for easy reporting
-  const [selectedPartIssue, setSelectedPartIssue] = useState('Cargo Bay & Electronic Latch');
-  const [customIssueText, setCustomIssueText] = useState('');
-  const [feedbackMessage, setFeedbackMessage] = useState('');
-  const [uploadedMedia, setUploadedMedia] = useState<UploadedMedia[]>([]);
-  const [submittingFeedback, setSubmittingFeedback] = useState(false);
-  const [feedbackSuccess, setFeedbackSuccess] = useState('');
-  const [feedbackError, setFeedbackError] = useState('');
-
-  const deliveryUser = (() => {
+  // Staff Authentication State
+  const [currentUser, setCurrentUser] = useState<any>(() => {
     try {
       const str = localStorage.getItem('iw_delivery_user');
       return str ? JSON.parse(str) : null;
     } catch {
       return null;
     }
-  })();
+  });
 
   const canInspect = Boolean(
-    deliveryUser && ['admin', 'fleet_manager', 'dispatcher', 'delivery', 'pilot'].includes(deliveryUser.role)
+    currentUser && ['admin', 'fleet_manager', 'dispatcher', 'delivery', 'pilot'].includes(currentUser.role)
   );
 
-  const fetchDroneData = useCallback(async (isSilent = false) => {
-    if (!droneId) return;
-    try {
-      if (!isSilent) setLoading(true);
-      else setRefreshing(true);
-      setError('');
-      const res = await fetch(`${API_BASE_URL}/api/delivery/public/drone/${encodeURIComponent(droneId)}`);
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Drone verification link not valid or record expired.');
-      }
-      setDroneData(data.drone);
-      setLastRefreshedAt(new Date());
-    } catch (err: any) {
-      if (!isSilent) {
-        setError(err.message || 'Unable to verify drone record.');
-      }
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [droneId]);
+  // Quick Staff Login Form state
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
+  // Extract Drone ID from URL path: /drone/:droneId
   useEffect(() => {
     const path = window.location.pathname;
     const parts = path.split('/').filter(Boolean);
@@ -100,632 +65,463 @@ export const PublicDroneQRPage: React.FC<PublicDroneQRPageProps> = ({ onNavigate
 
     if (!id) {
       setError('No Drone ID provided in the scan URL.');
-      setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    if (droneId) {
-      fetchDroneData(false);
+  // Fetch Drone Data (Requires Staff Auth Token)
+  const fetchDroneData = useCallback(async (tokenOverride?: string, isSilent = false) => {
+    if (!droneId) return;
+    const token = tokenOverride || localStorage.getItem('iw_delivery_token') || '';
 
-      const interval = setInterval(() => {
-        fetchDroneData(true);
-      }, 8000);
-
-      return () => clearInterval(interval);
-    }
-  }, [droneId, fetchDroneData]);
-
-  const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const remainingSlots = 5 - uploadedMedia.length;
-    if (remainingSlots <= 0) {
-      setFeedbackError('Maximum 5 photos/videos allowed per inquiry.');
+    if (!token) {
+      // Unauthenticated - do not make request to protect private flight assets
       return;
     }
 
-    const filesToProcess = Array.from(files).slice(0, remainingSlots);
+    try {
+      if (!isSilent) setLoading(true);
+      else setRefreshing(true);
+      setError('');
 
-    filesToProcess.forEach((file) => {
-      if (file.size > 25 * 1024 * 1024) {
-        setFeedbackError(`File "${file.name}" exceeds the 25 MB limit.`);
+      const res = await fetch(`${API_BASE_URL}/api/delivery/public/drone/${encodeURIComponent(droneId)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+
+      if (res.status === 401 || data.requires_auth) {
+        // Staff token is invalid or expired
+        localStorage.removeItem('iw_delivery_token');
+        localStorage.removeItem('iw_delivery_user');
+        setCurrentUser(null);
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64Data = reader.result as string;
-        const newMedia: UploadedMedia = {
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          data: base64Data,
-          previewUrl: file.type.startsWith('image/') ? base64Data : ''
-        };
-        setUploadedMedia((prev) => [...prev, newMedia]);
-      };
-      reader.readAsDataURL(file);
-    });
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Airframe record not found or link expired.');
+      }
 
-    e.target.value = '';
-  };
+      setDroneData(data.drone);
+    } catch (err: any) {
+      if (!isSilent) {
+        setError(err.message || 'Unable to fetch airframe record.');
+      }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [droneId]);
 
-  const removeMedia = (index: number) => {
-    setUploadedMedia((prev) => prev.filter((_, i) => i !== index));
-  };
+  // Load data once user is authenticated
+  useEffect(() => {
+    if (canInspect && droneId) {
+      fetchDroneData();
+    }
+  }, [canInspect, droneId, fetchDroneData]);
 
-  const handleSubmitCustomerFeedback = async (e: React.FormEvent) => {
+  // Handle Quick Staff Login
+  const handleStaffLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!feedbackMessage.trim()) {
-      setFeedbackError('Please enter a description of the issue or feedback.');
+    if (!loginEmail.trim() || !loginPassword.trim()) {
+      setLoginError('Please enter your staff email/phone and password.');
       return;
     }
 
-    setSubmittingFeedback(true);
-    setFeedbackError('');
-    setFeedbackSuccess('');
+    setLoginLoading(true);
+    setLoginError('');
 
     try {
-      const issueCategory = selectedPartIssue === 'Other / Unlisted Issue'
-        ? (customIssueText.trim() ? `Custom Issue: ${customIssueText.trim()}` : 'Other Unlisted Issue')
-        : selectedPartIssue;
-
-      const autoCustomerName = droneData?.customer_name || 'Verified Customer';
-      const autoCustomerPhone = droneData?.customer_phone || null;
-      const autoCustomerEmail = droneData?.customer_email || SUPPORT_EMAIL;
-
-      const res = await fetch(`${API_BASE_URL}/api/delivery/support/expert-requests`, {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          source: 'customer_qr_scan',
-          name: autoCustomerName,
-          email: autoCustomerEmail,
-          phone: autoCustomerPhone,
-          drone_serial: droneData?.serial_number || droneId,
-          order_id: droneData?.assigned_order || droneData?.order_number || null,
-          category: `Drone Delivery Support: ${issueCategory}`,
-          message: `[Drone QR Scan • Part: ${issueCategory}]\n${feedbackMessage.trim()}`,
-          priority: 'normal',
-          attachments: uploadedMedia.map((m) => ({
-            name: m.name,
-            mimetype: m.type,
-            size: m.size,
-            data: m.data
-          }))
+          email: loginEmail.trim(),
+          password: loginPassword.trim()
         })
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit feedback.');
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Invalid credentials.');
       }
 
-      setFeedbackSuccess('Thank you! Your issue report has been logged with IndoWings Support. Our technical team has been notified.');
-      setFeedbackMessage('');
-      setCustomIssueText('');
-      setUploadedMedia([]);
+      const user = data.user;
+      const token = data.token;
+
+      if (!['admin', 'fleet_manager', 'dispatcher', 'delivery', 'pilot'].includes(user.role)) {
+        throw new Error('Access Denied: This account is not authorized for airframe QC and flight operations.');
+      }
+
+      localStorage.setItem('iw_delivery_token', token);
+      localStorage.setItem('iw_delivery_user', JSON.stringify(user));
+      setCurrentUser(user);
+
+      // Immediately fetch drone info with newly issued token
+      await fetchDroneData(token);
     } catch (err: any) {
-      setFeedbackError(err.message || 'Error submitting feedback.');
+      setLoginError(err.message || 'Staff authentication failed.');
     } finally {
-      setSubmittingFeedback(false);
+      setLoginLoading(false);
     }
   };
 
-  const hasActiveOrder = Boolean(droneData?.assigned_order || droneData?.order_number || droneData?.assigned_pilot_name);
-  const driverName = droneData?.assigned_pilot_name || droneData?.pilot_name;
-  const driverPhone = droneData?.assigned_pilot_phone || droneData?.pilot_phone;
+  const handleStaffLogout = () => {
+    localStorage.removeItem('iw_delivery_token');
+    localStorage.removeItem('iw_delivery_user');
+    setCurrentUser(null);
+    setDroneData(null);
+  };
 
+  const handleInspectionComplete = (inspection: any) => {
+    setShowInspectionModal(false);
+    setInspectionSuccessMsg(`Airframe inspection logged successfully (${inspection.overall_inspection || 'PASSED'}).`);
+    fetchDroneData(undefined, true);
+    setTimeout(() => setInspectionSuccessMsg(''), 6000);
+  };
+
+  // =========================================================================
+  // VIEW 1: UNAUTHENTICATED / NORMAL SCANNER (RESTRICTED ASSET GATE)
+  // =========================================================================
+  if (!canInspect) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased w-full pt-28 sm:pt-36 pb-20 px-4 sm:px-6 flex items-center justify-center relative overflow-hidden">
+        {/* Subtle high-tech background glow */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute -bottom-20 right-1/4 w-[400px] h-[400px] bg-indigo-900/15 rounded-full blur-[100px] pointer-events-none" />
+
+        <div className="w-full max-w-md mx-auto space-y-6 relative z-10">
+          
+          {/* Access Restricted Card */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6">
+            
+            {/* Shield & Lock Header */}
+            <div className="text-center space-y-3">
+              <div className="w-16 h-16 rounded-2xl bg-purple-950/80 border border-purple-500/30 text-purple-400 flex items-center justify-center mx-auto shadow-inner shadow-purple-900/40">
+                <Lock className="w-8 h-8 text-purple-400" />
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[11px] font-bold tracking-wider uppercase">
+                <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                <span>Restricted Enterprise Asset</span>
+              </div>
+
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                IndoWings Flight Operations
+              </h1>
+
+              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-sm mx-auto">
+                This QR tag is attached to an enterprise airframe asset. Public scanning and external tracking are disabled under IndoWings Flight Security protocols.
+              </p>
+            </div>
+
+            {/* Quick Staff Login Form */}
+            <div className="border-t border-slate-800/80 pt-5 space-y-4">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+                <span className="flex items-center gap-1.5 text-purple-400">
+                  <LogIn className="w-3.5 h-3.5" /> Authorized Staff Sign In
+                </span>
+                <span className="text-[10px] text-slate-500 uppercase tracking-wider">Ground Crew &amp; QC</span>
+              </div>
+
+              {loginError && (
+                <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-800/80 text-rose-300 text-xs flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+                  <span>{loginError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleStaffLogin} className="space-y-3.5">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Staff Email / Phone
+                  </label>
+                  <input
+                    type="text"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    placeholder="pilot@indowings.com"
+                    autoComplete="username"
+                    required
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-hidden focus:border-purple-500 transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Security Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                      required
+                      className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-hidden focus:border-purple-500 transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loginLoading}
+                  className="w-full py-2.5 px-4 rounded-xl bg-[#5a00b8] hover:bg-[#480094] text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {loginLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Authenticating Credentials…</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Sign In &amp; Unlock Airframe QC</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+
+            {/* Support / Help link */}
+            <div className="border-t border-slate-800/80 pt-4 text-center">
+              <p className="text-[11px] text-slate-500">
+                Technical queries or emergency fleet support:
+              </p>
+              <div className="text-xs text-slate-400 mt-1 space-x-2 font-mono">
+                <span>{SUPPORT_PHONE}</span>
+                <span>&bull;</span>
+                <span>{SUPPORT_EMAIL}</span>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Footer note */}
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => {
+                if (onNavigate) onNavigate('home');
+                else window.location.href = '/';
+              }}
+              className="text-xs text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+            >
+              &larr; Return to IndoWings Public Portal
+            </button>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // VIEW 2: AUTHENTICATED STAFF (AIRFRAME QC & OPERATIONS CONSOLE)
+  // =========================================================================
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased w-full pt-28 sm:pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-4xl mx-auto space-y-6">
 
-      <div className="w-full max-w-7xl mx-auto space-y-6">
-
-
+        {/* Staff Operations Header */}
         <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-purple-50/60 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
 
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-start sm:items-center gap-4 sm:gap-5">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-purple-100/90 border border-purple-200 flex items-center justify-center text-purple-700 shadow-xs shrink-0">
-                <Truck className="w-7 h-7 sm:w-8 sm:h-8" />
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-purple-100/90 border border-purple-200 flex items-center justify-center text-purple-700 shadow-xs shrink-0">
+                <Plane className="w-7 h-7" />
               </div>
               <div>
-                <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>IndoWings DGCA Certified Fleet</span>
-                  </span>
+                <div className="flex flex-wrap items-center gap-2 mb-1">
                   <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-xs font-mono font-bold">
-                    DRONE ID: {droneId ? droneId.toUpperCase() : 'UNKNOWN'}
+                    AIRFRAME ID: {droneId ? droneId.toUpperCase() : 'UNKNOWN'}
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Staff Verified
                   </span>
                 </div>
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
-                  IndoWings Customer Delivery &amp; Drone Portal
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  IndoWings Airframe Operations &amp; QC Suite
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                  Official digital consignment verification, road logistics handover, and technical assistance desk
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Logged in as <strong className="text-slate-700">{currentUser?.name || currentUser?.email}</strong> ({currentUser?.role?.toUpperCase()})
                 </p>
               </div>
             </div>
 
-
-            <div className="flex items-center gap-3 self-start md:self-center shrink-0">
-              <div className="text-right hidden sm:block">
-                <p className="text-[11px] font-semibold text-slate-400">STATUS AUTO-SYNC</p>
-                <p className="text-xs font-bold text-slate-700">
-                  {refreshing ? 'Updating live records…' : 'Active • Auto-refreshing'}
-                </p>
-              </div>
+            <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
               <button
                 type="button"
-                onClick={() => fetchDroneData(false)}
+                onClick={() => fetchDroneData(undefined, false)}
                 disabled={loading || refreshing}
                 className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 transition-colors cursor-pointer flex items-center justify-center"
-                title="Refresh delivery status"
+                title="Refresh Airframe Status"
               >
                 <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-purple-600' : ''}`} />
               </button>
+              <button
+                type="button"
+                onClick={handleStaffLogout}
+                className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 border border-slate-200 text-slate-600 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Sign out of staff session"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out</span>
+              </button>
             </div>
           </div>
-
-
-          {hasActiveOrder && (
-            <div className="mt-5 pt-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-purple-50/50 p-4 rounded-2xl border border-purple-100">
-              <div className="flex items-center gap-2.5">
-                <Package className="w-5 h-5 text-purple-700 shrink-0" />
-                <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-purple-800">Linked Consignment Order</span>
-                  <p className="text-xs sm:text-sm font-bold text-slate-900">
-                    Order #{droneData.order_number || droneData.assigned_order}
-                    {droneData.drop_address && (
-                      <span className="text-slate-500 font-normal"> &bull; Destination: {droneData.drop_address}</span>
-                    )}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-600 text-white shadow-2xs">
-                  {droneData.order_status === 'in-flight' ? '🚚 In Road Transit' : '📦 Assigned for Delivery'}
-                </span>
-              </div>
-            </div>
-          )}
         </div>
 
+        {/* Notification Banner */}
+        {inspectionSuccessMsg && (
+          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-bold flex items-center gap-2.5 shadow-xs">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span>{inspectionSuccessMsg}</span>
+          </div>
+        )}
 
+        {/* Loading / Error States */}
         {loading ? (
           <div className="bg-white border border-slate-200 rounded-3xl p-16 flex flex-col items-center justify-center gap-3 text-slate-500 shadow-sm">
             <Loader2 className="w-10 h-10 animate-spin text-purple-600" />
             <p className="text-sm font-bold text-slate-700">Connecting to IndoWings Fleet Registry…</p>
-            <p className="text-xs text-slate-400">Verifying airframe credentials and active road delivery records</p>
+            <p className="text-xs text-slate-400">Loading airframe telemetry, hardware checks, and previous inspection history</p>
           </div>
         ) : error ? (
           <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-4 shadow-sm">
             <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
               <AlertTriangle className="w-8 h-8" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900">Verification Link Not Valid</h3>
+            <h3 className="text-lg font-bold text-slate-900">Airframe Record Unavailable</h3>
             <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-              The requested drone QR link is either invalid or no matching active record exists in the IndoWings fleet registry.
+              {error}
             </p>
-            <div className="pt-2 text-xs text-slate-600">
-              Support Helpline: <a href={`tel:${SUPPORT_PHONE.replace(/\s+/g, '')}`} className="text-purple-700 font-bold hover:underline">{SUPPORT_PHONE}</a> • <a href={`mailto:${SUPPORT_EMAIL}`} className="text-purple-700 font-bold hover:underline">{SUPPORT_EMAIL}</a>
-            </div>
           </div>
         ) : droneData ? (
+          <div className="space-y-6">
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-
-
-            <div className="lg:col-span-7 space-y-6">
-
-
-              <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <UserCheck className="w-4 h-4 text-purple-700" />
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">
-                      Assigned Delivery Person &amp; Vehicle
-                    </h3>
-                  </div>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${hasActiveOrder && driverName ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-                    {hasActiveOrder && driverName ? 'Verified Delivery Driver' : 'Standby Fleet'}
+            {/* Drone Vital Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">QC Status</span>
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1 rounded-full text-xs font-black ${
+                    droneData.last_inspection_result === 'PASSED'
+                      ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                      : 'bg-amber-50 border border-amber-200 text-amber-700'
+                  }`}>
+                    {droneData.last_inspection_result === 'PASSED' ? 'SORTIE-READY PASSED' : 'PENDING QC VERIFICATION'}
                   </span>
                 </div>
+                <p className="text-[11px] text-slate-500">Physical verification required before sortie</p>
+              </div>
 
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Driver / Logistics Partner</p>
-                    <h4 className="text-base sm:text-lg font-bold text-slate-900">
-                      {driverName || 'IndoWings Central Road Logistics'}
-                    </h4>
-                    <p className="text-xs text-slate-500">
-                      {hasActiveOrder && driverName
-                        ? 'Vehicle Delivery Fleet • Road Transit Division'
-                        : 'No active delivery currently in transit for this drone'}
-                    </p>
-                  </div>
-
-                  {driverPhone ? (
-                    <a
-                      href={`tel:${driverPhone}`}
-                      className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors shadow-xs shrink-0 cursor-pointer"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      <span>Call Driver ({driverPhone})</span>
-                    </a>
-                  ) : (
-                    <a
-                      href={`tel:${SUPPORT_PHONE.replace(/\s+/g, '')}`}
-                      className="px-4 py-2.5 rounded-xl bg-slate-200/80 hover:bg-slate-300 text-slate-800 text-xs font-bold flex items-center justify-center gap-2 transition-colors shrink-0 cursor-pointer"
-                    >
-                      <Phone className="w-3.5 h-3.5 text-purple-700" />
-                      <span>Helpline ({SUPPORT_PHONE})</span>
-                    </a>
-                  )}
-                </div>
-
-
-                <p className="text-[11px] text-slate-500 leading-relaxed">
-                  As soon as a logistics driver is assigned at dispatch, their name and direct phone line appear here automatically.
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Model &amp; Serial</span>
+                <p className="text-sm font-black text-slate-900 truncate">
+                  {droneData.model_name || 'IndoWings 700 RPAV'}
+                </p>
+                <p className="text-[11px] font-mono text-slate-500">
+                  S/N: {droneData.serial_number || 'N/A'}
                 </p>
               </div>
 
-
-              <div className="bg-white border border-amber-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 text-amber-900">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <h3 className="text-xs font-black uppercase tracking-wider">
-                    Drone Delivery &amp; Road Unloading Instructions
-                  </h3>
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Current Condition</span>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  <span className="text-sm font-bold text-slate-800">
+                    {droneData.current_condition || 'Depot Serviceable'}
+                  </span>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/70 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center font-bold text-[10px]">1</span>
-                      <h4 className="text-xs font-bold text-amber-950">Vehicle Unloading</h4>
-                    </div>
-                    <p className="text-[11px] text-slate-600 leading-relaxed">
-                      Drones are transported by road in dedicated secure transit cases. Allow the delivery driver to carefully unload and unbox the crate.
-                    </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/70 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center font-bold text-[10px]">2</span>
-                      <h4 className="text-xs font-bold text-amber-950">Fragile Electronics</h4>
-                    </div>
-                    <p className="text-[11px] text-slate-600 leading-relaxed">
-                      Inspect the outer packaging and tamper-proof security seals for any transit impact or crushing before signing.
-                    </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/70 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center font-bold text-[10px]">3</span>
-                      <h4 className="text-xs font-bold text-amber-950">Battery Safety</h4>
-                    </div>
-                    <p className="text-[11px] text-slate-600 leading-relaxed">
-                      Li-Po power cells are shipped in isolated fire-retardant enclosures. Keep dry and store away from direct heat.
-                    </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/70 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center font-bold text-[10px]">4</span>
-                      <h4 className="text-xs font-bold text-amber-950">Handover &amp; OTP</h4>
-                    </div>
-                    <p className="text-[11px] text-slate-600 leading-relaxed">
-                      Only share your 4-digit Delivery Handshake OTP with the driver after inspecting the physical package.
-                    </p>
-                  </div>
-                </div>
+                <p className="text-[11px] text-slate-500">Status: {droneData.status || 'idle'}</p>
               </div>
-
-
-              <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-sm space-y-3.5">
-                <div className="flex items-center gap-2 text-slate-800">
-                  <CheckSquare className="w-4 h-4 text-purple-700" />
-                  <h3 className="text-xs font-black uppercase tracking-wider">
-                    Customer Pre-Acceptance Verification Checklist
-                  </h3>
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  Please verify these 4 items before accepting the delivery consignment from the driver:
-                </p>
-
-                <div className="space-y-2 pt-1">
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span className="text-xs text-slate-700">
-                      <strong>Tamper-Proof Seal:</strong> Ensure the cargo compartment security seal is intact and unbroken.
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span className="text-xs text-slate-700">
-                      <strong>Consignment ID Match:</strong> Match parcel tag with your order confirmation SMS / email.
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span className="text-xs text-slate-700">
-                      <strong>No Box Damage:</strong> Inspect the outer carton for crushing, punctures, or transit wetness.
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span className="text-xs text-slate-700">
-                      <strong>4-Digit Handshake OTP:</strong> Share your OTP with the delivery partner ONLY after physical inspection.
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-
-              {canInspect && (
-                <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 flex items-center justify-between gap-3">
-                  <div>
-                    <span className="text-xs font-bold text-purple-900 block">Staff Airframe QC Suite</span>
-                    <span className="text-[11px] text-purple-700">Authorized Operator: {deliveryUser?.name || deliveryUser?.role}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowInspectionModal(true)}
-                    className="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
-                  >
-                    <Wrench className="w-3.5 h-3.5" />
-                    <span>Run Airframe QC</span>
-                  </button>
-                </div>
-              )}
             </div>
 
+            {/* Run Airframe QC Primary Action */}
+            <div className="bg-gradient-to-br from-purple-900 to-[#3b0078] rounded-3xl p-6 sm:p-8 text-white shadow-lg space-y-4 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-2xl pointer-events-none" />
+              
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-1.5 max-w-xl">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/10 border border-white/20 text-purple-200 text-xs font-bold">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Physical Pre-Flight / Post-Delivery Verification</span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-black text-white">
+                    Execute Airframe Hardware Checklist
+                  </h2>
+                  <p className="text-xs sm:text-sm text-purple-200 leading-relaxed">
+                    Perform physical verification of motor arm locking pins, avionics seals, propeller torques, and payload latches for {droneData.drone_id}.
+                  </p>
+                </div>
 
-            <div className="lg:col-span-5 space-y-6">
+                <button
+                  type="button"
+                  onClick={() => setShowInspectionModal(true)}
+                  className="px-6 py-3.5 rounded-2xl bg-white hover:bg-purple-50 text-[#5a00b8] font-black text-sm transition-all shadow-md flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                >
+                  <Wrench className="w-4 h-4 text-[#5a00b8]" />
+                  <span>Launch Inspection Form</span>
+                </button>
+              </div>
+            </div>
 
-
-              <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileCheck2 className="w-4 h-4 text-purple-700" />
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
-                      Report Drone Part Issue
+            {/* Linked Logistics / Sortie Details if assigned */}
+            {droneData.assigned_order && (
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2 text-slate-800">
+                    <Layers className="w-4 h-4 text-purple-700" />
+                    <h3 className="text-xs font-black uppercase tracking-wider">
+                      Assigned Flight / Delivery Mission
                     </h3>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
-                    Direct Support
+                  <span className="px-3 py-0.5 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-xs font-bold">
+                    Order #{droneData.order_number || droneData.assigned_order}
                   </span>
                 </div>
 
-                <p className="text-xs text-slate-500">
-                  Select specific drone parts to raise an issue with photo/video evidence. No need to re-enter your contact info.
-                </p>
-
-                <form onSubmit={handleSubmitCustomerFeedback} className="space-y-4 pt-1">
-                  {feedbackError && (
-                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>{feedbackError}</span>
-                    </div>
-                  )}
-                  {feedbackSuccess && (
-                    <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 shrink-0" />
-                      <span>{feedbackSuccess}</span>
-                    </div>
-                  )}
-
-
-                  <div className="p-3.5 rounded-2xl bg-purple-50/70 border border-purple-200/70 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
-                        <UserCheck className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700">Order Customer</span>
-                          {droneData.order_number && (
-                            <span className="text-[10px] font-mono font-bold bg-white px-1.5 py-0.2 rounded border border-purple-200 text-purple-800">
-                              #{droneData.order_number}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs font-bold text-slate-900 mt-0.5">
-                          {droneData.customer_name || 'Verified Customer'}
-                          {droneData.customer_phone ? ` • ${droneData.customer_phone}` : droneData.customer_email ? ` • ${droneData.customer_email}` : ''}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0">
-                      Auto-Fetched
-                    </span>
-                  </div>
-
-
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pt-1">
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
-                      Select Drone Part / Issue Category <span className="text-rose-500">*</span>
-                    </label>
-                    <select
-                      value={selectedPartIssue}
-                      onChange={(e) => setSelectedPartIssue(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-50 border border-slate-300 text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white cursor-pointer"
-                    >
-                      <option value="Cargo Bay & Electronic Latch">Cargo Bay &amp; Electronic Latch</option>
-                      <option value="Propellers & Rotor Blades">Propellers &amp; Rotor Blades</option>
-                      <option value="Landing Gear & Dampers">Landing Struts &amp; Foot Dampers</option>
-                      <option value="Airframe Body & Shell">Airframe Shell &amp; Carbon Body</option>
-                      <option value="Battery & Connectors">Battery Pack &amp; Power Connectors</option>
-                      <option value="Delivery Package Damage">Damaged Package / Crushed Parcel</option>
-                      <option value="Delivery Person Conduct">Delivery Driver Conduct / Delay</option>
-                      <option value="Other / Unlisted Issue">Other / Unlisted Issue (Write Below)</option>
-                    </select>
-                  </div>
-
-
-                  {selectedPartIssue === 'Other / Unlisted Issue' && (
-                    <div className="animate-fadeIn">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-purple-700 block mb-1">
-                        Specify Unlisted Problem <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={customIssueText}
-                        onChange={(e) => setCustomIssueText(e.target.value)}
-                        placeholder="e.g. Broken latch or surface damage"
-                        className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-50 border border-purple-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 focus:bg-white"
-                      />
-                    </div>
-                  )}
-
-
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
-                      Detailed Description <span className="text-rose-500">*</span>
-                    </label>
-                    <textarea
-                      required
-                      rows={3}
-                      value={feedbackMessage}
-                      onChange={(e) => setFeedbackMessage(e.target.value)}
-                      placeholder="Please describe what you observed on the drone, cargo hatch, or delivery crate..."
-                      className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 focus:bg-white resize-none"
-                    />
-                  </div>
-
-
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                      Upload Photos &amp; Videos (Proof of Issue)
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <label className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center gap-2 cursor-pointer transition-colors shadow-2xs">
-                        <Camera className="w-3.5 h-3.5 text-purple-700" />
-                        <span>Add Photo / Video</span>
-                        <input
-                          type="file"
-                          accept="image/*,video/*"
-                          multiple
-                          onChange={handleMediaUpload}
-                          className="hidden"
-                        />
-                      </label>
-                      <span className="text-[11px] text-slate-500">
-                        {uploadedMedia.length}/5 files (Max 25 MB each)
-                      </span>
-                    </div>
-
-
-                    {uploadedMedia.length > 0 && (
-                      <div className="grid grid-cols-2 gap-2 pt-1">
-                        {uploadedMedia.map((m, idx) => (
-                          <div
-                            key={idx}
-                            className="p-2 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-1 text-[11px]"
-                          >
-                            <div className="flex items-center gap-1.5 truncate">
-                              {m.type.startsWith('video/') ? (
-                                <Video className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                              ) : (
-                                <Camera className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              )}
-                              <span className="truncate text-slate-700 font-mono text-[10px]">
-                                {m.name}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeMedia(idx)}
-                              className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer shrink-0"
-                              title="Remove file"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
+                    <span className="text-slate-400 block mb-0.5 font-bold uppercase text-[10px]">Mission Pilot / Driver</span>
+                    <span className="text-slate-800 font-bold">{droneData.assigned_pilot_name || 'Unassigned'}</span>
+                    {droneData.assigned_pilot_phone && (
+                      <span className="text-slate-500 block text-[11px] font-mono">{droneData.assigned_pilot_phone}</span>
                     )}
                   </div>
-
-                  <button
-                    type="submit"
-                    disabled={submittingFeedback}
-                    className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
-                  >
-                    {submittingFeedback ? 'Uploading & Submitting...' : 'Submit Support Ticket to IndoWings'}
-                  </button>
-                </form>
-              </div>
-
-
-              <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-sm space-y-3.5">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  IndoWings Official Support Desk
-                </h4>
-                <div className="space-y-2.5 text-xs">
-                  <a
-                    href={`tel:${SUPPORT_PHONE.replace(/\s+/g, '')}`}
-                    className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-between transition-colors"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Phone className="w-4 h-4 text-purple-700" />
-                      <div>
-                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Toll Free Hotline</span>
-                        <span className="font-bold text-slate-900">{SUPPORT_PHONE}</span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
-                      Toll Free
-                    </span>
-                  </a>
-
-                  <a
-                    href={`mailto:${SUPPORT_EMAIL}`}
-                    className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-between transition-colors"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Mail className="w-4 h-4 text-purple-700" />
-                      <div>
-                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Official Inquiries</span>
-                        <span className="font-bold text-slate-900">{SUPPORT_EMAIL}</span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200/70 text-slate-700">
-                      Email
-                    </span>
-                  </a>
+                  <div>
+                    <span className="text-slate-400 block mb-0.5 font-bold uppercase text-[10px]">Destination Hub</span>
+                    <span className="text-slate-800 font-bold">{droneData.drop_address || 'Depot Hub'}</span>
+                  </div>
                 </div>
-
-                <p className="text-[11px] text-slate-400 pt-1 text-center">
-                  Mon – Sat &bull; 09:00 AM – 08:00 PM IST &bull; DGCA Verified
-                </p>
               </div>
-
-            </div>
+            )}
 
           </div>
         ) : null}
 
+        {/* Modal for Performing Physical QC Checklist */}
+        {showInspectionModal && (
+          <PostDeliveryInspectionModal
+            isOpen={showInspectionModal}
+            onClose={() => setShowInspectionModal(false)}
+            droneId={droneId}
+            onSuccess={handleInspectionComplete}
+          />
+        )}
+
       </div>
-
-
-      <PostDeliveryInspectionModal
-        isOpen={showInspectionModal}
-        onClose={() => setShowInspectionModal(false)}
-        droneId={droneId}
-        onSuccess={() => {
-          fetchDroneData(false);
-        }}
-      />
     </div>
   );
 };
