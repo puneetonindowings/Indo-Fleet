@@ -1,0 +1,105 @@
+PORT=5000
+SUPABASE_URL=https://lnoswhrskkrdooatobvv.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxub3N3aHJza2tyZG9vYXRvYnZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjg0NDcsImV4cCI6MjEwNjg0NDQ0N30.ANl6Mc4tmaPAYTkDlAxDBpnzQnigxGIJXlye9suDXZM
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxub3N3aHJza2tyZG9vYXRvYnZ2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MTI2ODQ0NywiZXhwIjoyMTA2ODQ0NDQ3fQ.LXSPSUTQk124YSWbJ-_7VmYzU_Uwdiskc-OHg566QZ0
+JWT_SECRET=indowings_command_center_secret_2026
+
+# Administrator Bootstrap
+ADMIN_EMAIL=puneet.kushwaha@indowings.com
+ADMIN_PASSWORD=123123
+ADMIN_NAME=Puneet Kushwaha
+
+# Operational Alert & Support Emails
+ADMIN_ALERT_EMAIL=puneetkushwaha9452@gmail.com
+SUPPORT_EMAIL=connect@indowings.com
+DISPATCH_OPS_EMAIL=ops@indowings.com
+
+# -------------------------------------------------------------
+# 📧 EMAIL OTP & NOTIFICATIONS (Gmail SMTP via Nodemailer)
+# -------------------------------------------------------------
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=puneetkushwaha9452@gmail.com
+SMTP_PASS=dzlcpzagmxvdpzwu
+
+# -------------------------------------------------------------
+# 🔥 FIREBASE (Phone OTP & FCM Push Notifications)
+# -------------------------------------------------------------
+FIREBASE_PROJECT_ID=indofleet-6377b
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-fbsvc@indofleet-6377b.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY_PATH=./firebase_admin_key.json
+
+# -------------------------------------------------------------
+# 🗺️ GOOGLE MAPS API KEY (For Geocoding & Route Tracking)
+# -------------------------------------------------------------
+GOOGLE_MAPS_API_KEY=
+
+# Public Frontend & Tracking URLs
+FRONTEND_URL=http://localhost:5173
+PUBLIC_TRACKING_URL=https://indo-fleet.vercel.app
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081,http://localhost:3000,http://localhost:5000,https://indo-fleet.vercel.app,https://indowfleet.vercel.app,https://indo-fleet.onrender.com
+
+
+
+
+
+
+PORT=5000
+
+# Supabase project URL and keys
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+
+# JWT Auth Secret
+JWT_SECRET=replace-with-a-long-random-secret
+
+# Administrator Bootstrap
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=your_secure_password
+ADMIN_NAME=Administrator
+
+# Operational Alert & Support Emails
+ADMIN_ALERT_EMAIL=alerts@example.com
+SUPPORT_EMAIL=support@example.com
+DISPATCH_OPS_EMAIL=ops@example.com
+
+# -------------------------------------------------------------
+# 📧 EMAIL OTP & NOTIFICATIONS (Gmail SMTP via Nodemailer)
+# Generate 16-character App Password at: https://myaccount.google.com/apppasswords
+# -------------------------------------------------------------
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_16_character_app_password
+
+# Optional: Resend API (Alternative email gateway)
+RESEND_API_KEY=
+FROM_EMAIL=onboarding@resend.dev
+
+# -------------------------------------------------------------
+# 🔥 FIREBASE (Phone OTP & FCM Push Notifications)
+# Download Service Account Key JSON at:
+# https://console.firebase.google.com/project/_/settings/serviceaccounts/adminsdk
+# -------------------------------------------------------------
+# Option 1: Individual keys
+FIREBASE_PROJECT_ID=your-firebase-project-id
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project-id.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+
+# Option 2: Path to downloaded JSON file (e.g. ./firebase-service-account.json)
+FIREBASE_SERVICE_ACCOUNT_PATH=./firebase_admin_key.json
+
+# Option 3: Raw JSON string of the service account
+FIREBASE_SERVICE_ACCOUNT_JSON=
+
+# -------------------------------------------------------------
+# 🗺️ GOOGLE MAPS API KEY (For Geocoding & Route Distance)
+# Get from: https://console.cloud.google.com/google/maps-apis/credentials
+# -------------------------------------------------------------
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+
+# Public frontend origin & tracking URLs
+FRONTEND_URL=http://localhost:5173
+PUBLIC_TRACKING_URL=https://indo-fleet.vercel.app
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081,http://localhost:3000,http://localhost:5000,https://indo-fleet.vercel.app,https://indowfleet.vercel.app,https://indo-fleet.onrender.com
