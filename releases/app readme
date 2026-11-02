@@ -1,0 +1,16 @@
+# IndoFleet Delivery Mobile App Environment Variables
+# Live Cloud API Backend (Render):
+EXPO_PUBLIC_API_URL=https://indo-fleet.onrender.com
+
+# For local development (uncomment if testing locally on same machine):
+# EXPO_PUBLIC_API_URL=http://localhost:5000
+
+# 🗺️ OpenStreetMap / OSRM Routing Engine URL
+EXPO_PUBLIC_ROUTING_API_URL=https://router.project-osrm.org
+
+# 📞 Support Desk & Operations Helpline
+EXPO_PUBLIC_SUPPORT_EMAIL=connect@indowings.com
+EXPO_PUBLIC_SUPPORT_PHONE=1800 572 7363
+
+# 🛸 Default Drone RPAV Identifier
+EXPO_PUBLIC_DEFAULT_DRONE_MODEL=RPAV-000001
