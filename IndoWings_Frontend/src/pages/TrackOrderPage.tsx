@@ -25,7 +25,7 @@ const STATUS_LABELS: Record<string, string> = {
   delivered: 'Delivered',
   'in-flight': 'On The Way',
   'on-hold': 'On The Way',
-  assigned: 'Dispatched with Partner',
+    assigned: 'Dispatched with Partner',
   rescheduled: 'Rescheduled',
   pending: 'Processing Order',
   'taking-off': 'Out for Delivery',

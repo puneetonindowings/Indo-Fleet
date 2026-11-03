@@ -249,7 +249,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
       return;
     }
 
-    const rawAddr = target?.drop_address || target?.delivery_address;
+    const rawAddr = target?.drop_address || target?.delivery_address;   
     if (!rawAddr) return;
 
     let cancelled = false;

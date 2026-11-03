@@ -98,7 +98,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
       if (isPendingA && !isPendingB) return -1;
       if (!isPendingA && isPendingB) return 1;
 
-      const isInFlightA = ['in-flight', 'taking-off', 'out-for-delivery'].includes(a.status);
+      const isInFlightA = ['in-flight', 'taking-off', 'out-for-delivery'].includes(a.status); 
       const isInFlightB = ['in-flight', 'taking-off', 'out-for-delivery'].includes(b.status);
       if (isInFlightA && !isInFlightB) return -1;
       if (!isInFlightA && isInFlightB) return 1;

@@ -121,9 +121,9 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onNavigate, currentU
     } catch (err: any) {
       setSubmitError(err.message || 'Could not submit feedback. Please try again.');
     } finally {
-      setSubmitting(false);
+      setSubmitting(false);   
     }
-  };
+  };  
 
   const handleResetForm = () => {
     setSubmitSuccess(false);

@@ -8,6 +8,7 @@ import { DemoBookingModal } from './components/DemoBookingModal';
 import { API_BASE_URL } from './config/api';
 import { SEOHead } from './components/SEOHead';
 import { Chatbot } from './components/Chatbot';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { UserProfile, DeliveryUser } from './types';
 
 const PlatformPage = React.lazy(() => import('./pages/PlatformPage').then(m => ({ default: m.PlatformPage })));
@@ -332,6 +333,7 @@ export const App: React.FC = () => {
       <CommandCenterModal isOpen={isCommandCenterOpen} onClose={() => setIsCommandCenterOpen(false)} currentUser={currentUser} onLoginSuccess={handleLoginSuccess} onLogout={handleLogout} />
       <DemoBookingModal isOpen={isDemoModalOpen} onClose={() => setIsDemoModalOpen(false)} preselectedDrone={selectedDroneForDemo} />
       <Chatbot onNavigate={handleNavigate} />
+      <SpeedInsights />
     </div>
   );
 };

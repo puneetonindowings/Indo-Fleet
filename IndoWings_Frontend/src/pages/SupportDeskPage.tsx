@@ -868,17 +868,15 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
                             return (
                               <div
                                 key={drone.serial || idx}
-                                className={`rounded-2xl p-4 transition-all ${
-                                  isDefective
+                                className={`rounded-2xl p-4 transition-all ${isDefective
                                     ? 'bg-rose-50/70 border-2 border-rose-400 shadow-xs'
                                     : 'bg-white border border-slate-200'
-                                }`}
+                                  }`}
                               >
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
                                   <div className="flex items-center gap-2.5">
-                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
-                                      isDefective ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
-                                    }`}>
+                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${isDefective ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
+                                      }`}>
                                       {isDefective ? <AlertTriangle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
                                     </div>
                                     <div>
@@ -1011,9 +1009,8 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
 
                           {!isImg && (
                             <div className="flex items-center gap-3">
-                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xs shrink-0 ${
-                                isPdf ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'bg-blue-50 text-blue-600 border border-blue-200'
-                              }`}>
+                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xs shrink-0 ${isPdf ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'bg-blue-50 text-blue-600 border border-blue-200'
+                                }`}>
                                 {isPdf ? 'PDF' : <FileText className="w-6 h-6" />}
                               </div>
                               <div className="truncate flex-1">
@@ -1201,7 +1198,7 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
 
                     <div className="text-[10px] text-slate-500 border-t border-purple-100 pt-2 flex items-center justify-between">
                       <span>Sender: <strong>connect@indowings.com</strong></span>
-                      <span className="text-purple-700 font-bold">IndoWings Operations</span>
+                      <span className="text-purple-700 font-bold">Indofleet</span>
                     </div>
                   </div>
 
@@ -1310,488 +1307,478 @@ export const SupportDeskPage: React.FC<SupportDeskPageProps> = ({
               </div>
             </div>
 
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => fetchTickets(true)}
-            disabled={refreshing}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-[#5a00b8]' : ''}`} />
-            <span>Refresh</span>
-          </button>
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => fetchTickets(true)}
+                disabled={refreshing}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-[#5a00b8]' : ''}`} />
+                <span>Refresh</span>
+              </button>
 
-          {!embedded && (
-            <button
-              type="button"
-              onClick={onLogout}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors cursor-pointer"
+              {!embedded && (
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            <div
+              onClick={() => setActiveTab('forms')}
+              className={`rounded-2xl p-4 border transition-all cursor-pointer ${activeTab === 'forms'
+                  ? 'bg-purple-50/50 border-[#5a00b8] shadow-xs'
+                  : 'bg-white border-slate-200 hover:border-purple-200 shadow-xs'
+                }`}
             >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Sign Out</span>
-            </button>
-          )}
-        </div>
-      </div>
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Website Forms</p>
+                <MessageSquare className="w-4 h-4 text-[#5a00b8]" />
+              </div>
+              <h4 className="text-2xl font-black text-slate-900 mt-1">{stats.totalWeb}</h4>
+              <p className="text-[10px] text-purple-700 font-medium mt-0.5">
+                {stats.pendingWeb > 0 ? `${stats.pendingWeb} Pending` : 'All Resolved'}
+              </p>
+            </div>
 
+            <div
+              onClick={() => setActiveTab('qr_scans')}
+              className={`rounded-2xl p-4 border transition-all cursor-pointer ${activeTab === 'qr_scans'
+                  ? 'bg-blue-50/50 border-blue-600 shadow-xs'
+                  : 'bg-white border-slate-200 hover:border-blue-200 shadow-xs'
+                }`}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Customer QR Scans</p>
+                <QrCode className="w-4 h-4 text-blue-600" />
+              </div>
+              <h4 className="text-2xl font-black text-slate-900 mt-1">{stats.totalQr}</h4>
+              <p className="text-[10px] text-blue-700 font-medium mt-0.5">
+                {stats.pendingQr > 0 ? `${stats.pendingQr} Pending` : 'All Resolved'}
+              </p>
+            </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div
-          onClick={() => setActiveTab('forms')}
-          className={`rounded-2xl p-4 border transition-all cursor-pointer ${
-            activeTab === 'forms'
-              ? 'bg-purple-50/50 border-[#5a00b8] shadow-xs'
-              : 'bg-white border-slate-200 hover:border-purple-200 shadow-xs'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Website Forms</p>
-            <MessageSquare className="w-4 h-4 text-[#5a00b8]" />
+            <div className="bg-white border border-emerald-200 bg-emerald-50/15 rounded-2xl p-4 shadow-xs">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Resolved Cases</p>
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              </div>
+              <h4 className="text-2xl font-black text-emerald-900 mt-1">{stats.totalResolved}</h4>
+              <p className="text-[10px] text-emerald-600 font-medium mt-0.5">Closed Successfully</p>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Inbound</p>
+                <Inbox className="w-4 h-4 text-slate-400" />
+              </div>
+              <h4 className="text-2xl font-black text-slate-900 mt-1">{stats.totalOverall}</h4>
+              <p className="text-[10px] text-slate-400 font-medium mt-0.5">Forms &amp; QR Combined</p>
+            </div>
           </div>
-          <h4 className="text-2xl font-black text-slate-900 mt-1">{stats.totalWeb}</h4>
-          <p className="text-[10px] text-purple-700 font-medium mt-0.5">
-            {stats.pendingWeb > 0 ? `${stats.pendingWeb} Pending` : 'All Resolved'}
-          </p>
-        </div>
-
-        <div
-          onClick={() => setActiveTab('qr_scans')}
-          className={`rounded-2xl p-4 border transition-all cursor-pointer ${
-            activeTab === 'qr_scans'
-              ? 'bg-blue-50/50 border-blue-600 shadow-xs'
-              : 'bg-white border-slate-200 hover:border-blue-200 shadow-xs'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Customer QR Scans</p>
-            <QrCode className="w-4 h-4 text-blue-600" />
-          </div>
-          <h4 className="text-2xl font-black text-slate-900 mt-1">{stats.totalQr}</h4>
-          <p className="text-[10px] text-blue-700 font-medium mt-0.5">
-            {stats.pendingQr > 0 ? `${stats.pendingQr} Pending` : 'All Resolved'}
-          </p>
-        </div>
-
-        <div className="bg-white border border-emerald-200 bg-emerald-50/15 rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Resolved Cases</p>
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-          </div>
-          <h4 className="text-2xl font-black text-emerald-900 mt-1">{stats.totalResolved}</h4>
-          <p className="text-[10px] text-emerald-600 font-medium mt-0.5">Closed Successfully</p>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Inbound</p>
-            <Inbox className="w-4 h-4 text-slate-400" />
-          </div>
-          <h4 className="text-2xl font-black text-slate-900 mt-1">{stats.totalOverall}</h4>
-          <p className="text-[10px] text-slate-400 font-medium mt-0.5">Forms &amp; QR Combined</p>
-        </div>
-      </div>
 
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-2 shadow-xs flex items-center justify-between gap-2 overflow-x-auto">
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setActiveTab('forms')}
-            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'forms'
-                ? 'bg-[#5a00b8] text-white shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span>Website Form Submissions</span>
-            {stats.pendingWeb > 0 && (
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                activeTab === 'forms' ? 'bg-white/20 text-white' : 'bg-purple-100 text-[#5a00b8]'
-              }`}>
-                {stats.pendingWeb}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('qr_scans')}
-            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'qr_scans'
-                ? 'bg-blue-600 text-white shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <QrCode className="w-4 h-4" />
-            <span>Customer QR Scan Inquiries</span>
-            {stats.pendingQr > 0 && (
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                activeTab === 'qr_scans' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-700'
-              }`}>
-                {stats.pendingQr}
-              </span>
-            )}
-          </button>
-        </div>
-      </div>
-
-
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-          <span className="text-xs font-bold text-slate-500 mr-1 whitespace-nowrap">Status:</span>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-              statusFilter === 'all'
-                ? 'bg-slate-900 text-white shadow-2xs'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-            }`}
-          >
-            All
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('open')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-              statusFilter === 'open'
-                ? 'bg-amber-600 text-white shadow-2xs'
-                : 'bg-amber-50 hover:bg-amber-100 text-amber-700'
-            }`}
-          >
-            Pending Review
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('in_progress')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-              statusFilter === 'in_progress'
-                ? 'bg-blue-600 text-white shadow-2xs'
-                : 'bg-blue-50 hover:bg-blue-100 text-blue-700'
-            }`}
-          >
-            In Progress
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('resolved')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-              statusFilter === 'resolved'
-                ? 'bg-emerald-600 text-white shadow-2xs'
-                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
-            }`}
-          >
-            Resolved
-          </button>
-        </div>
-
-
-        <div className="relative min-w-[240px]">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder={
-              activeTab === 'qr_scans'
-                ? 'Search by drone serial, customer, message...'
-                : 'Search by client name, email, query...'
-            }
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#5a00b8]"
-          />
-        </div>
-      </div>
-
-
-      <div className="space-y-3">
-        {loading ? (
-          <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center text-slate-400">
-            <RefreshCw className="w-8 h-8 mx-auto mb-2 animate-spin text-[#5a00b8]" />
-            <p className="text-sm font-semibold">Loading inquiries...</p>
-          </div>
-        ) : activeList.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center text-slate-400 space-y-2">
-            <Inbox className="w-10 h-10 mx-auto text-slate-300" />
-            <p className="text-sm font-bold text-slate-700">
-              {activeTab === 'qr_scans'
-                ? 'No Customer QR Scan Inquiries Found'
-                : 'No Website Form Submissions Found'}
-            </p>
-            <p className="text-xs text-slate-400 max-w-md mx-auto">
-              {searchQuery || statusFilter !== 'all'
-                ? 'No entries match your search criteria. Try adjusting your status filter or clearing search.'
-                : activeTab === 'qr_scans'
-                ? 'When customers scan a drone QR code and submit feedback or report an issue, it will immediately appear here.'
-                : 'Inquiries submitted through the website contact forms will appear here in real time.'}
-            </p>
-          </div>
-        ) : (
-          activeList.map((ticket) => {
-            const isQr = isQrScanTicket(ticket);
-            return (
-              <div
-                key={ticket.id}
-                className="bg-white border border-slate-200 hover:border-purple-300 rounded-2xl p-5 shadow-xs transition-all space-y-3.5"
+          <div className="bg-white border border-slate-200 rounded-2xl p-2 shadow-xs flex items-center justify-between gap-2 overflow-x-auto">
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setActiveTab('forms')}
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${activeTab === 'forms'
+                    ? 'bg-[#5a00b8] text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
               >
-
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <span className="font-mono text-xs font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg">
-                      {ticket.id}
-                    </span>
-
-
-                    {isQr ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full">
-                        <QrCode className="w-3 h-3" />
-                        Customer Drone QR Scan
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full">
-                        <MessageSquare className="w-3 h-3" />
-                        Website Form Query
-                      </span>
-                    )}
-
-
-                    {getStatusBadge(ticket.status)}
-                  </div>
-
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>{formatDate(ticket.created_at)}</span>
-                  </div>
-                </div>
-
-
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">
-                      <User className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-black text-slate-900">{ticket.name || 'Anonymous Customer'}</h4>
-                        {ticket.category && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
-                            {ticket.category}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5 flex-wrap">
-                        {ticket.email && (
-                          <span className="inline-flex items-center gap-1">
-                            <Mail className="w-3 h-3 text-slate-400" />
-                            {ticket.email}
-                          </span>
-                        )}
-                        {ticket.phone && (
-                          <span className="inline-flex items-center gap-1">
-                            <Phone className="w-3 h-3 text-slate-400" />
-                            {ticket.phone}
-                          </span>
-                        )}
-                        {ticket.drone_serial && (
-                          <span className="inline-flex items-center gap-1 font-mono text-purple-700 font-bold bg-purple-50 px-1.5 py-0.5 rounded">
-                            <Truck className="w-3 h-3" />
-                            Airframe: {ticket.drone_serial}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-
-                  <div className="flex items-center gap-2">
-                    {ticket.email && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setReplyingTicket(ticket);
-                          setReplySubject(`Re: [IndoWings Support] Inquiry ${ticket.id}`);
-                          setReplyMessage('');
-                        }}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-50 hover:bg-[#5a00b8] text-[#5a00b8] hover:text-white border border-purple-200 transition-colors cursor-pointer shadow-2xs"
-                      >
-                        <Mail className="w-3.5 h-3.5" />
-                        <span>Reply Email</span>
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setResolvingTicket(ticket);
-                        setResolvingStatus(ticket.status === 'resolved' ? 'open' : 'resolved');
-                        setResolutionNotes(ticket.resolution_notes || '');
-                      }}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer shadow-2xs"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Update Status</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setSelectedTicket(ticket)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer shadow-2xs"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>View</span>
-                    </button>
-                  </div>
-                </div>
-
-
-                <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5 text-xs text-slate-700 leading-relaxed">
-                  <p className="whitespace-pre-line">{ticket.message || 'No description provided.'}</p>
-                </div>
-
-
-                {ticket.resolution_notes && (
-                  <div className="text-[11px] bg-emerald-50/80 border border-emerald-200 rounded-xl p-3 text-emerald-800">
-                    <span className="font-bold uppercase tracking-wider block text-[10px] text-emerald-700 mb-0.5">
-                      Resolution Notes (by {ticket.agent_name || 'Agent'}):
-                    </span>
-                    <p className="italic">"{ticket.resolution_notes}"</p>
-                  </div>
+                <MessageSquare className="w-4 h-4" />
+                <span>Website Form Submissions</span>
+                {stats.pendingWeb > 0 && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${activeTab === 'forms' ? 'bg-white/20 text-white' : 'bg-purple-100 text-[#5a00b8]'
+                    }`}>
+                    {stats.pendingWeb}
+                  </span>
                 )}
-              </div>
-            );
-          })
-        )}
-      </div>
+              </button>
 
-
-      {resolvingTicket && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="text-base font-black text-slate-900">Update Ticket Status</h3>
-                <p className="text-xs text-slate-500 font-mono">ID: {resolvingTicket.id}</p>
-              </div>
               <button
                 type="button"
-                onClick={() => setResolvingTicket(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700"
+                onClick={() => setActiveTab('qr_scans')}
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${activeTab === 'qr_scans'
+                    ? 'bg-blue-600 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
               >
-                <X className="w-5 h-5" />
+                <QrCode className="w-4 h-4" />
+                <span>Customer QR Scan Inquiries</span>
+                {stats.pendingQr > 0 && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${activeTab === 'qr_scans' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                    {stats.pendingQr}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+              <span className="text-xs font-bold text-slate-500 mr-1 whitespace-nowrap">Status:</span>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('all')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${statusFilter === 'all'
+                    ? 'bg-slate-900 text-white shadow-2xs'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                  }`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('open')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${statusFilter === 'open'
+                    ? 'bg-amber-600 text-white shadow-2xs'
+                    : 'bg-amber-50 hover:bg-amber-100 text-amber-700'
+                  }`}
+              >
+                Pending Review
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('in_progress')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${statusFilter === 'in_progress'
+                    ? 'bg-blue-600 text-white shadow-2xs'
+                    : 'bg-blue-50 hover:bg-blue-100 text-blue-700'
+                  }`}
+              >
+                In Progress
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('resolved')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${statusFilter === 'resolved'
+                    ? 'bg-emerald-600 text-white shadow-2xs'
+                    : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
+                  }`}
+              >
+                Resolved
               </button>
             </div>
 
-            <form onSubmit={handleUpdateStatus} className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Set New Status</label>
-                <select
-                  value={resolvingStatus}
-                  onChange={(e) => setResolvingStatus(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#5a00b8]"
-                >
-                  <option value="open">Pending / Open</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="resolved">Resolved</option>
-                  <option value="closed">Closed</option>
-                </select>
-              </div>
 
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Resolution / Action Notes</label>
-                <textarea
-                  rows={3}
-                  value={resolutionNotes}
-                  onChange={(e) => setResolutionNotes(e.target.value)}
-                  placeholder="Explain how the issue or inquiry was resolved..."
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#5a00b8] resize-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setResolvingTicket(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isUpdatingStatus}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-[#5a00b8] hover:bg-[#4a0099] text-white cursor-pointer disabled:opacity-50"
-                >
-                  {isUpdatingStatus ? 'Saving...' : 'Save Status'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-
-      {replyingTicket && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="text-base font-black text-slate-900">Reply to Customer</h3>
-                <p className="text-xs text-slate-500">Recipient: <strong className="text-purple-700">{replyingTicket.email}</strong></p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setReplyingTicket(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700"
-              >
-                <X className="w-5 h-5" />
-              </button>
+            <div className="relative min-w-[240px]">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder={
+                  activeTab === 'qr_scans'
+                    ? 'Search by drone serial, customer, message...'
+                    : 'Search by client name, email, query...'
+                }
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#5a00b8]"
+              />
             </div>
-
-            <form onSubmit={handleSendEmailReply} className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Subject</label>
-                <input
-                  type="text"
-                  required
-                  value={replySubject}
-                  onChange={(e) => setReplySubject(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#5a00b8]"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Message Content</label>
-                <textarea
-                  required
-                  rows={5}
-                  value={replyMessage}
-                  onChange={(e) => setReplyMessage(e.target.value)}
-                  placeholder="Type your response to the customer..."
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#5a00b8] resize-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setReplyingTicket(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSendingReply}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#5a00b8] hover:bg-[#4a0099] text-white cursor-pointer disabled:opacity-50"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{isSendingReply ? 'Sending Email...' : 'Send Reply'}</span>
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+
+
+          <div className="space-y-3">
+            {loading ? (
+              <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center text-slate-400">
+                <RefreshCw className="w-8 h-8 mx-auto mb-2 animate-spin text-[#5a00b8]" />
+                <p className="text-sm font-semibold">Loading inquiries...</p>
+              </div>
+            ) : activeList.length === 0 ? (
+              <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center text-slate-400 space-y-2">
+                <Inbox className="w-10 h-10 mx-auto text-slate-300" />
+                <p className="text-sm font-bold text-slate-700">
+                  {activeTab === 'qr_scans'
+                    ? 'No Customer QR Scan Inquiries Found'
+                    : 'No Website Form Submissions Found'}
+                </p>
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  {searchQuery || statusFilter !== 'all'
+                    ? 'No entries match your search criteria. Try adjusting your status filter or clearing search.'
+                    : activeTab === 'qr_scans'
+                      ? 'When customers scan a drone QR code and submit feedback or report an issue, it will immediately appear here.'
+                      : 'Inquiries submitted through the website contact forms will appear here in real time.'}
+                </p>
+              </div>
+            ) : (
+              activeList.map((ticket) => {
+                const isQr = isQrScanTicket(ticket);
+                return (
+                  <div
+                    key={ticket.id}
+                    className="bg-white border border-slate-200 hover:border-purple-300 rounded-2xl p-5 shadow-xs transition-all space-y-3.5"
+                  >
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <span className="font-mono text-xs font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg">
+                          {ticket.id}
+                        </span>
+
+
+                        {isQr ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full">
+                            <QrCode className="w-3 h-3" />
+                            Customer Drone QR Scan
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full">
+                            <MessageSquare className="w-3 h-3" />
+                            Website Form Query
+                          </span>
+                        )}
+
+
+                        {getStatusBadge(ticket.status)}
+                      </div>
+
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>{formatDate(ticket.created_at)}</span>
+                      </div>
+                    </div>
+
+
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">
+                          <User className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-sm font-black text-slate-900">{ticket.name || 'Anonymous Customer'}</h4>
+                            {ticket.category && (
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
+                                {ticket.category}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5 flex-wrap">
+                            {ticket.email && (
+                              <span className="inline-flex items-center gap-1">
+                                <Mail className="w-3 h-3 text-slate-400" />
+                                {ticket.email}
+                              </span>
+                            )}
+                            {ticket.phone && (
+                              <span className="inline-flex items-center gap-1">
+                                <Phone className="w-3 h-3 text-slate-400" />
+                                {ticket.phone}
+                              </span>
+                            )}
+                            {ticket.drone_serial && (
+                              <span className="inline-flex items-center gap-1 font-mono text-purple-700 font-bold bg-purple-50 px-1.5 py-0.5 rounded">
+                                <Truck className="w-3 h-3" />
+                                Airframe: {ticket.drone_serial}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+
+                      <div className="flex items-center gap-2">
+                        {ticket.email && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReplyingTicket(ticket);
+                              setReplySubject(`Re: [IndoWings Support] Inquiry ${ticket.id}`);
+                              setReplyMessage('');
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-50 hover:bg-[#5a00b8] text-[#5a00b8] hover:text-white border border-purple-200 transition-colors cursor-pointer shadow-2xs"
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                            <span>Reply Email</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setResolvingTicket(ticket);
+                            setResolvingStatus(ticket.status === 'resolved' ? 'open' : 'resolved');
+                            setResolutionNotes(ticket.resolution_notes || '');
+                          }}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer shadow-2xs"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Update Status</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTicket(ticket)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer shadow-2xs"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>View</span>
+                        </button>
+                      </div>
+                    </div>
+
+
+                    <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5 text-xs text-slate-700 leading-relaxed">
+                      <p className="whitespace-pre-line">{ticket.message || 'No description provided.'}</p>
+                    </div>
+
+
+                    {ticket.resolution_notes && (
+                      <div className="text-[11px] bg-emerald-50/80 border border-emerald-200 rounded-xl p-3 text-emerald-800">
+                        <span className="font-bold uppercase tracking-wider block text-[10px] text-emerald-700 mb-0.5">
+                          Resolution Notes (by {ticket.agent_name || 'Agent'}):
+                        </span>
+                        <p className="italic">"{ticket.resolution_notes}"</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+
+          {resolvingTicket && (
+            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+              <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">Update Ticket Status</h3>
+                    <p className="text-xs text-slate-500 font-mono">ID: {resolvingTicket.id}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setResolvingTicket(null)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleUpdateStatus} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">Set New Status</label>
+                    <select
+                      value={resolvingStatus}
+                      onChange={(e) => setResolvingStatus(e.target.value)}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#5a00b8]"
+                    >
+                      <option value="open">Pending / Open</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="resolved">Resolved</option>
+                      <option value="closed">Closed</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">Resolution / Action Notes</label>
+                    <textarea
+                      rows={3}
+                      value={resolutionNotes}
+                      onChange={(e) => setResolutionNotes(e.target.value)}
+                      placeholder="Explain how the issue or inquiry was resolved..."
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#5a00b8] resize-none"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setResolvingTicket(null)}
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isUpdatingStatus}
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-[#5a00b8] hover:bg-[#4a0099] text-white cursor-pointer disabled:opacity-50"
+                    >
+                      {isUpdatingStatus ? 'Saving...' : 'Save Status'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+
+          {replyingTicket && (
+            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+              <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">Reply to Customer</h3>
+                    <p className="text-xs text-slate-500">Recipient: <strong className="text-purple-700">{replyingTicket.email}</strong></p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setReplyingTicket(null)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSendEmailReply} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">Subject</label>
+                    <input
+                      type="text"
+                      required
+                      value={replySubject}
+                      onChange={(e) => setReplySubject(e.target.value)}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#5a00b8]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">Message Content</label>
+                    <textarea
+                      required
+                      rows={5}
+                      value={replyMessage}
+                      onChange={(e) => setReplyMessage(e.target.value)}
+                      placeholder="Type your response to the customer..."
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#5a00b8] resize-none"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setReplyingTicket(null)}
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSendingReply}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#5a00b8] hover:bg-[#4a0099] text-white cursor-pointer disabled:opacity-50"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>{isSendingReply ? 'Sending Email...' : 'Send Reply'}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
 
         </>
       )}

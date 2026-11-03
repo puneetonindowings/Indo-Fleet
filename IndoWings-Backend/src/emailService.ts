@@ -10,7 +10,7 @@ if (typeof (dns as any).setDefaultResultOrder === 'function') {
 
 const FROM_EMAIL = process.env.SMTP_USER || process.env.MAIL_FROM_ADDRESS || 'connect@indowings.com';
 const SUPPORT_FROM_NAME = process.env.SUPPORT_FROM_NAME || 'IndoWings Support Desk';
-const MAIL_FROM_NAME = process.env.MAIL_FROM_NAME || 'IndoWings Operations';
+const MAIL_FROM_NAME = process.env.MAIL_FROM_NAME || 'Indofleet';
 export const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'connect@indowings.com';
 
 const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
@@ -140,7 +140,7 @@ export async function sendOtpNotification({ email, phone, otp }: { email?: strin
 
   if (targetEmail && targetEmail.includes('@')) {
     const subject = `Your IndoWings Verification Code: ${otp}`;
-    const text = `Hello,\n\nYour IndoWings verification code is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share it with anyone.\n\nIf you did not request this login code, please contact ${SUPPORT_EMAIL}.\n\nThanks & Regards,\nIndoWings Operations Team`;
+    const text = `Hello,\n\nYour IndoWings verification code is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share it with anyone.\n\nIf you did not request this login code, please contact ${SUPPORT_EMAIL}.\n\nThanks & Regards,\nIndofleet Team`;
     const html = `
 <div style="font-family: Arial, Helvetica, sans-serif; font-size: 15px; color: #222222; line-height: 1.6; max-width: 560px;">
   <p>Hello,</p>
@@ -151,7 +151,7 @@ export async function sendOtpNotification({ email, phone, otp }: { email?: strin
   <br>
   <p style="color: #444444; font-size: 14px; margin: 0;">
     Thanks &amp; Regards,<br>
-    <strong>IndoWings Operations Team</strong>
+    <strong>Indofleet Team</strong>
   </p>
 </div>
     `.trim();
@@ -815,7 +815,7 @@ ${query.drone_serial ? `Drone Airframe Serial: ${query.drone_serial}\n` : ''}
 Email: ${SUPPORT_EMAIL}
 
 Thanks & Regards,
-IndoWings Operations Team
+Indofleet Team
 `.trim();
 
   const bodyHtml = `
@@ -864,7 +864,7 @@ ${message}
 
 ------------------------------------
 ${agentName}
-IndoWings Operations Team
+Indofleet Team
 Phone: 1800-IND-WINGS | Email: ${SUPPORT_EMAIL}
 `.trim();
 
@@ -875,7 +875,7 @@ Phone: 1800-IND-WINGS | Email: ${SUPPORT_EMAIL}
 
     <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 12px; color: #64748b;">
       <strong style="color: #0f172a; display: block; font-size: 13px;">${safeAgentName}</strong>
-      IndoWings Operations Team<br>
+      Indofleet Team<br>
       Email: ${SUPPORT_EMAIL}
     </div>
   `;
