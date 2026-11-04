@@ -222,15 +222,21 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
     return () => clearInterval(interval);
   }, []);
 
+  const isOrderActiveForReservation = (o: any) => {
+    if (!o || !o.status) return false;
+    const s = String(o.status).toLowerCase();
+    return !['cancelled', 'delivered', 'completed', 'rejected', 'failed', 'refunded'].includes(s);
+  };
+
   const getLinkedOrderForDrone = (drone: any) => {
     if (!drone) return null;
     const assignedId = drone.assigned_order || drone.delivery_data?.assigned_order;
     if (assignedId) {
       const byId = dispatchOrders.find((o) => o.id === assignedId);
-      if (byId) return byId;
+      if (byId && isOrderActiveForReservation(byId)) return byId;
     }
     const byReservedList = dispatchOrders.find(
-      (o) => Array.isArray(o.reserved_inventory_ids) && o.reserved_inventory_ids.includes(drone.id)
+      (o) => isOrderActiveForReservation(o) && Array.isArray(o.reserved_inventory_ids) && o.reserved_inventory_ids.includes(drone.id)
     );
     if (byReservedList) return byReservedList;
     return null;

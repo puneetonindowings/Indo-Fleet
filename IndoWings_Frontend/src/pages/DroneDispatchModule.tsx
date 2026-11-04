@@ -303,15 +303,21 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
   const [sosAlerts, setSosAlerts] = useState<any[]>([]);
   const [resolvingSosId, setResolvingSosId] = useState<string | null>(null);
 
+  const isOrderActiveForReservation = (o: any) => {
+    if (!o || !o.status) return false;
+    const s = String(o.status).toLowerCase();
+    return !['cancelled', 'delivered', 'completed', 'rejected', 'failed', 'refunded'].includes(s);
+  };
+
   const getLinkedOrderForDrone = (drone: any) => {
     if (!drone) return null;
     const assignedId = drone.assigned_order || drone.delivery_data?.assigned_order;
     if (assignedId) {
       const byId = data.orders.find((o) => o.id === assignedId);
-      if (byId) return byId;
+      if (byId && isOrderActiveForReservation(byId)) return byId;
     }
     const byReservedList = data.orders.find(
-      (o: any) => Array.isArray(o.reserved_inventory_ids) && o.reserved_inventory_ids.includes(drone.id)
+      (o: any) => isOrderActiveForReservation(o) && Array.isArray(o.reserved_inventory_ids) && o.reserved_inventory_ids.includes(drone.id)
     );
     if (byReservedList) return byReservedList;
     return null;

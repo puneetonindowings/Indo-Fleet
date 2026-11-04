@@ -2278,10 +2278,22 @@ router.post('/store/orders/:id/cancel', async (req, res) => {
   }
 
   const reason = typeof req.body?.reason === 'string' && req.body.reason.trim() ? req.body.reason.trim() : 'Cancelled by customer';
+  const dronesToRelease = Array.from(new Set([
+    ...(Array.isArray(order.reserved_inventory_ids) ? order.reserved_inventory_ids : []),
+    ...(Array.isArray(order.assigned_drone_ids) ? order.assigned_drone_ids : []),
+    ...(Array.isArray(order.items) ? order.items.map((it: any) => it.drone_id || it.id || it.serial_number).filter(Boolean) : []),
+    order.drone_id,
+    order.assigned_drone_id
+  ])).filter(Boolean);
+
   const updated = await fileDB.updateOrder(order.id, {
     status: 'cancelled',
     cancelled_at: new Date().toISOString(),
     cancellation_reason: reason,
+    assigned_drone_id: null,
+    drone_id: null,
+    reserved_inventory_ids: [],
+    cancelled_reserved_inventory_ids: order.reserved_inventory_ids || [],
     timeline: [
       ...(Array.isArray(order.timeline) ? order.timeline : []),
       { step: 'Order Cancelled', time: new Date().toISOString(), done: true }
@@ -2297,13 +2309,6 @@ router.post('/store/orders/:id/cancel', async (req, res) => {
     ]
   });
 
-  const dronesToRelease = Array.from(new Set([
-    ...(Array.isArray(order.reserved_inventory_ids) ? order.reserved_inventory_ids : []),
-    ...(Array.isArray(order.assigned_drone_ids) ? order.assigned_drone_ids : []),
-    order.drone_id,
-    order.assigned_drone_id
-  ])).filter(Boolean);
-
   for (const dId of dronesToRelease) {
     try {
       await fileDB.updateDrone(dId, {
@@ -2313,6 +2318,7 @@ router.post('/store/orders/:id/cancel', async (req, res) => {
       });
     } catch {}
   }
+  apiCache.invalidate('delivery');
 
   sendOrderStatusEmail(updated, 'cancelled').catch((err) => console.error('Cancel email error:', err));
   res.json({ success: true, message: 'Booking cancelled successfully.', order: updated });
@@ -2964,9 +2970,19 @@ router.post('/orders/:id/manage-status', async (req, res) => {
   } else if (action === 'cancel') {
     newStatus = 'cancelled';
     actionLabel = `Order CANCELLED by ${operator.name} (${operator.role}). Reason: ${reason.trim()}`;
-    if (order.drone_id) {
-      await fileDB.updateDrone(order.drone_id, { status: 'idle', assigned_order: null });
+    const dronesToRelease = Array.from(new Set([
+      ...(Array.isArray(order.reserved_inventory_ids) ? order.reserved_inventory_ids : []),
+      ...(Array.isArray(order.assigned_drone_ids) ? order.assigned_drone_ids : []),
+      ...(Array.isArray(order.items) ? order.items.map((it: any) => it.drone_id || it.id || it.serial_number).filter(Boolean) : []),
+      order.drone_id,
+      order.assigned_drone_id
+    ])).filter(Boolean);
+    for (const dId of dronesToRelease) {
+      try {
+        await fileDB.updateDrone(dId, { status: 'idle', assigned_order: null, assigned_client: null });
+      } catch {}
     }
+    apiCache.invalidate('delivery');
   } else if (action === 'reschedule') {
     newStatus = 'rescheduled';
     actionLabel = `Order RESCHEDULED to ${rescheduled_date || scheduled_time || 'new delivery window'} by ${operator.name} (${operator.role}). Note: ${reason || 'Corridor timing adjustment'}`;
@@ -3095,10 +3111,22 @@ router.post('/orders/:id/cancel', async (req, res) => {
   }
 
   const reason = typeof req.body?.reason === 'string' && req.body.reason.trim() ? req.body.reason.trim() : 'Customer cancellation';
+  const dronesToRelease = Array.from(new Set([
+    ...(Array.isArray(order.reserved_inventory_ids) ? order.reserved_inventory_ids : []),
+    ...(Array.isArray(order.assigned_drone_ids) ? order.assigned_drone_ids : []),
+    ...(Array.isArray(order.items) ? order.items.map((it: any) => it.drone_id || it.id || it.serial_number).filter(Boolean) : []),
+    order.drone_id,
+    order.assigned_drone_id
+  ])).filter(Boolean);
+
   const updated = await fileDB.updateOrder(order.id, {
     status: 'cancelled',
     cancelled_at: new Date().toISOString(),
     cancellation_reason: reason,
+    assigned_drone_id: null,
+    drone_id: null,
+    reserved_inventory_ids: [],
+    cancelled_reserved_inventory_ids: order.reserved_inventory_ids || [],
     timeline: [
       ...(Array.isArray(order.timeline) ? order.timeline : []),
       { step: 'Order Cancelled', time: new Date().toISOString(), done: true }
@@ -3114,13 +3142,6 @@ router.post('/orders/:id/cancel', async (req, res) => {
     ]
   });
 
-  const dronesToRelease = Array.from(new Set([
-    ...(Array.isArray(order.reserved_inventory_ids) ? order.reserved_inventory_ids : []),
-    ...(Array.isArray(order.assigned_drone_ids) ? order.assigned_drone_ids : []),
-    order.drone_id,
-    order.assigned_drone_id
-  ])).filter(Boolean);
-
   for (const dId of dronesToRelease) {
     try {
       await fileDB.updateDrone(dId, {
@@ -3132,6 +3153,7 @@ router.post('/orders/:id/cancel', async (req, res) => {
       console.warn(`[cancelOrder] Note releasing drone ${dId}:`, droneReleaseErr);
     }
   }
+  apiCache.invalidate('delivery');
 
   sendOrderStatusEmail(updated, 'cancelled').catch((err) => console.error('Cancel email error:', err));
   res.json({ success: true, message: 'Order cancelled successfully', order: updated });

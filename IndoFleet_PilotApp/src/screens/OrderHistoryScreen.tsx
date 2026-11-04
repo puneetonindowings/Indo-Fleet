@@ -105,6 +105,11 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
         if (id && !ids.includes(id)) ids.push(id);
       });
     }
+    if (Array.isArray((order as any).cancelled_reserved_inventory_ids)) {
+      (order as any).cancelled_reserved_inventory_ids.forEach((id: string) => {
+        if (id && !ids.includes(id)) ids.push(id);
+      });
+    }
     if (Array.isArray(order.assigned_drone_ids)) {
       order.assigned_drone_ids.forEach((id: string) => {
         if (id && !ids.includes(id)) ids.push(id);
