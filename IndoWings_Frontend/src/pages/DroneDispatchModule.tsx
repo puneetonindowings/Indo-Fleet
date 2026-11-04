@@ -671,9 +671,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       }
       setManageOtpSent(true);
       setManageOtpMessage(data.message || 'Security verification OTP dispatched!');
-      if (data.dev_otp) {
-        setManageOtp(data.dev_otp);
-      }
     } catch (err: any) {
       setManageError(err.message || 'Error requesting verification OTP');
     } finally {
@@ -815,9 +812,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       if (!res.ok) throw new Error(json.error || 'Failed to send OTP');
       setNotice(json.message || 'OTP sent to your registered email/phone');
       setAssignOtpRequired(true);
-      if (json.dev_otp) {
-        setAssignOtp(json.dev_otp);
-      }
     } catch (err: any) {
       setError(err.message || 'Failed to dispatch OTP');
     } finally {

@@ -249,7 +249,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
         return;
       }
       setInventoryOtpSent(true);
-      if (data.dev_otp) setInventoryOtp(data.dev_otp);
       setInventoryOtpInfo(data.message || 'Security OTP dispatched successfully.');
       showToast(data.message || 'Security OTP dispatched!');
     } catch {
@@ -455,9 +454,6 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
       if (res.ok) {
         setDecommissionOtpSent(true);
         setDecommissionInfo(data.message || '6-digit OTP code dispatched to your registered contact.');
-        if (data.dev_otp) {
-          console.log('[DEV] Decommission OTP:', data.dev_otp);
-        }
       } else {
         setDecommissionError(data.error || 'Failed to dispatch decommission security code.');
       }

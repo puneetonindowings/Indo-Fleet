@@ -561,14 +561,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
         return false;
       }
       setInventoryOtpSent(true);
-      if (data.dev_otp) {
-        setInventoryOtp(data.dev_otp);
-      }
-      showToast(
-        data.dev_otp
-          ? `Inventory Security OTP [ ${data.dev_otp} ] sent!`
-          : data.message || `Inventory OTP sent successfully.`
-      );
+      showToast(data.message || `Inventory OTP sent successfully.`);
       return true;
     } catch {
       setAdminOtpError('Could not connect to the OTP service.');
@@ -873,9 +866,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ currentUser,
       }
       setManageOtpSent(true);
       setManageOtpMessage(data.message || 'Security verification OTP dispatched!');
-      if (data.dev_otp) {
-        setManageOtp(data.dev_otp);
-      }
     } catch (err: any) {
       setManageError(err.message || 'Error requesting verification OTP');
     } finally {

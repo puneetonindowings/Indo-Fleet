@@ -1339,8 +1339,7 @@ router.post('/auth/forgot-password/send-otp', async (req, res) => {
 
     res.json({
       success: true,
-      message: `A 6-digit password reset verification code has been dispatched to ${targetEmail}.`,
-      otp_hint: otp
+      message: `A 6-digit password reset verification code has been dispatched to ${targetEmail}.`
     });
   } catch (err: any) {
     res.status(500).json({ error: err?.message || 'Failed to dispatch password reset OTP.' });
@@ -4870,8 +4869,7 @@ router.post('/orders/:id/assign-pilot-request-otp', async (req, res) => {
   res.json({
     success: true,
     message: `Assignment authorization OTP dispatched to ${operator.email || operator.phone}`,
-    order_id: id,
-    dev_otp: process.env.NODE_ENV !== 'production' ? otp : undefined
+    order_id: id
   });
 });
 
