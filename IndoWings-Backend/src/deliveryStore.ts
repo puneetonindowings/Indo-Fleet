@@ -1,17 +1,22 @@
-function sanitizeMeta(obj: any): any {
-  if (!obj || typeof obj !== 'object') return obj;
-  if (Array.isArray(obj)) return obj.map(sanitizeMeta);
-  const cleaned: any = {};
-  for (const [k, v] of Object.entries(obj)) {
-    if (typeof v === 'string' && v.length > 2000 && (v.startsWith('data:image') || v.startsWith('data:video'))) {
-      cleaned[k] = `media_recorded_${v.length}b`;
-    } else if (typeof v === 'object' && v !== null) {
-      cleaned[k] = sanitizeMeta(v);
-    } else {
-      cleaned[k] = v;
+function sanitizeMeta(val: any): any {
+  if (val === null || val === undefined) return val;
+  if (typeof val === 'string') {
+    if (val.length > 500 && (val.startsWith('data:') || val.length > 2000)) {
+      return `[media_ref_${val.length}b]`;
     }
+    return val;
   }
-  return cleaned;
+  if (Array.isArray(val)) {
+    return val.map(sanitizeMeta);
+  }
+  if (typeof val === 'object') {
+    const cleaned: any = {};
+    for (const [k, v] of Object.entries(val)) {
+      cleaned[k] = sanitizeMeta(v);
+    }
+    return cleaned;
+  }
+  return val;
 }
 
 import crypto from 'crypto';
@@ -322,7 +327,7 @@ function toOrder(order: JsonRecord) {
 
   const sanitizedDeliveryData = sanitizeMeta(mergedMetadata);
 
-  return {
+  return sanitizeMeta({
     ...row,
     delivery_data: sanitizedDeliveryData,
     order_type: row.order_type || 'delivery',
@@ -346,7 +351,7 @@ function toOrder(order: JsonRecord) {
     feedback_submitted: Boolean(row.feedback_submitted),
     created_at: row.created_at || new Date().toISOString(),
     updated_at: row.updated_at || new Date().toISOString()
-  };
+  });
 }
 
 function fromUser(row: JsonRecord) {
