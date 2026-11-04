@@ -43,7 +43,7 @@ export const BulkQrDownloadModal: React.FC<BulkQrDownloadModalProps> = ({
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [stickerMode, setStickerMode] = useState(false);
+  const [stickerMode, setStickerMode] = useState(true);
 
   const sortedDrones = useMemo(() => {
     return [...allDrones].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));

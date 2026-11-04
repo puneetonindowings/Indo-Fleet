@@ -56,7 +56,7 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const [stickerMode, setStickerMode] = useState(false);
+  const [stickerMode, setStickerMode] = useState(true);
 
   if (!isOpen || !drone) return null;
 

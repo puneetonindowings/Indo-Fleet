@@ -46,7 +46,7 @@ export async function generateDroneQRCodeBlob(
   drone: DroneQRInfo,
   options?: GenerateQROptions
 ): Promise<Blob> {
-  const isSticker = Boolean(options?.stickerMode);
+  const isSticker = options?.stickerMode !== false;
   const droneId = (drone.id || '').trim();
   const modelName = drone.model_name || drone.model || '700 RPAV';
   const permanentUrl = `${PUBLIC_PORTAL_URL}/drone/${encodeURIComponent(droneId)}`;
