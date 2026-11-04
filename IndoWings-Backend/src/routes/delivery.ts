@@ -4804,24 +4804,25 @@ async function checkOrderDepotInspectionPassed(order: any, requestedDroneId?: st
   try {
     const existing = await fileDB.getInspections({ delivery_id: String(order.id) });
     existing.forEach((insp: any) => {
-      const isPreDispatch = insp.stage === 'depot_dispatch' || insp.stage === 'depot' || insp.stage === 'hub_pickup' || insp.stage === 'hub' || insp.inspection_type === 'DEPOT_MAINTENANCE' || insp.inspection_type === 'HUB_PRE_FLIGHT_CHECK';
-      if (isPreDispatch && insp.overall_inspection === 'PASSED' && insp.drone_id) {
+      const isPreDispatch =
+        insp.stage === 'depot_dispatch' ||
+        insp.stage === 'depot' ||
+        insp.stage === 'hub_pickup' ||
+        insp.stage === 'hub' ||
+        insp.inspection_type === 'DEPOT_MAINTENANCE' ||
+        insp.inspection_type === 'HUB_PRE_FLIGHT_CHECK' ||
+        insp.inspection_type === 'pre-flight';
+
+      const role = String(insp.inspector_role || '').toLowerCase();
+      const isAuthorizedInspector = ['dispatcher', 'fleet_manager', 'admin', 'super_admin'].includes(role) || !role;
+
+      if (isPreDispatch && insp.overall_inspection === 'PASSED' && insp.drone_id && isAuthorizedInspector) {
         inspectedNormSet.add(normId(insp.drone_id));
       }
     });
   } catch (err) {
     console.warn('[CheckQC] Inspection read notice:', err);
   }
-
-  try {
-    const fleet = await fileDB.getFleet();
-    rawList.forEach((rId) => {
-      const matched = fleet.find((f: any) => normId(f.id) === normId(rId) || normId(f.drone_id) === normId(rId) || normId(f.serial_number) === normId(rId));
-      if (matched && (matched.qc_status === 'passed' || matched.verification_status === 'verified')) {
-        inspectedNormSet.add(normId(rId));
-      }
-    });
-  } catch {}
 
   const uninspectedDrones = rawList.filter(d => !inspectedNormSet.has(normId(d)));
   return {

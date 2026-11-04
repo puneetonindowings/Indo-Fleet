@@ -233,6 +233,13 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       if (matched) return true;
     }
 
+    if (Array.isArray(order?.inspected_drone_ids)) {
+      const matched = order.inspected_drone_ids.some(
+        (id: string) => String(id).toUpperCase().replace(/[^A-Z0-9]/g, '') === norm
+      );
+      if (matched) return true;
+    }
+
     if (order?.delivery_data?.depot_inspections) {
       const keys = Object.keys(order.delivery_data.depot_inspections);
       const matched = keys.some((k) => String(k).toUpperCase().replace(/[^A-Z0-9]/g, '') === norm);
@@ -242,16 +249,6 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       const keys = Object.keys(order.delivery_data.hub_inspections);
       const matched = keys.some((k) => String(k).toUpperCase().replace(/[^A-Z0-9]/g, '') === norm);
       if (matched) return true;
-    }
-
-    const fDrone = fleetList.find(
-      (d: any) =>
-        String(d.id || '').toUpperCase().replace(/[^A-Z0-9]/g, '') === norm ||
-        String(d.drone_id || '').toUpperCase().replace(/[^A-Z0-9]/g, '') === norm ||
-        String(d.serial_number || '').toUpperCase().replace(/[^A-Z0-9]/g, '') === norm
-    );
-    if (fDrone && (fDrone.qc_status === 'passed' || fDrone.verification_status === 'verified')) {
-      return true;
     }
 
     return false;
