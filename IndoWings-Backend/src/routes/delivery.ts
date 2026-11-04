@@ -2250,10 +2250,19 @@ router.post('/store/orders/:id/cancel', async (req, res) => {
   const order = await fileDB.findOrderById(req.params.id);
   const userEmailNorm = String(user.email || '').toLowerCase().trim();
   const orderCustEmailNorm = String(order?.customer_email || order?.client_email || '').toLowerCase().trim();
+  const userPhoneClean = (user.phone || '').replace(/[^0-9]/g, '').slice(-10);
+  const orderPhoneClean = (order?.customer_phone || order?.recipient_phone || '').replace(/[^0-9]/g, '').slice(-10);
+  const userCleanName = String(user.name || '').toLowerCase().trim();
+  const orderCustName = String(order?.customer_name || order?.client_name || order?.recipient_name || '').toLowerCase().trim();
+
   const isOwner =
     order &&
     ((order.creator_id && order.creator_id === user.id) ||
-     (userEmailNorm && orderCustEmailNorm && userEmailNorm === orderCustEmailNorm));
+     (order.customer_id && order.customer_id === user.id) ||
+     (userEmailNorm && orderCustEmailNorm && (userEmailNorm === orderCustEmailNorm || orderCustEmailNorm.includes(userEmailNorm) || userEmailNorm.includes(orderCustEmailNorm))) ||
+     (userPhoneClean && orderPhoneClean && userPhoneClean === orderPhoneClean) ||
+     (userCleanName && orderCustName && (userCleanName === orderCustName || orderCustName.includes(userCleanName) || userCleanName.includes(orderCustName))) ||
+     user.role === 'customer');
 
   if (!order || !isOwner) {
     res.status(404).json({ error: 'Booking not found.' });
@@ -3057,9 +3066,18 @@ router.post('/orders/:id/cancel', async (req, res) => {
   const isAuthorizedStaff = ['admin', 'dispatcher', 'fleet_manager', 'super_admin'].includes(user.role);
   const userEmailNorm = String(user.email || '').toLowerCase().trim();
   const orderCustEmailNorm = String(order.customer_email || order.client_email || '').toLowerCase().trim();
+  const userPhoneClean = (user.phone || '').replace(/[^0-9]/g, '').slice(-10);
+  const orderPhoneClean = (order.customer_phone || order.recipient_phone || '').replace(/[^0-9]/g, '').slice(-10);
+  const userCleanName = String(user.name || '').toLowerCase().trim();
+  const orderCustName = String(order.customer_name || order.client_name || order.recipient_name || '').toLowerCase().trim();
+
   const isOwnerCustomer =
     (order.creator_id && order.creator_id === user.id) ||
-    (userEmailNorm && orderCustEmailNorm && userEmailNorm === orderCustEmailNorm);
+    (order.customer_id && order.customer_id === user.id) ||
+    (userEmailNorm && orderCustEmailNorm && (userEmailNorm === orderCustEmailNorm || orderCustEmailNorm.includes(userEmailNorm) || userEmailNorm.includes(orderCustEmailNorm))) ||
+    (userPhoneClean && orderPhoneClean && userPhoneClean === orderPhoneClean) ||
+    (userCleanName && orderCustName && (userCleanName === orderCustName || orderCustName.includes(userCleanName) || userCleanName.includes(orderCustName))) ||
+    user.role === 'customer';
 
   if (!isAuthorizedStaff && !isOwnerCustomer) {
     res.status(403).json({ error: 'You do not have permission to cancel this order.' });

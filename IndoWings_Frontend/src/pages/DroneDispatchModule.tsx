@@ -3347,6 +3347,16 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
 
         <div>
           {activeSidebarTab === 'dispatch' && renderDispatchWorkbench()}
+          {activeSidebarTab === 'qc-scan' && (
+            <AirframeQCInspectionConsole
+              currentUser={currentUser}
+              availableDrones={fleet}
+              orders={data.orders}
+              onInspectionCompleted={() => {
+                fetchDashboard(true);
+              }}
+            />
+          )}
           {activeSidebarTab === 'tracking' && (
             <DeliveryTrackingModule currentUser={currentUser} onNavigate={onNavigate} />
           )}

@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   QrCode,
   Camera,
   Upload,
   Search,
   CheckCircle2,
+  CheckCircle,
   AlertTriangle,
   ShieldAlert,
   ShieldCheck,
@@ -20,16 +21,22 @@ import {
   User,
   Sliders,
   ChevronRight,
+  ChevronDown,
   X,
   Volume2,
   FlipHorizontal,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Package,
+  Boxes,
+  MapPin,
+  Truck
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import jsQR from 'jsqr';
 import { API_BASE_URL } from '../config/api';
 import { DeliveryUser } from '../types';
+import { getDronesForOrder } from '../utils/droneQrGenerator';
 
 interface AirframeQCInspectionConsoleProps {
   currentUser: DeliveryUser | null;
@@ -46,6 +53,11 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
   onInspectionCompleted,
   onOpenAuditLogs
 }) => {
+  const [viewMode, setViewMode] = useState<'order_mode' | 'free_scan'>('order_mode');
+  const [selectedOrderId, setSelectedOrderId] = useState<string>('');
+  const [orderSearch, setOrderSearch] = useState<string>('');
+  const [localInspectedSet, setLocalInspectedSet] = useState<Set<string>>(new Set());
+
   const [scanMode, setScanMode] = useState<'camera' | 'upload' | 'snapshot' | 'manual'>('camera');
   const [selectedDrone, setSelectedDrone] = useState<any | null>(null);
   const [scannedDroneRawId, setScannedDroneRawId] = useState<string>('');
@@ -81,6 +93,83 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const token = localStorage.getItem('iw_delivery_token') || '';
+
+  const isDroneInspected = (droneId: string, order: any): boolean => {
+    const norm = String(droneId || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!norm) return false;
+    if (localInspectedSet.has(norm)) return true;
+
+    if (Array.isArray(order?.depot_inspected_drone_ids)) {
+      if (order.depot_inspected_drone_ids.some((id: string) => String(id).toUpperCase().replace(/[^A-Z0-9]/g, '') === norm)) {
+        return true;
+      }
+    }
+    if (Array.isArray(order?.inspected_drone_ids)) {
+      if (order.inspected_drone_ids.some((id: string) => String(id).toUpperCase().replace(/[^A-Z0-9]/g, '') === norm)) {
+        return true;
+      }
+    }
+    if (Array.isArray(order?.hub_inspected_drone_ids)) {
+      if (order.hub_inspected_drone_ids.some((id: string) => String(id).toUpperCase().replace(/[^A-Z0-9]/g, '') === norm)) {
+        return true;
+      }
+    }
+    if (order?.delivery_data?.depot_inspections) {
+      const keys = Object.keys(order.delivery_data.depot_inspections);
+      if (keys.some((k) => String(k).toUpperCase().replace(/[^A-Z0-9]/g, '') === norm)) return true;
+    }
+    if (order?.delivery_data?.hub_inspections) {
+      const keys = Object.keys(order.delivery_data.hub_inspections);
+      if (keys.some((k) => String(k).toUpperCase().replace(/[^A-Z0-9]/g, '') === norm)) return true;
+    }
+    return false;
+  };
+
+  const activeOrders = useMemo(() => {
+    if (!Array.isArray(orders)) return [];
+    return orders.filter((o) => !['delivered', 'cancelled'].includes(o.status));
+  }, [orders]);
+
+  const ordersWithDrones = useMemo(() => {
+    return activeOrders.map((ord: any) => {
+      const drones = getDronesForOrder(ord, availableDrones);
+      const inspectedCount = drones.filter((d: any) => isDroneInspected(d.id, ord)).length;
+      const isAllCleared = drones.length > 0 && inspectedCount === drones.length;
+      return {
+        order: ord,
+        drones,
+        inspectedCount,
+        totalCount: drones.length,
+        isAllCleared
+      };
+    });
+  }, [activeOrders, availableDrones, localInspectedSet]);
+
+  useEffect(() => {
+    if (ordersWithDrones.length > 0) {
+      const exists = ordersWithDrones.some((item: any) => item.order.id === selectedOrderId);
+      if (!selectedOrderId || !exists) {
+        const pendingOne = ordersWithDrones.find((item: any) => !item.isAllCleared && item.totalCount > 0);
+        setSelectedOrderId(pendingOne ? pendingOne.order.id : ordersWithDrones[0].order.id);
+      }
+    }
+  }, [ordersWithDrones, selectedOrderId]);
+
+  const currentSelectedOrderInfo = useMemo(() => {
+    return ordersWithDrones.find((item: any) => item.order.id === selectedOrderId) || null;
+  }, [ordersWithDrones, selectedOrderId]);
+
+  const handleSelectDroneToInspect = (drone: any, order?: any) => {
+    const parentOrder = order || currentSelectedOrderInfo?.order || null;
+    playBeep();
+    setSelectedDrone({ ...drone, linkedOrder: parentOrder });
+    setScannedDroneRawId(drone.id);
+    setScanError(null);
+    setSubmitSuccess(null);
+    setSubmitError(null);
+    stopLiveScanner();
+    stopSnapshotCamera();
+  };
 
   const playBeep = () => {
     try {
@@ -123,6 +212,7 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
   const resolveDrone = (rawQuery: string) => {
     const extracted = extractDroneIdFromText(rawQuery);
     const cleanTarget = extracted.toLowerCase().trim();
+    const normTarget = extracted.toUpperCase().replace(/[^A-Z0-9]/g, '');
 
     let matched = availableDrones.find((d) => {
       const dId = String(d.id || '').toLowerCase().trim();
@@ -137,12 +227,13 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
       });
     }
 
-    let linkedOrder: any = null;
-    if (orders && orders.length > 0) {
-      linkedOrder = orders.find((o) => {
-        const allocated = Array.isArray(o.allocated_drone_ids) ? o.allocated_drone_ids : [];
-        return allocated.some((id: string) => String(id).toLowerCase() === cleanTarget);
-      });
+    let linkedOrder: any = currentSelectedOrderInfo?.order || null;
+    const foundOrder = ordersWithDrones.find((item: any) =>
+      item.drones.some((d: any) => String(d.id).toUpperCase().replace(/[^A-Z0-9]/g, '') === normTarget)
+    );
+    if (foundOrder) {
+      linkedOrder = foundOrder.order;
+      setSelectedOrderId(foundOrder.order.id);
     }
 
     if (matched) {
@@ -432,6 +523,8 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
         throw new Error(data.error || 'Failed to submit inspection');
       }
 
+      const normId = String(selectedDrone.id).toUpperCase().replace(/[^A-Z0-9]/g, '');
+      setLocalInspectedSet((prev) => new Set([...prev, normId]));
       setSubmitSuccess(data.inspection || payload);
       if (onInspectionCompleted) {
         onInspectionCompleted(data.inspection || payload);
@@ -524,256 +617,742 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
 
 
       {!selectedDrone && (
-        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <QrCode className="w-5 h-5 text-[#5a00b8]" />
-              Select or Scan Drone QR Code
-            </h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Choose your preferred scan method: Live Webcam, Image File Upload, Snap a Photo, or Manual Fleet Selection.
-            </p>
-          </div>
-
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200">
-            <button
-              onClick={() => {
-                setScanError(null);
-                setScanMode('camera');
-              }}
-              className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
-                scanMode === 'camera'
-                  ? 'bg-white text-[#5a00b8] shadow-sm font-black'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Camera className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">1. Live Camera</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setScanError(null);
-                setScanMode('upload');
-              }}
-              className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
-                scanMode === 'upload'
-                  ? 'bg-white text-[#5a00b8] shadow-sm font-black'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Upload className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">2. Upload QR</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setScanError(null);
-                setScanMode('snapshot');
-              }}
-              className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
-                scanMode === 'snapshot'
-                  ? 'bg-white text-[#5a00b8] shadow-sm font-black'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">3. Snap Photo</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setScanError(null);
-                setScanMode('manual');
-              }}
-              className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
-                scanMode === 'manual'
-                  ? 'bg-white text-[#5a00b8] shadow-sm font-black'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Search className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">4. Fleet Search</span>
-            </button>
-          </div>
-
-
-          {scanError && (
-            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                <span>{scanError}</span>
-              </div>
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-3xl border border-slate-200 shadow-xs">
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl">
               <button
-                onClick={() => setScanError(null)}
-                className="text-rose-500 hover:text-rose-700 text-xs font-bold underline cursor-pointer"
+                type="button"
+                onClick={() => setViewMode('order_mode')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  viewMode === 'order_mode'
+                    ? 'bg-white text-[#5a00b8] shadow-xs font-black'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
-                Dismiss
+                <Package className="w-4 h-4 text-[#5a00b8]" />
+                <span>Order-Wise Inspection</span>
+                {ordersWithDrones.filter((o: any) => !o.isAllCleared && o.totalCount > 0).length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 font-black">
+                    {ordersWithDrones.filter((o: any) => !o.isAllCleared && o.totalCount > 0).length} Pending
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode('free_scan')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  viewMode === 'free_scan'
+                    ? 'bg-white text-[#5a00b8] shadow-xs font-black'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <QrCode className="w-4 h-4 text-purple-600" />
+                <span>Direct Fleet QR Scanner</span>
               </button>
             </div>
-          )}
 
-
-          {scanMode === 'camera' && (
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <div className="relative w-full max-w-md h-80 rounded-3xl bg-slate-900 overflow-hidden border-4 border-slate-800 shadow-xl flex items-center justify-center">
-                <div id={liveScannerContainerId} className="w-full h-full" />
-
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                  <div className="w-56 h-56 border-2 border-[#5a00b8] rounded-3xl relative shadow-[0_0_20px_rgba(90,0,184,0.4)]">
-                    <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-purple-400 rounded-tl-xl" />
-                    <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-purple-400 rounded-tr-xl" />
-                    <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-purple-400 rounded-bl-xl" />
-                    <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-purple-400 rounded-br-xl" />
-                    <div className="absolute inset-x-4 top-1/2 h-0.5 bg-gradient-to-r from-transparent via-purple-400 to-transparent animate-pulse" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setCameraFacing((prev) => (prev === 'environment' ? 'user' : 'environment'))}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-2 cursor-pointer transition-all"
-                >
-                  <FlipHorizontal className="w-4 h-4 text-[#5a00b8]" />
-                  <span>Switch Camera ({cameraFacing === 'environment' ? 'Back' : 'Front'})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={startLiveScanner}
-                  className="px-4 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#5a00b8] text-xs font-bold flex items-center gap-2 cursor-pointer transition-all"
-                >
-                  <RefreshCw className="w-4 h-4 text-[#5a00b8]" />
-                  <span>Restart Camera</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-
-          {scanMode === 'upload' && (
-            <div className="p-8 border-2 border-dashed border-purple-200 hover:border-purple-400 rounded-3xl bg-purple-50/30 text-center flex flex-col items-center justify-center space-y-4 transition-all">
-              <div className="w-16 h-16 rounded-2xl bg-purple-100 text-[#5a00b8] flex items-center justify-center shadow-inner">
-                <Upload className="w-8 h-8" />
-              </div>
-              <div className="max-w-md">
-                <h4 className="text-sm font-black text-slate-900">Upload Drone QR Image / Screenshot</h4>
-                <p className="text-xs text-slate-500 mt-1">
-                  Supports downloaded PNG badges, batch QR stickers, camera screenshots, and JPEG/WEBP drone label photos.
-                </p>
-              </div>
-              <label className="px-6 py-3 rounded-2xl bg-[#5a00b8] hover:bg-[#4a0099] text-white text-xs font-bold shadow-lg shadow-purple-600/20 cursor-pointer transition-all flex items-center gap-2">
-                <Upload className="w-4 h-4" />
-                <span>Browse QR Image File</span>
+            {viewMode === 'order_mode' && (
+              <div className="relative flex-1 sm:max-w-xs">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) decodeQRFromImageFile(file);
-                  }}
+                  type="text"
+                  value={orderSearch}
+                  onChange={(e) => setOrderSearch(e.target.value)}
+                  placeholder="Filter by Order ID, Client, Address..."
+                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs text-slate-900 outline-hidden font-medium"
                 />
-              </label>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
 
+          {viewMode === 'order_mode' && (
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                      <Boxes className="w-4 h-4 text-[#5a00b8]" />
+                      Active Consignment Orders Awaiting Pre-Dispatch QC
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Select an order below to inspect all its allocated aircraft one by one before assigning delivery partners.
+                    </p>
+                  </div>
+                  <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-xl">
+                    {ordersWithDrones.length} Total Orders
+                  </span>
+                </div>
 
-          {scanMode === 'snapshot' && (
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <div className="relative w-full max-w-md h-72 rounded-3xl bg-slate-900 overflow-hidden border-4 border-slate-800 shadow-xl flex items-center justify-center">
-                <video ref={snapshotVideoRef} playsInline autoPlay muted className="w-full h-full object-cover" />
-                {!isSnapshotCamActive && (
-                  <div className="text-slate-400 text-xs font-medium text-center px-4">
-                    Webcam preview starting...
+                {ordersWithDrones.length === 0 ? (
+                  <div className="bg-white rounded-3xl p-8 border border-slate-200 text-center space-y-3">
+                    <Package className="w-10 h-10 text-slate-300 mx-auto" />
+                    <p className="text-sm font-bold text-slate-700">No active orders pending inspection.</p>
+                    <p className="text-xs text-slate-400">All consignments have been inspected or no new bookings exist.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {ordersWithDrones
+                      .filter((item: any) => {
+                        if (!orderSearch) return true;
+                        const q = orderSearch.toLowerCase();
+                        const ord = item.order;
+                        return (
+                          String(ord.id || '').toLowerCase().includes(q) ||
+                          String(ord.customer_name || ord.client_name || '').toLowerCase().includes(q) ||
+                          String(ord.customer_phone || '').includes(q) ||
+                          String(ord.drop_address || ord.destination_address || '').toLowerCase().includes(q)
+                        );
+                      })
+                      .map((item: any) => {
+                        const isSelected = selectedOrderId === item.order.id;
+                        return (
+                          <div
+                            key={item.order.id}
+                            onClick={() => setSelectedOrderId(item.order.id)}
+                            className={`p-4 rounded-3xl transition-all cursor-pointer text-left flex flex-col justify-between gap-3 ${
+                              isSelected
+                                ? 'bg-gradient-to-br from-purple-50/60 to-white border-2 border-[#5a00b8] shadow-md ring-2 ring-purple-100'
+                                : 'bg-white hover:bg-slate-50 border border-slate-200 hover:border-purple-300 shadow-xs'
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-mono font-black text-xs text-slate-900 truncate">
+                                  #{item.order.id}
+                                </span>
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                    item.isAllCleared
+                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                      : 'bg-amber-100 text-amber-800 border border-amber-200'
+                                  }`}
+                                >
+                                  {item.isAllCleared
+                                    ? 'All Cleared'
+                                    : `${item.inspectedCount}/${item.totalCount} Inspected`}
+                                </span>
+                              </div>
+
+                              <div className="mt-2 space-y-1">
+                                <p className="text-xs font-bold text-slate-800 truncate">
+                                  Client: {item.order.customer_name || item.order.client_name || 'Akshit'}
+                                  {item.order.customer_phone ? ` (${item.order.customer_phone})` : ''}
+                                </p>
+                                <p className="text-[11px] text-slate-500 truncate flex items-center gap-1">
+                                  <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                                  <span className="truncate">
+                                    {item.order.drop_address || item.order.destination_address || 'Depot Facility'}
+                                  </span>
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                              <span className="font-semibold text-slate-600 flex items-center gap-1">
+                                <Plane className="w-3.5 h-3.5 text-[#5a00b8]" />
+                                <span>{item.totalCount} Aircraft Allocated</span>
+                              </span>
+                              <span className="text-[11px] font-bold text-[#5a00b8] flex items-center gap-0.5">
+                                <span>{isSelected ? 'Active Order' : 'Select'}</span>
+                                <ChevronRight className="w-3 h-3" />
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                   </div>
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleTakeSnapshotAndDecode}
-                  className="px-6 py-3 rounded-2xl bg-[#5a00b8] hover:bg-[#4a0099] text-white text-xs font-black shadow-lg shadow-purple-600/20 flex items-center gap-2 cursor-pointer transition-all"
-                >
-                  <Camera className="w-4 h-4 text-emerald-400" />
-                  <span>Snap Photo & Decode QR</span>
-                </button>
+              {currentSelectedOrderInfo && (
+                <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-purple-50/80 via-slate-50 to-white border border-purple-100">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#5a00b8] text-white">
+                          Selected Consignment
+                        </span>
+                        <h4 className="font-mono font-black text-sm text-slate-900">
+                          #{currentSelectedOrderInfo.order.id}
+                        </h4>
+                      </div>
+                      <p className="text-xs text-slate-600 mt-1">
+                        <strong>Client:</strong> {currentSelectedOrderInfo.order.customer_name || currentSelectedOrderInfo.order.client_name || 'Akshit'}{' '}
+                        · <strong>Destination:</strong> {currentSelectedOrderInfo.order.drop_address || currentSelectedOrderInfo.order.destination_address || 'Facility'}{' '}
+                        · <strong>Status:</strong> <span className="font-bold text-[#5a00b8] uppercase">{currentSelectedOrderInfo.order.status || 'Pending'}</span>
+                      </p>
+                    </div>
 
+                    <div className="text-left md:text-right">
+                      <div className="text-xs font-black text-slate-900">
+                        {currentSelectedOrderInfo.inspectedCount} of {currentSelectedOrderInfo.totalCount} Aircraft Inspected
+                      </div>
+                      <div className="w-40 h-2 bg-slate-200 rounded-full overflow-hidden mt-1.5">
+                        <div
+                          className={`h-full transition-all duration-300 ${
+                            currentSelectedOrderInfo.isAllCleared ? 'bg-emerald-500' : 'bg-[#5a00b8]'
+                          }`}
+                          style={{
+                            width: `${
+                              currentSelectedOrderInfo.totalCount > 0
+                                ? Math.round((currentSelectedOrderInfo.inspectedCount / currentSelectedOrderInfo.totalCount) * 100)
+                                : 0
+                            }%`
+                          }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1 font-semibold">
+                        {currentSelectedOrderInfo.isAllCleared
+                          ? '✅ Ready for Dispatch Partner Assignment'
+                          : '⚠️ Mandatory Inspection Required'}
+                      </p>
+                    </div>
+                  </div>
 
-                <label className="px-4 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-2 cursor-pointer transition-all">
-                  <Camera className="w-4 h-4 text-slate-500" />
-                  <span>Use Device Camera App</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) decodeQRFromImageFile(file);
-                    }}
-                  />
-                </label>
-              </div>
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2 mb-3">
+                      <Plane className="w-4 h-4 text-[#5a00b8]" />
+                      Allocated Aircraft For This Consignment ({currentSelectedOrderInfo.totalCount} Units)
+                    </h4>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {currentSelectedOrderInfo.drones.map((drone: any, idx: number) => {
+                        const isCleared = isDroneInspected(drone.id, currentSelectedOrderInfo.order);
+                        return (
+                          <div
+                            key={drone.id}
+                            className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
+                              isCleared
+                                ? 'bg-emerald-50/40 border-emerald-200 shadow-xs'
+                                : 'bg-slate-50/70 border-slate-200 hover:border-purple-300 shadow-xs'
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                                  Unit {idx + 1} of {currentSelectedOrderInfo.totalCount}
+                                </span>
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1 ${
+                                    isCleared
+                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                      : 'bg-amber-100 text-amber-800 border border-amber-200'
+                                  }`}
+                                >
+                                  {isCleared ? (
+                                    <>
+                                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                      <span>QC Cleared</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <AlertTriangle className="w-3 h-3 text-amber-600" />
+                                      <span>Inspection Required</span>
+                                    </>
+                                  )}
+                                </span>
+                              </div>
+
+                              <div className="mt-2">
+                                <div className="font-mono font-black text-sm text-slate-900">
+                                  {drone.id}
+                                </div>
+                                <div className="text-xs text-slate-500 mt-0.5">
+                                  {drone.model || drone.model_name || 'IndoWings 700 RPAV'}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="pt-2 border-t border-slate-200/60 flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleSelectDroneToInspect(drone, currentSelectedOrderInfo.order)}
+                                className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 ${
+                                  isCleared
+                                    ? 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                                    : 'bg-[#5a00b8] hover:bg-[#4a0099] text-white shadow-md shadow-purple-600/20'
+                                }`}
+                              >
+                                <span>{isCleared ? 'Re-Inspect' : 'Inspect Airframe'}</span>
+                                <ArrowRight className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setScanMode('camera');
+                                  setSearchQuery(drone.id);
+                                }}
+                                title="Scan QR Code"
+                                className="p-2 rounded-xl border border-slate-200 hover:border-purple-300 bg-white hover:bg-purple-50 text-slate-700 hover:text-[#5a00b8] transition-all cursor-pointer"
+                              >
+                                <Camera className="w-3.5 h-3.5 text-purple-600" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 space-y-4">
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                        <QrCode className="w-4 h-4 text-[#5a00b8]" />
+                        Or Scan QR Badge for Order #{currentSelectedOrderInfo.order.id}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Scanning the QR code on any of the allocated aircraft will automatically select it for inspection.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setScanError(null);
+                          setScanMode('camera');
+                        }}
+                        className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
+                          scanMode === 'camera'
+                            ? 'bg-white text-[#5a00b8] shadow-sm font-black'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <Camera className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">1. Live Camera</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setScanError(null);
+                          setScanMode('upload');
+                        }}
+                        className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
+                          scanMode === 'upload'
+                            ? 'bg-white text-[#5a00b8] shadow-sm font-black'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <Upload className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">2. Upload QR</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setScanError(null);
+                          setScanMode('snapshot');
+                        }}
+                        className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
+                          scanMode === 'snapshot'
+                            ? 'bg-white text-[#5a00b8] shadow-sm font-black'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">3. Snap Photo</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setScanError(null);
+                          setScanMode('manual');
+                        }}
+                        className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
+                          scanMode === 'manual'
+                            ? 'bg-white text-[#5a00b8] shadow-sm font-black'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <Search className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">4. Drone Search</span>
+                      </button>
+                    </div>
+
+                    {scanError && (
+                      <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                          <span>{scanError}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setScanError(null)}
+                          className="text-rose-500 hover:text-rose-700 text-xs font-bold underline cursor-pointer"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    )}
+
+                    {scanMode === 'camera' && (
+                      <div className="flex flex-col items-center justify-center space-y-4 py-2">
+                        <div className="relative w-full max-w-md h-72 rounded-3xl bg-slate-900 overflow-hidden border-4 border-slate-800 shadow-xl flex items-center justify-center">
+                          <div id={liveScannerContainerId} className="w-full h-full" />
+                          <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                            <div className="w-48 h-48 border-2 border-[#5a00b8] rounded-3xl relative shadow-[0_0_20px_rgba(90,0,184,0.4)]">
+                              <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-purple-400 rounded-tl-xl" />
+                              <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-purple-400 rounded-tr-xl" />
+                              <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-purple-400 rounded-bl-xl" />
+                              <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-purple-400 rounded-br-xl" />
+                              <div className="absolute inset-x-4 top-1/2 h-0.5 bg-gradient-to-r from-transparent via-purple-400 to-transparent animate-pulse" />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setCameraFacing((prev) => (prev === 'environment' ? 'user' : 'environment'))}
+                            className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-2 cursor-pointer transition-all"
+                          >
+                            <FlipHorizontal className="w-4 h-4 text-[#5a00b8]" />
+                            <span>Switch Camera ({cameraFacing === 'environment' ? 'Back' : 'Front'})</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={startLiveScanner}
+                            className="px-4 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#5a00b8] text-xs font-bold flex items-center gap-2 cursor-pointer transition-all"
+                          >
+                            <RefreshCw className="w-4 h-4 text-[#5a00b8]" />
+                            <span>Restart Camera</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {scanMode === 'upload' && (
+                      <div className="p-8 border-2 border-dashed border-purple-200 hover:border-purple-400 rounded-3xl bg-purple-50/30 text-center flex flex-col items-center justify-center space-y-4 transition-all">
+                        <div className="w-16 h-16 rounded-2xl bg-purple-100 text-[#5a00b8] flex items-center justify-center shadow-inner">
+                          <Upload className="w-8 h-8" />
+                        </div>
+                        <div className="max-w-md">
+                          <h4 className="text-sm font-black text-slate-900">Upload Drone QR Image / Screenshot</h4>
+                          <p className="text-xs text-slate-500 mt-1">
+                            Upload PNG badge or photo of the QR sticker from the drone body.
+                          </p>
+                        </div>
+                        <label className="px-6 py-3 rounded-2xl bg-[#5a00b8] hover:bg-[#4a0099] text-white text-xs font-bold shadow-lg shadow-purple-600/20 cursor-pointer transition-all flex items-center gap-2">
+                          <Upload className="w-4 h-4" />
+                          <span>Browse QR Image File</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) decodeQRFromImageFile(file);
+                            }}
+                          />
+                        </label>
+                      </div>
+                    )}
+
+                    {scanMode === 'snapshot' && (
+                      <div className="flex flex-col items-center justify-center space-y-4">
+                        <div className="relative w-full max-w-md h-72 rounded-3xl bg-slate-900 overflow-hidden border-4 border-slate-800 shadow-xl flex items-center justify-center">
+                          <video ref={snapshotVideoRef} playsInline autoPlay muted className="w-full h-full object-cover" />
+                          {!isSnapshotCamActive && (
+                            <div className="text-slate-400 text-xs font-medium text-center px-4">
+                              Webcam preview starting...
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-center gap-3">
+                          <button
+                            type="button"
+                            onClick={handleTakeSnapshotAndDecode}
+                            className="px-6 py-3 rounded-2xl bg-[#5a00b8] hover:bg-[#4a0099] text-white text-xs font-black shadow-lg shadow-purple-600/20 flex items-center gap-2 cursor-pointer transition-all"
+                          >
+                            <Camera className="w-4 h-4 text-emerald-400" />
+                            <span>Snap Photo & Decode QR</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {scanMode === 'manual' && (
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Type Drone ID (e.g. INW-700RPAV-0001)..."
+                            className="w-full pl-12 pr-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white text-sm font-semibold text-slate-900 transition-all outline-hidden"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-1">
+                          {currentSelectedOrderInfo.drones
+                            .filter((d: any) => !searchQuery || d.id.toLowerCase().includes(searchQuery.toLowerCase()))
+                            .map((drone: any) => (
+                              <button
+                                key={drone.id}
+                                type="button"
+                                onClick={() => handleSelectDroneToInspect(drone, currentSelectedOrderInfo.order)}
+                                className="p-3.5 rounded-2xl border border-slate-200 hover:border-[#5a00b8] bg-white hover:bg-purple-50/50 text-left transition-all flex items-center justify-between group cursor-pointer shadow-xs"
+                              >
+                                <div>
+                                  <div className="font-mono font-black text-xs text-slate-900 group-hover:text-[#5a00b8]">
+                                    {drone.id}
+                                  </div>
+                                  <div className="text-[11px] text-slate-500 mt-0.5">{drone.model || '700 RPAV'}</div>
+                                </div>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-[#5a00b8]">
+                                  Select ➔
+                                </span>
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-
-          {scanMode === 'manual' && (
-            <div className="space-y-4">
-              <div className="relative">
-                <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Type Drone ID (e.g. DRN-700-001) or Serial Number..."
-                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#5a00b8] focus:ring-2 focus:ring-purple-200 text-sm font-semibold text-slate-900 transition-all outline-hidden"
-                />
+          {viewMode === 'free_scan' && (
+            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <QrCode className="w-5 h-5 text-[#5a00b8]" />
+                  Direct Fleet Aircraft QR Scanner
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Scan any aircraft QR badge from across the depot or search the central fleet registry.
+                </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-72 overflow-y-auto p-1">
-                {availableDrones
-                  .filter((d) => {
-                    const q = searchQuery.toLowerCase();
-                    return (
-                      !q ||
-                      String(d.id || '').toLowerCase().includes(q) ||
-                      String(d.model || '').toLowerCase().includes(q) ||
-                      String(d.serial_number || '').toLowerCase().includes(q)
-                    );
-                  })
-                  .slice(0, 15)
-                  .map((drone) => (
-                    <button
-                      key={drone.id}
-                      onClick={() => resolveDrone(drone.id)}
-                      className="p-3.5 rounded-2xl border border-slate-200 hover:border-[#5a00b8] bg-white hover:bg-purple-50/50 text-left transition-all flex items-center justify-between group cursor-pointer shadow-xs"
-                    >
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <Plane className="w-4 h-4 text-[#5a00b8] shrink-0" />
-                          <span className="font-black text-xs text-slate-900 group-hover:text-[#5a00b8]">
-                            {drone.id}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 truncate mt-0.5">{drone.model || '700 RPAV'}</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScanError(null);
+                    setScanMode('camera');
+                  }}
+                  className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
+                    scanMode === 'camera'
+                      ? 'bg-white text-[#5a00b8] shadow-sm font-black'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Camera className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">1. Live Camera</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScanError(null);
+                    setScanMode('upload');
+                  }}
+                  className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
+                    scanMode === 'upload'
+                      ? 'bg-white text-[#5a00b8] shadow-sm font-black'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Upload className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">2. Upload QR</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScanError(null);
+                    setScanMode('snapshot');
+                  }}
+                  className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
+                    scanMode === 'snapshot'
+                      ? 'bg-white text-[#5a00b8] shadow-sm font-black'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">3. Snap Photo</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScanError(null);
+                    setScanMode('manual');
+                  }}
+                  className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
+                    scanMode === 'manual'
+                      ? 'bg-white text-[#5a00b8] shadow-sm font-black'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Search className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">4. Fleet Search</span>
+                </button>
+              </div>
+
+              {scanError && (
+                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{scanError}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setScanError(null)}
+                    className="text-rose-500 hover:text-rose-700 text-xs font-bold underline cursor-pointer"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
+
+              {scanMode === 'camera' && (
+                <div className="flex flex-col items-center justify-center space-y-4 py-2">
+                  <div className="relative w-full max-w-md h-80 rounded-3xl bg-slate-900 overflow-hidden border-4 border-slate-800 shadow-xl flex items-center justify-center">
+                    <div id={liveScannerContainerId} className="w-full h-full" />
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                      <div className="w-56 h-56 border-2 border-[#5a00b8] rounded-3xl relative shadow-[0_0_20px_rgba(90,0,184,0.4)]">
+                        <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-purple-400 rounded-tl-xl" />
+                        <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-purple-400 rounded-tr-xl" />
+                        <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-purple-400 rounded-bl-xl" />
+                        <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-purple-400 rounded-br-xl" />
+                        <div className="absolute inset-x-4 top-1/2 h-0.5 bg-gradient-to-r from-transparent via-purple-400 to-transparent animate-pulse" />
                       </div>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
-                        {drone.status || 'Ready'}
-                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setCameraFacing((prev) => (prev === 'environment' ? 'user' : 'environment'))}
+                      className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-2 cursor-pointer transition-all"
+                    >
+                      <FlipHorizontal className="w-4 h-4 text-[#5a00b8]" />
+                      <span>Switch Camera ({cameraFacing === 'environment' ? 'Back' : 'Front'})</span>
                     </button>
-                  ))}
-              </div>
+                    <button
+                      type="button"
+                      onClick={startLiveScanner}
+                      className="px-4 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#5a00b8] text-xs font-bold flex items-center gap-2 cursor-pointer transition-all"
+                    >
+                      <RefreshCw className="w-4 h-4 text-[#5a00b8]" />
+                      <span>Restart Camera</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {scanMode === 'upload' && (
+                <div className="p-8 border-2 border-dashed border-purple-200 hover:border-purple-400 rounded-3xl bg-purple-50/30 text-center flex flex-col items-center justify-center space-y-4 transition-all">
+                  <div className="w-16 h-16 rounded-2xl bg-purple-100 text-[#5a00b8] flex items-center justify-center shadow-inner">
+                    <Upload className="w-8 h-8" />
+                  </div>
+                  <div className="max-w-md">
+                    <h4 className="text-sm font-black text-slate-900">Upload Drone QR Image / Screenshot</h4>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Supports downloaded PNG badges, batch QR stickers, camera screenshots, and JPEG/WEBP drone label photos.
+                    </p>
+                  </div>
+                  <label className="px-6 py-3 rounded-2xl bg-[#5a00b8] hover:bg-[#4a0099] text-white text-xs font-bold shadow-lg shadow-purple-600/20 cursor-pointer transition-all flex items-center gap-2">
+                    <Upload className="w-4 h-4" />
+                    <span>Browse QR Image File</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) decodeQRFromImageFile(file);
+                      }}
+                    />
+                  </label>
+                </div>
+              )}
+
+              {scanMode === 'snapshot' && (
+                <div className="flex flex-col items-center justify-center space-y-4">
+                  <div className="relative w-full max-w-md h-72 rounded-3xl bg-slate-900 overflow-hidden border-4 border-slate-800 shadow-xl flex items-center justify-center">
+                    <video ref={snapshotVideoRef} playsInline autoPlay muted className="w-full h-full object-cover" />
+                    {!isSnapshotCamActive && (
+                      <div className="text-slate-400 text-xs font-medium text-center px-4">
+                        Webcam preview starting...
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleTakeSnapshotAndDecode}
+                      className="px-6 py-3 rounded-2xl bg-[#5a00b8] hover:bg-[#4a0099] text-white text-xs font-black shadow-lg shadow-purple-600/20 flex items-center gap-2 cursor-pointer transition-all"
+                    >
+                      <Camera className="w-4 h-4 text-emerald-400" />
+                      <span>Snap Photo & Decode QR</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {scanMode === 'manual' && (
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Type Drone ID (e.g. DRN-700-001) or Serial Number..."
+                      className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#5a00b8] focus:ring-2 focus:ring-purple-200 text-sm font-semibold text-slate-900 transition-all outline-hidden"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-72 overflow-y-auto p-1">
+                    {availableDrones
+                      .filter((d) => {
+                        const q = searchQuery.toLowerCase();
+                        return (
+                          !q ||
+                          String(d.id || '').toLowerCase().includes(q) ||
+                          String(d.model || '').toLowerCase().includes(q) ||
+                          String(d.serial_number || '').toLowerCase().includes(q)
+                        );
+                      })
+                      .slice(0, 15)
+                      .map((drone) => (
+                        <button
+                          key={drone.id}
+                          type="button"
+                          onClick={() => resolveDrone(drone.id)}
+                          className="p-3.5 rounded-2xl border border-slate-200 hover:border-[#5a00b8] bg-white hover:bg-purple-50/50 text-left transition-all flex items-center justify-between group cursor-pointer shadow-xs"
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <Plane className="w-4 h-4 text-[#5a00b8]" />
+                              <span className="font-black text-xs text-slate-900 group-hover:text-[#5a00b8]">
+                                {drone.id}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 truncate mt-0.5">{drone.model || '700 RPAV'}</p>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+                            {drone.status || 'Ready'}
+                          </span>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
-
-
       {selectedDrone && (
         <div className="space-y-6">
 
@@ -807,13 +1386,13 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
               className="px-4 py-2 rounded-xl bg-white hover:bg-emerald-100/70 border border-emerald-300 text-emerald-900 text-xs font-bold transition-all flex items-center gap-2 self-start sm:self-center cursor-pointer shadow-xs"
             >
               <RotateCcw className="w-4 h-4 text-emerald-700" />
-              <span>Change / Re-Scan</span>
+              <span>Back to Order Aircraft</span>
             </button>
           </div>
 
 
           {submitSuccess ? (
-            <div className="bg-white rounded-3xl p-8 border border-emerald-200 shadow-sm text-center space-y-4">
+            <div className="bg-white rounded-3xl p-8 border border-emerald-200 shadow-sm text-center space-y-6">
               <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
                 <ShieldCheck className="w-9 h-9" />
               </div>
@@ -831,22 +1410,67 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                 </p>
               </div>
 
-              <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
-                <button
-                  onClick={handleResetToScanAnother}
-                  className="px-5 py-2.5 rounded-2xl bg-[#5a00b8] hover:bg-[#4a0099] text-white text-xs font-black shadow-md cursor-pointer transition-all"
-                >
-                  Scan Next Drone
-                </button>
-                {onOpenAuditLogs && (
-                  <button
-                    onClick={onOpenAuditLogs}
-                    className="px-5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold cursor-pointer transition-all"
-                  >
-                    View in Audit Console
-                  </button>
-                )}
-              </div>
+              {(() => {
+                const targetOrder = selectedDrone.linkedOrder || currentSelectedOrderInfo?.order;
+                const targetOrderDrones = targetOrder ? getDronesForOrder(targetOrder, availableDrones) : [];
+                const remainingUninspected = targetOrderDrones.filter((d: any) => {
+                  const dNorm = String(d.id).toUpperCase().replace(/[^A-Z0-9]/g, '');
+                  const currentNorm = String(selectedDrone?.id || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+                  if (dNorm === currentNorm) return false;
+                  return !isDroneInspected(d.id, targetOrder) && !localInspectedSet.has(dNorm);
+                });
+                const allCleared = targetOrderDrones.length > 0 && remainingUninspected.length === 0;
+
+                return (
+                  <div className="space-y-4">
+                    {allCleared ? (
+                      <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs sm:text-sm font-bold flex flex-col items-center gap-1.5 max-w-lg mx-auto">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-5 h-5 text-emerald-600" />
+                          <span className="font-black">All {targetOrderDrones.length} Drones Cleared for Order #{targetOrder?.id}!</span>
+                        </div>
+                        <p className="text-[11px] text-emerald-800 font-normal">
+                          All assigned aircraft have passed depot inspection and are certified zero-defect. This consignment is ready for delivery partner assignment & dispatch.
+                        </p>
+                      </div>
+                    ) : remainingUninspected.length > 0 ? (
+                      <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 text-[#5a00b8] text-xs font-bold flex flex-col items-center gap-2 max-w-lg mx-auto">
+                        <span>{remainingUninspected.length} more aircraft require inspection for Order #{targetOrder?.id}:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextDrone = remainingUninspected[0];
+                            handleSelectDroneToInspect(nextDrone, targetOrder);
+                          }}
+                          className="px-6 py-3 rounded-2xl bg-[#5a00b8] hover:bg-[#4a0099] text-white text-xs font-black shadow-lg shadow-purple-600/25 flex items-center gap-2 cursor-pointer transition-all active:scale-98"
+                        >
+                          <span>Inspect Next Aircraft: {remainingUninspected[0].id}</span>
+                          <ArrowRight className="w-4 h-4 text-emerald-400" />
+                        </button>
+                      </div>
+                    ) : null}
+
+                    <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+                      <button
+                        type="button"
+                        onClick={handleResetToScanAnother}
+                        className="px-5 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-black shadow-md cursor-pointer transition-all"
+                      >
+                        Back to Order Aircraft List
+                      </button>
+                      {onOpenAuditLogs && (
+                        <button
+                          type="button"
+                          onClick={onOpenAuditLogs}
+                          className="px-5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold cursor-pointer transition-all"
+                        >
+                          View in Audit Console
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           ) : (
             <form onSubmit={handleSubmitInspection} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-8">
