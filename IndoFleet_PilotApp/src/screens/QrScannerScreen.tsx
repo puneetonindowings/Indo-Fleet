@@ -550,6 +550,11 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
         input.onchange = async (e: any) => {
           const file = e.target?.files?.[0];
           if (!file) return;
+          if (file.size > 2 * 1024 * 1024) {
+            const mb = (file.size / (1024 * 1024)).toFixed(2);
+            Alert.alert('Upload Size Limit', `QR photo "${file.name}" exceeds 2 MB upload limit (${mb} MB). Please select an image under 2 MB.`);
+            return;
+          }
           const url = URL.createObjectURL(file);
           setIsVerifying(true);
           const decoded = await decodeQrFromUri(url);
@@ -574,7 +579,13 @@ export const QrScannerScreen: React.FC<QrScannerScreenProps> = ({
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const photoUri = result.assets[0].uri;
+        const asset = result.assets[0];
+        if (asset.fileSize && asset.fileSize > 2 * 1024 * 1024) {
+          const mb = (asset.fileSize / (1024 * 1024)).toFixed(2);
+          Alert.alert('Upload Size Limit', `Photo exceeds 2 MB upload limit (${mb} MB). Please select an image under 2 MB.`);
+          return;
+        }
+        const photoUri = asset.uri;
         setIsVerifying(true);
         const decoded = await decodeQrFromUri(photoUri);
         setIsVerifying(false);

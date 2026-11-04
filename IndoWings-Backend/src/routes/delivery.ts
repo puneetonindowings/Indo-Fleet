@@ -6353,6 +6353,8 @@ router.post('/inspections', async (req, res) => {
         const stage = req.body.stage || (inspection_type === 'pre-flight' ? 'hub_pickup' : 'customer_delivery');
 
         let updatePayload: any = {};
+        const { photo_references, video_references, media_evidence, ...inspectionSummary } = (saved || {}) as any;
+
         if (stage === 'depot_dispatch' || stage === 'depot') {
           const prevDepot = Array.isArray(orderToUpdate?.depot_inspected_drone_ids) ? orderToUpdate.depot_inspected_drone_ids : [];
           const updatedDepot = Array.from(new Set([...prevDepot, cleanDrone]));
@@ -6372,9 +6374,9 @@ router.post('/inspections', async (req, res) => {
               ...prevDeliveryData,
               hub_inspections: {
                 ...prevHubInspections,
-                [cleanDrone]: saved,
-                [cleanDrone.toUpperCase()]: saved,
-                [cleanDrone.replace(/[^A-Z0-9]/gi, '')]: saved
+                [cleanDrone]: inspectionSummary,
+                [cleanDrone.toUpperCase()]: inspectionSummary,
+                [cleanDrone.replace(/[^A-Z0-9]/gi, '')]: inspectionSummary
               }
             }
           };
@@ -6385,16 +6387,16 @@ router.post('/inspections', async (req, res) => {
           const prevCustInspections = prevDeliveryData.customer_inspections || {};
           updatePayload = {
             inspection_id: saved.inspection_id,
-            post_delivery_inspection: saved,
+            post_delivery_inspection: inspectionSummary,
             drone_inspection_status: saved.overall_inspection,
             inspected_drone_ids: updatedInspected,
             delivery_data: {
               ...prevDeliveryData,
               customer_inspections: {
                 ...prevCustInspections,
-                [cleanDrone]: saved,
-                [cleanDrone.toUpperCase()]: saved,
-                [cleanDrone.replace(/[^A-Z0-9]/gi, '')]: saved
+                [cleanDrone]: inspectionSummary,
+                [cleanDrone.toUpperCase()]: inspectionSummary,
+                [cleanDrone.replace(/[^A-Z0-9]/gi, '')]: inspectionSummary
               }
             }
           };

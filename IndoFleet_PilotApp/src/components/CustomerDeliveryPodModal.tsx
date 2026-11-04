@@ -185,6 +185,17 @@ export const CustomerDeliveryPodModal: React.FC<CustomerDeliveryPodModalProps> =
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
+        const maxBytes = 2 * 1024 * 1024;
+        if (asset.fileSize && asset.fileSize > maxBytes) {
+          const mb = (asset.fileSize / (1024 * 1024)).toFixed(2);
+          Alert.alert('Upload Size Limit', `Photo exceeds 2 MB upload limit (${mb} MB). Please choose a photo under 2 MB.`);
+          return;
+        }
+        if (asset.base64 && (asset.base64.length * 0.75) > maxBytes) {
+          const mb = ((asset.base64.length * 0.75) / (1024 * 1024)).toFixed(2);
+          Alert.alert('Upload Size Limit', `Photo exceeds 2 MB upload limit (${mb} MB). Please choose a photo under 2 MB.`);
+          return;
+        }
         const base64Data = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
         setPodPhoto(base64Data);
       }

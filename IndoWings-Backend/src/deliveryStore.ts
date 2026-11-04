@@ -1436,10 +1436,12 @@ export const deliveryStore = {
           const updatedDepot = isDepot && cleanDrone ? Array.from(new Set([...prevDepot, cleanDrone])) : prevDepot;
           const updatedInspected = (!isHub && !isDepot && cleanDrone) ? Array.from(new Set([...prevInspected, cleanDrone])) : prevInspected;
 
+          const { photo_references, video_references, media_evidence, ...lightweightRecord } = record;
+
           const orderUpdates: JsonRecord = {
             inspection_id: id,
             inspection_status: record.overall_inspection,
-            post_delivery_inspection: record,
+            post_delivery_inspection: lightweightRecord,
             inspected_drone_ids: updatedInspected,
             hub_inspected_drone_ids: updatedHub,
             depot_inspected_drone_ids: updatedDepot,

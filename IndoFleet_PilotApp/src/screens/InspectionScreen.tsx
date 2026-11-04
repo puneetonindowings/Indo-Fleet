@@ -434,8 +434,17 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
       input.onchange = (e: any) => {
         const file = e.target?.files?.[0];
         if (file) {
-          const reader = new FileReader();
           const isVideo = file.type.startsWith('video');
+          const maxBytes = isVideo ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
+          const limitLabel = isVideo ? '5 MB' : '2 MB';
+          if (file.size > maxBytes) {
+            const mb = (file.size / (1024 * 1024)).toFixed(2);
+            Alert.alert('Upload Size Limit', `${isVideo ? 'Video' : 'Photo'} "${file.name}" exceeds ${limitLabel} upload limit (${mb} MB). Please choose a ${isVideo ? 'video under 5 MB' : 'photo under 2 MB'}.`);
+            closeInAppCamera();
+            return;
+          }
+
+          const reader = new FileReader();
           reader.onload = (readEvt) => {
             const dataUrl = readEvt.target?.result as string;
             if (cameraMode === 'pod') {
@@ -478,8 +487,17 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
           const files = e.target?.files;
           if (files && files.length > 0) {
             Array.from(files).forEach((file: any) => {
-              const reader = new FileReader();
               const isVideo = file.type.startsWith('video');
+              const maxBytes = isVideo ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
+              const limitLabel = isVideo ? '5 MB' : '2 MB';
+
+              if (file.size > maxBytes) {
+                const mb = (file.size / (1024 * 1024)).toFixed(2);
+                Alert.alert('Upload Size Limit', `${isVideo ? 'Video' : 'Photo'} "${file.name}" exceeds ${limitLabel} upload limit (${mb} MB). Please choose a ${isVideo ? 'video under 5 MB' : 'photo under 2 MB'}.`);
+                return;
+              }
+
+              const reader = new FileReader();
               reader.onload = (readEvt) => {
                 const dataUrl = readEvt.target?.result as string;
                 const newItem: MediaItem = {
@@ -517,6 +535,20 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
         if (!result.canceled && result.assets && result.assets.length > 0) {
           result.assets.forEach((asset) => {
             const isVideo = asset.type === 'video' || (asset.uri && asset.uri.toLowerCase().endsWith('.mp4'));
+            const maxBytes = isVideo ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
+            const limitLabel = isVideo ? '5 MB' : '2 MB';
+
+            if (asset.fileSize && asset.fileSize > maxBytes) {
+              const mb = (asset.fileSize / (1024 * 1024)).toFixed(2);
+              Alert.alert('Upload Size Limit', `${isVideo ? 'Video' : 'Photo'} exceeds ${limitLabel} upload limit (${mb} MB). Please choose a ${isVideo ? 'video under 5 MB' : 'photo under 2 MB'}.`);
+              return;
+            }
+            if (!isVideo && asset.base64 && (asset.base64.length * 0.75) > maxBytes) {
+              const mb = ((asset.base64.length * 0.75) / (1024 * 1024)).toFixed(2);
+              Alert.alert('Upload Size Limit', `Photo exceeds 2 MB upload limit (${mb} MB). Please choose a photo under 2 MB.`);
+              return;
+            }
+
             const base64Data = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
             const newItem: MediaItem = {
               id: `gallery-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,

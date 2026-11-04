@@ -306,6 +306,11 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
 
   const decodeQRFromImageFile = async (file: File) => {
     setScanError(null);
+    if (file.size > 2 * 1024 * 1024) {
+      const mb = (file.size / (1024 * 1024)).toFixed(2);
+      setScanError(`QR image exceeds 2 MB upload limit (${mb} MB). Please upload an image under 2 MB.`);
+      return;
+    }
     try {
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -456,7 +461,21 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    const maxPhotoBytes = 2 * 1024 * 1024; // 2 MB
+    const maxVideoBytes = 5 * 1024 * 1024; // 5 MB
+
     Array.from(files).forEach((file) => {
+      if (type === 'photo' && file.size > maxPhotoBytes) {
+        const mb = (file.size / (1024 * 1024)).toFixed(2);
+        setSubmitError(`Photo "${file.name}" exceeds 2 MB upload limit (${mb} MB). Please choose a photo under 2 MB.`);
+        return;
+      }
+      if (type === 'video' && file.size > maxVideoBytes) {
+        const mb = (file.size / (1024 * 1024)).toFixed(2);
+        setSubmitError(`Video "${file.name}" exceeds 5 MB upload limit (${mb} MB). Please choose a video under 5 MB.`);
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = () => {
         const resultUrl = reader.result as string;
@@ -468,6 +487,7 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
       };
       reader.readAsDataURL(file);
     });
+    e.target.value = '';
   };
 
   const handleSubmitInspection = async (e: React.FormEvent) => {

@@ -90,8 +90,13 @@ export const PostDeliveryInspectionModal: React.FC<PostDeliveryInspectionModalPr
     const filesToProcess = Array.from(files).slice(0, remainingSlots);
 
     filesToProcess.forEach((file) => {
-      if (file.size > 25 * 1024 * 1024) {
-        setError(`File "${file.name}" exceeds maximum allowed size of 25 MB.`);
+      const isVideo = file.type.startsWith('video');
+      const maxLimit = isVideo ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
+      const label = isVideo ? '5 MB' : '2 MB';
+
+      if (file.size > maxLimit) {
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        setError(`${isVideo ? 'Video' : 'Photo'} "${file.name}" exceeds ${label} upload limit (${sizeMb} MB). Please choose a ${isVideo ? 'video under 5 MB' : 'photo under 2 MB'}.`);
         return;
       }
 

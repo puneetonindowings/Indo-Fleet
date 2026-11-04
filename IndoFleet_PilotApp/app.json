@@ -3,14 +3,14 @@
     "name": "IndoFleet Delivery",
     "slug": "indofleet-delivery",
     "owner": "puneet-indowingss-team",
-    "version": "1.2.8",
+    "version": "1.2.9",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.indofleet.delivery",
-      "buildNumber": "28",
+      "buildNumber": "29",
       "infoPlist": {
         "UIBackgroundModes": [
           "location",
@@ -23,7 +23,7 @@
     },
     "android": {
       "package": "com.indofleet.delivery",
-      "versionCode": 28,
+      "versionCode": 29,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
