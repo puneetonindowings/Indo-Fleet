@@ -48,6 +48,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'delivered' | 'cancelled'>('all');
   const [selectedOrder, setSelectedOrder] = useState<DeliveryOrder | null>(null);
+  const selectedConsignmentDrones = useMemo(() => selectedOrder ? getConsignmentDrones(selectedOrder) : [], [selectedOrder]);
 
   const deliveredCount = useMemo(
     () => historyOrders.filter((o) => o.status === 'delivered' || o.status === 'completed').length,
@@ -97,9 +98,38 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
       return isoString;
     }
   };
+  const getConsignmentDrones = (order: DeliveryOrder): string[] => {
+    const ids: string[] = [];
+    if (Array.isArray(order.reserved_inventory_ids)) {
+      order.reserved_inventory_ids.forEach((id: string) => {
+        if (id && !ids.includes(id)) ids.push(id);
+      });
+    }
+    if (Array.isArray(order.assigned_drone_ids)) {
+      order.assigned_drone_ids.forEach((id: string) => {
+        if (id && !ids.includes(id)) ids.push(id);
+      });
+    }
+    if (Array.isArray(order.drones)) {
+      order.drones.forEach((id: string) => {
+        if (id && !ids.includes(id)) ids.push(id);
+      });
+    }
+    if (Array.isArray(order.items)) {
+      order.items.forEach((item: any) => {
+        const dId = item.drone_id || item.id || item.serial_number;
+        if (dId && typeof dId === 'string' && !ids.includes(dId)) {
+          ids.push(dId);
+        }
+      });
+    }
+    return ids;
+  };
 
   const renderOrderCard = ({ item }: { item: DeliveryOrder }) => {
     const isDelivered = item.status === 'delivered' || item.status === 'completed';
+    const consignmentDrones = getConsignmentDrones(item);
+    const totalUnits = consignmentDrones.length || item.units_count || 1;
     return (
       <TouchableOpacity
         style={styles.card}
@@ -142,11 +172,18 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
               {formatDate(item.delivered_at || item.created_at)}
             </Text>
           </View>
-          {item.drone_id && (
-            <View style={styles.dronePill}>
-              <Text style={styles.dronePillText}>{item.drone_id}</Text>
-            </View>
-          )}
+          <View style={styles.subHeaderBadges}>
+            {item.drone_id && (
+              <View style={styles.dronePill}>
+                <Text style={styles.dronePillText}>{item.drone_id}</Text>
+              </View>
+            )}
+            {totalUnits > 1 && (
+              <View style={styles.unitCountPill}>
+                <Text style={styles.unitCountPillText}>{totalUnits} Units</Text>
+              </View>
+            )}
+          </View>
         </View>
 
 
@@ -160,7 +197,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
           <View style={styles.routeDivider} />
           <View style={styles.routeRow}>
             <MapPin size={12} color="#DC2626" />
-            <Text style={styles.routeTextDestination} numberOfLines={1}>
+            <Text style={styles.routeTextDestination} numberOfLines={2}>
               {item.drop_address || item.delivery_address || 'Client Landing Pod'}
             </Text>
           </View>
@@ -190,9 +227,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
         <View style={styles.headerTitleRow}>
           <View style={styles.headerTitleTextGroup}>
             <Text style={styles.screenTitle} numberOfLines={1}>Order History</Text>
-            <Text style={styles.screenSubtitle} numberOfLines={1}>
-              Completed deliveries & handover log
-            </Text>
+            <Text style={styles.screenSubtitle}>Completed deliveries & handover log</Text>
           </View>
           <View style={styles.countBadge}>
             <Text style={styles.countBadgeText} numberOfLines={1}>{historyOrders.length} Deliveries</Text>
@@ -428,7 +463,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
                   <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Units / Cargo Drones:</Text>
                     <Text style={styles.detailValue}>
-                      {selectedOrder.units_count || (selectedOrder.reserved_inventory_ids || []).length || 1} Unit(s)
+                      {selectedConsignmentDrones.length || selectedOrder.units_count || 1} Unit(s)
                     </Text>
                   </View>
 
@@ -438,27 +473,63 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
                       {selectedOrder.drone_model || '700 RPAV Heavy-Lift'}
                     </Text>
                   </View>
-                </View>
 
-
-                <View style={styles.modalSectionCard}>
-                  <View style={styles.modalSectionRow}>
-                    <Text style={styles.sectionHeading}>Proof of Delivery (POD)</Text>
-                    <ShieldCheck size={16} color="#059669" />
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Handover OTP:</Text>
-                    <Text style={styles.detailValueBold}>Verified ✓</Text>
-                  </View>
-
-                  {selectedOrder.delivery_notes ? (
-                    <View style={styles.notesBox}>
-                      <Text style={styles.notesLabel}>Delivery Notes:</Text>
-                      <Text style={styles.notesText}>{selectedOrder.delivery_notes}</Text>
+                  {selectedConsignmentDrones.length > 0 && (
+                    <View style={styles.consignmentDronesBox}>
+                      <Text style={styles.consignmentDronesLabel}>Allocated Consignment Drones:</Text>
+                      <View style={styles.consignmentDronesGrid}>
+                        {selectedConsignmentDrones.map((droneId: string, idx: number) => (
+                          <View key={idx} style={styles.consignmentDronePill}>
+                            <Text style={styles.consignmentDronePillText}>{droneId}</Text>
+                          </View>
+                        ))}
+                      </View>
                     </View>
-                  ) : null}
+                  )}
                 </View>
+
+
+                {selectedOrder.status === 'cancelled' || selectedOrder.status === 'missed' ? (
+                  <View style={styles.modalSectionCard}>
+                    <View style={styles.modalSectionRow}>
+                      <Text style={styles.sectionHeading}>Mission Cancellation</Text>
+                      <XCircle size={16} color="#DC2626" />
+                    </View>
+
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Status:</Text>
+                      <Text style={[styles.detailValueBold, { color: '#DC2626' }]}>
+                        Mission Aborted
+                      </Text>
+                    </View>
+
+                    {selectedOrder.delivery_notes ? (
+                      <View style={styles.notesBox}>
+                        <Text style={styles.notesLabel}>Cancellation Reason:</Text>
+                        <Text style={styles.notesText}>{selectedOrder.delivery_notes}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                ) : (
+                  <View style={styles.modalSectionCard}>
+                    <View style={styles.modalSectionRow}>
+                      <Text style={styles.sectionHeading}>Proof of Delivery (POD)</Text>
+                      <ShieldCheck size={16} color="#059669" />
+                    </View>
+
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Handover OTP:</Text>
+                      <Text style={styles.detailValueBold}>Verified ✓</Text>
+                    </View>
+
+                    {selectedOrder.delivery_notes ? (
+                      <View style={styles.notesBox}>
+                        <Text style={styles.notesLabel}>Delivery Notes:</Text>
+                        <Text style={styles.notesText}>{selectedOrder.delivery_notes}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                )}
               </ScrollView>
 
 
@@ -881,24 +952,81 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 5,
+    alignItems: 'flex-start',
+    paddingVertical: 5.5,
+    gap: 8,
   },
   detailLabel: {
     fontSize: 11.5,
     color: '#64748B',
+    flexShrink: 0,
+    paddingTop: 1,
   },
   detailValue: {
     fontSize: 11.5,
     fontWeight: '600',
     color: '#1E293B',
-    maxWidth: '65%',
+    flex: 1,
+    flexShrink: 1,
     textAlign: 'right',
   },
   detailValueBold: {
     fontSize: 12,
     fontWeight: '800',
     color: '#0F172A',
+    flex: 1,
+    flexShrink: 1,
+    textAlign: 'right',
+  },
+  subHeaderBadges: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  unitCountPill: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  unitCountPillText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#4338CA',
+  },
+  consignmentDronesBox: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  consignmentDronesLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#64748B',
+    marginBottom: 6,
+  },
+  consignmentDronesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  consignmentDronePill: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  consignmentDronePillText: {
+    fontSize: 10,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: '#334155',
   },
   fareHighlight: {
     fontSize: 13,
