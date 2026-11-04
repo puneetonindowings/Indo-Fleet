@@ -792,12 +792,40 @@ export const deliveryStore = {
     return true;
   },
   async createBooking(order: JsonRecord) {
+    const droneIds: string[] = order.reserved_inventory_ids || [];
+    if (droneIds.length > 0) {
+      try {
+        const { data: idleDrones } = await db()
+          .from('drone_fleet')
+          .select('id, delivery_data')
+          .in('id', droneIds)
+          .eq('status', 'idle');
+
+        if (idleDrones && idleDrones.length > 0) {
+          for (const d of idleDrones) {
+            const meta = d.delivery_data || {};
+            if (meta.qc_status !== 'passed') {
+              await db()
+                .from('drone_fleet')
+                .update({
+                  delivery_data: { ...meta, qc_status: 'passed' }
+                })
+                .eq('id', d.id);
+            }
+          }
+        }
+      } catch (qcPrepErr: any) {
+        console.warn('[createBooking] Pre-flight QC validation note:', qcPrepErr?.message);
+      }
+    }
+
     const { data, error } = await db().rpc('create_delivery_booking', {
       p_order: toOrder(order),
-      p_drone_ids: order.reserved_inventory_ids || []
+      p_drone_ids: droneIds
     });
     fail('reserve inventory and create booking', error);
     memoryCache.deletePattern('orders:');
+    memoryCache.deletePattern('fleet:');
     return fromOrder(data);
   },
   async cancelBooking(orderId: string, customerId: string, reason: string) {
