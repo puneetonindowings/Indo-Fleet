@@ -1,6 +1,37 @@
 # IndoFleet Delivery Mobile App - Android Releases
 
-## Latest Release: v1.2.5 (Build 25 - Dynamic Geocoding, Audit Photo Isolation & Mobile Layout Optimization)
+## Latest Release: v1.2.6 (Build 26 - Multi-Screen Adaptive Layout, Role-Based Drone QR Security & Robust Dual-Transport Email Service)
+
+- **Version:** 1.2.6 (Build Code 26)
+- **Date:** November 04, 2026
+- **Architecture:** Android (arm64-v8a, armeabi-v7a)
+- **Package Size:** ~54.9 MB (Optimized standalone APK)
+
+### Direct Download Options:
+1. **Desktop Direct Build:** `C:\Users\Punit\Desktop\IndoFleet.apk`
+2. **Local Direct Build:** `IndoFleet_PilotApp/android/app/build/outputs/apk/release/app-release.apk`
+3. **Web Portal Direct Download:** `/api/delivery/download-apk`
+4. **Local Release Archive:** `releases/IndoFleet_Delivery_latest.apk` & `releases/IndoFleet_Delivery_v1.2.6.apk`
+5. **GitHub Official Release:** [v1.2.6 Release](https://github.com/puneetonindowings/Indo-Fleet/releases/tag/v1.2.6)
+
+### What Was Fixed & Added in v1.2.6:
+- **Comprehensive UI Overflow & Adaptive Layout Fixes (5 Audit Points):**
+  - **Profile Screen:** Prevented `ID: IW-PLT-...` badge from overflowing screen edges using middle-truncation and auto-flex shrink.
+  - **Flight Radar / Live Map:** Fixed `0 Deliveries assigned` badge overflowing screen edge; eliminated static/dummy Noida Sector 60 hub marker when no active delivery mission is selected.
+  - **Order History Screen:** Fixed `0 Deliveries` header badge horizontal overflow with flex-wrapping and container constraints.
+  - **Dashboard Screen:** Removed redundant `History` button from `Assigned Drone Deliveries` section title to prevent button collision.
+  - **Emergency SOS Modal:** Auto-adjusted countdown badge & vehicle ID chips with single-line fit and full flex wrapping; optimized Cancel / Confirm SOS touch targets to fit all viewport heights.
+- **Enterprise Role-Based QR Code Access:**
+  - Standard/external camera scans show the verified Certificate of Airworthiness with security locks.
+  - Authorized Pilot App & Admin portal scans unlock live telemetry, mission logs, and pre-flight checklist.
+- **Universal Localhost & AWS Dual-Transport Email Service:**
+  - Robust Nodemailer configuration supporting direct SSL (port 465), STARTTLS (port 587), and automated retry with verified delivery for production & staging.
+
+---
+
+## Previous Releases
+
+### v1.2.5 (Build 25 - Dynamic Geocoding, Audit Photo Isolation & Mobile Layout Optimization)
 
 - **Version:** 1.2.5 (Build Code 25)
 - **Date:** October 26, 2026

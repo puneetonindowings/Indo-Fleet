@@ -26,6 +26,12 @@ export const getAutoServerUrl = (): string => {
 export const DEFAULT_SERVER_URL = getAutoServerUrl();
 
 export const getServerUrl = async (): Promise<string> => {
+  try {
+    const saved = await AsyncStorage.getItem(STORAGE_KEY_SERVER_URL);
+    if (saved && saved.trim()) {
+      return saved.trim().replace(/\/+$/, '');
+    }
+  } catch {}
   return getAutoServerUrl();
 };
 

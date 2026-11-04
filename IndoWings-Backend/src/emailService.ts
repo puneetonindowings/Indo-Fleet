@@ -16,6 +16,7 @@ export const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'connect@indowings.com
 const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
 const smtpUser = process.env.SMTP_USER || '';
 const smtpPass = process.env.SMTP_PASS || '';
+const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
 
 async function getSmtpIpv4Addresses(host: string): Promise<string[]> {
   if (/^(\d{1,3}\.){3}\d{1,3}$/.test(host)) {
@@ -40,6 +41,26 @@ async function getSmtpIpv4Addresses(host: string): Promise<string[]> {
   return ['142.250.183.108', '142.250.183.109', '192.178.158.108', '192.178.158.109'];
 }
 
+function buildDirectTransporter(port: number) {
+  const isSecure = port === 465;
+  return nodemailer.createTransport({
+    host: smtpHost,
+    port,
+    secure: isSecure,
+    requireTLS: !isSecure,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+    auth: {
+      user: smtpUser,
+      pass: smtpPass
+    },
+    tls: {
+      rejectUnauthorized: process.env.NODE_ENV === 'production'
+    }
+  } as any);
+}
+
 function buildIpv4Transporter(targetIp: string, port: number) {
   const isSecure = port === 465;
   return nodemailer.createTransport({
@@ -47,7 +68,7 @@ function buildIpv4Transporter(targetIp: string, port: number) {
     port,
     secure: isSecure,
     requireTLS: !isSecure,
-    servername: smtpHost, // Preserve TLS SNI & certificate verification against smtp.gmail.com
+    servername: smtpHost,
     connectionTimeout: 8000,
     greetingTimeout: 8000,
     socketTimeout: 12000,
@@ -85,29 +106,53 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
       html: html || undefined
     };
 
-    const ipv4List = await getSmtpIpv4Addresses(smtpHost);
-    const portsToTry = [587, 465];
     const attemptErrors: string[] = [];
 
-    for (const port of portsToTry) {
-      const candidateIps = ipv4List.slice(0, 2);
-      for (const ip of candidateIps) {
-        try {
-          const transporter = buildIpv4Transporter(ip, port);
-          const info = await transporter.sendMail(mailOptions);
-          console.log(`[mail] Gmail SMTP delivered to ${to} via IPv4 ${ip}:${port} (ID: ${info.messageId})`);
-          lastMailError = '';
-          return true;
-        } catch (err: any) {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.warn(`[mail] Delivery attempt via IPv4 ${ip}:${port} failed: ${msg}`);
-          attemptErrors.push(`${ip}:${port} (${msg})`);
-        }
+    // Strategy 1: Direct hostname transport on configured/preferred ports (465 SSL, then 587 TLS)
+    // This works seamlessly on localhost, Render, and AWS EC2!
+    const primaryPorts = smtpPort === 465 ? [465, 587] : [smtpPort, 465, 587];
+    const uniquePrimaryPorts = Array.from(new Set(primaryPorts));
+
+    for (const port of uniquePrimaryPorts) {
+      try {
+        const transporter = buildDirectTransporter(port);
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`[mail] SMTP delivered to ${to} via ${smtpHost}:${port} (ID: ${info.messageId})`);
+        lastMailError = '';
+        return true;
+      } catch (err: any) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`[mail] Direct delivery via ${smtpHost}:${port} failed: ${msg}`);
+        attemptErrors.push(`${smtpHost}:${port} (${msg})`);
       }
     }
 
+    // Strategy 2: Fallback to resolved IPv4 addresses if direct DNS has SNI/firewall quirks
+    try {
+      const ipv4List = await getSmtpIpv4Addresses(smtpHost);
+      const fallbackPorts = [465, 587];
+
+      for (const port of fallbackPorts) {
+        const candidateIps = ipv4List.slice(0, 2);
+        for (const ip of candidateIps) {
+          try {
+            const transporter = buildIpv4Transporter(ip, port);
+            const info = await transporter.sendMail(mailOptions);
+            console.log(`[mail] SMTP delivered to ${to} via fallback IPv4 ${ip}:${port} (ID: ${info.messageId})`);
+            lastMailError = '';
+            return true;
+          } catch (err: any) {
+            const msg = err instanceof Error ? err.message : String(err);
+            attemptErrors.push(`fallback ${ip}:${port} (${msg})`);
+          }
+        }
+      }
+    } catch (fallbackErr: any) {
+      attemptErrors.push(`ipv4 fallback error: ${fallbackErr?.message || fallbackErr}`);
+    }
+
     lastMailError = attemptErrors.join(' | ');
-    console.error('[mail] Gmail SMTP delivery failed on all IPv4 transports:', lastMailError);
+    console.error('[mail] SMTP delivery failed on all transports:', lastMailError);
     return false;
   }
 
