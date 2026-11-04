@@ -218,6 +218,8 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
 
   useEffect(() => {
     fetchFleet();
+    const interval = setInterval(fetchFleet, 8000);
+    return () => clearInterval(interval);
   }, []);
 
   const getLinkedOrderForDrone = (drone: any) => {
@@ -515,9 +517,10 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
         (d.category || '').toLowerCase().includes(searchQuery.toLowerCase());
 
       const isVerified = d.is_verified === true || d.verification_status === 'verified';
+      const isQcPassed = d.qc_status === 'passed' || d.delivery_data?.qc_status === 'passed' || isVerified;
       const linked = getLinkedOrderForDrone(d);
-      const isReserved = d.status !== 'maintenance' && (d.status === 'reserved' || Boolean(linked));
-      const isSortieReady = isVerified && d.status !== 'maintenance' && !isReserved && d.status !== 'in-flight' && d.status !== 'dispatched';
+      const isReserved = d.status === 'reserved' || Boolean(linked);
+      const isSortieReady = isQcPassed && d.status !== 'maintenance' && d.status !== 'damaged' && !isReserved && d.status !== 'in-flight' && d.status !== 'dispatched' && d.status !== 'en-route';
 
       const matchesStatus =
         statusFilter === 'all' ||
@@ -550,9 +553,10 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
   const inFlightUnits = drones.filter((d) => d.status === 'in-flight' || d.status === 'dispatched' || d.status === 'en-route').length;
   const sortieReadyUnits = drones.filter((d) => {
     const isVerified = d.is_verified === true || d.verification_status === 'verified';
+    const isQcPassed = d.qc_status === 'passed' || d.delivery_data?.qc_status === 'passed' || isVerified;
     const linked = getLinkedOrderForDrone(d);
-    const isBusy = d.status === 'reserved' || d.status === 'in-flight' || d.status === 'en-route' || Boolean(linked);
-    return isVerified && d.status !== 'maintenance' && !isBusy;
+    const isBusy = d.status === 'reserved' || d.status === 'in-flight' || d.status === 'dispatched' || d.status === 'en-route' || Boolean(linked);
+    return isQcPassed && d.status !== 'maintenance' && d.status !== 'damaged' && !isBusy;
   }).length;
   const idleUnits = sortieReadyUnits;
   const readinessRate = totalUnits > 0 ? Math.round((sortieReadyUnits / totalUnits) * 100) : 0;
@@ -760,7 +764,10 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
               <div className="p-3.5 rounded-2xl bg-purple-50/40 border border-purple-100 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Live Stock &amp; Orders</span>
-                  <Activity className="w-3.5 h-3.5 text-emerald-500" />
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="text-[10px] font-bold text-emerald-600 uppercase">Live</span>
+                  </div>
                 </div>
 
                 <div>
@@ -773,6 +780,10 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                       className="h-full bg-emerald-500 rounded-full transition-all duration-300"
                       style={{ width: `${readinessRate}%` }}
                     />
+                  </div>
+                  <div className="flex justify-between text-[10px] text-slate-500 mt-1 font-medium">
+                    <span>{readinessRate}% Available</span>
+                    <span>{totalUnits - sortieReadyUnits > 0 ? `${totalUnits - sortieReadyUnits} Reserved/Busy` : 'Full Stock Ready'}</span>
                   </div>
                 </div>
 
@@ -903,7 +914,7 @@ export const FleetManagerPage: React.FC<FleetManagerPageProps> = ({
                         <p className={`text-xs font-medium ${
                           sortieReadyUnits > 0 ? 'text-emerald-600' : 'text-amber-700 font-semibold'
                         }`}>
-                          {sortieReadyUnits > 0 ? 'Ready for Dispatch' : '0 Airframes Verified'}
+                          {sortieReadyUnits > 0 ? `${sortieReadyUnits} Units Ready for Dispatch` : '0 Airframes Available'}
                         </p>
                       </div>
                     </div>
