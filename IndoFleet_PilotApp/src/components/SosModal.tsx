@@ -291,7 +291,7 @@ export const SosModal: React.FC<SosModalProps> = ({
           } catch {}
 
           try {
-            const cur = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            const cur = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
             if (cur?.coords) {
               realCoords = { latitude: cur.coords.latitude, longitude: cur.coords.longitude };
             }

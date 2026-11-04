@@ -38,6 +38,40 @@ interface OrderHistoryScreenProps {
   onNavigateDashboard?: () => void;
 }
 
+export const getConsignmentDrones = (order: DeliveryOrder): string[] => {
+  const ids: string[] = [];
+  if (!order) return ids;
+  if (Array.isArray(order.reserved_inventory_ids)) {
+    order.reserved_inventory_ids.forEach((id: string) => {
+      if (id && !ids.includes(id)) ids.push(id);
+    });
+  }
+  if (Array.isArray((order as any).cancelled_reserved_inventory_ids)) {
+    (order as any).cancelled_reserved_inventory_ids.forEach((id: string) => {
+      if (id && !ids.includes(id)) ids.push(id);
+    });
+  }
+  if (Array.isArray(order.assigned_drone_ids)) {
+    order.assigned_drone_ids.forEach((id: string) => {
+      if (id && !ids.includes(id)) ids.push(id);
+    });
+  }
+  if (Array.isArray(order.drones)) {
+    order.drones.forEach((id: string) => {
+      if (id && !ids.includes(id)) ids.push(id);
+    });
+  }
+  if (Array.isArray(order.items)) {
+    order.items.forEach((item: any) => {
+      const dId = item.drone_id || item.id || item.serial_number;
+      if (dId && typeof dId === 'string' && !ids.includes(dId)) {
+        ids.push(dId);
+      }
+    });
+  }
+  return ids;
+};
+
 export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
   user,
   historyOrders,
@@ -98,38 +132,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
       return isoString;
     }
   };
-  const getConsignmentDrones = (order: DeliveryOrder): string[] => {
-    const ids: string[] = [];
-    if (Array.isArray(order.reserved_inventory_ids)) {
-      order.reserved_inventory_ids.forEach((id: string) => {
-        if (id && !ids.includes(id)) ids.push(id);
-      });
-    }
-    if (Array.isArray((order as any).cancelled_reserved_inventory_ids)) {
-      (order as any).cancelled_reserved_inventory_ids.forEach((id: string) => {
-        if (id && !ids.includes(id)) ids.push(id);
-      });
-    }
-    if (Array.isArray(order.assigned_drone_ids)) {
-      order.assigned_drone_ids.forEach((id: string) => {
-        if (id && !ids.includes(id)) ids.push(id);
-      });
-    }
-    if (Array.isArray(order.drones)) {
-      order.drones.forEach((id: string) => {
-        if (id && !ids.includes(id)) ids.push(id);
-      });
-    }
-    if (Array.isArray(order.items)) {
-      order.items.forEach((item: any) => {
-        const dId = item.drone_id || item.id || item.serial_number;
-        if (dId && typeof dId === 'string' && !ids.includes(dId)) {
-          ids.push(dId);
-        }
-      });
-    }
-    return ids;
-  };
+
 
   const renderOrderCard = ({ item }: { item: DeliveryOrder }) => {
     const isDelivered = item.status === 'delivered' || item.status === 'completed';
@@ -748,7 +751,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 10,
   },
   dateRow: {
     flexDirection: 'row',
@@ -986,8 +991,10 @@ const styles = StyleSheet.create({
   subHeaderBadges: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    flexShrink: 0,
   },
   unitCountPill: {
     backgroundColor: '#EEF2FF',

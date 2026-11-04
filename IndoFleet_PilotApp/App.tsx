@@ -273,6 +273,7 @@ function MainApp() {
   });
 
   const foregroundWatcherRef = useRef<Location.LocationSubscription | null>(null);
+  const liveGpsWatcherRef = useRef<Location.LocationSubscription | null>(null);
   const activeOrderRef = useRef<DeliveryOrder | null>(null);
   activeOrderRef.current = selectedOrder;
 
@@ -285,15 +286,53 @@ function MainApp() {
       }
     });
 
+    // Start continuous high-accuracy live GPS watcher
+    let isMounted = true;
+    const startLiveGpsWatcher = async () => {
+      try {
+        if (!Location || !Location.getForegroundPermissionsAsync) return;
+        let { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          const { status: reqStatus } = await Location.requestForegroundPermissionsAsync();
+          status = reqStatus;
+        }
+        if (status === 'granted') {
+          const watcher = await Location.watchPositionAsync(
+            {
+              accuracy: Location.Accuracy.High,
+              timeInterval: 2000,
+              distanceInterval: 1,
+            },
+            (loc) => {
+              if (isMounted && loc?.coords) {
+                setCurrentCoords({
+                  latitude: loc.coords.latitude,
+                  longitude: loc.coords.longitude,
+                });
+              }
+            }
+          );
+          liveGpsWatcherRef.current = watcher;
+        }
+      } catch (e) {
+        console.warn('Live GPS watcher warning:', e);
+      }
+    };
+    startLiveGpsWatcher();
+
     const healthInterval = setInterval(() => {
       checkServer();
     }, 20000);
 
     return () => {
+      isMounted = false;
       clearInterval(healthInterval);
       stopTracking();
       if (foregroundWatcherRef.current) {
         foregroundWatcherRef.current.remove();
+      }
+      if (liveGpsWatcherRef.current) {
+        liveGpsWatcherRef.current.remove();
       }
     };
   }, []);
@@ -363,7 +402,7 @@ function MainApp() {
         } catch {}
 
         const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
+          accuracy: Location.Accuracy.High,
         });
         if (loc?.coords) {
           setCurrentCoords({

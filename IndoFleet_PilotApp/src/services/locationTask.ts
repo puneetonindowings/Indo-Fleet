@@ -143,7 +143,7 @@ export async function startTracking(orderId: string): Promise<boolean> {
 
     try {
       await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
-        accuracy: Location.Accuracy.Balanced,
+        accuracy: Location.Accuracy.High,
         timeInterval: 5000, // Adaptive 5-second polling interval
         distanceInterval: 10, // Only trigger on 10m movement to conserve battery
         deferredUpdatesInterval: 10000,

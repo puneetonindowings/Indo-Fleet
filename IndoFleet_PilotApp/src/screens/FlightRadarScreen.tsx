@@ -198,8 +198,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   }, [activeOrder, order]);
 
   const hasLiveGpsFix = Boolean(
-    isTracking &&
-      currentCoords &&
+    currentCoords &&
       Number.isFinite(currentCoords.latitude) &&
       Number.isFinite(currentCoords.longitude) &&
       (currentCoords.latitude !== 0 || currentCoords.longitude !== 0)
@@ -382,32 +381,29 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     }
   }, [pilotLat, pilotLng, targetLat, targetLng]);
 
+  const remainingDist = useMemo(() => {
+    if (roadDistanceKm != null && Number.isFinite(roadDistanceKm)) {
+      return roadDistanceKm;
+    }
+    if (pilotLat != null && pilotLng != null && targetLat != null && targetLng != null) {
+      const crowDist = calculateDist(pilotLat, pilotLng, targetLat, targetLng);
+      return Number((crowDist * 1.35).toFixed(1));
+    }
+    return 0;
+  }, [roadDistanceKm, pilotLat, pilotLng, targetLat, targetLng]);
+
   const totalTripDist = useMemo(() => {
     if (totalRoadDistanceKm != null && Number.isFinite(totalRoadDistanceKm)) {
       return totalRoadDistanceKm;
     }
-    if (roadDistanceKm != null && Number.isFinite(roadDistanceKm)) {
-      return roadDistanceKm;
+    const originLat = baseHub?.latitude ?? pilotLat;
+    const originLng = baseHub?.longitude ?? pilotLng;
+    if (originLat != null && originLng != null && targetLat != null && targetLng != null) {
+      const crowDist = calculateDist(originLat, originLng, targetLat, targetLng);
+      return Number((crowDist * 1.35).toFixed(1));
     }
-    if (baseHub && hasTargetCoords) {
-      const crowDist = calculateDist(baseHub.latitude, baseHub.longitude, targetLat, targetLng);
-      return Number((crowDist * 1.4).toFixed(1));
-    }
-    return 4.3;
-  }, [totalRoadDistanceKm, roadDistanceKm, baseHub, targetLat, targetLng, hasTargetCoords]);
-
-  const remainingDist = useMemo(() => {
-    let currentRemaining: number;
-    if (roadDistanceKm != null && Number.isFinite(roadDistanceKm)) {
-      currentRemaining = roadDistanceKm;
-    } else if (pilotLat != null && pilotLng != null && hasTargetCoords) {
-      const crowDist = calculateDist(pilotLat, pilotLng, targetLat, targetLng);
-      currentRemaining = Number((crowDist * 1.4).toFixed(1));
-    } else {
-      currentRemaining = totalTripDist;
-    }
-    return Number(Math.min(currentRemaining, totalTripDist).toFixed(1));
-  }, [roadDistanceKm, pilotLat, pilotLng, targetLat, targetLng, hasTargetCoords, totalTripDist]);
+    return remainingDist;
+  }, [totalRoadDistanceKm, baseHub, pilotLat, pilotLng, targetLat, targetLng, remainingDist]);
 
   const displayTotal = totalTripDist.toFixed(1);
   const displayRemaining = remainingDist.toFixed(1);

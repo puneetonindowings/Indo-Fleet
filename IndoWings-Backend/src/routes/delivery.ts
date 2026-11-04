@@ -6206,8 +6206,8 @@ router.post('/pilot/support-ticket', async (req, res) => {
 });
 
 let activeAppRelease = {
-  version: 'v1.2.7',
-  build_number: 27,
+  version: 'v1.2.8',
+  build_number: 28,
   package_size: '~54.9 MB',
   release_notes: 'IndoFleet v1.2.7 (Build 27): Resolved UI text overflow/wrapping across mobile dashboard & history, fixed Google Maps routing button clipping, and linked real-time inventory restoration on cancelled orders.',
   android_url: 'https://indowing-my.sharepoint.com/:u:/g/personal/puneet_kushwaha_indowings_com/IQAZAVvyW80PSqC5-dm-BWobAYd5lZ_033VxC31LMTVXYmg?e=S78MPU',
