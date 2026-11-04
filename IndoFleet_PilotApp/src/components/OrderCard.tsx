@@ -169,7 +169,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       {order.assigned_by_name ? (
         <View style={styles.assignedByRow}>
           <ShieldCheck size={13} color="#3B0080" />
-          <Text style={styles.assignedByText} numberOfLines={1}>
+          <Text style={styles.assignedByText}>
             Assigned by: <Text style={styles.assignedByName}>{order.assigned_by_name}</Text> ({order.assigned_by_role || 'Dispatcher'})
           </Text>
         </View>
@@ -241,7 +241,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 <Text style={styles.openSortieBtnText} numberOfLines={1}>
                   {isAllHubInspected
                     ? 'View Hub Inspected Drones'
-                    : `Hub Drone Inspection (${hubInspectedList.length}/${totalDroneCount})`}
+                    : `Inspect at Hub (${hubInspectedList.length}/${totalDroneCount} Drones)`}
                 </Text>
                 <ChevronRight size={15} color="#FFFFFF" />
               </TouchableOpacity>
@@ -413,26 +413,27 @@ const styles = StyleSheet.create({
   orderIdBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     backgroundColor: '#F3E8FF',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    maxWidth: '62%',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
     flexShrink: 1,
+    maxWidth: '64%',
   },
   orderIdText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     color: '#3B0080',
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
     flexShrink: 1,
   },
   statusTag: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
+    flexShrink: 0,
   },
   statusTagPendingAcceptance: {
     backgroundColor: '#FFFBEB',
@@ -451,9 +452,9 @@ const styles = StyleSheet.create({
     borderColor: '#A7F3D0',
   },
   statusTagText: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '800',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   statusTagTextPendingAcceptance: {
     color: '#D97706',
@@ -469,12 +470,12 @@ const styles = StyleSheet.create({
   },
   assignedByRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 6,
     backgroundColor: '#F8FAFC',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: 10,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#F1F5F9',
@@ -483,6 +484,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#64748B',
     fontWeight: '500',
+    flex: 1,
+    lineHeight: 16,
   },
   assignedByName: {
     color: '#3B0080',
@@ -547,6 +550,9 @@ const styles = StyleSheet.create({
   specsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
     paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
@@ -555,7 +561,8 @@ const styles = StyleSheet.create({
   specItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
+    flexShrink: 1,
   },
   specLabel: {
     fontSize: 11,
@@ -572,8 +579,10 @@ const styles = StyleSheet.create({
   },
   acceptBtn: {
     backgroundColor: '#3B0080',
-    borderRadius: 24,
-    height: 50,
+    borderRadius: 20,
+    minHeight: 48,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
@@ -584,10 +593,12 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   acceptBtnText: {
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: 12.5,
+    fontWeight: '800',
     color: '#FFFFFF',
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
+    textAlign: 'center',
+    flexShrink: 1,
   },
   acceptedBtnGroup: {
     gap: 10,
@@ -700,19 +711,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
-    gap: 8,
+    flexWrap: 'wrap',
+    marginBottom: 8,
+    gap: 6,
   },
   sortieSummaryTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     color: '#0F172A',
     flexShrink: 1,
   },
   sortieBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: 6,
     flexShrink: 0,
   },
   sortieBadgePending: {
@@ -726,7 +738,7 @@ const styles = StyleSheet.create({
     borderColor: '#A7F3D0',
   },
   sortieBadgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
   },
   sortieBadgeTextPending: {
@@ -740,13 +752,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#4F46E5',
-    paddingVertical: 11,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    gap: 6,
+    minHeight: 44,
   },
   openSortieBtnText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     color: '#FFFFFF',
     flex: 1,

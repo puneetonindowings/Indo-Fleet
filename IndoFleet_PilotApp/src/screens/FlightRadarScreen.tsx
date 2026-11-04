@@ -1019,7 +1019,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
                 <Text style={styles.statLabel}>Location</Text>
                 <Text style={styles.statValue} numberOfLines={1}>
                   {currentCoords
-                    ? `${currentCoords.latitude.toFixed(4)}, ${currentCoords.longitude.toFixed(4)}`
+                    ? `${currentCoords.latitude.toFixed(3)}, ${currentCoords.longitude.toFixed(3)}`
                     : 'Finding…'}
                 </Text>
               </View>
@@ -1124,7 +1124,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
                       <ShieldCheck size={16} color="#059669" />
                     )}
                     <Text style={styles.sortieSummaryTitle} numberOfLines={1}>
-                      {isHubStage ? 'Hub Pre-Acceptance' : 'Customer Handover'} ({inspectedList.length}/{totalDroneCount})
+                      {isHubStage ? 'Hub Inspection' : 'Handover Inspection'} ({inspectedList.length}/{totalDroneCount})
                     </Text>
                   </View>
                   <View style={[styles.sortieBadge, isAllInspected ? styles.sortieBadgeReady : styles.sortieBadgePending]}>
@@ -1146,7 +1146,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
                     {isAllInspected
                       ? (isHubStage ? 'View Hub Inspected Drones' : 'View Inspected Drones & POD')
                       : (isHubStage
-                          ? `Inspect Drones at Hub (${inspectedList.length}/${totalDroneCount})`
+                          ? `Inspect at Hub (${inspectedList.length}/${totalDroneCount} Drones)`
                           : `Verify for Handover (${inspectedList.length}/${totalDroneCount})`)}
                   </Text>
                   <ChevronRight size={15} color="#FFFFFF" />
@@ -1309,19 +1309,48 @@ const styles = StyleSheet.create({
     backgroundColor: '#E2E8F0',
   },
   destFooter: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginTop: 4, paddingTop: 14, borderTopWidth: 1, borderTopColor: C.hairline,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: C.hairline,
   },
   distPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingVertical: 7, paddingHorizontal: 12, borderRadius: R.pill, backgroundColor: C.hairline,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: R.pill,
+    backgroundColor: C.hairline,
+    flexShrink: 1,
+    maxWidth: '100%',
   },
-  distText: { fontSize: 12, fontWeight: '800', color: C.ink },
+  distText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: C.ink,
+    flexShrink: 1,
+  },
   linkBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingVertical: 7, paddingHorizontal: 12, borderRadius: R.pill, backgroundColor: C.brandSoft,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: R.pill,
+    backgroundColor: C.brandSoft,
+    flexShrink: 0,
   },
-  linkBtnText: { fontSize: 12, fontWeight: '800', color: C.brandDeep },
+  linkBtnText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: C.brandDeep,
+  },
 
 
   mapCard: {
@@ -1466,11 +1495,24 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: { fontSize: 16, fontWeight: '900', color: '#FFFFFF' },
   secondaryBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    height: 50, borderRadius: R.lg, backgroundColor: C.card,
-    borderWidth: 1.5, borderColor: C.brandLine,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    minHeight: 48,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: R.lg,
+    backgroundColor: C.card,
+    borderWidth: 1.5,
+    borderColor: C.brandLine,
   },
-  secondaryBtnText: { fontSize: 14, fontWeight: '800', color: C.brandDeep },
+  secondaryBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: C.brandDeep,
+    textAlign: 'center',
+  },
   ghostBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 40,
   },
@@ -1491,19 +1533,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
-    gap: 8,
+    flexWrap: 'wrap',
+    marginBottom: 8,
+    gap: 6,
   },
   sortieSummaryTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     color: '#0F172A',
     flexShrink: 1,
   },
   sortieBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: 6,
     flexShrink: 0,
   },
   sortieBadgePending: {
@@ -1531,13 +1574,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#4F46E5',
-    paddingVertical: 11,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    gap: 6,
+    minHeight: 44,
   },
   openSortieBtnText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     color: '#FFFFFF',
     flex: 1,

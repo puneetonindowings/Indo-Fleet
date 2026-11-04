@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 90,
   },
   missionCard: {
     backgroundColor: '#FFFFFF',
@@ -549,18 +549,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
     marginBottom: 6,
   },
   progressLabel: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '700',
     color: '#64748B',
     textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    flexShrink: 1,
   },
   progressValue: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     color: '#0F172A',
+    flexShrink: 0,
   },
   progressBarTrack: {
     height: 8,
