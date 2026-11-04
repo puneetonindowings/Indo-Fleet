@@ -2248,26 +2248,65 @@ router.post('/store/orders/:id/cancel', async (req, res) => {
   const user = await requireCustomer(req, res);
   if (!user) return;
   const order = await fileDB.findOrderById(req.params.id);
-  if (!order || order.creator_id !== user.id || order.order_type !== 'drone_purchase') {
+  const userEmailNorm = String(user.email || '').toLowerCase().trim();
+  const orderCustEmailNorm = String(order?.customer_email || order?.client_email || '').toLowerCase().trim();
+  const isOwner =
+    order &&
+    ((order.creator_id && order.creator_id === user.id) ||
+     (userEmailNorm && orderCustEmailNorm && userEmailNorm === orderCustEmailNorm));
+
+  if (!order || !isOwner) {
     res.status(404).json({ error: 'Booking not found.' });
     return;
   }
-  if (order.status !== 'pending') {
-    res.status(409).json({ error: 'This booking can no longer be cancelled online. Contact customer support.' });
+  if (order.status === 'delivered') {
+    res.status(409).json({ error: 'This booking can no longer be cancelled as it has already been delivered.' });
     return;
   }
-  let updated: any;
-  try {
-    updated = await fileDB.cancelBooking(order.id, user.id, typeof req.body?.reason === 'string' ? req.body.reason : '');
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('not eligible for customer cancellation')) {
-      res.status(409).json({ error: 'This booking can no longer be cancelled online. Contact customer support.' });
-      return;
-    }
-    throw error;
+  if (order.status === 'cancelled') {
+    res.status(409).json({ error: 'This booking is already cancelled.' });
+    return;
   }
+
+  const reason = typeof req.body?.reason === 'string' && req.body.reason.trim() ? req.body.reason.trim() : 'Cancelled by customer';
+  const updated = await fileDB.updateOrder(order.id, {
+    status: 'cancelled',
+    cancelled_at: new Date().toISOString(),
+    cancellation_reason: reason,
+    timeline: [
+      ...(Array.isArray(order.timeline) ? order.timeline : []),
+      { step: 'Order Cancelled', time: new Date().toISOString(), done: true }
+    ],
+    audit_log: [
+      ...(order.audit_log || []),
+      {
+        action: 'ORDER_CANCELLED',
+        performed_by: `${user.name || user.email} (customer)`,
+        timestamp: new Date().toISOString(),
+        notes: reason
+      }
+    ]
+  });
+
+  const dronesToRelease = Array.from(new Set([
+    ...(Array.isArray(order.reserved_inventory_ids) ? order.reserved_inventory_ids : []),
+    ...(Array.isArray(order.assigned_drone_ids) ? order.assigned_drone_ids : []),
+    order.drone_id,
+    order.assigned_drone_id
+  ])).filter(Boolean);
+
+  for (const dId of dronesToRelease) {
+    try {
+      await fileDB.updateDrone(dId, {
+        status: 'idle',
+        assigned_order: null,
+        assigned_client: null
+      });
+    } catch {}
+  }
+
   sendOrderStatusEmail(updated, 'cancelled').catch((err) => console.error('Cancel email error:', err));
-  res.json({ message: 'Booking cancelled.', order: updated });
+  res.json({ success: true, message: 'Booking cancelled successfully.', order: updated });
 });
 
 router.post('/orders', async (req, res) => {
@@ -3015,8 +3054,12 @@ router.post('/orders/:id/cancel', async (req, res) => {
     return;
   }
 
-  const isAuthorizedStaff = ['admin', 'dispatcher', 'fleet_manager'].includes(user.role);
-  const isOwnerCustomer = user.role === 'customer' && order.creator_id === user.id && order.status === 'pending';
+  const isAuthorizedStaff = ['admin', 'dispatcher', 'fleet_manager', 'super_admin'].includes(user.role);
+  const userEmailNorm = String(user.email || '').toLowerCase().trim();
+  const orderCustEmailNorm = String(order.customer_email || order.client_email || '').toLowerCase().trim();
+  const isOwnerCustomer =
+    (order.creator_id && order.creator_id === user.id) ||
+    (userEmailNorm && orderCustEmailNorm && userEmailNorm === orderCustEmailNorm);
 
   if (!isAuthorizedStaff && !isOwnerCustomer) {
     res.status(403).json({ error: 'You do not have permission to cancel this order.' });
@@ -3033,27 +3076,47 @@ router.post('/orders/:id/cancel', async (req, res) => {
     return;
   }
 
-  const reason = typeof req.body?.reason === 'string' ? req.body.reason : 'Operations cancellation';
+  const reason = typeof req.body?.reason === 'string' && req.body.reason.trim() ? req.body.reason.trim() : 'Customer cancellation';
   const updated = await fileDB.updateOrder(order.id, {
     status: 'cancelled',
+    cancelled_at: new Date().toISOString(),
     cancellation_reason: reason,
+    timeline: [
+      ...(Array.isArray(order.timeline) ? order.timeline : []),
+      { step: 'Order Cancelled', time: new Date().toISOString(), done: true }
+    ],
     audit_log: [
       ...(order.audit_log || []),
       {
         action: 'ORDER_CANCELLED',
-        performed_by: `${user.name} (${user.role})`,
+        performed_by: `${user.name || user.email} (${user.role})`,
         timestamp: new Date().toISOString(),
         notes: reason
       }
     ]
   });
 
-  if (order.drone_id) {
-    await fileDB.updateDrone(order.drone_id, { status: 'idle', assigned_order: null });
+  const dronesToRelease = Array.from(new Set([
+    ...(Array.isArray(order.reserved_inventory_ids) ? order.reserved_inventory_ids : []),
+    ...(Array.isArray(order.assigned_drone_ids) ? order.assigned_drone_ids : []),
+    order.drone_id,
+    order.assigned_drone_id
+  ])).filter(Boolean);
+
+  for (const dId of dronesToRelease) {
+    try {
+      await fileDB.updateDrone(dId, {
+        status: 'idle',
+        assigned_order: null,
+        assigned_client: null
+      });
+    } catch (droneReleaseErr) {
+      console.warn(`[cancelOrder] Note releasing drone ${dId}:`, droneReleaseErr);
+    }
   }
 
   sendOrderStatusEmail(updated, 'cancelled').catch((err) => console.error('Cancel email error:', err));
-  res.json({ message: 'Order cancelled successfully', order: updated });
+  res.json({ success: true, message: 'Order cancelled successfully', order: updated });
 });
 
 router.get('/fleet', async (req, res) => {
