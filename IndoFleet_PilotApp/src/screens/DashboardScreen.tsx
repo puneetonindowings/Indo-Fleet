@@ -192,22 +192,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             <View style={styles.titleIcon}>
               <Layers size={14} color="#3B0080" />
             </View>
-            <Text style={styles.sortiesTitle}>Assigned Drone Deliveries</Text>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
-            {onViewHistory && (
-              <TouchableOpacity
-                style={styles.historyBtn}
-                onPress={onViewHistory}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityRole="button"
-                accessibilityLabel="Open order history"
-              >
-                <Clock size={13} color="#3B0080" />
-                <Text style={styles.historyBtnText}>History</Text>
-              </TouchableOpacity>
-            )}
+            <Text style={styles.sortiesTitle} numberOfLines={1}>Assigned Drone Deliveries</Text>
           </View>
         </View>
 
@@ -376,6 +361,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   titleLeftGroup: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -392,6 +378,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '900',
     color: '#0F172A',
+    flexShrink: 1,
   },
   historyBtn: {
     flexDirection: 'row',

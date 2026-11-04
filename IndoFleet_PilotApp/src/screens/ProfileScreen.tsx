@@ -224,7 +224,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             </View>
             {user?.id ? (
               <View style={styles.idTag}>
-                <Text style={styles.idTagText}>ID: {user.id}</Text>
+                <Text style={styles.idTagText} numberOfLines={1} ellipsizeMode="middle">
+                  ID: {user.id}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -438,8 +440,12 @@ const styles = StyleSheet.create({
   },
   badgeRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
     gap: 8,
     marginTop: 14,
+    maxWidth: '100%',
   },
   roleTag: {
     flexDirection: 'row',
@@ -451,6 +457,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.22)',
+    flexShrink: 0,
   },
   roleTagText: {
     fontSize: 11,
@@ -465,11 +472,14 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',
+    flexShrink: 1,
+    maxWidth: '100%',
   },
   idTagText: {
     fontSize: 11,
     fontWeight: '700',
     color: 'rgba(255,255,255,0.85)',
+    flexShrink: 1,
   },
 
   sectionCard: {

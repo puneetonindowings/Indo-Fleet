@@ -490,17 +490,17 @@ export const SosModal: React.FC<SosModalProps> = ({
                 <View style={styles.telemetryDetailsRow}>
                   <View style={styles.telemetryMiniItem}>
                     <Text style={styles.telemetryMiniLabel}>PILOT</Text>
-                    <Text style={styles.telemetryMiniVal} numberOfLines={1}>{pilotName}</Text>
+                    <Text style={styles.telemetryMiniVal} numberOfLines={1} ellipsizeMode="tail">{pilotName}</Text>
                   </View>
                   <View style={styles.telemetryMiniDivider} />
                   <View style={styles.telemetryMiniItem}>
                     <Text style={styles.telemetryMiniLabel}>VEHICLE</Text>
-                    <Text style={styles.telemetryMiniVal}>{vehicleId || 'IND-DL-772'}</Text>
+                    <Text style={styles.telemetryMiniVal} numberOfLines={1} ellipsizeMode="tail">{vehicleId || 'IND-DL-772'}</Text>
                   </View>
                   <View style={styles.telemetryMiniDivider} />
                   <View style={styles.telemetryMiniItem}>
                     <Text style={styles.telemetryMiniLabel}>BATTERY</Text>
-                    <Text style={styles.telemetryMiniVal}>{batteryPct || 85}%</Text>
+                    <Text style={styles.telemetryMiniVal} numberOfLines={1}>{batteryPct || 85}%</Text>
                   </View>
                 </View>
               </View>
@@ -518,7 +518,7 @@ export const SosModal: React.FC<SosModalProps> = ({
                 disabled={sending}
                 activeOpacity={0.8}
               >
-                <Text style={styles.cancelBtnText}>Cancel (False Alarm)</Text>
+                <Text style={styles.cancelBtnText} numberOfLines={1}>Cancel Alarm</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -532,7 +532,7 @@ export const SosModal: React.FC<SosModalProps> = ({
                 ) : (
                   <>
                     <Send size={18} color="#FFFFFF" />
-                    <Text style={styles.sendNowBtnText}>SEND SOS NOW</Text>
+                    <Text style={styles.sendNowBtnText} numberOfLines={1}>SEND SOS NOW</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -604,21 +604,21 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   radarOuterRing: {
-    width: 190,
-    height: 190,
-    borderRadius: 95,
+    width: 216,
+    height: 216,
+    borderRadius: 108,
     backgroundColor: '#FEF2F2',
     borderWidth: 2,
     borderColor: '#FEE2E2',
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
-    marginVertical: 12,
+    marginVertical: 10,
   },
   radarMiddleRing: {
-    width: 156,
-    height: 156,
-    borderRadius: 78,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
     backgroundColor: '#FEE2E2',
     borderWidth: 2,
     borderColor: '#FECACA',
@@ -626,9 +626,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   radarInnerRing: {
-    width: 124,
-    height: 124,
-    borderRadius: 62,
+    width: 148,
+    height: 148,
+    borderRadius: 74,
     backgroundColor: '#FFFFFF',
     borderWidth: 3,
     borderColor: '#DC2626',
@@ -638,16 +638,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 14,
     elevation: 6,
+    paddingHorizontal: 8,
   },
   countdownTitle: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: '900',
     color: '#DC2626',
-    letterSpacing: 0.8,
+    letterSpacing: 0.4,
+    textAlign: 'center',
     marginBottom: 2,
   },
   timerDisplay: {
-    fontSize: 34,
+    fontSize: 32,
     fontWeight: '900',
     color: '#0F172A',
     fontVariant: ['tabular-nums'],
@@ -775,6 +777,7 @@ const styles = StyleSheet.create({
   telemetryMiniItem: {
     flex: 1,
     alignItems: 'center',
+    paddingHorizontal: 4,
   },
   telemetryMiniDivider: {
     width: 1,
@@ -792,6 +795,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#1E293B',
     marginTop: 2,
+    textAlign: 'center',
   },
   instructionsNote: {
     fontSize: 11,
@@ -802,8 +806,9 @@ const styles = StyleSheet.create({
   },
   bottomBar: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'android' ? 24 : 36,
     backgroundColor: '#FFFFFF',
@@ -812,28 +817,31 @@ const styles = StyleSheet.create({
   },
   cancelBtn: {
     flex: 1,
+    height: 52,
     backgroundColor: '#F1F5F9',
     borderRadius: 14,
-    paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 8,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
   cancelBtnText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
     color: '#475569',
+    textAlign: 'center',
   },
   sendNowBtn: {
-    flex: 1.5,
+    flex: 1.25,
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     backgroundColor: '#DC2626',
     borderRadius: 14,
-    paddingVertical: 15,
+    paddingHorizontal: 12,
     shadowColor: '#DC2626',
     shadowOpacity: 0.35,
     shadowRadius: 8,
@@ -843,7 +851,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     color: '#FFFFFF',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
 
   successFullScreen: {

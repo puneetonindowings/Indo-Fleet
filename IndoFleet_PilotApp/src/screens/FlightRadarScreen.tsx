@@ -184,6 +184,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
 
   const baseHub = useMemo(() => {
     const target = activeOrder || order;
+    if (!target) return null; // No dummy hub if no active order is selected
     const pLat = target?.pickup_location?.latitude ?? target?.pickup_lat;
     const pLng = target?.pickup_location?.longitude ?? target?.pickup_lng;
     if (
@@ -193,11 +194,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     ) {
       return { latitude: pLat, longitude: pLng, name: target?.pickup_address || 'Order Dispatch Hub' };
     }
-    return {
-      latitude: 28.6037,
-      longitude: 77.3661,
-      name: 'A-21, Block A, Sector 60, Noida, UP (Central Base Hub)',
-    };
+    return null;
   }, [activeOrder, order]);
 
   const hasLiveGpsFix = Boolean(
@@ -208,8 +205,8 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
       (currentCoords.latitude !== 0 || currentCoords.longitude !== 0)
   );
 
-  const pilotLat: number = hasLiveGpsFix ? currentCoords!.latitude : baseHub?.latitude ?? 28.6037;
-  const pilotLng: number = hasLiveGpsFix ? currentCoords!.longitude : baseHub?.longitude ?? 77.3661;
+  const pilotLat: number = hasLiveGpsFix ? currentCoords!.latitude : currentCoords?.latitude ?? 28.6037;
+  const pilotLng: number = hasLiveGpsFix ? currentCoords!.longitude : currentCoords?.longitude ?? 77.3661;
 
   const resolveAddressCoords = (addressStr?: string): { latitude: number; longitude: number } | null => {
     if (!addressStr || typeof addressStr !== 'string') return null;
@@ -459,10 +456,10 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     const hasPilot = pilotLat != null && pilotLng != null;
     const hasTarget = hasTargetCoords;
 
-    const defaultLat = 28.6037;
-    const defaultLng = 77.3661;
-    const centerLat = hasPilot && hasTarget ? (pilotLat! + targetLat!) / 2 : hasPilot ? pilotLat! : hasTarget ? targetLat! : defaultLat;
-    const centerLng = hasPilot && hasTarget ? (pilotLng! + targetLng!) / 2 : hasPilot ? pilotLng! : hasTarget ? targetLng! : defaultLng;
+    const defaultLat = hasPilot ? pilotLat! : (currentCoords?.latitude ?? 28.6037);
+    const defaultLng = hasPilot ? pilotLng! : (currentCoords?.longitude ?? 77.3661);
+    const centerLat = hasPilot && hasTarget ? (pilotLat! + targetLat!) / 2 : hasTarget ? targetLat! : (hasPilot ? pilotLat! : defaultLat);
+    const centerLng = hasPilot && hasTarget ? (pilotLng! + targetLng!) / 2 : hasTarget ? targetLng! : (hasPilot ? pilotLng! : defaultLng);
 
     const tileUrl =
       mapType === 'satellite'
@@ -474,11 +471,12 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
 
     let markers = '';
 
-    if (baseHub) {
+    // Only display Hub marker if an active order exists with valid pickup location
+    if (baseHub && hasTarget) {
       markers += `
         L.marker([${baseHub.latitude}, ${baseHub.longitude}], {
           icon: L.divIcon({ className: '', html: '${esc(pill('#0284C7', 'Hub'))}', iconSize: [60, 26], iconAnchor: [30, 13] })
-        }).addTo(map).bindPopup("<b>Hub</b>");`;
+        }).addTo(map).bindPopup("<b>Pickup Hub</b><br>${esc(baseHub.name || '')}");`;
     }
 
     if (hasPilot) {
@@ -968,10 +966,10 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
             <View style={styles.destTop}>
               <View style={styles.destTag}>
                 <View style={styles.liveDot} />
-                <Text style={styles.destTagText}>Road Delivery Standby</Text>
+                <Text style={styles.destTagText} numberOfLines={1}>Road Delivery Standby</Text>
               </View>
               <View style={styles.orderChip}>
-                <Text style={styles.orderChipText}>
+                <Text style={styles.orderChipText} numberOfLines={1}>
                   {allOrders.length} {allOrders.length === 1 ? 'Delivery' : 'Deliveries'} assigned
                 </Text>
               </View>
@@ -1212,16 +1210,41 @@ const styles = StyleSheet.create({
     backgroundColor: C.card, borderRadius: R.xl, padding: 18, gap: 10,
     borderWidth: 1, borderColor: C.line, ...cardShadow,
   },
-  destTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  destTag: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  destTagText: { fontSize: 12, fontWeight: '700', color: C.brandDeep },
+  destTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    width: '100%',
+  },
+  destTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
+  },
+  destTagText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: C.brandDeep,
+    flexShrink: 1,
+  },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.ok },
   orderChip: {
-    paddingVertical: 4, paddingHorizontal: 10, borderRadius: R.pill,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: R.pill,
     backgroundColor: C.brandSoft,
-    maxWidth: '52%',
+    flexShrink: 1,
+    maxWidth: '100%',
   },
-  orderChipText: { fontSize: 11, fontWeight: '800', color: C.brand },
+  orderChipText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: C.brand,
+    flexShrink: 1,
+  },
   destName: { fontSize: 20, fontWeight: '900', color: C.ink, letterSpacing: -0.3 },
   areaSub: { fontSize: 13, color: C.body, lineHeight: 19 },
   destAddressRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },

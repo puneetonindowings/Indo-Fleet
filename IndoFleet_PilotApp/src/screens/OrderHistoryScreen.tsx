@@ -188,14 +188,14 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
 
       <View style={styles.summaryHeader}>
         <View style={styles.headerTitleRow}>
-          <View>
-            <Text style={styles.screenTitle}>Order History</Text>
-            <Text style={styles.screenSubtitle}>
+          <View style={styles.headerTitleTextGroup}>
+            <Text style={styles.screenTitle} numberOfLines={1}>Order History</Text>
+            <Text style={styles.screenSubtitle} numberOfLines={1}>
               Completed deliveries & handover log
             </Text>
           </View>
           <View style={styles.countBadge}>
-            <Text style={styles.countBadgeText}>{historyOrders.length} Deliveries</Text>
+            <Text style={styles.countBadgeText} numberOfLines={1}>{historyOrders.length} Deliveries</Text>
           </View>
         </View>
 
@@ -498,7 +498,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
     marginBottom: 14,
+    width: '100%',
+  },
+  headerTitleTextGroup: {
+    flex: 1,
+    paddingRight: 6,
   },
   screenTitle: {
     fontSize: 20,
@@ -518,6 +524,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E9D5FF',
+    flexShrink: 0,
   },
   countBadgeText: {
     fontSize: 11,
@@ -577,6 +584,7 @@ const styles = StyleSheet.create({
   },
   filterTabsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 6,
   },
   filterTab: {
