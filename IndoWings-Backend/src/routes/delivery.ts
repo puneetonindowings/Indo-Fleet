@@ -4878,13 +4878,15 @@ router.get('/pilot/history', async (req, res) => {
 async function checkOrderDepotInspectionPassed(order: any, requestedDroneId?: string): Promise<{ passed: boolean; requiredDrones: string[]; uninspectedDrones: string[] }> {
   const normId = (val: string) => String(val || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
-  const rawList: string[] = Array.from(new Set([
-    ...(Array.isArray(order.reserved_inventory_ids) ? order.reserved_inventory_ids : []),
-    ...(Array.isArray(order.assigned_drone_ids) ? order.assigned_drone_ids : []),
-    ...(order.drone_id ? [order.drone_id] : []),
-    ...(order.assigned_drone_id ? [order.assigned_drone_id] : []),
-    ...(requestedDroneId ? [requestedDroneId] : [])
-  ])).filter(Boolean).map((d: any) => String(d).trim());
+  const hasReservedConsignment = Array.isArray(order.reserved_inventory_ids) && order.reserved_inventory_ids.length > 0;
+  const rawList: string[] = hasReservedConsignment
+    ? order.reserved_inventory_ids.map((d: any) => String(d).trim())
+    : Array.from(new Set([
+        ...(Array.isArray(order.assigned_drone_ids) ? order.assigned_drone_ids : []),
+        ...(order.drone_id ? [order.drone_id] : []),
+        ...(order.assigned_drone_id ? [order.assigned_drone_id] : []),
+        ...(requestedDroneId ? [requestedDroneId] : [])
+      ])).filter(Boolean).map((d: any) => String(d).trim());
 
   if (rawList.length === 0) {
     return { passed: true, requiredDrones: [], uninspectedDrones: [] };
@@ -5020,7 +5022,12 @@ router.post('/orders/:id/assign-pilot', async (req, res) => {
       verifyRes = await fileDB.verifyOTP(targetEmail, otp.trim());
     }
     if (!verifyRes.valid && targetPhone) {
-      verifyRes = await fileDB.verifyOTP(targetPhone, otp.trim());
+      const phoneRes = await fileDB.verifyOTP(targetPhone, otp.trim());
+      if (phoneRes.valid) {
+        verifyRes = phoneRes;
+      } else if (!verifyRes.reason) {
+        verifyRes = phoneRes;
+      }
     }
     if (!verifyRes.valid) {
       res.status(400).json({

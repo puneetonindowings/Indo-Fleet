@@ -295,6 +295,8 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
   const [assignOtp, setAssignOtp] = useState('');
   const [assignOtpSending, setAssignOtpSending] = useState(false);
   const [assignSubmitting, setAssignSubmitting] = useState(false);
+  const [assignModalError, setAssignModalError] = useState('');
+  const [assignModalNotice, setAssignModalNotice] = useState('');
   const [copiedOtpId, setCopiedOtpId] = useState<string | null>(null);
 
   const prevOrderCountRef = useRef<number>(0);
@@ -799,6 +801,8 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
   const handleRequestAssignOtp = async () => {
     if (!selectedOrder) return;
     setAssignOtpSending(true);
+    setAssignModalError('');
+    setAssignModalNotice('');
     setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/delivery/orders/${selectedOrder.id}/assign-pilot-request-otp`, {
@@ -813,10 +817,14 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to send OTP');
-      setNotice(json.message || 'OTP sent to your registered email/phone');
+      const msg = json.message || 'OTP sent to your registered email/phone';
+      setAssignModalNotice(msg);
+      setNotice(msg);
       setAssignOtpRequired(true);
     } catch (err: any) {
-      setError(err.message || 'Failed to dispatch OTP');
+      const errMsg = err.message || 'Failed to dispatch OTP';
+      setAssignModalError(errMsg);
+      setError(errMsg);
     } finally {
       setAssignOtpSending(false);
     }
@@ -856,6 +864,8 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
     }
 
     setAssignSubmitting(true);
+    setAssignModalError('');
+    setAssignModalNotice('');
     setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/delivery/orders/${selectedOrder.id}/assign-pilot`, {
@@ -883,9 +893,13 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
       setSelectedDroneId('');
       setAssignOtp('');
       setAssignOtpRequired(false);
+      setAssignModalError('');
+      setAssignModalNotice('');
       await fetchDashboard();
     } catch (err: any) {
-      setError(err.message || 'Assignment failed');
+      const errMsg = err.message || 'Assignment failed. Check OTP and try again.';
+      setAssignModalError(errMsg);
+      setError(errMsg);
     } finally {
       setAssignSubmitting(false);
     }
@@ -2149,6 +2163,8 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                     setSelectedDroneId('');
                     setAssignOtp('');
                     setAssignOtpRequired(false);
+                    setAssignModalError('');
+                    setAssignModalNotice('');
                   }}
                   className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
                 >
@@ -2157,6 +2173,37 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
               </div>
 
               <div className="p-6 space-y-4 text-xs overflow-y-auto flex-1 max-h-[calc(90vh-140px)] overscroll-contain">
+                {assignModalError && (
+                  <div className="p-3.5 bg-rose-50 border-2 border-rose-300 rounded-2xl text-rose-900 text-xs font-bold flex items-start justify-between gap-2.5 animate-in fade-in shadow-xs">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                      <span className="leading-relaxed">{assignModalError}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAssignModalError('')}
+                      className="text-rose-500 hover:text-rose-900 p-0.5 rounded cursor-pointer shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                {assignModalNotice && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-900 text-xs font-bold flex items-center justify-between gap-2 animate-in fade-in">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{assignModalNotice}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAssignModalNotice('')}
+                      className="text-emerald-600 hover:text-emerald-900 p-0.5 rounded cursor-pointer shrink-0"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
 
                 <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
                   <div className="flex justify-between font-bold text-slate-800">
@@ -2372,7 +2419,10 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                   <input
                     type="text"
                     value={assignOtp}
-                    onChange={(e) => setAssignOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    onChange={(e) => {
+                      setAssignOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
+                      if (assignModalError) setAssignModalError('');
+                    }}
                     placeholder="Enter 6-digit Dispatcher OTP"
                     maxLength={6}
                     disabled={!isAllQcApproved}
@@ -2405,7 +2455,12 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
 
             <div className="p-4 sm:p-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 shrink-0">
               <div className="text-[11px] text-slate-500 w-full sm:w-auto">
-                {!isAllQcApproved ? (
+                {assignModalError ? (
+                  <span className="text-rose-600 font-bold flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate max-w-[280px]">{assignModalError}</span>
+                  </span>
+                ) : !isAllQcApproved ? (
                   <span className="text-rose-600 font-bold flex items-center gap-1">
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                     <span>Drone Check Pending ({uninspected.length} drone baaki)</span>
@@ -2431,6 +2486,8 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                     setSelectedDroneId('');
                     setAssignOtp('');
                     setAssignOtpRequired(false);
+                    setAssignModalError('');
+                    setAssignModalNotice('');
                   }}
                   className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-xl text-xs font-bold transition cursor-pointer"
                 >
