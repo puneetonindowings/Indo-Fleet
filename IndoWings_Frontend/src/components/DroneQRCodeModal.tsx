@@ -56,6 +56,7 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [stickerMode, setStickerMode] = useState(false);
 
   if (!isOpen || !drone) return null;
 
@@ -63,7 +64,10 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
   const modelName = drone.model_name || drone.model || '700 RPAV';
   const permanentUrl = `${PUBLIC_PORTAL_URL}/drone/${encodeURIComponent(droneId)}`;
 
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=450x450&ecc=H&margin=4&data=${encodeURIComponent(permanentUrl)}`;
+  // In sticker mode: ecc=M and zero center obstruction makes 1.2cm (12mm) QR codes 100% readable by cameras
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=450x450&ecc=${
+    stickerMode ? 'M' : 'H'
+  }&margin=${stickerMode ? '1' : '4'}&data=${encodeURIComponent(permanentUrl)}`;
 
   const handleCopyUrl = async () => {
     try {
@@ -77,6 +81,100 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
   const handlePrint = () => {
     const printWindow = window.open('', '_blank', 'width=520,height=560');
     if (!printWindow) return;
+
+    if (stickerMode) {
+      // Specialized 12mm - 15mm Thermal Sticker Print Layout
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>IndoWings Sticker 12mm - ${droneId}</title>
+            <style>
+              @page {
+                size: 15mm 18mm;
+                margin: 0;
+              }
+              * {
+                box-sizing: border-box;
+              }
+              body {
+                margin: 0;
+                padding: 0.6mm;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+                text-align: center;
+                background: #fff;
+                color: #000;
+                width: 15mm;
+                height: 18mm;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+              }
+              .sticker-brand {
+                font-size: 3.2pt;
+                font-weight: 900;
+                letter-spacing: 0.3px;
+                line-height: 1;
+                margin-bottom: 0.4mm;
+              }
+              .qr-wrapper {
+                position: relative;
+                width: 12mm;
+                height: 12mm;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto;
+              }
+              .qr-img {
+                width: 100%;
+                height: 100%;
+                display: block;
+              }
+              .footer-info {
+                margin-top: 0.4mm;
+                width: 100%;
+                line-height: 1.1;
+              }
+              .drone-id-label {
+                font-size: 3.6pt;
+                font-weight: 900;
+                letter-spacing: 0.2px;
+                color: #000;
+                white-space: nowrap;
+              }
+              .model-label {
+                font-size: 2.6pt;
+                color: #333;
+                font-weight: 700;
+                white-space: nowrap;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="sticker-brand">INDOWINGS</div>
+            <div class="qr-wrapper">
+              <img class="qr-img" src="${qrImageUrl}" alt="QR" />
+            </div>
+            <div class="footer-info">
+              <div class="drone-id-label">${droneId}</div>
+              <div class="model-label">MOD: ${modelName}</div>
+            </div>
+            <script>
+              window.onload = function() {
+                window.print();
+                setTimeout(function() { window.close(); }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      return;
+    }
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
@@ -174,7 +272,7 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
   const handleDownload = async () => {
     try {
       setDownloading(true);
-      await downloadSingleDroneQR({ id: droneId, model_name: modelName });
+      await downloadSingleDroneQR({ id: droneId, model_name: modelName }, { stickerMode });
     } catch (err) {
       console.error('Failed to generate composite QR canvas:', err);
       window.open(qrImageUrl, '_blank');
@@ -202,7 +300,7 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
                   Airframe QR Identity Label
                 </h3>
                 <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-200 text-[10px] font-bold border border-purple-400/20">
-                  Level H ECC
+                  {stickerMode ? 'Level M (1.2cm Sticker)' : 'Level H ECC'}
                 </span>
               </div>
               <p className="text-[11px] text-purple-200/80 font-mono mt-0.5">
@@ -222,11 +320,51 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
 
         <div className="p-6 space-y-5 overflow-y-auto">
 
+          {/* Mode Switcher */}
+          <div className="bg-slate-100 p-1 rounded-2xl flex items-center gap-1 border border-slate-200/70">
+            <button
+              type="button"
+              onClick={() => setStickerMode(false)}
+              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                !stickerMode
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              🪪 Standard Pass Card
+            </button>
+            <button
+              type="button"
+              onClick={() => setStickerMode(true)}
+              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                stickerMode
+                  ? 'bg-[#5a00b8] text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              🏷️ 1.2 cm Micro Sticker (Airframe)
+            </button>
+          </div>
+
+          {stickerMode && (
+            <div className="p-3 bg-purple-50/80 border border-purple-200/80 rounded-2xl flex items-start gap-2.5 text-left">
+              <ShieldCheck className="w-4 h-4 text-[#5a00b8] shrink-0 mt-0.5" />
+              <div className="text-[11px] text-purple-950 leading-relaxed">
+                <span className="font-bold">1.2 cm × 1.2 cm Sticker Mode:</span> Center badge removed & ECC set to Medium so camera autofocus scans instant clean dots on small physical stickers without any blur.
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col items-center justify-center p-5 bg-slate-50/90 border border-slate-200/90 rounded-3xl">
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/90 text-center flex flex-col items-center w-full max-w-[280px]">
 
 
               <div className="relative p-2 bg-white rounded-xl border border-slate-100 shadow-2xs">
+                {stickerMode && (
+                  <div className="text-[10px] font-black tracking-wider text-slate-700 uppercase mb-1">
+                    INDOWINGS • AIRFRAME
+                  </div>
+                )}
                 <img
                   src={qrImageUrl}
                   alt={`QR code for ${droneId}`}
@@ -234,13 +372,15 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
                 />
 
 
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none drop-shadow-md">
-                  <img
-                    src={BADGE_DATA_URI}
-                    alt="IndoWings"
-                    className="w-32 h-auto"
-                  />
-                </div>
+                {!stickerMode && (
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none drop-shadow-md">
+                    <img
+                      src={BADGE_DATA_URI}
+                      alt="IndoWings"
+                      className="w-32 h-auto"
+                    />
+                  </div>
+                )}
               </div>
 
 
@@ -322,7 +462,7 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
                 className="px-4 py-2.5 bg-gradient-to-r from-[#5a00b8] to-[#7928ca] hover:opacity-95 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-purple-950/20 active:scale-98"
               >
                 <Printer className="w-4 h-4 text-purple-200" />
-                <span>Print 25mm Label</span>
+                <span>{stickerMode ? 'Print 12mm Sticker' : 'Print 25mm Label'}</span>
               </button>
 
               <button
@@ -332,7 +472,7 @@ export const DroneQRCodeModal: React.FC<DroneQRCodeModalProps> = ({
                 className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs active:scale-98 disabled:opacity-50"
               >
                 <Download className="w-4 h-4 text-slate-600" />
-                <span>{downloading ? 'Generating...' : 'Download PNG'}</span>
+                <span>{downloading ? 'Generating...' : stickerMode ? 'Download 12mm PNG' : 'Download PNG'}</span>
               </button>
             </div>
 

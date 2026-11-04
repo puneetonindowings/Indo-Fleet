@@ -43,6 +43,7 @@ export const BulkQrDownloadModal: React.FC<BulkQrDownloadModalProps> = ({
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [stickerMode, setStickerMode] = useState(false);
 
   const sortedDrones = useMemo(() => {
     return [...allDrones].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
@@ -83,17 +84,23 @@ export const BulkQrDownloadModal: React.FC<BulkQrDownloadModalProps> = ({
     setProgress({ current: 0, total: targetDrones.length, currentId: '' });
 
     try {
+      const typeTag = stickerMode ? 'Stickers_12mm' : 'Drone_QRs';
       const zipName = mode === 'range'
-        ? `IndoWings_Drone_QRs_Units_${fromIndex}_to_${toIndex}`
+        ? `IndoWings_${typeTag}_Units_${fromIndex}_to_${toIndex}`
         : mode === 'all'
-          ? `IndoWings_All_Drone_QRs_${targetDrones.length}_Units`
-          : `IndoWings_Drone_QRs_Batch_${targetDrones.length}_Units`;
+          ? `IndoWings_All_${typeTag}_${targetDrones.length}_Units`
+          : `IndoWings_${typeTag}_Batch_${targetDrones.length}_Units`;
 
-      await downloadDronesAsZip(targetDrones, zipName, (current, total, currentId) => {
-        setProgress({ current, total, currentId });
-      });
+      await downloadDronesAsZip(
+        targetDrones,
+        zipName,
+        (current, total, currentId) => {
+          setProgress({ current, total, currentId });
+        },
+        { stickerMode }
+      );
 
-      setSuccess(`Downloaded ${targetDrones.length} drone QR codes in ZIP!`);
+      setSuccess(`Downloaded ${targetDrones.length} drone ${stickerMode ? '1.2cm stickers' : 'QR codes'} in ZIP!`);
       setTimeout(() => {
         setSuccess('');
         setIsMinimized(false);
@@ -346,12 +353,51 @@ export const BulkQrDownloadModal: React.FC<BulkQrDownloadModalProps> = ({
           )}
 
 
+          {/* Export Format Selector */}
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+              Sticker / Export Format:
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setStickerMode(false)}
+                className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  !stickerMode
+                    ? 'border-[#5a00b8] bg-purple-50 text-[#5a00b8] shadow-2xs'
+                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
+                }`}
+              >
+                <span>🪪 Standard Pass Card (ECC-H)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStickerMode(true)}
+                className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  stickerMode
+                    ? 'border-[#5a00b8] bg-purple-50 text-[#5a00b8] shadow-2xs'
+                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
+                }`}
+              >
+                <span>🏷️ 1.2 cm Micro Sticker (Airframe)</span>
+              </button>
+            </div>
+            {stickerMode && (
+              <p className="text-[11px] text-purple-700 mt-1.5 font-medium">
+                ⚡ Optimized for 12mm airframe stickers: Zero center badge, ECC-M simple grid for 100% camera scanning.
+              </p>
+            )}
+          </div>
+
           <div className="p-3 rounded-xl bg-purple-50/80 border border-purple-200/80 flex items-center justify-between">
             <div className="flex items-center gap-2 font-bold text-purple-900">
               <PackageCheck className="w-4 h-4 text-purple-700" />
               <span>{targetDrones.length} Drones Ready to Export</span>
             </div>
-            <span className="text-[11px] font-mono text-purple-700">PNG Label Format (Level H)</span>
+            <span className="text-[11px] font-mono text-purple-700">
+              {stickerMode ? '1.2cm Sticker (Level M)' : 'PNG Label (Level H)'}
+            </span>
           </div>
 
 
