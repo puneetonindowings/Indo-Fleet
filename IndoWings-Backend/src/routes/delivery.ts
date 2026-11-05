@@ -6223,10 +6223,10 @@ router.post('/pilot/support-ticket', async (req, res) => {
 });
 
 let activeAppRelease = {
-  version: 'v1.2.8',
-  build_number: 28,
-  package_size: '~54.9 MB',
-  release_notes: 'IndoFleet v1.2.7 (Build 27): Resolved UI text overflow/wrapping across mobile dashboard & history, fixed Google Maps routing button clipping, and linked real-time inventory restoration on cancelled orders.',
+  version: 'v1.2.11',
+  build_number: 31,
+  package_size: '~55.0 MB',
+  release_notes: 'IndoFleet v1.2.11 (Build 31): Direct Google Maps voice turn-by-turn driving mode, automatic wrong-turn dynamic rerouting (>150m), driver connection lost audible siren & vibration alert, offline GPS breadcrumb queue, internal-only logo alert badge, and universal auto-adjustable font scaling.',
   android_url: 'https://indowing-my.sharepoint.com/:u:/g/personal/puneet_kushwaha_indowings_com/IQAZAVvyW80PSqC5-dm-BWobAYd5lZ_033VxC31LMTVXYmg?e=S78MPU',
   ios_url: 'https://testflight.apple.com/join/IndoFleetDeliveryApp',
   updated_at: new Date().toISOString()
@@ -6307,6 +6307,8 @@ router.post('/app-release', async (req, res) => {
 router.get('/media/:filename', (req, res) => {
   try {
     const filename = req.params.filename;
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
     const media = resolveMedia(filename);
     if (media.exists && media.filePath) {
       res.setHeader('Content-Type', media.mimeType);

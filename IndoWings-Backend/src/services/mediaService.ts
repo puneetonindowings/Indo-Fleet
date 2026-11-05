@@ -2,11 +2,33 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
-const MEDIA_DIR = path.resolve(process.cwd(), 'data/media');
+function getCandidateMediaDirs(): string[] {
+  return [
+    path.resolve(process.cwd(), 'data/media'),
+    path.resolve(process.cwd(), 'IndoWings-Backend/data/media'),
+    path.resolve(process.cwd(), '../data/media'),
+    path.resolve(process.cwd(), '../IndoWings-Backend/data/media')
+  ];
+}
+
+function getPrimaryMediaDir(): string {
+  const dirs = getCandidateMediaDirs();
+  for (const d of dirs) {
+    if (fs.existsSync(d)) return d;
+  }
+  const defaultDir = fs.existsSync(path.resolve(process.cwd(), 'IndoWings-Backend'))
+    ? path.resolve(process.cwd(), 'IndoWings-Backend/data/media')
+    : path.resolve(process.cwd(), 'data/media');
+  if (!fs.existsSync(defaultDir)) {
+    fs.mkdirSync(defaultDir, { recursive: true });
+  }
+  return defaultDir;
+}
 
 function ensureMediaDir() {
-  if (!fs.existsSync(MEDIA_DIR)) {
-    fs.mkdirSync(MEDIA_DIR, { recursive: true });
+  const primary = getPrimaryMediaDir();
+  if (!fs.existsSync(primary)) {
+    fs.mkdirSync(primary, { recursive: true });
   }
 }
 
@@ -56,7 +78,8 @@ export function saveMedia(raw: string, type: 'image' | 'video' = 'image', origin
 
       const hash = crypto.createHash('md5').update(buffer).digest('hex').slice(0, 12);
       const filename = `media_${Date.now()}_${hash}.${detectedExt}`;
-      const filePath = path.join(MEDIA_DIR, filename);
+      const primaryDir = getPrimaryMediaDir();
+      const filePath = path.join(primaryDir, filename);
 
       fs.writeFileSync(filePath, buffer);
       return `/api/delivery/media/${filename}`;
@@ -85,18 +108,23 @@ export function resolveMedia(filename: string): {
 } {
   ensureMediaDir();
   const safeFilename = path.basename(filename);
-  const targetPath = path.join(MEDIA_DIR, safeFilename);
+  
+  // Search across candidate directories
+  for (const dir of getCandidateMediaDirs()) {
+    if (fs.existsSync(dir)) {
+      const candidatePath = path.join(dir, safeFilename);
+      if (fs.existsSync(candidatePath)) {
+        const ext = path.extname(safeFilename).toLowerCase();
+        let mimeType = 'image/jpeg';
+        if (ext === '.png') mimeType = 'image/png';
+        else if (ext === '.webp') mimeType = 'image/webp';
+        else if (ext === '.mp4') mimeType = 'video/mp4';
+        else if (ext === '.webm') mimeType = 'video/webm';
+        else if (ext === '.svg') mimeType = 'image/svg+xml';
 
-  if (fs.existsSync(targetPath)) {
-    const ext = path.extname(safeFilename).toLowerCase();
-    let mimeType = 'image/jpeg';
-    if (ext === '.png') mimeType = 'image/png';
-    else if (ext === '.webp') mimeType = 'image/webp';
-    else if (ext === '.mp4') mimeType = 'video/mp4';
-    else if (ext === '.webm') mimeType = 'video/webm';
-    else if (ext === '.svg') mimeType = 'image/svg+xml';
-
-    return { exists: true, filePath: targetPath, mimeType };
+        return { exists: true, filePath: candidatePath, mimeType };
+      }
+    }
   }
 
   // Return a crisp SVG proof card for legacy or missing references

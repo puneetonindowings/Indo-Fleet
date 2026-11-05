@@ -552,6 +552,9 @@ class InMemoryCache {
 
 export const memoryCache = new InMemoryCache();
 
+let inFlightOrdersPromise: Promise<JsonRecord[]> | null = null;
+let lastKnownOrders: JsonRecord[] = [];
+
 export const deliveryStore = {
   normalizeOtpKey,
   verifyPassword,
@@ -654,74 +657,93 @@ export const deliveryStore = {
     return Boolean(data);
   },
 
-  async getOrders(limitCount: number = 150) {
+  async getOrders(limitCount: number = 100) {
     const cached = memoryCache.get<JsonRecord[]>('orders:all');
-    if (cached) return cached;
-    
-    let rawData: any[] = [];
-    try {
-      const { data, error } = await db()
-        .from('delivery_orders')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(limitCount);
+    if (cached && Array.isArray(cached) && cached.length > 0) return cached;
 
-      if (error) {
-        console.warn('[supabase] list delivery orders warning:', error.message);
-        // Fallback: if timeout, try smaller limit or cached
-        const retry = await db().from('delivery_orders').select('*').order('created_at', { ascending: false }).limit(50);
-        rawData = retry.data || [];
-      } else {
-        rawData = data || [];
-      }
-    } catch (dbErr: any) {
-      console.warn('[supabase] list delivery orders exception:', dbErr.message);
-      rawData = [];
+    if (inFlightOrdersPromise) {
+      return inFlightOrdersPromise;
     }
 
-    const orders = rawData.map(fromOrder);
+    inFlightOrdersPromise = (async () => {
+      try {
+        let rawData: any[] = [];
+        try {
+          const { data, error } = await db()
+            .from('delivery_orders')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(Math.min(limitCount, 100));
 
-    try {
-      const { data: insList } = await db()
-        .from('inspections')
-        .select('inspection_id,delivery_id,drone_id,stage,inspection_type,overall_inspection')
-        .order('inspected_at', { ascending: false })
-        .limit(100);
-      if (Array.isArray(insList) && insList.length > 0) {
-        const byOrd = new Map<string, any[]>();
-        for (const ins of insList) {
-          if (!ins.delivery_id) continue;
-          const items = byOrd.get(ins.delivery_id) || [];
-          items.push(ins);
-          byOrd.set(ins.delivery_id, items);
+          if (error) {
+            console.warn('[supabase] list delivery orders warning:', error.message);
+            if (lastKnownOrders.length > 0) {
+              return lastKnownOrders;
+            }
+            const retry = await db().from('delivery_orders').select('*').order('created_at', { ascending: false }).limit(25);
+            rawData = retry.data || [];
+          } else {
+            rawData = data || [];
+          }
+        } catch (dbErr: any) {
+          console.warn('[supabase] list delivery orders exception:', dbErr.message);
+          if (lastKnownOrders.length > 0) return lastKnownOrders;
+          rawData = [];
         }
-        for (const ord of orders) {
-          const match = byOrd.get(ord.id);
-          if (match && match.length > 0) {
-            for (const ins of match) {
-              const d = String(ins.drone_id || '').trim();
-              if (!d) continue;
-              const isHub = ins.stage === 'hub_pickup' || ins.inspection_type === 'HUB_PRE_FLIGHT_CHECK';
-              const isDepot = ins.stage === 'depot_dispatch' || ins.inspection_type === 'DEPOT_MAINTENANCE';
-              if (isHub) {
-                ord.hub_inspected_drone_ids = Array.from(new Set([...(ord.hub_inspected_drone_ids || []), d]));
-                if (!ord.hub_inspection_id) ord.hub_inspection_id = ins.inspection_id;
-              } else if (isDepot) {
-                ord.depot_inspected_drone_ids = Array.from(new Set([...(ord.depot_inspected_drone_ids || []), d]));
-                if (!ord.depot_inspection_id) ord.depot_inspection_id = ins.inspection_id;
-              } else {
-                ord.inspected_drone_ids = Array.from(new Set([...(ord.inspected_drone_ids || []), d]));
-                if (!ord.inspection_id) ord.inspection_id = ins.inspection_id;
+
+        const orders = rawData.map(fromOrder);
+
+        try {
+          const { data: insList } = await db()
+            .from('inspections')
+            .select('inspection_id,delivery_id,drone_id,stage,inspection_type,overall_inspection')
+            .order('inspected_at', { ascending: false })
+            .limit(100);
+          if (Array.isArray(insList) && insList.length > 0) {
+            const byOrd = new Map<string, any[]>();
+            for (const ins of insList) {
+              if (!ins.delivery_id) continue;
+              const items = byOrd.get(ins.delivery_id) || [];
+              items.push(ins);
+              byOrd.set(ins.delivery_id, items);
+            }
+            for (const ord of orders) {
+              const match = byOrd.get(ord.id);
+              if (match && match.length > 0) {
+                for (const ins of match) {
+                  const d = String(ins.drone_id || '').trim();
+                  if (!d) continue;
+                  const isHub = ins.stage === 'hub_pickup' || ins.inspection_type === 'HUB_PRE_FLIGHT_CHECK';
+                  const isDepot = ins.stage === 'depot_dispatch' || ins.inspection_type === 'DEPOT_MAINTENANCE';
+                  if (isHub) {
+                    ord.hub_inspected_drone_ids = Array.from(new Set([...(ord.hub_inspected_drone_ids || []), d]));
+                    if (!ord.hub_inspection_id) ord.hub_inspection_id = ins.inspection_id;
+                  } else if (isDepot) {
+                    ord.depot_inspected_drone_ids = Array.from(new Set([...(ord.depot_inspected_drone_ids || []), d]));
+                    if (!ord.depot_inspection_id) ord.depot_inspection_id = ins.inspection_id;
+                  } else {
+                    ord.inspected_drone_ids = Array.from(new Set([...(ord.inspected_drone_ids || []), d]));
+                    if (!ord.inspection_id) ord.inspection_id = ins.inspection_id;
+                  }
+                }
               }
             }
           }
+        } catch (e: any) {
+          console.warn('[OrdersInspectionMerge] Notice:', e?.message);
         }
-      }
-    } catch (e: any) {
-      console.warn('[OrdersInspectionMerge] Notice:', e?.message);
-    }
 
-    return memoryCache.set('orders:all', orders, 15_000);
+        if (orders.length > 0) {
+          lastKnownOrders = orders;
+        }
+        memoryCache.set('orders:all', orders, 20_000);
+        return orders;
+      } finally {
+        inFlightOrdersPromise = null;
+      }
+    })();
+
+    return inFlightOrdersPromise;
   },
   async findOrderById(id: string) {
     if (!id || typeof id !== 'string') return undefined;

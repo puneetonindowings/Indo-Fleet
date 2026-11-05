@@ -384,7 +384,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
         setIsLocating(false);
       }
     }
-
+    
     if (onRefreshLocation) {
       onRefreshLocation();
     }
