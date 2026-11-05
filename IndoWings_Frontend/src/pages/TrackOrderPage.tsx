@@ -208,6 +208,23 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
                 </span>
               </div>
               <CustomerOrderLiveMap order={order} className="h-[420px] sm:h-[480px] lg:h-[520px]" />
+
+            {order.delivery_data?.customer_delivery_otp && order.status !== 'delivered' && (
+              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-300 rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 my-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center font-black shrink-0">
+                    <Check className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-wider text-purple-950">Your Secure Delivery Handover PIN</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Please share this 6-digit OTP with your delivery partner upon arrival</p>
+                  </div>
+                </div>
+                <div className="bg-[#5a00b8] text-white px-5 py-2.5 rounded-xl font-mono text-2xl font-black tracking-widest text-center shadow-md">
+                  {order.delivery_data.customer_delivery_otp}
+                </div>
+              </div>
+            )}
             </div>
 
             <div className="grid lg:grid-cols-[1fr_360px] gap-6">

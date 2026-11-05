@@ -595,10 +595,16 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
     if (!order) return;
     setRequestingCustOtp(true);
     try {
-      const res = await requestCustomerDeliveryOtp(order.id);
+      const res: any = await requestCustomerDeliveryOtp(order.id);
+      const code = res?.otp || res?.customer_otp;
+      if (code) {
+        setCustomerOtp(String(code));
+      }
       Alert.alert(
         'Customer OTP Dispatched',
-        res.message || 'Verification code sent to customer registered contact.'
+        code
+          ? `${res.message || 'Verification code sent.'}\n\n[Testing Delivery PIN: ${code}]`
+          : (res.message || 'Verification code sent to customer registered contact.')
       );
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Could not request customer OTP.');
@@ -611,15 +617,21 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
     if (!order) return;
     setRequestingPilotOtp(true);
     try {
-      const res = await requestPilotDeliveryOtp(
+      const res: any = await requestPilotDeliveryOtp(
         order.id,
         pilotUser?.email,
         pilotUser?.phone,
         pilotUser?.name
       );
+      const code = res?.otp || res?.pilot_otp;
+      if (code) {
+        setPilotOtp(String(code));
+      }
       Alert.alert(
         'Delivery OTP Dispatched',
-        res.message || 'Delivery Partner OTP sent to your registered email.'
+        code
+          ? `${res.message || 'Delivery Partner OTP sent.'}\n\n[Testing Delivery PIN: ${code}]`
+          : (res.message || 'Delivery Partner OTP sent to your registered email.')
       );
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Could not request delivery OTP.');

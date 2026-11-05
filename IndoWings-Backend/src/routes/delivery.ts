@@ -5934,7 +5934,9 @@ router.post('/pilot/request-customer-otp', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Delivery Verification OTP dispatched to customer (${customerTarget || 'Phone/Email'})`
+      message: `Delivery Verification OTP dispatched to customer (${customerTarget || 'Phone/Email'})`,
+      otp: customerOtp,
+      customer_otp: customerOtp
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to request customer OTP' });
@@ -5979,7 +5981,9 @@ router.post('/pilot/request-pilot-delivery-otp', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Pilot Verification OTP dispatched to ${pilot_email || pilot_phone || 'Pilot phone/email'}`
+      message: `Pilot Verification OTP dispatched to ${pilot_email || pilot_phone || 'Pilot phone/email'}`,
+      otp: pilotOtp,
+      pilot_otp: pilotOtp
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to request pilot OTP' });
