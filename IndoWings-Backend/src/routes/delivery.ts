@@ -6725,6 +6725,41 @@ router.get('/geocode', async (req, res) => {
   }
 });
 
+router.get('/routing/road-route', async (req, res) => {
+  try {
+    const fromStr = String(req.query.from || '').trim();
+    const toStr = String(req.query.to || '').trim();
+
+    if (!fromStr || !toStr) {
+      res.status(400).json({ success: false, error: 'Both from=lng,lat and to=lng,lat parameters are required' });
+      return;
+    }
+
+    const [fromLng, fromLat] = fromStr.split(',').map(s => parseFloat(s.trim()));
+    const [toLng, toLat] = toStr.split(',').map(s => parseFloat(s.trim()));
+
+    if (!Number.isFinite(fromLng) || !Number.isFinite(fromLat) || !Number.isFinite(toLng) || !Number.isFinite(toLat)) {
+      res.status(400).json({ success: false, error: 'Invalid coordinate numbers provided' });
+      return;
+    }
+
+    const route = await getRoadRoute([fromLng, fromLat], [toLng, toLat]);
+    if (!route) {
+      res.status(404).json({ success: false, error: 'Could not calculate road route' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      distanceKm: route.distanceKm,
+      durationMins: route.durationMins,
+      coordinates: route.coordinates
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Routing calculation failed' });
+  }
+});
+
 router.get('/public/track/:delivery_id', async (req, res) => {
   try {
     const rawId = req.params.delivery_id.trim();

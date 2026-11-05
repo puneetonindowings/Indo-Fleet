@@ -245,30 +245,36 @@ export async function getRoadRoute(
     return cached.result;
   }
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
-    const url = `https://router.project-osrm.org/route/v1/driving/${pickupCoords[0]},${pickupCoords[1]};${dropCoords[0]},${dropCoords[1]}?overview=full&geometries=geojson`;
-    const res = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-      signal: controller.signal
-    }).catch(() => null);
-    clearTimeout(timeoutId);
+  const endpoints = [
+    `https://router.project-osrm.org/route/v1/driving/${pickupCoords[0]},${pickupCoords[1]};${dropCoords[0]},${dropCoords[1]}?overview=full&geometries=geojson`,
+    `https://routing.openstreetmap.de/routed-car/route/v1/driving/${pickupCoords[0]},${pickupCoords[1]};${dropCoords[0]},${dropCoords[1]}?overview=full&geometries=geojson`
+  ];
 
-    if (res && res.ok) {
-      const data = await res.json().catch(() => null);
-      if (data?.routes?.[0]?.geometry?.coordinates?.length) {
-        const result: RouteResult = {
-          distanceKm: Number((data.routes[0].distance / 1000).toFixed(1)),
-          durationMins: Math.round(data.routes[0].duration / 60),
-          coordinates: data.routes[0].geometry.coordinates as [number, number][]
-        };
-        routeCache.set(cacheKey, { result, timestamp: Date.now() });
-        return result;
+  for (const url of endpoints) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6500);
+      const res = await fetch(url, {
+        headers: { 'Accept': 'application/json', 'User-Agent': 'IndoFleetLogistics/1.0' },
+        signal: controller.signal
+      }).catch(() => null);
+      clearTimeout(timeoutId);
+
+      if (res && res.ok) {
+        const data = await res.json().catch(() => null);
+        if (data?.routes?.[0]?.geometry?.coordinates?.length) {
+          const result: RouteResult = {
+            distanceKm: Number((data.routes[0].distance / 1000).toFixed(1)),
+            durationMins: Math.round(data.routes[0].duration / 60),
+            coordinates: data.routes[0].geometry.coordinates as [number, number][]
+          };
+          routeCache.set(cacheKey, { result, timestamp: Date.now() });
+          return result;
+        }
       }
+    } catch {
+      // Try next mirror
     }
-  } catch (err) {
-    // Graceful fallback on network/rate-limiting
   }
 
   const fallback = generateFallbackRoute(pickupCoords, dropCoords);

@@ -127,6 +127,60 @@ function minDistanceToPolylineMeters(
   return minDist;
 }
 
+async function fetchRoadRouteData(
+  from: [number, number],
+  to: [number, number]
+): Promise<{ coordinates: [number, number][]; distanceKm: number; durationMins: number } | null> {
+  // 1. Backend proxy (reliable, cached, CORS-free)
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/delivery/routing/road-route?from=${from[0]},${from[1]}&to=${to[0]},${to[1]}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.success && data?.coordinates?.length) {
+        return {
+          coordinates: data.coordinates,
+          distanceKm: data.distanceKm,
+          durationMins: data.durationMins
+        };
+      }
+    }
+  } catch {}
+
+  // 2. Direct OSRM mirror 1
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${from[0]},${from[1]};${to[0]},${to[1]}?overview=full&geometries=geojson`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.routes?.[0]?.geometry?.coordinates?.length) {
+        return {
+          coordinates: data.routes[0].geometry.coordinates as [number, number][],
+          distanceKm: Number((data.routes[0].distance / 1000).toFixed(1)),
+          durationMins: Math.round(data.routes[0].duration / 60)
+        };
+      }
+    }
+  } catch {}
+
+  // 3. Direct OSRM mirror 2
+  try {
+    const url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${from[0]},${from[1]};${to[0]},${to[1]}?overview=full&geometries=geojson`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.routes?.[0]?.geometry?.coordinates?.length) {
+        return {
+          coordinates: data.routes[0].geometry.coordinates as [number, number][],
+          distanceKm: Number((data.routes[0].distance / 1000).toFixed(1)),
+          durationMins: Math.round(data.routes[0].duration / 60)
+        };
+      }
+    }
+  } catch {}
+
+  return null;
+}
+
 export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ order, className = 'h-[460px] sm:h-[540px]' }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<MapLibreMap | null>(null);
@@ -327,21 +381,13 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
     let cancelled = false;
     const fetchBaseRoute = async () => {
       try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${pickupCoords[0]},${pickupCoords[1]};${dropCoords[0]},${dropCoords[1]}?overview=full&geometries=geojson`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('OSRM service unavailable');
-        const data = await res.json();
-        if (cancelled) return;
+        const routeData = await fetchRoadRouteData(pickupCoords, dropCoords);
+        if (cancelled || !routeData) return;
 
-        if (data?.routes?.[0]?.geometry?.coordinates?.length) {
-          const coords = data.routes[0].geometry.coordinates as [number, number][];
-          setPlannedBaseCoordinates(coords);
-          if (!order?.current_route_coords) {
-            setRoadCoordinates(coords);
-            const distanceKm = Number((data.routes[0].distance / 1000).toFixed(1));
-            const durationMins = Math.round(data.routes[0].duration / 60);
-            setRoadInfo({ distanceKm, durationMins });
-          }
+        setPlannedBaseCoordinates(routeData.coordinates);
+        if (!order?.current_route_coords) {
+          setRoadCoordinates(routeData.coordinates);
+          setRoadInfo({ distanceKm: routeData.distanceKm, durationMins: routeData.durationMins });
         }
       } catch (err) {
         if (!cancelled) {
@@ -372,19 +418,11 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
       let cancelled = false;
       const fetchReroutedPath = async () => {
         try {
-          const url = `https://router.project-osrm.org/route/v1/driving/${currentVehicleCoords[0]},${currentVehicleCoords[1]};${dropCoords[0]},${dropCoords[1]}?overview=full&geometries=geojson`;
-          const res = await fetch(url);
-          if (!res.ok) throw new Error('OSRM rerouting unavailable');
-          const data = await res.json();
-          if (cancelled) return;
+          const routeData = await fetchRoadRouteData(currentVehicleCoords, dropCoords);
+          if (cancelled || !routeData) return;
 
-          if (data?.routes?.[0]?.geometry?.coordinates?.length) {
-            const coords = data.routes[0].geometry.coordinates as [number, number][] ;
-            setRoadCoordinates(coords);
-            const distanceKm = Number((data.routes[0].distance / 1000).toFixed(1));
-            const durationMins = Math.round(data.routes[0].duration / 60);
-            setRoadInfo({ distanceKm, durationMins });
-          }
+          setRoadCoordinates(routeData.coordinates);
+          setRoadInfo({ distanceKm: routeData.distanceKm, durationMins: routeData.durationMins });
         } catch (err) {
           if (!cancelled && currentVehicleCoords && dropCoords) {
             setRoadCoordinates([currentVehicleCoords, dropCoords]);
