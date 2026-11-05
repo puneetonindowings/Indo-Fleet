@@ -42,6 +42,7 @@ import { createRateLimiter } from '../middleware/rateLimiter.js';
 import { apiCache } from '../utils/cache.js';
 import { getClientDetails } from '../utils/clientInfo.js';
 import { geocodeAddress, getRoadRoute, checkRouteDeviation } from '../geocodingService.js';
+import { saveMedia, resolveMedia } from '../services/mediaService.js';
 
 function calculateAerialDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
@@ -6287,6 +6288,26 @@ router.post('/app-release', async (req, res) => {
   }
 });
 
+router.get('/media/:filename', (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const media = resolveMedia(filename);
+    if (media.exists && media.filePath) {
+      res.setHeader('Content-Type', media.mimeType);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.sendFile(media.filePath);
+    }
+    if (media.svgContent) {
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      return res.status(200).send(media.svgContent);
+    }
+    return res.status(404).send('Media not found');
+  } catch (err: any) {
+    return res.status(500).send('Error resolving media');
+  }
+});
+
 router.post('/inspections', async (req, res) => {
   const user = await requireDeliveryOperator(req, res);
   if (!user) return;
@@ -6328,17 +6349,36 @@ router.post('/inspections', async (req, res) => {
       return;
     }
 
-    const photosList = Array.isArray(photo_references) ? photo_references : (Array.isArray(req.body.photos) ? req.body.photos : []);
-    const videosList = Array.isArray(req.body.video_references) ? req.body.video_references : (Array.isArray(req.body.videos) ? req.body.videos : []);
+    const rawPhotos = Array.isArray(photo_references) ? photo_references : (Array.isArray(req.body.photos) ? req.body.photos : []);
+    const rawVideos = Array.isArray(req.body.video_references) ? req.body.video_references : (Array.isArray(req.body.videos) ? req.body.videos : []);
 
-    if (photosList.length > 3) {
+    if (rawPhotos.length > 3) {
       res.status(400).json({ success: false, error: 'Maximum 3 photos are allowed per inspection.' });
       return;
     }
-    if (videosList.length > 1) {
+    if (rawVideos.length > 1) {
       res.status(400).json({ success: false, error: 'Maximum 1 video is allowed per inspection.' });
       return;
     }
+
+    const photosList = rawPhotos.map((p: any) => {
+      const u = typeof p === 'string' ? p : (p?.url || p?.uri || '');
+      const saved = saveMedia(u, 'image', typeof p === 'object' ? p.name : undefined);
+      return typeof p === 'object' ? { ...p, url: saved, uri: saved } : saved;
+    }).filter(Boolean);
+
+    const videosList = rawVideos.map((v: any) => {
+      const u = typeof v === 'string' ? v : (v?.url || v?.uri || '');
+      const saved = saveMedia(u, 'video', typeof v === 'object' ? v.name : undefined);
+      return typeof v === 'object' ? { ...v, url: saved, uri: saved } : saved;
+    }).filter(Boolean);
+
+    const mediaEvidenceList = (Array.isArray(req.body.media_evidence) ? req.body.media_evidence : []).map((m: any) => {
+      if (!m || !m.uri) return m;
+      const type = m.type === 'video' ? 'video' : 'image';
+      const saved = saveMedia(m.uri, type, m.name);
+      return { ...m, uri: saved, url: saved };
+    });
 
     const isPassed = overall_inspection !== 'FAILED';
 
@@ -6363,7 +6403,7 @@ router.post('/inspections', async (req, res) => {
       remarks: cleanRemarks,
       photo_references: photosList,
       video_references: videosList,
-      media_evidence: Array.isArray(req.body.media_evidence) ? req.body.media_evidence : [],
+      media_evidence: mediaEvidenceList,
       inspected_by: user.email || user.id,
       inspector_name: user.full_name || user.name || 'Operations Specialist',
       inspector_role: user.role

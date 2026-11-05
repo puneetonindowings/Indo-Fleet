@@ -1,7 +1,21 @@
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import { supabase } from './supabase.js';
+import { saveMedia } from './services/mediaService.js';
+
 function sanitizeMeta(val: any): any {
   if (val === null || val === undefined) return val;
   if (typeof val === 'string') {
     if (val.length > 500 && (val.startsWith('data:') || val.length > 2000)) {
+      try {
+        const saved = saveMedia(val);
+        if (saved && saved.startsWith('/api/delivery/media/')) {
+          return saved;
+        }
+      } catch (err) {
+        console.warn('[SanitizeMeta] Media save notice:', err);
+      }
       return `[media_ref_${val.length}b]`;
     }
     return val;
@@ -18,11 +32,6 @@ function sanitizeMeta(val: any): any {
   }
   return val;
 }
-
-import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
-import { supabase } from './supabase.js';
 
 const INSPECTIONS_FILE = path.resolve(process.cwd(), 'data/inspections.json');
 const SOS_ALERTS_FILE = path.resolve(process.cwd(), 'data/sos_alerts.json');
@@ -1191,16 +1200,26 @@ export const deliveryStore = {
               }
             }
 
-            const photos = [...(droneReport?.photo_references || droneReport?.photos || [])];
-            const videos = [...(droneReport?.video_references || droneReport?.videos || [])];
+            const rawPhotos = [...(droneReport?.photo_references || droneReport?.photos || [])];
+            const rawVideos = [...(droneReport?.video_references || droneReport?.videos || [])];
             const mediaEvidence = [...(droneReport?.media_evidence || [])];
 
             if (Array.isArray(mediaEvidence)) {
               mediaEvidence.forEach((m: any) => {
-                if (m?.type === 'video' && m?.uri && !videos.includes(m.uri)) videos.push(m.uri);
-                else if (m?.uri && !photos.includes(m.uri)) photos.push(m.uri);
+                if (m?.type === 'video' && m?.uri && !rawVideos.includes(m.uri)) rawVideos.push(m.uri);
+                else if (m?.uri && !rawPhotos.includes(m.uri)) rawPhotos.push(m.uri);
               });
             }
+
+            const photos = rawPhotos.map((p: any) => {
+              const u = typeof p === 'string' ? p : (p?.url || p?.uri || '');
+              return saveMedia(u, 'image');
+            }).filter(Boolean);
+
+            const videos = rawVideos.map((v: any) => {
+              const u = typeof v === 'string' ? v : (v?.url || v?.uri || '');
+              return saveMedia(u, 'video');
+            }).filter(Boolean);
 
             const inspectorName = droneReport?.inspector_name || pilotName || 'Akanksha Mishra';
             const inspectorRole = droneReport?.inspector_role || 'delivery';
@@ -1255,20 +1274,30 @@ export const deliveryStore = {
               }
             }
 
-            const photos = [...(droneReport?.photo_references || droneReport?.photos || [])];
-            const videos = [...(droneReport?.video_references || droneReport?.videos || [])];
+            const rawPhotos = [...(droneReport?.photo_references || droneReport?.photos || [])];
+            const rawVideos = [...(droneReport?.video_references || droneReport?.videos || [])];
             const mediaEvidence = [...(droneReport?.media_evidence || [])];
 
-            if (photos.length === 0 && custInspectedList.length === 1 && ord.delivery_data?.pod_photo) {
-              photos.push(ord.delivery_data.pod_photo);
+            if (rawPhotos.length === 0 && custInspectedList.length === 1 && ord.delivery_data?.pod_photo) {
+              rawPhotos.push(ord.delivery_data.pod_photo);
             }
 
             if (Array.isArray(mediaEvidence)) {
               mediaEvidence.forEach((m: any) => {
-                if (m?.type === 'video' && m?.uri && !videos.includes(m.uri)) videos.push(m.uri);
-                else if (m?.uri && !photos.includes(m.uri)) photos.push(m.uri);
+                if (m?.type === 'video' && m?.uri && !rawVideos.includes(m.uri)) rawVideos.push(m.uri);
+                else if (m?.uri && !rawPhotos.includes(m.uri)) rawPhotos.push(m.uri);
               });
             }
+
+            const photos = rawPhotos.map((p: any) => {
+              const u = typeof p === 'string' ? p : (p?.url || p?.uri || '');
+              return saveMedia(u, 'image');
+            }).filter(Boolean);
+
+            const videos = rawVideos.map((v: any) => {
+              const u = typeof v === 'string' ? v : (v?.url || v?.uri || '');
+              return saveMedia(u, 'video');
+            }).filter(Boolean);
 
             const inspectorName = droneReport?.inspector_name || pilotName || 'Akanksha Mishra';
             const inspectorRole = droneReport?.inspector_role || 'delivery';
@@ -1356,9 +1385,22 @@ export const deliveryStore = {
 
       overall_inspection: inspection.overall_inspection || 'PASSED',
       remarks: inspection.remarks || '',
-      photo_references: Array.isArray(inspection.photo_references) ? inspection.photo_references : [],
-      video_references: Array.isArray(inspection.video_references) ? inspection.video_references : [],
-      media_evidence: Array.isArray(inspection.media_evidence) ? inspection.media_evidence : [],
+      photo_references: (Array.isArray(inspection.photo_references) ? inspection.photo_references : []).map(p => {
+        const u = typeof p === 'string' ? p : (p?.url || p?.uri || '');
+        const saved = saveMedia(u, 'image', typeof p === 'object' ? p.name : undefined);
+        return typeof p === 'object' ? { ...p, url: saved, uri: saved } : saved;
+      }).filter(Boolean),
+      video_references: (Array.isArray(inspection.video_references) ? inspection.video_references : []).map(v => {
+        const u = typeof v === 'string' ? v : (v?.url || v?.uri || '');
+        const saved = saveMedia(u, 'video', typeof v === 'object' ? v.name : undefined);
+        return typeof v === 'object' ? { ...v, url: saved, uri: saved } : saved;
+      }).filter(Boolean),
+      media_evidence: (Array.isArray(inspection.media_evidence) ? inspection.media_evidence : []).map((m: any) => {
+        if (!m || !m.uri) return m;
+        const type = m.type === 'video' ? 'video' : 'image';
+        const saved = saveMedia(m.uri, type, m.name);
+        return { ...m, uri: saved, url: saved };
+      }),
       inspected_at: inspection.inspected_at || now,
       inspected_by: inspection.inspected_by || 'system',
       inspector_name: inspection.inspector_name || (isDeliveryPerson ? 'Delivery Partner' : 'Operations Inspector'),

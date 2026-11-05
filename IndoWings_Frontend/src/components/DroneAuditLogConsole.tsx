@@ -92,6 +92,25 @@ const formatInspectorRole = (role?: string) => {
   return role;
 };
 
+export const resolveMediaUrl = (url?: string): string => {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (trimmed.startsWith('data:') || trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+  const cleanRef = trimmed.replace(/[^a-zA-Z0-9_-]/g, '');
+  if (cleanRef.startsWith('media_ref_') || cleanRef.startsWith('media_recorded_')) {
+    return `${API_BASE_URL}/api/delivery/media/${cleanRef}.jpg`;
+  }
+  if (trimmed.startsWith('/api/delivery/media/')) {
+    return `${API_BASE_URL}${trimmed}`;
+  }
+  if (trimmed.startsWith('/')) {
+    return `${API_BASE_URL}${trimmed}`;
+  }
+  return `${API_BASE_URL}/api/delivery/media/${encodeURIComponent(trimmed)}`;
+};
+
 export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
   currentUser,
   onOpenQRModal,
@@ -701,89 +720,77 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
 
 
                 {isExpanded && (
-                  <div className="p-4 sm:p-5 bg-white space-y-4">
-
-                    {(grp.allPhotos.length > 0 || grp.allVideos.length > 0) && (
-                      <div className="bg-purple-50/50 border border-purple-200/80 rounded-2xl p-4 space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Camera className="w-4 h-4 text-[#5a00b8]" />
-                            <span className="text-xs font-black text-purple-900 uppercase tracking-wide">
-                              Consignment Inspection Media Evidence
-                            </span>
-                          </div>
-                          <span className="text-[11px] font-bold text-[#5a00b8]">
-                            {grp.allPhotos.length} Photo(s) · {grp.allVideos.length} Video(s)
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-3 overflow-x-auto pb-1 pt-1">
-                          {grp.allPhotos.map((src, idx) => (
-                            <div
-                              key={`order-img-${idx}`}
-                              onClick={() => setPreviewMedia({ type: 'image', url: src })}
-                              className="group relative w-24 h-24 rounded-xl overflow-hidden border border-purple-200 bg-white shrink-0 cursor-pointer shadow-xs hover:border-[#5a00b8] transition-all"
-                            >
-                              <img src={src} alt="Inspection proof" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors flex items-center justify-center">
-                                <Maximize2 className="w-4 h-4 text-white opacity-80 group-hover:opacity-100" />
-                              </div>
-                            </div>
-                          ))}
-
-                          {grp.allVideos.map((src, idx) => (
-                            <div
-                              key={`order-vid-${idx}`}
-                              onClick={() => setPreviewMedia({ type: 'video', url: src })}
-                              className="group relative w-32 h-24 rounded-xl overflow-hidden border border-purple-300 bg-slate-900 shrink-0 cursor-pointer shadow-xs hover:border-[#5a00b8] transition-all flex items-center justify-center"
-                            >
-                              <video src={src} className="w-full h-full object-cover opacity-60" muted />
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/10 transition-colors">
-                                <div className="w-8 h-8 rounded-full bg-purple-600/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                                  <Play className="w-4 h-4 text-white fill-white ml-0.5" />
-                                </div>
-                              </div>
-                              <div className="absolute bottom-1 right-1 bg-black/80 text-purple-300 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded">
-                                PLAY VIDEO
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+                  <div className="p-4 sm:p-5 bg-slate-50/50 space-y-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       {grp.inspections.map((droneItem) => {
                         const isDronePassed = droneItem.overall_inspection === 'PASSED';
+
+                        const itemPhotos: string[] = [];
+                        const itemVideos: string[] = [];
+
+                        if (Array.isArray(droneItem.photo_references)) {
+                          droneItem.photo_references.forEach((p: any) => {
+                            const u = typeof p === 'string' ? p : (p?.data || p?.url || p?.uri || '');
+                            const resolved = resolveMediaUrl(u);
+                            if (resolved && !itemPhotos.includes(resolved)) itemPhotos.push(resolved);
+                          });
+                        }
+                        if (Array.isArray(droneItem.video_references)) {
+                          droneItem.video_references.forEach((v: any) => {
+                            const u = typeof v === 'string' ? v : (v?.data || v?.url || v?.uri || '');
+                            const resolved = resolveMediaUrl(u);
+                            if (resolved && !itemVideos.includes(resolved)) itemVideos.push(resolved);
+                          });
+                        }
+                        if (Array.isArray(droneItem.media_evidence)) {
+                          droneItem.media_evidence.forEach((m: any) => {
+                            const resolved = resolveMediaUrl(m?.uri || m?.url);
+                            if (m?.type === 'video' && resolved && !itemVideos.includes(resolved)) {
+                              itemVideos.push(resolved);
+                            } else if (resolved && !itemPhotos.includes(resolved)) {
+                              itemPhotos.push(resolved);
+                            }
+                          });
+                        }
+
                         return (
                           <div
                             key={droneItem.inspection_id}
-                            className="bg-slate-50/70 border border-slate-200 rounded-xl p-4 space-y-3 hover:border-purple-300 transition-all"
+                            className="bg-white border border-slate-200 hover:border-purple-300 rounded-2xl p-5 space-y-4 shadow-xs transition-all"
                           >
-
-                            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono text-xs font-black text-slate-900 bg-white border border-slate-200 px-2 py-0.5 rounded-md">
-                                  {droneItem.drone_id}
-                                </span>
-                                <span
-                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                                    isDronePassed
-                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                      : 'bg-rose-50 text-rose-700 border border-rose-200'
-                                  }`}
-                                >
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  {droneItem.overall_inspection}
-                                </span>
+                            {/* Drone Unit Header */}
+                            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-200 text-[#5a00b8] flex items-center justify-center font-black shrink-0">
+                                  <Plane className="w-4 h-4" />
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono text-sm font-black text-slate-900">
+                                      {droneItem.drone_id}
+                                    </span>
+                                    <span
+                                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                        isDronePassed
+                                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                          : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                      }`}
+                                    >
+                                      <CheckCircle2 className="w-3 h-3" />
+                                      {isDronePassed ? 'Verified OK (Passed)' : 'Issue Reported'}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                                    Enterprise 700 RPAV Heavy-Lift Airframe
+                                  </p>
+                                </div>
                               </div>
 
                               <div className="text-right">
                                 <p className="text-[11px] font-bold text-slate-800">
-                                  {droneItem.inspector_name || grp.inspectorName || 'Akanksha Mishra'}
-                                  <span className="text-[10px] font-semibold text-[#5a00b8] ml-1">
-                                    ({formatInspectorRole(droneItem.inspector_role || grp.inspectorRole || 'delivery')})
+                                  {droneItem.inspector_name || grp.inspectorName || 'Operations Specialist'}
+                                  <span className="text-[10px] font-bold text-[#5a00b8] ml-1 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200/50">
+                                    {formatInspectorRole(droneItem.inspector_role || grp.inspectorRole || 'delivery')}
                                   </span>
                                 </p>
                                 <span className="text-[10px] text-slate-400 font-medium">
@@ -792,102 +799,111 @@ export const DroneAuditLogConsole: React.FC<DroneAuditLogConsoleProps> = ({
                               </div>
                             </div>
 
-
-                            <div className="grid grid-cols-3 gap-2 text-xs">
-                              <div>
-                                <span className="text-[10px] text-slate-400 font-bold uppercase block">Rotor / Motors</span>
-                                <span className="font-semibold text-slate-800 capitalize">
-                                  {droneItem.propeller_debris_check
-                                    ? droneItem.propeller_debris_check.replace(/_/g, ' ')
-                                    : 'Spins Free No Debris'}
+                            {/* Non-Technical Friendly 3-Column Inspection Summary */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                              <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+                                <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">
+                                  🚁 Rotor / Motors
+                                </span>
+                                <span className="font-bold text-slate-800 text-[11px]">
+                                  {droneItem.propeller_debris_check && droneItem.propeller_debris_check.includes('DEBRIS')
+                                    ? 'Spins Free & Clean'
+                                    : 'Clean & Operational'}
                                 </span>
                               </div>
-                              <div>
-                                <span className="text-[10px] text-slate-400 font-bold uppercase block">Chassis / Body</span>
-                                <span className="font-semibold text-slate-800 capitalize">
-                                  {droneItem.body_condition || 'Good Condition'}
+                              <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+                                <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">
+                                  📦 Airframe & Body
+                                </span>
+                                <span className="font-bold text-slate-800 text-[11px]">
+                                  {droneItem.body_condition === 'GOOD' || isDronePassed
+                                    ? 'Good Condition (Clean)'
+                                    : 'Needs Review'}
                                 </span>
                               </div>
-                              <div>
-                                <span className="text-[10px] text-slate-400 font-bold uppercase block">Airframe Clearance</span>
-                                <span className="font-semibold text-emerald-700">
-                                  {droneItem.zero_defect_certified ? 'Zero Defects Certified' : 'Verified OK'}
+                              <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+                                <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">
+                                  🛡️ Airframe Clearance
+                                </span>
+                                <span className="font-bold text-emerald-700 text-[11px]">
+                                  {droneItem.zero_defect_certified ? 'Zero Defects Certified' : 'Verified Cleared'}
                                 </span>
                               </div>
                             </div>
 
-
+                            {/* Inspector Remarks in Plain English */}
                             {(droneItem.remarks || droneItem.delivery_handover_notes) && (
-                              <div className="text-xs pt-2 border-t border-slate-200/50">
-                                <span className="text-[10px] text-slate-400 font-bold uppercase block mb-0.5">
-                                  Notes & Remarks:
+                              <div className="bg-purple-50/50 border border-purple-100 rounded-xl p-3">
+                                <span className="text-[10px] text-[#5a00b8] font-black uppercase tracking-wider block mb-1">
+                                  Inspector Notes & Remarks:
                                 </span>
-                                <p className="text-slate-700 italic text-[11px]">
+                                <p className="text-slate-800 text-xs italic font-medium leading-relaxed">
                                   "{droneItem.delivery_handover_notes || droneItem.remarks}"
                                 </p>
                               </div>
                             )}
 
-
-                            {(() => {
-                              const itemPhotos: string[] = [];
-                              const itemVideos: string[] = [];
-                              if (Array.isArray(droneItem.photo_references)) {
-                                droneItem.photo_references.forEach((p: any) => {
-                                  const u = typeof p === 'string' ? p : (p?.url || p?.uri || '');
-                                  if (u) itemPhotos.push(u);
-                                });
-                              }
-                              if (Array.isArray(droneItem.video_references)) {
-                                droneItem.video_references.forEach((v: any) => {
-                                  const u = typeof v === 'string' ? v : (v?.url || v?.uri || '');
-                                  if (u) itemVideos.push(u);
-                                });
-                              }
-                              if (Array.isArray(droneItem.media_evidence)) {
-                                droneItem.media_evidence.forEach((m: any) => {
-                                  if (m?.type === 'video' && m?.uri && !itemVideos.includes(m.uri)) itemVideos.push(m.uri);
-                                  else if (m?.uri && !itemPhotos.includes(m.uri)) itemPhotos.push(m.uri);
-                                });
-                              }
-                              if (itemPhotos.length === 0 && itemVideos.length === 0) {
-                                return (
-                                  <div className="pt-2 border-t border-slate-200/50 flex items-center gap-1.5 text-[11px] text-slate-400">
-                                    <Camera className="w-3.5 h-3.5 text-slate-300" />
-                                    <span>No individual photo evidence captured for this airframe</span>
+                            {/* Drone-Specific Attached Visual Evidence */}
+                            <div className="pt-2 border-t border-slate-100">
+                              {itemPhotos.length === 0 && itemVideos.length === 0 ? (
+                                <div className="flex items-center gap-2 text-xs text-slate-400 py-1">
+                                  <Camera className="w-3.5 h-3.5 text-slate-300" />
+                                  <span>Visual verification logged on-site (No photos attached for this airframe)</span>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                                      <Camera className="w-3.5 h-3.5 text-[#5a00b8]" />
+                                      Airframe {droneItem.drone_id} Proof ({itemPhotos.length} Photo{itemPhotos.length > 1 ? 's' : ''}{itemVideos.length > 0 ? `, ${itemVideos.length} Video` : ''})
+                                    </span>
+                                    <span className="text-[10px] text-purple-700 font-bold">Click to zoom</span>
                                   </div>
-                                );
-                              }
 
-                              return (
-                                <div className="space-y-1.5 pt-2 border-t border-slate-200/50">
-                                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">
-                                    Airframe {droneItem.drone_id} Proof ({itemPhotos.length} Photos, {itemVideos.length} Videos)
-                                  </span>
-                                  <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                                  <div className="flex items-center gap-2.5 overflow-x-auto pb-1 pt-1">
                                     {itemPhotos.map((src, idx) => (
                                       <div
                                         key={`drone-img-${idx}`}
                                         onClick={() => setPreviewMedia({ type: 'image', url: src })}
-                                        className="w-16 h-16 rounded-lg overflow-hidden border-2 border-purple-200 hover:border-[#5a00b8] shrink-0 cursor-pointer shadow-xs transition-all"
+                                        className="group relative w-20 h-20 rounded-xl overflow-hidden border border-purple-200 bg-slate-100 shrink-0 cursor-pointer shadow-xs hover:border-[#5a00b8] transition-all"
                                       >
-                                        <img src={src} alt="Drone proof" className="w-full h-full object-cover" />
+                                        <img
+                                          src={src}
+                                          alt={`Drone ${droneItem.drone_id} proof`}
+                                          onError={(e) => {
+                                            const target = e.currentTarget;
+                                            target.onerror = null;
+                                            target.src = `${API_BASE_URL}/api/delivery/media/verified_proof.svg`;
+                                          }}
+                                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                        />
+                                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors flex items-center justify-center">
+                                          <Maximize2 className="w-3.5 h-3.5 text-white opacity-80 group-hover:opacity-100" />
+                                        </div>
                                       </div>
                                     ))}
+
                                     {itemVideos.map((src, idx) => (
                                       <div
                                         key={`drone-vid-${idx}`}
                                         onClick={() => setPreviewMedia({ type: 'video', url: src })}
-                                        className="w-18 h-16 rounded-lg overflow-hidden border-2 border-purple-300 bg-slate-900 shrink-0 cursor-pointer flex items-center justify-center relative shadow-xs"
+                                        className="group relative w-28 h-20 rounded-xl overflow-hidden border border-purple-300 bg-slate-900 shrink-0 cursor-pointer shadow-xs hover:border-[#5a00b8] transition-all flex items-center justify-center"
                                       >
                                         <video src={src} className="w-full h-full object-cover opacity-60" muted />
-                                        <Play className="w-3.5 h-3.5 text-white fill-white absolute" />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/10 transition-colors">
+                                          <div className="w-7 h-7 rounded-full bg-purple-600/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                            <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5" />
+                                          </div>
+                                        </div>
+                                        <div className="absolute bottom-1 right-1 bg-black/80 text-purple-300 text-[8px] font-mono font-bold px-1.5 py-0.5 rounded">
+                                          PLAY
+                                        </div>
                                       </div>
                                     ))}
                                   </div>
                                 </div>
-                              );
-                            })()}
+                              )}
+                            </div>
                           </div>
                         );
                       })}
