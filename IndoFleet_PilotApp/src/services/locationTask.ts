@@ -8,6 +8,7 @@ import { getPilotName } from '../config';
 
 export const LOCATION_TASK_NAME = 'IndoFleet_PILOT_BG_LOCATION';
 const STORAGE_ACTIVE_ORDER_ID = '@IndoFleet_active_order_id';
+const STORAGE_OFFLINE_QUEUE = '@IndoFleet_offline_gps_queue';
 
 let onLocationUpdateListener: ((data: any) => void) | null = null;
 
@@ -68,22 +69,57 @@ try {
                 timestamp: new Date().toISOString(),
               };
 
-              await updatePilotLocation(payload);
+              // Check if we have buffered offline breadcrumbs to flush
+              let pendingQueue: any[] = [];
+              try {
+                const rawQueue = await AsyncStorage.getItem(STORAGE_OFFLINE_QUEUE);
+                if (rawQueue) pendingQueue = JSON.parse(rawQueue);
+              } catch {}
+
+              const finalPayload = {
+                ...payload,
+                ...(Array.isArray(pendingQueue) && pendingQueue.length > 0 ? { batch: pendingQueue } : {})
+              };
+
+              await updatePilotLocation(finalPayload);
+
+              // If flush succeeded, clear offline queue
+              if (Array.isArray(pendingQueue) && pendingQueue.length > 0) {
+                await AsyncStorage.removeItem(STORAGE_OFFLINE_QUEUE).catch(() => {});
+              }
 
               if (onLocationUpdateListener) {
                 onLocationUpdateListener({
                   location,
-                  payload,
+                  payload: finalPayload,
                   success: true,
+                  flushedOfflineCount: pendingQueue.length
                 });
               }
             } catch (err: any) {
-              console.warn('Background sync error:', err.message);
+              console.warn('Background sync error (offline buffering active):', err.message);
+              // Save point to local offline buffer queue
+              try {
+                const rawQueue = await AsyncStorage.getItem(STORAGE_OFFLINE_QUEUE);
+                let queue = rawQueue ? JSON.parse(rawQueue) : [];
+                if (!Array.isArray(queue)) queue = [];
+                queue.push({
+                  latitude: location.coords.latitude,
+                  longitude: location.coords.longitude,
+                  speed: location.coords.speed != null && location.coords.speed >= 0 ? Math.round(location.coords.speed * 3.6) : 0,
+                  heading: location.coords.heading != null && location.coords.heading >= 0 ? Math.round(location.coords.heading) : 0,
+                  timestamp: new Date().toISOString()
+                });
+                if (queue.length > 50) queue = queue.slice(-50); // Keep last 50 breadcrumbs
+                await AsyncStorage.setItem(STORAGE_OFFLINE_QUEUE, JSON.stringify(queue));
+              } catch {}
+
               if (onLocationUpdateListener) {
                 onLocationUpdateListener({
                   location,
                   error: err.message,
                   success: false,
+                  bufferedOffline: true
                 });
               }
             }

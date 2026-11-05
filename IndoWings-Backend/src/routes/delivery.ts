@@ -5507,8 +5507,13 @@ router.post('/pilot/update-location', async (req, res) => {
       heading,
       battery_pct,
       accuracy,
-      pilot_id
+      pilot_id,
+      batch
     } = req.body;
+
+    if (Array.isArray(batch) && batch.length > 0) {
+      console.log(`[GPS-Sync] Order #${order_id} received live coordinate + ${batch.length} recovered offline breadcrumb(s)`);
+    }
 
     if (!order_id || latitude === undefined || longitude === undefined) {
       res.status(400).json({ success: false, error: 'order_id, latitude, and longitude are required' });

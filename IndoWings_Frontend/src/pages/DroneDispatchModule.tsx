@@ -2537,10 +2537,20 @@ export const DroneDispatchModule: React.FC<DispatchModuleProps> = ({
                   <p className="text-[10px] text-slate-500 font-bold uppercase">Altitude</p>
                   <p className="text-lg font-black text-emerald-600 mt-0.5">{selectedOrder.altitude_m || 45} <span className="text-[10px] font-normal text-slate-400">m</span></p>
                 </div>
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                  <p className="text-[10px] text-slate-500 font-bold uppercase">Signal Link</p>
-                  <p className="text-lg font-black text-amber-600 mt-0.5">99.8%</p>
-                </div>
+                {(() => {
+                  const updatedStr = (selectedOrder as any).last_location_updated_at || (selectedOrder as any).updated_at;
+                  const diffSec = updatedStr ? Math.max(0, Math.round((Date.now() - new Date(updatedStr).getTime()) / 1000)) : 999;
+                  const isLive = diffSec <= 15;
+                  const isWeak = diffSec > 15 && diffSec <= 45;
+                  const signalColor = isLive ? 'text-emerald-600' : isWeak ? 'text-amber-500' : 'text-rose-500';
+                  const signalText = isLive ? '100% 4G' : isWeak ? 'Weak' : 'Offline';
+                  return (
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                      <p className="text-[10px] text-slate-500 font-bold uppercase">Signal Link</p>
+                      <p className={`text-lg font-black ${signalColor} mt-0.5`}>{signalText}</p>
+                    </div>
+                  );
+                })()}
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
                   <p className="text-[10px] text-slate-500 font-bold uppercase">Bearing</p>
                   <p className="text-lg font-black text-purple-600 mt-0.5">{selectedOrder.heading_deg || 0}°</p>
