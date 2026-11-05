@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Menu, X, User, LogOut, LayoutDashboard, Clock, ChevronDown, Zap, Navigation, Headphones, Wrench, Shield, ShoppingBag, ShoppingCart, Smartphone, Download } from 'lucide-react';
 import { DeliveryUser } from '../types';
+import { API_BASE_URL } from '../config/api';
 
 interface HeaderProps {
   currentUser: DeliveryUser | null;
@@ -14,6 +15,36 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenAuth, onLogout }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [driverConnectionLost, setDriverConnectionLost] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!currentUser || !['admin', 'fleet_manager', 'dispatcher'].includes(currentUser.role)) {
+      setDriverConnectionLost(false);
+      return;
+    }
+
+    const checkDriverSignals = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/orders`, { credentials: 'omit' }).catch(() => null);
+        if (res && res.ok) {
+          const data = await res.json().catch(() => null);
+          const orders = Array.isArray(data?.orders) ? data.orders : (Array.isArray(data) ? data : []);
+          const activeOrders = orders.filter((o: any) => ['in-flight', 'assigned', 'out-for-delivery'].includes(o.status));
+          const hasLost = activeOrders.some((o: any) => {
+            const upd = o.last_location_updated_at || o.updated_at;
+            if (!upd) return false;
+            const diffSec = (Date.now() - new Date(upd).getTime()) / 1000;
+            return diffSec > 35;
+          });
+          setDriverConnectionLost(hasLost);
+        }
+      } catch {}
+    };
+
+    checkDriverSignals();
+    const interval = setInterval(checkDriverSignals, 6000);
+    return () => clearInterval(interval);
+  }, [currentUser]);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [cartCount, setCartCount] = useState<number>(() => {
@@ -129,6 +160,12 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onOpenA
           <a href="/" onClick={nav('home', '/')} className="flex items-center gap-2 group">
             <img src="/indofleet-logo-dark.svg" alt="IndoFleet" className="h-8 sm:h-10 w-auto object-contain transition-transform group-hover:scale-[1.02]" />
           </a>
+          {driverConnectionLost && currentUser && ['admin', 'fleet_manager', 'dispatcher'].includes(currentUser.role) && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 border border-rose-300 text-rose-700 animate-pulse text-[11px] font-black shadow-sm" title="Active driver has not sent GPS signal for > 35 seconds">
+              <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping" />
+              <span>DRIVER CONNECTION LOST</span>
+            </div>
+          )}
         </div>
 
 

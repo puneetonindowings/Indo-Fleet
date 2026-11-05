@@ -10,12 +10,26 @@ import {
   Platform,
   BackHandler,
   ToastAndroid,
+  TextInput,
 } from 'react-native';
+
+// Auto-Adjustable Font Scaling Policy:
+// Scales cleanly with device settings, capping extreme font scaling at 1.25x so text never overflows cards
+if ((Text as any).defaultProps == null) {
+  (Text as any).defaultProps = {};
+}
+(Text as any).defaultProps.maxFontSizeMultiplier = 1.25;
+
+if ((TextInput as any).defaultProps == null) {
+  (TextInput as any).defaultProps = {};
+}
+(TextInput as any).defaultProps.maxFontSizeMultiplier = 1.25;
 import * as Location from 'expo-location';
 import * as Battery from 'expo-battery';
 
 import { Header } from './src/components/Header';
 import { BottomNav } from './src/components/BottomNav';
+import { playConnectionLostSiren, stopConnectionLostSiren } from './src/utils/sirenAlert';
 import { FirstTimePasswordModal } from './src/components/FirstTimePasswordModal';
 import { AcceptOrderModal } from './src/components/AcceptOrderModal';
 import { DispatcherHandoverModal } from './src/components/DispatcherHandoverModal';
@@ -117,6 +131,7 @@ function MainApp() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [mustChangePassword, setMustChangePassword] = useState<boolean>(false);
   const [serverConnected, setServerConnected] = useState<boolean>(false);
+  const [isConnectionLost, setIsConnectionLost] = useState<boolean>(false);
   const [activeScreen, setActiveScreen] = useState<string>('dashboard');
   const [screenHistory, setScreenHistory] = useState<string[]>(['dashboard']);
   const lastBackPressRef = useRef<number>(0);
@@ -283,6 +298,11 @@ function MainApp() {
     setLocationUpdateListener((data) => {
       if (data.success && data.payload) {
         handleIncomingTelemetry(data.payload);
+        setIsConnectionLost(false);
+        stopConnectionLostSiren();
+      } else if (!data.success) {
+        setIsConnectionLost(true);
+        playConnectionLostSiren();
       }
     });
 
@@ -737,6 +757,29 @@ function MainApp() {
         onLogout={handleLogout}
       />
 
+      {isConnectionLost && (
+        <View style={styles.connectionLostBanner}>
+          <View style={styles.connectionLostIconCircle}>
+            <Text style={{ fontSize: 16 }}>🚨</Text>
+          </View>
+          <View style={{ flex: 1, paddingHorizontal: 8 }}>
+            <Text style={styles.connectionLostTitle} numberOfLines={1}>SIGNAL LOST / RECONNECTING</Text>
+            <Text style={styles.connectionLostSub} numberOfLines={2}>
+              Mobile data disconnected. GPS is buffering offline. Check internet connection!
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.connectionLostDismissBtn}
+            onPress={() => {
+              stopConnectionLostSiren();
+              setIsConnectionLost(false);
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.connectionLostDismissText}>Dismiss Siren</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <View style={styles.screenBody}>
         {activeScreen === 'dashboard' && (
@@ -981,6 +1024,57 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  connectionLostBanner: {
+    backgroundColor: '#991B1B',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 4,
+    borderRadius: 14,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#DC2626',
+    shadowColor: '#991B1B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 99,
+  },
+  connectionLostIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  connectionLostTitle: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  connectionLostSub: {
+    color: '#FECACA',
+    fontSize: 10.5,
+    lineHeight: 14,
+    marginTop: 2,
+  },
+  connectionLostDismissBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  connectionLostDismissText: {
+    color: '#FFFFFF',
+    fontSize: 10.5,
+    fontWeight: '800',
+  },
   safeArea: {
     flex: 1,
     backgroundColor: '#F8FAFC',

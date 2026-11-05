@@ -717,33 +717,10 @@ export const CustomerOrderLiveMap: React.FC<CustomerOrderLiveMapProps> = ({ orde
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  {(() => {
-                    const updatedStr = order?.last_location_updated_at || order?.updated_at;
-                    const diffSec = updatedStr ? Math.max(0, Math.round((Date.now() - new Date(updatedStr).getTime()) / 1000)) : 999;
-                    if (diffSec <= 15) {
-                      return (
-                        <span className="px-2 py-0.5 rounded-md font-extrabold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          LIVE
-                        </span>
-                      );
-                    }
-                    if (diffSec <= 45) {
-                      return (
-                        <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                          SYNCING
-                        </span>
-                      );
-                    }
-                    const mins = Math.round(diffSec / 60);
-                    return (
-                      <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                        OFFLINE
-                      </span>
-                    );
-                  })()}
+                  <span className="px-2 py-0.5 rounded-md font-extrabold text-[10px] bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                    ON THE WAY
+                  </span>
                   {roadInfo.distanceKm !== null && (
                     <span className={`px-2 py-1 rounded-lg font-black text-[11px] border ${isOffRoute ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
                       {roadInfo.distanceKm} km

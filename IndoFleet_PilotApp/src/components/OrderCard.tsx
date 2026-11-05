@@ -507,6 +507,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: '#1E293B',
+    flexShrink: 1,
   },
   callBtn: {
     flexDirection: 'row',
