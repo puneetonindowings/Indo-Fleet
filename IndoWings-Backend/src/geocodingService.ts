@@ -20,6 +20,85 @@ const geocodeCache = new Map<string, { result: GeocodeResult | null; timestamp: 
 const routeCache = new Map<string, { result: RouteResult | null; timestamp: number }>();
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+export function resolveKnownLocation(rawAddress: string): GeocodeResult | null {
+  if (!rawAddress || typeof rawAddress !== 'string') return null;
+  const lower = rawAddress.toLowerCase();
+
+  // Noida & Greater Noida sectors
+  const sectorMatch = lower.match(/(?:sec(?:tor)?\.?|s\-)\s*([0-9]{1,3})/i);
+  if (sectorMatch && sectorMatch[1]) {
+    const secNum = parseInt(sectorMatch[1], 10);
+    const knownSectors: Record<number, [number, number]> = {
+      148: [28.4779, 77.4815],
+      149: [28.4705, 77.4912],
+      150: [28.4552, 77.4988],
+      144: [28.4912, 77.4320],
+      143: [28.4985, 77.4241],
+      142: [28.5028, 77.4172],
+      137: [28.5132, 77.4046],
+      135: [28.5080, 77.4010],
+      128: [28.5283, 77.3753],
+      126: [28.5412, 77.3389],
+      125: [28.5460, 77.3320],
+      18:  [28.5708, 77.3260],
+      16:  [28.5672, 77.3211],
+      15:  [28.5835, 77.3140],
+      62:  [28.6280, 77.3750],
+      63:  [28.6234, 77.3824],
+      60:  [28.6037, 77.3661],
+      59:  [28.5990, 77.3620],
+      50:  [28.5720, 77.3640],
+      51:  [28.5810, 77.3660],
+      52:  [28.5910, 77.3690],
+      75:  [28.5760, 77.3820],
+      76:  [28.5690, 77.3860],
+      78:  [28.5600, 77.3910],
+      93:  [28.5250, 77.3820],
+      104: [28.5410, 77.3620],
+      110: [28.5320, 77.3710],
+      120: [28.5920, 77.3990],
+      121: [28.5980, 77.4050],
+      122: [28.6040, 77.4110],
+    };
+    if (knownSectors[secNum]) {
+      return {
+        lat: knownSectors[secNum][0],
+        lng: knownSectors[secNum][1],
+        displayName: `Sector ${secNum}, Noida, Uttar Pradesh, India`
+      };
+    }
+    // Formula approximation for high sectors in Noida/Greater Noida Express corridor
+    if (secNum >= 130 && secNum <= 168) {
+      const lat = Number((28.5200 - (secNum - 130) * 0.0022).toFixed(6));
+      const lng = Number((77.4000 + (secNum - 130) * 0.0031).toFixed(6));
+      return {
+        lat,
+        lng,
+        displayName: `Sector ${secNum}, Noida Express Corridor, Uttar Pradesh, India`
+      };
+    }
+  }
+
+  // Major NCR hubs & landmarks
+  if (lower.includes('pari chowk') || lower.includes('knowledge park')) {
+    return { lat: 28.4744, lng: 77.5040, displayName: 'Pari Chowk, Greater Noida, India' };
+  }
+  if (lower.includes('connaught') || lower.includes(' cp ')) {
+    return { lat: 28.6315, lng: 77.2167, displayName: 'Connaught Place, New Delhi, India' };
+  }
+  if (lower.includes('cyber city') || lower.includes('gurgaon') || lower.includes('gurugram')) {
+    return { lat: 28.4950, lng: 77.0890, displayName: 'Cyber City, Gurugram, India' };
+  }
+  if (lower.includes('film city')) {
+    return { lat: 28.5672, lng: 77.3211, displayName: 'Film City, Sector 16A, Noida, India' };
+  }
+  if (lower.includes('indofleet') || lower.includes('indowings')) {
+    return { lat: 28.6037, lng: 77.3661, displayName: 'IndoFleet Manufacturing & Dispatch Center, Sector 60, Noida, India' };
+  }
+
+  return null;
+}
+
 /**
  * Normalizes user-entered address strings by removing phone numbers, recipient names,
  * and apartment prefix noise that confuse geocoders.
@@ -65,6 +144,10 @@ function cleanAddressCandidates(raw: string): string[] {
  */
 export async function geocodeAddress(rawAddress: string): Promise<GeocodeResult | null> {
   if (!rawAddress || typeof rawAddress !== 'string') return null;
+
+  const known = resolveKnownLocation(rawAddress);
+  if (known) return known;
+
   const cacheKey = rawAddress.trim().toLowerCase();
 
   const cached = geocodeCache.get(cacheKey);

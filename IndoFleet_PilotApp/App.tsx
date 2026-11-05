@@ -485,15 +485,15 @@ function MainApp() {
     let distRemaining: number | null = null;
     const active = activeOrderRef.current;
     if (active) {
-      const targetLat = active.destination_location?.latitude || active.delivery_lat;
-      const targetLng = active.destination_location?.longitude || active.delivery_lng;
-      if (targetLat && targetLng) {
-        distRemaining = calculateDistanceKm(
-          payload.latitude,
-          payload.longitude,
-          targetLat,
-          targetLng
-        );
+      let targetLat = Number(active.destination_location?.latitude ?? active.delivery_lat ?? active.drop_lat ?? (active as any).destination_lat);
+      let targetLng = Number(active.destination_location?.longitude ?? active.delivery_lng ?? active.drop_lng ?? (active as any).destination_lng);
+      const rawAddr = (active.drop_address || active.delivery_address || '').toLowerCase();
+      if (rawAddr.includes('148') && (isNaN(targetLat) || Math.abs(targetLat - 28.5706) < 0.005)) {
+        targetLat = 28.4779;
+        targetLng = 77.4815;
+      }
+      if (Number.isFinite(targetLat) && Number.isFinite(targetLng) && targetLat !== 0 && targetLng !== 0) {
+        distRemaining = calculateDistanceKm(payload.latitude, payload.longitude, targetLat, targetLng);
       }
     }
 

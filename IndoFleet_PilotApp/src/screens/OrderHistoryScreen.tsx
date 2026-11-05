@@ -511,10 +511,10 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
                       </Text>
                     </View>
 
-                    {selectedOrder.delivery_notes ? (
+                    {(selectedOrder.cancellation_reason || selectedOrder.delivery_notes) ? (
                       <View style={styles.notesBox}>
                         <Text style={styles.notesLabel}>Cancellation Reason:</Text>
-                        <Text style={styles.notesText}>{selectedOrder.delivery_notes}</Text>
+                        <Text style={styles.notesText}>{String(selectedOrder.cancellation_reason || selectedOrder.delivery_notes)}</Text>
                       </View>
                     ) : null}
                   </View>

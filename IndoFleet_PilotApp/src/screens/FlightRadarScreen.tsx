@@ -1,5 +1,6 @@
 import { WebView } from 'react-native-webview';
 import React, { useState, useMemo, useEffect } from 'react';
+import * as Location from 'expo-location';
 import {
   View,
   Text,
@@ -211,9 +212,14 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     if (!addressStr || typeof addressStr !== 'string') return null;
     const lower = addressStr.toLowerCase();
 
+    if (lower.includes('150')) return { latitude: 28.4552, longitude: 77.4988 };
+    if (lower.includes('149')) return { latitude: 28.4705, longitude: 77.4912 };
     if (lower.includes('148')) return { latitude: 28.4779, longitude: 77.4815 };
+    if (lower.includes('144')) return { latitude: 28.4912, longitude: 77.4320 };
+    if (lower.includes('143')) return { latitude: 28.4985, longitude: 77.4241 };
     if (lower.includes('142')) return { latitude: 28.5028, longitude: 77.4172 };
     if (lower.includes('137')) return { latitude: 28.5132, longitude: 77.4046 };
+    if (lower.includes('135')) return { latitude: 28.5080, longitude: 77.4010 };
     if (lower.includes('128')) return { latitude: 28.5283, longitude: 77.3753 };
     if (lower.includes('62')) return { latitude: 28.6280, longitude: 77.3750 };
     if (lower.includes('63')) return { latitude: 28.6234, longitude: 77.3824 };
@@ -224,28 +230,44 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     if (lower.includes('connaught') || lower.includes('cp')) return { latitude: 28.6315, longitude: 77.2167 };
     if (lower.includes('cyber city') || lower.includes('gurgaon') || lower.includes('gurugram')) return { latitude: 28.4950, longitude: 77.0890 };
 
-    const secMatch = lower.match(/sector\s*([0-9]{1,3})/);
+    const secMatch = lower.match(/(?:sector\s*|sec\s*)([0-9]{1,3})/);
     if (secMatch && secMatch[1]) {
       const num = parseInt(secMatch[1], 10);
-      if (num >= 130) {
+      if (num >= 130 && num <= 168) {
         return { latitude: 28.5000 - ((num - 130) * 0.002), longitude: 77.4100 + ((num - 130) * 0.0035) };
       }
     }
     return null;
   };
 
+  const isGenericCenter = (lat?: number, lng?: number) => {
+    if (lat == null || lng == null) return true;
+    return (
+      (Math.abs(lat - 28.5706) < 0.005 && Math.abs(lng - 77.3272) < 0.005) ||
+      (Math.abs(lat - 28.6037) < 0.005 && Math.abs(lng - 77.3661) < 0.005) ||
+      (lat === 0 && lng === 0)
+    );
+  };
+
   const [asyncTargetCoords, setAsyncTargetCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
   useEffect(() => {
     const target = activeOrder || order;
+    const rawAddr = target?.drop_address || target?.delivery_address;
+    const resolved = resolveAddressCoords(rawAddr);
     const directLat = target?.destination_location?.latitude ?? target?.delivery_lat ?? target?.drop_lat;
     const directLng = target?.destination_location?.longitude ?? target?.delivery_lng ?? target?.drop_lng;
+
+    if (resolved && isGenericCenter(directLat, directLng)) {
+      setAsyncTargetCoords(resolved);
+      return;
+    }
+
     if (typeof directLat === 'number' && typeof directLng === 'number' && Number.isFinite(directLat) && Number.isFinite(directLng) && (directLat !== 0 || directLng !== 0)) {
       setAsyncTargetCoords({ latitude: directLat, longitude: directLng });
       return;
     }
 
-    const rawAddr = target?.drop_address || target?.delivery_address;   
     if (!rawAddr) return;
 
     let cancelled = false;
@@ -260,25 +282,35 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
 
   const targetLat: number = useMemo(() => {
     const target = activeOrder || order;
-    const lat = target?.destination_location?.latitude ?? target?.delivery_lat ?? target?.drop_lat;
-    if (typeof lat === 'number' && Number.isFinite(lat) && lat !== 0) {
-      return lat;
-    }
-    if (asyncTargetCoords) return asyncTargetCoords.latitude;
     const resolved = resolveAddressCoords(target?.drop_address || target?.delivery_address);
+    const directLat = target?.destination_location?.latitude ?? target?.delivery_lat ?? target?.drop_lat;
+    const directLng = target?.destination_location?.longitude ?? target?.delivery_lng ?? target?.drop_lng;
+
+    if (resolved && isGenericCenter(directLat, directLng)) {
+      return resolved.latitude;
+    }
+    if (typeof directLat === 'number' && Number.isFinite(directLat) && directLat !== 0) {
+      return directLat;
+    }
     if (resolved) return resolved.latitude;
+    if (asyncTargetCoords) return asyncTargetCoords.latitude;
     return 28.6037;
   }, [activeOrder, order, asyncTargetCoords]);
 
   const targetLng: number = useMemo(() => {
     const target = activeOrder || order;
-    const lng = target?.destination_location?.longitude ?? target?.delivery_lng ?? target?.drop_lng;
-    if (typeof lng === 'number' && Number.isFinite(lng) && lng !== 0) {
-      return lng;
-    }
-    if (asyncTargetCoords) return asyncTargetCoords.longitude;
     const resolved = resolveAddressCoords(target?.drop_address || target?.delivery_address);
+    const directLat = target?.destination_location?.latitude ?? target?.delivery_lat ?? target?.drop_lat;
+    const directLng = target?.destination_location?.longitude ?? target?.delivery_lng ?? target?.drop_lng;
+
+    if (resolved && isGenericCenter(directLat, directLng)) {
+      return resolved.longitude;
+    }
+    if (typeof directLng === 'number' && Number.isFinite(directLng) && directLng !== 0) {
+      return directLng;
+    }
     if (resolved) return resolved.longitude;
+    if (asyncTargetCoords) return asyncTargetCoords.longitude;
     return 77.3661;
   }, [activeOrder, order, asyncTargetCoords]);
 
@@ -306,7 +338,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
     }
   }, [onUpdateLocation]);
 
-  const handleRecenterLocation = () => {
+  const handleRecenterLocation = async () => {
     setIsLocating(true);
     setTimeout(() => setIsLocating(false), 2000);
 
@@ -332,6 +364,23 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
+    } else {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.High,
+          });
+          if (loc && loc.coords) {
+            const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+            if (onUpdateLocation) onUpdateLocation(coords);
+          }
+        }
+      } catch (err) {
+        console.warn('Native GPS recenter warning:', err);
+      } finally {
+        setIsLocating(false);
+      }
     }
 
     if (onRefreshLocation) {

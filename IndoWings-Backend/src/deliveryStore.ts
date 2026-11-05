@@ -777,12 +777,21 @@ export const deliveryStore = {
   async updateOrder(id: string, updates: JsonRecord) {
     const existing = await this.findOrderById(id);
     if (!existing) return null;
-    const { data, error } = await db().from('delivery_orders').update(toOrder({
+    const payload = toOrder({
       ...existing,
       ...updates,
       id: existing.id,
       updated_at: updates.updated_at || new Date().toISOString()
-    })).eq('id', existing.id).select('*').maybeSingle();
+    });
+    let { data, error } = await db().from('delivery_orders').update(payload).eq('id', existing.id).select('*').maybeSingle();
+    if (error && (String(error.message).includes('timeout') || String(error.message).includes('statement timeout'))) {
+      console.warn('[supabase] updateOrder timeout with select(*), retrying with light select...');
+      const retry = await db().from('delivery_orders').update(payload).eq('id', existing.id).select('id,status,updated_at').maybeSingle();
+      if (!retry.error) {
+        error = null;
+        data = { ...payload, ...(retry.data || {}) };
+      }
+    }
     fail('update delivery order', error);
     memoryCache.deletePattern('orders:');
     return data ? fromOrder(data) : null;
