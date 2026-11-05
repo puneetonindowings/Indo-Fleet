@@ -40,12 +40,8 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
   const defaultDrone = order?.assigned_drone_id || order?.drone_id || 'RPAV-000001';
   const [droneId, setDroneId] = useState(defaultDrone);
 
-  const [cargoBayCondition, setCargoBayCondition] = useState<string>('CLEAN_RELEASE');
-  const [landingSurface, setLandingSurface] = useState<string>('SAFE_FLAT');
-  const [propellerCheck, setPropellerCheck] = useState<string>('SPINS_FREE_NO_DEBRIS');
-  const [fieldBattery, setFieldBattery] = useState<string>('75');
-  const [zeroDefectCertified, setZeroDefectCertified] = useState<boolean>(true);
-  const [fieldNotes, setFieldNotes] = useState<string>('');
+  const [overallVerdict, setOverallVerdict] = useState<'PASSED' | 'FAILED'>('PASSED');
+  const [fieldNotes, setFieldNotes] = useState<string>('OK Tested');
   const [loading, setLoading] = useState<boolean>(false);
 
   const handleSubmit = async () => {
@@ -55,38 +51,36 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
       return;
     }
 
-    const hasAnyDefect =
-      cargoBayCondition === 'JAMMED_DEFECT' ||
-      landingSurface === 'IMPACT_COLLISION' ||
-      propellerCheck === 'BLADE_DEFECT' ||
-      !zeroDefectCertified;
+    if (!fieldNotes.trim()) {
+      Alert.alert('Mandatory Remarks Required', 'Inspection remarks enter karna mandatory hai. Agar sab theek hai to "OK Tested" likhein, ya issue mention karein.');
+      return;
+    }
 
-    const overallVerdict = hasAnyDefect ? 'FAILED' : 'PASSED';
-    const parsedBattery = parseInt(fieldBattery, 10);
+    const hasAnyDefect = overallVerdict === 'FAILED';
 
     setLoading(true);
     try {
       await submitPostDeliveryInspection({
         drone_id: targetDrone,
         delivery_id: order?.id,
-        inspection_type: 'DELIVERY_PERSON_CHECK', // Distinct Delivery Person Field Verification
-        cargo_bay_condition: cargoBayCondition,
-        landing_surface: landingSurface,
-        propeller_debris_check: propellerCheck,
-        field_battery_level: Number.isFinite(parsedBattery) ? parsedBattery : null,
-        zero_defect_certified: zeroDefectCertified,
-        delivery_handover_notes: fieldNotes.trim() || undefined,
+        inspection_type: 'DELIVERY_PERSON_CHECK',
+        cargo_bay_condition: hasAnyDefect ? 'JAMMED_DEFECT' : 'CLEAN_RELEASE',
+        landing_surface: hasAnyDefect ? 'IMPACT_COLLISION' : 'SAFE_FLAT',
+        propeller_debris_check: hasAnyDefect ? 'BLADE_DEFECT' : 'SPINS_FREE_NO_DEBRIS',
+        field_battery_level: 80,
+        zero_defect_certified: !hasAnyDefect,
+        delivery_handover_notes: fieldNotes.trim(),
         body_condition: hasAnyDefect ? 'DAMAGED' : 'GOOD',
-        propeller_condition: propellerCheck === 'BLADE_DEFECT' ? 'DAMAGED' : 'GOOD',
+        propeller_condition: hasAnyDefect ? 'DAMAGED' : 'GOOD',
         battery_condition: 'NORMAL',
-        landing_gear_condition: landingSurface === 'IMPACT_COLLISION' ? 'DAMAGED' : 'GOOD',
+        landing_gear_condition: hasAnyDefect ? 'DAMAGED' : 'GOOD',
         overall_inspection: overallVerdict,
-        remarks: fieldNotes.trim() || (zeroDefectCertified ? 'Delivery completed with 0 defects. Drone verified and secured for vehicle transport.' : 'Field defect flagged during delivery handover.'),
+        remarks: fieldNotes.trim(),
       });
 
       Alert.alert(
-        zeroDefectCertified ? 'Zero-Defect Delivery Verified' : 'Inspection Recorded (Defect Flagged)',
-        `Airframe ${targetDrone} delivery check recorded successfully.\nVerdict: ${overallVerdict} (${zeroDefectCertified ? '0 Defects Verified' : 'Maintenance Required'})`,
+        !hasAnyDefect ? 'Zero-Defect Delivery Verified' : 'Inspection Recorded (Defect Flagged)',
+        `Airframe ${targetDrone} check recorded successfully.\nVerdict: ${overallVerdict} (${!hasAnyDefect ? 'Zero Defects Confirmed' : 'Maintenance Flagged'})`,
         [{
           text: 'OK',
           onPress: () => {
@@ -147,146 +141,82 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
             </View>
 
 
-            <Text style={styles.sectionHeading}>POST-DELIVERY FIELD CHECKS</Text>
+            <Text style={styles.sectionHeading}>OVERALL AIRFRAME VERDICT</Text>
+            <View style={{ gap: 10, marginBottom: 16 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setOverallVerdict('PASSED');
+                  if (!fieldNotes || fieldNotes === 'Hardware issue identified') setFieldNotes('OK Tested');
+                }}
+                style={[
+                  styles.verdictOptionBtn,
+                  overallVerdict === 'PASSED' ? styles.verdictPassedActive : styles.verdictInactive,
+                ]}
+                activeOpacity={0.8}
+              >
+                <Check size={18} color={overallVerdict === 'PASSED' ? '#059669' : '#64748B'} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.verdictTitle, overallVerdict === 'PASSED' && { color: '#059669' }]}>
+                    PASSED / ZERO DEFECT
+                  </Text>
+                  <Text style={styles.verdictDesc}>Motors, frame, and payload bay cleared. Flight ready.</Text>
+                </View>
+              </TouchableOpacity>
 
-
-            <View style={styles.checkItem}>
-              <View style={styles.itemHeader}>
-                <PackageCheck size={14} color="#3B0080" />
-                <Text style={styles.itemTitle}>1. Cargo Bay & Payload Release</Text>
-              </View>
-              <View style={styles.btnRow}>
-                {[
-                  { id: 'CLEAN_RELEASE', label: 'Clean Release & Locked' },
-                  { id: 'MANUAL_ASSIST', label: 'Manual Assist' },
-                  { id: 'JAMMED_DEFECT', label: 'Cargo Jam / Defect' },
-                ].map((opt) => (
-                  <TouchableOpacity
-                    key={opt.id}
-                    onPress={() => setCargoBayCondition(opt.id)}
-                    style={[
-                      styles.pillBtn,
-                      cargoBayCondition === opt.id && styles.pillBtnActive,
-                      opt.id === 'JAMMED_DEFECT' && cargoBayCondition === opt.id && styles.pillBtnDanger,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.pillBtnText,
-                        cargoBayCondition === opt.id && styles.pillBtnTextActive,
-                        opt.id === 'JAMMED_DEFECT' && cargoBayCondition === opt.id && styles.pillBtnTextDanger,
-                      ]}
-                    >
-                      {opt.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  setOverallVerdict('FAILED');
+                  if (!fieldNotes || fieldNotes === 'OK Tested') setFieldNotes('Hardware issue identified');
+                }}
+                style={[
+                  styles.verdictOptionBtn,
+                  overallVerdict === 'FAILED' ? styles.verdictFailedActive : styles.verdictInactive,
+                ]}
+                activeOpacity={0.8}
+              >
+                <AlertTriangle size={18} color={overallVerdict === 'FAILED' ? '#DC2626' : '#64748B'} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.verdictTitle, overallVerdict === 'FAILED' && { color: '#DC2626' }]}>
+                    ISSUE DETECTED
+                  </Text>
+                  <Text style={styles.verdictDesc}>Damage, cracked propeller, loose latch, or hardware failure.</Text>
+                </View>
+              </TouchableOpacity>
             </View>
-
-
-            <View style={styles.checkItem}>
-              <View style={styles.itemHeader}>
-                <MapPin size={14} color="#3B0080" />
-                <Text style={styles.itemTitle}>2. Field Landing Surface & Ground Contact</Text>
-              </View>
-              <View style={styles.btnRow}>
-                {[
-                  { id: 'SAFE_FLAT', label: 'Safe Flat Ground / Mat' },
-                  { id: 'ROUGH_TERRAIN', label: 'Rough / Dusty Surface' },
-                  { id: 'IMPACT_COLLISION', label: 'Hard Impact / Defect' },
-                ].map((opt) => (
-                  <TouchableOpacity
-                    key={opt.id}
-                    onPress={() => setLandingSurface(opt.id)}
-                    style={[
-                      styles.pillBtn,
-                      landingSurface === opt.id && styles.pillBtnActive,
-                      opt.id === 'IMPACT_COLLISION' && landingSurface === opt.id && styles.pillBtnDanger,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.pillBtnText,
-                        landingSurface === opt.id && styles.pillBtnTextActive,
-                        opt.id === 'IMPACT_COLLISION' && landingSurface === opt.id && styles.pillBtnTextDanger,
-                      ]}
-                    >
-                      {opt.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-
-            <View style={styles.checkItem}>
-              <View style={styles.itemHeader}>
-                <Wind size={14} color="#3B0080" />
-                <Text style={styles.itemTitle}>3. Propellers & Motor Debris Check</Text>
-              </View>
-              <View style={styles.btnRow}>
-                {[
-                  { id: 'SPINS_FREE_NO_DEBRIS', label: 'Clear, Spins Freely' },
-                  { id: 'DEBRIS_REMOVED', label: 'Debris Cleared' },
-                  { id: 'BLADE_DEFECT', label: 'Chipped / Bent Blade' },
-                ].map((opt) => (
-                  <TouchableOpacity
-                    key={opt.id}
-                    onPress={() => setPropellerCheck(opt.id)}
-                    style={[
-                      styles.pillBtn,
-                      propellerCheck === opt.id && styles.pillBtnActive,
-                      opt.id === 'BLADE_DEFECT' && propellerCheck === opt.id && styles.pillBtnDanger,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.pillBtnText,
-                        propellerCheck === opt.id && styles.pillBtnTextActive,
-                        opt.id === 'BLADE_DEFECT' && propellerCheck === opt.id && styles.pillBtnTextDanger,
-                      ]}
-                    >
-                      {opt.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-
-            <Text style={styles.sectionHeading}>ZERO-DEFECT CERTIFICATION</Text>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => setZeroDefectCertified(!zeroDefectCertified)}
-              style={[
-                styles.certificationCard,
-                zeroDefectCertified ? styles.certCardPass : styles.certCardFail,
-              ]}
-            >
-              <View style={[styles.certCheckbox, zeroDefectCertified ? styles.certBoxPass : styles.certBoxFail]}>
-                {zeroDefectCertified ? <Check size={16} color="#FFFFFF" /> : <AlertTriangle size={16} color="#DC2626" />}
-              </View>
-              <View style={styles.certTextContainer}>
-                <Text style={[styles.certTitle, zeroDefectCertified ? styles.certTitlePass : styles.certTitleFail]}>
-                  {zeroDefectCertified ? '0 DEFECTS CONFIRMED' : 'DEFECT FLAGGED FOR MAINTENANCE'}
-                </Text>
-                <Text style={styles.certDescription}>
-                  {zeroDefectCertified
-                    ? 'I certify that delivery was completed without airframe, motor, or cargo damage. Drone is safe for return flight.'
-                    : 'A defect or damage was detected during field delivery. Drone will be held for technical inspection.'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-
 
             <View style={styles.remarksBox}>
-              <Text style={styles.fieldLabel}>FIELD DELIVERY OBSERVATIONS (OPTIONAL)</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <Text style={styles.fieldLabel}>INSPECTION REMARKS * (MANDATORY)</Text>
+                <Text style={{ fontSize: 10, fontWeight: '800', color: fieldNotes.trim() ? '#059669' : '#DC2626' }}>
+                  {fieldNotes.trim() ? 'FILLED ✓' : 'REQUIRED'}
+                </Text>
+              </View>
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row', marginBottom: 8 }}>
+                {[
+                  'OK Tested',
+                  'Zero Defect - Flight Ready',
+                  'Airframe & Motors Cleared',
+                  'Minor scratch - Operable',
+                  'Hardware issue flagged',
+                ].map((chip) => (
+                  <TouchableOpacity
+                    key={chip}
+                    style={[styles.modalChip, fieldNotes === chip && styles.modalChipActive]}
+                    onPress={() => setFieldNotes(chip)}
+                  >
+                    <Text style={[styles.modalChipText, fieldNotes === chip && styles.modalChipTextActive]}>
+                      {chip}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
               <TextInput
-                style={styles.remarksInput}
+                style={[styles.remarksInput, !fieldNotes.trim() && { borderColor: '#DC2626' }]}
                 value={fieldNotes}
                 onChangeText={setFieldNotes}
-                placeholder="e.g. Clean delivery on customer lawn, package unlatched smoothly, drone motors clean."
+                placeholder="Enter mandatory remarks (e.g. OK Tested, all components operational)..."
                 placeholderTextColor="#94A3B8"
                 multiline
                 numberOfLines={2}
@@ -305,7 +235,7 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
               disabled={loading}
               style={[
                 styles.submitBtn,
-                zeroDefectCertified ? styles.submitBtnPass : styles.submitBtnWarn,
+                overallVerdict === 'PASSED' ? styles.submitBtnPass : styles.submitBtnWarn,
                 loading && styles.submitBtnDisabled,
               ]}
             >
@@ -315,7 +245,7 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
                 <>
                   <ShieldCheck size={16} color="#FFFFFF" />
                   <Text style={styles.submitBtnText}>
-                    {zeroDefectCertified ? 'Confirm 0 Defects & Save' : 'Submit Defect Report'}
+                    {overallVerdict === 'PASSED' ? 'Confirm 0 Defects & Save' : 'Submit Defect Report'}
                   </Text>
                 </>
               )}
@@ -328,6 +258,58 @@ export const PilotInspectionModal: React.FC<PilotInspectionModalProps> = ({
 };
 
 const styles = StyleSheet.create({
+  verdictOptionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+  },
+  verdictInactive: {
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+  },
+  verdictPassedActive: {
+    borderColor: '#059669',
+    backgroundColor: '#ECFDF5',
+  },
+  verdictFailedActive: {
+    borderColor: '#DC2626',
+    backgroundColor: '#FEF2F2',
+  },
+  verdictTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  verdictDesc: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  modalChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  modalChipActive: {
+    backgroundColor: '#3B0080',
+    borderColor: '#3B0080',
+  },
+  modalChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  modalChipTextActive: {
+    color: '#FFFFFF',
+  },
+
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.75)',

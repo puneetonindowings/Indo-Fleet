@@ -117,12 +117,8 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
     return () => sub.remove();
   }, [onBack]);
 
-  const [cargoBayCondition, setCargoBayCondition] = useState<string>('');
-  const [landingSurface, setLandingSurface] = useState<string>('');
-  const [propellerCheck, setPropellerCheck] = useState<string>('');
-  const [fieldBattery, setFieldBattery] = useState<string>(telemetry?.batteryPct ? String(telemetry.batteryPct) : '');
-  const [zeroDefectCertified, setZeroDefectCertified] = useState<boolean>(false);
-  const [fieldNotes, setFieldNotes] = useState<string>('');
+  const [overallVerdict, setOverallVerdict] = useState<'PASSED' | 'FAILED'>('PASSED');
+  const [fieldNotes, setFieldNotes] = useState<string>('OK Tested');
   const [loading, setLoading] = useState<boolean>(false);
 
   const [recipientName, setRecipientName] = useState<string>(order?.recipient_name || order?.customer_name || '');
@@ -138,11 +134,8 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
     if (inspectedDroneId) {
       setDroneId(inspectedDroneId);
       setMediaItems([]);
-      setZeroDefectCertified(false);
-      setCargoBayCondition('');
-      setLandingSurface('');
-      setPropellerCheck('');
-      setFieldNotes('');
+      setOverallVerdict('PASSED');
+      setFieldNotes('OK Tested');
       setPodPhoto(null);
     }
   }, [inspectedDroneId]);
@@ -469,10 +462,20 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
   };
 
   const handleTakePhoto = () => {
+    const photoCount = mediaItems.filter((m) => m.type === 'image').length;
+    if (photoCount >= 3) {
+      Alert.alert('Photo Limit Reached', 'Maximum 3 inspection photos allowed. Pehle se maujood photo remove karke nayi photo snap karein.');
+      return;
+    }
     openInAppCamera('photo');
   };
 
   const handleRecordVideo = () => {
+    const videoCount = mediaItems.filter((m) => m.type === 'video').length;
+    if (videoCount >= 1) {
+      Alert.alert('Video Limit Reached', 'Maximum 1 inspection video allowed. Pehle se maujood video remove karke naya video record karein.');
+      return;
+    }
     openInAppCamera('video');
   };
 
@@ -535,17 +538,29 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
         if (!result.canceled && result.assets && result.assets.length > 0) {
           result.assets.forEach((asset) => {
             const isVideo = asset.type === 'video' || (asset.uri && asset.uri.toLowerCase().endsWith('.mp4'));
+            const currentPhotos = mediaItems.filter(m => m.type === 'image').length;
+            const currentVideos = mediaItems.filter(m => m.type === 'video').length;
+
+            if (isVideo && currentVideos >= 1) {
+              Alert.alert('Video Limit Reached', 'Sirf 1 video upload karne ki anumati hai.');
+              return;
+            }
+            if (!isVideo && currentPhotos >= 3) {
+              Alert.alert('Photo Limit Reached', 'Sirf upto 3 photos upload karne ki anumati hai.');
+              return;
+            }
+
             const maxBytes = isVideo ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
             const limitLabel = isVideo ? '5 MB' : '2 MB';
 
             if (asset.fileSize && asset.fileSize > maxBytes) {
               const mb = (asset.fileSize / (1024 * 1024)).toFixed(2);
-              Alert.alert('Upload Size Limit', `${isVideo ? 'Video' : 'Photo'} exceeds ${limitLabel} upload limit (${mb} MB). Please choose a ${isVideo ? 'video under 5 MB' : 'photo under 2 MB'}.`);
+              Alert.alert('Upload Size Limit', `${isVideo ? 'Video' : 'Photo'} upload limit (${limitLabel}) se bada hai (${mb} MB). Gallery se upload karne ke liye ${isVideo ? '5 MB se chhota video' : '2 MB se chhoti photo'} select karein.`);
               return;
             }
             if (!isVideo && asset.base64 && (asset.base64.length * 0.75) > maxBytes) {
               const mb = ((asset.base64.length * 0.75) / (1024 * 1024)).toFixed(2);
-              Alert.alert('Upload Size Limit', `Photo exceeds 2 MB upload limit (${mb} MB). Please choose a photo under 2 MB.`);
+              Alert.alert('Upload Size Limit', `Photo upload limit (2 MB) se badi hai (${mb} MB). Gallery se 2 MB se chhoti photo select karein.`);
               return;
             }
 
@@ -557,7 +572,13 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
               base64: isVideo ? undefined : base64Data,
               name: `${isVideo ? 'Video' : 'Photo'}_${Date.now()}`,
             };
-            setMediaItems((prev) => [...prev, newItem]);
+            setMediaItems((prev) => {
+              const pCount = prev.filter(m => m.type === 'image').length;
+              const vCount = prev.filter(m => m.type === 'video').length;
+              if (newItem.type === 'image' && pCount >= 3) return prev;
+              if (newItem.type === 'video' && vCount >= 1) return prev;
+              return [...prev, newItem];
+            });
           });
         }
       } catch (err: any) {
@@ -614,28 +635,8 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
   const handleSubmit = async () => {
     const targetDrone = (droneId || cleanDroneSerial || inspectedDroneId || 'DRONE').trim();
 
-    if (!cargoBayCondition) {
-      Alert.alert('Cargo Bay Check Required', 'Please select the cargo bay condition.');
-      return;
-    }
-
-    if (!landingSurface) {
-      Alert.alert('Landing Surface Check Required', 'Please select the landing surface condition.');
-      return;
-    }
-
-    if (!propellerCheck) {
-      Alert.alert('Propeller Check Required', 'Please verify the propeller status.');
-      return;
-    }
-
-    if (!fieldBattery.trim()) {
-      Alert.alert('Battery Reading Required', 'Please enter the current drone battery percentage.');
-      return;
-    }
-
-    if (!zeroDefectCertified) {
-      Alert.alert('Airframe Certification Required', 'Please check the box to certify zero critical airframe defects.');
+    if (!fieldNotes.trim()) {
+      Alert.alert('Mandatory Inspection Remarks', 'Inspection remarks enter karna mandatory hai. Agar sab theek hai to "OK Tested" likhein, ya phir koi issue hai to issue mention karein.');
       return;
     }
 
@@ -656,14 +657,7 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
       }
     }
 
-    const hasAnyDefect =
-      cargoBayCondition === 'JAMMED_DEFECT' ||
-      landingSurface === 'IMPACT_COLLISION' ||
-      propellerCheck === 'BLADE_DEFECT' ||
-      !zeroDefectCertified;
-
-    const overallVerdict = hasAnyDefect ? 'FAILED' : 'PASSED';
-    const parsedBattery = parseInt(fieldBattery, 10);
+    const hasAnyDefect = overallVerdict === 'FAILED';
 
     const photoRefs = mediaItems
       .filter((m) => m.type === 'image')
@@ -686,22 +680,18 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
         delivery_id: order?.id,
         stage: isHub ? 'hub_pickup' : 'customer_delivery',
         inspection_type: isHub ? 'HUB_PRE_FLIGHT_CHECK' : 'DELIVERY_PERSON_CHECK',
-        cargo_bay_condition: cargoBayCondition,
-        landing_surface: landingSurface,
-        propeller_debris_check: propellerCheck,
+        cargo_bay_condition: hasAnyDefect ? 'JAMMED_DEFECT' : 'CLEAN_RELEASE',
+        landing_surface: hasAnyDefect ? 'IMPACT_COLLISION' : 'SAFE_FLAT',
+        propeller_debris_check: hasAnyDefect ? 'BLADE_DEFECT' : 'SPINS_FREE_NO_DEBRIS',
         field_battery_level: autoBatteryPct,
-        zero_defect_certified: zeroDefectCertified,
-        delivery_handover_notes: fieldNotes.trim() || undefined,
+        zero_defect_certified: !hasAnyDefect,
+        delivery_handover_notes: fieldNotes.trim(),
         body_condition: hasAnyDefect ? 'DAMAGED' : 'GOOD',
-        propeller_condition: propellerCheck === 'BLADE_DEFECT' ? 'DAMAGED' : 'GOOD',
+        propeller_condition: hasAnyDefect ? 'DAMAGED' : 'GOOD',
         battery_condition: 'NORMAL',
-        landing_gear_condition: landingSurface === 'IMPACT_COLLISION' ? 'DAMAGED' : 'GOOD',
+        landing_gear_condition: hasAnyDefect ? 'DAMAGED' : 'GOOD',
         overall_inspection: overallVerdict,
-        remarks:
-          fieldNotes.trim() ||
-          (zeroDefectCertified
-            ? (isHub ? 'Hub pre-acceptance inspection passed with zero defects.' : 'Delivery completed with 0 defects. Drone verified.')
-            : 'Defect flagged during airframe inspection.'),
+        remarks: fieldNotes.trim(),
         photo_references: photoRefs,
         video_references: videoRefs,
         media_evidence: mediaEvidence,
@@ -959,168 +949,61 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
 
 
         <View style={styles.card}>
-          <Text style={styles.sectionHeading}>Physical Safety Checklist</Text>
+          <Text style={styles.sectionHeading}>Overall Airframe Condition Verdict</Text>
+          <Text style={styles.sectionSubtitle}>
+            UAV condition select karein. Tick-untick ki zaroorat nahi hai, seedha verdict select karein:
+          </Text>
 
-
-          <View style={styles.checkItem}>
-            <Text style={styles.itemTitle}>1. Propellers & Rotor Blades</Text>
-            <View style={styles.optionRow}>
-              {[
-                { id: 'SPINS_FREE_NO_DEBRIS', label: 'Spins Free / No Debris', color: '#059669' },
-                { id: 'BLADE_DEFECT', label: 'Blade Defect / Nick', color: '#DC2626' },
-              ].map((opt) => (
-                <TouchableOpacity
-                  key={opt.id}
-                  onPress={() => setPropellerCheck(opt.id)}
-                  style={[
-                    styles.optionBtn,
-                    propellerCheck === opt.id && {
-                      borderColor: opt.color,
-                      backgroundColor: opt.id === 'BLADE_DEFECT' ? '#FEF2F2' : '#ECFDF5',
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.optionBtnText,
-                      propellerCheck === opt.id && { color: opt.color, fontWeight: '800' },
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-
-          <View style={styles.checkItem}>
-            <Text style={styles.itemTitle}>2. Cargo Bay & Release Mechanism</Text>
-            <View style={styles.optionRow}>
-              {[
-                { id: 'CLEAN_RELEASE', label: 'Clean Release' },
-                { id: 'MANUAL_ASSIST', label: 'Manual Assist' },
-                { id: 'JAMMED_DEFECT', label: 'Cargo Jam Defect' },
-              ].map((opt) => (
-                <TouchableOpacity
-                  key={opt.id}
-                  onPress={() => setCargoBayCondition(opt.id)}
-                  style={[
-                    styles.optionBtn,
-                    cargoBayCondition === opt.id && {
-                      borderColor: opt.id === 'JAMMED_DEFECT' ? '#DC2626' : '#5a00b8',
-                      backgroundColor: opt.id === 'JAMMED_DEFECT' ? '#FEF2F2' : '#F3E8FF',
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.optionBtnText,
-                      cargoBayCondition === opt.id && {
-                        color: opt.id === 'JAMMED_DEFECT' ? '#DC2626' : '#5a00b8',
-                        fontWeight: '800',
-                      },
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-
-          <View style={styles.checkItem}>
-            <Text style={styles.itemTitle}>3. Landing Gear & Surface</Text>
-            <View style={styles.optionRow}>
-              {[
-                { id: 'SAFE_FLAT', label: 'Safe Flat Ground' },
-                { id: 'ROUGH_TERRAIN', label: 'Rough Terrain' },
-                { id: 'IMPACT_COLLISION', label: 'Hard Impact' },
-              ].map((opt) => (
-                <TouchableOpacity
-                  key={opt.id}
-                  onPress={() => setLandingSurface(opt.id)}
-                  style={[
-                    styles.optionBtn,
-                    landingSurface === opt.id && {
-                      borderColor: opt.id === 'IMPACT_COLLISION' ? '#DC2626' : '#5a00b8',
-                      backgroundColor: opt.id === 'IMPACT_COLLISION' ? '#FEF2F2' : '#F3E8FF',
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.optionBtnText,
-                      landingSurface === opt.id && {
-                        color: opt.id === 'IMPACT_COLLISION' ? '#DC2626' : '#5a00b8',
-                        fontWeight: '800',
-                      },
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-
-          <View style={styles.checkItem}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={styles.itemTitle}>4. Battery Health Level (SOC)</Text>
-              <View style={styles.autoSyncPill}>
-                <View style={styles.autoSyncDot} />
-                <Text style={styles.autoSyncText}>TELEMETRY AUTO-SYNC</Text>
+          <View style={styles.verdictRow}>
+            <TouchableOpacity
+              onPress={() => {
+                setOverallVerdict('PASSED');
+                if (!fieldNotes || fieldNotes === 'Defect / Hardware issue identified') {
+                  setFieldNotes('OK Tested');
+                }
+              }}
+              style={[
+                styles.verdictBtn,
+                overallVerdict === 'PASSED' ? styles.verdictBtnPassedActive : styles.verdictBtnInactive,
+              ]}
+              activeOpacity={0.8}
+            >
+              <CheckCircle size={20} color={overallVerdict === 'PASSED' ? '#059669' : '#64748B'} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.verdictBtnTitle, overallVerdict === 'PASSED' && { color: '#059669' }]}>
+                  PASSED / ZERO DEFECT
+                </Text>
+                <Text style={styles.verdictBtnSub}>
+                  Airframe, motors & cargo bay are intact. Flight ready.
+                </Text>
               </View>
-            </View>
-            <View style={styles.batteryDisplayBox}>
-              <View style={styles.batteryHeaderRow}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Battery size={20} color="#059669" />
-                  <Text style={styles.batteryStateText}>Avionics Battery Remaining</Text>
-                </View>
-                <Text style={styles.batteryPctValue}>{autoBatteryPct}% SOC</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                setOverallVerdict('FAILED');
+                if (!fieldNotes || fieldNotes === 'OK Tested') {
+                  setFieldNotes('Defect / Hardware issue identified');
+                }
+              }}
+              style={[
+                styles.verdictBtn,
+                overallVerdict === 'FAILED' ? styles.verdictBtnFailedActive : styles.verdictBtnInactive,
+              ]}
+              activeOpacity={0.8}
+            >
+              <AlertTriangle size={20} color={overallVerdict === 'FAILED' ? '#DC2626' : '#64748B'} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.verdictBtnTitle, overallVerdict === 'FAILED' && { color: '#DC2626' }]}>
+                  ISSUE DETECTED
+                </Text>
+                <Text style={styles.verdictBtnSub}>
+                  Damage, rotor nick, cargo jam, or anomaly found.
+                </Text>
               </View>
-              <View style={styles.batteryBarTrack}>
-                <View style={[styles.batteryBarFill, { width: `${autoBatteryPct}%` }]} />
-              </View>
-              <Text style={styles.batterySubNote}>Optimal operational state. Zero voltage drift observed.</Text>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
-
-
-        <TouchableOpacity
-          onPress={() => setZeroDefectCertified(!zeroDefectCertified)}
-          style={[
-            styles.certifyCard,
-            zeroDefectCertified ? styles.certifyCardActive : styles.certifyCardInactive,
-          ]}
-          activeOpacity={0.8}
-        >
-          <View
-            style={[
-              styles.certifyCheckbox,
-              zeroDefectCertified ? styles.checkboxChecked : styles.checkboxUnchecked,
-            ]}
-          >
-            {zeroDefectCertified && <Check size={16} color="#FFFFFF" />}
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text
-              style={[
-                styles.certifyTitle,
-                zeroDefectCertified ? styles.certifyTitleActive : styles.certifyTitleInactive,
-              ]}
-            >
-              Zero-Defect Quality Handover Certified
-            </Text>
-            <Text style={styles.certifySubtitle}>
-              I confirm the airframe is completely intact, zero defects observed, and safe for transport or re-deployment.
-            </Text>
-          </View>
-        </TouchableOpacity>
 
 
         {!isHub && (
@@ -1274,12 +1157,47 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
 
 
         <View style={styles.card}>
-          <Text style={styles.sectionHeading}>Handover Notes & Remarks</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={styles.sectionHeading}>Inspection Remarks</Text>
+              <Text style={{ color: '#DC2626', fontSize: 13, fontWeight: '800' }}>* MANDATORY</Text>
+            </View>
+            <View style={fieldNotes.trim().length > 0 ? styles.mandatoryBadgeOk : styles.mandatoryBadgeMissing}>
+              <Text style={fieldNotes.trim().length > 0 ? styles.mandatoryTextOk : styles.mandatoryTextMissing}>
+                {fieldNotes.trim().length > 0 ? 'FILLED ✓' : 'REQUIRED'}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.sectionSubtitle}>
+            Agar koi issue hai to issue likhein, warna "OK Tested" jaisa likhein. Quick chip tap karke bhi autofill kar sakte hain:
+          </Text>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
+            {[
+              'OK Tested',
+              'Zero Defect - Flight Ready',
+              'Airframe & Motors Cleared',
+              'Minor scratch - Operable',
+              'Propeller nick flagged',
+              'Cargo latch needs servicing',
+            ].map((chip) => (
+              <TouchableOpacity
+                key={chip}
+                style={[styles.chipBtn, fieldNotes === chip && styles.chipBtnActive]}
+                onPress={() => setFieldNotes(chip)}
+              >
+                <Text style={[styles.chipText, fieldNotes === chip && styles.chipTextActive]}>
+                  {chip}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
           <TextInput
-            style={styles.notesInput}
+            style={[styles.notesInput, !fieldNotes.trim() && { borderColor: '#DC2626' }]}
             value={fieldNotes}
             onChangeText={setFieldNotes}
-            placeholder="Add any observations, weather notes, or consignment handover comments..."
+            placeholder="Enter mandatory remarks (e.g. OK Tested, all systems normal)..."
             placeholderTextColor="#94A3B8"
             multiline
             numberOfLines={3}
@@ -1507,6 +1425,106 @@ export const InspectionScreen: React.FC<InspectionScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
+  sectionSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  mediaCountBadge: {
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  mediaCountBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#3B0080',
+  },
+  verdictRow: {
+    gap: 12,
+    marginTop: 8,
+  },
+  verdictBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  verdictBtnInactive: {
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+  },
+  verdictBtnPassedActive: {
+    borderColor: '#059669',
+    backgroundColor: '#ECFDF5',
+  },
+  verdictBtnFailedActive: {
+    borderColor: '#DC2626',
+    backgroundColor: '#FEF2F2',
+  },
+  verdictBtnTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  verdictBtnSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  mandatoryBadgeOk: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  mandatoryTextOk: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#059669',
+  },
+  mandatoryBadgeMissing: {
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  mandatoryTextMissing: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  chipScroll: {
+    flexDirection: 'row',
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  chipBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  chipBtnActive: {
+    backgroundColor: '#3B0080',
+    borderColor: '#3B0080',
+  },
+  chipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
+  },
+
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',

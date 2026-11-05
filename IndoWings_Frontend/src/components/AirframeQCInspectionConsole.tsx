@@ -464,29 +464,47 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
     const maxPhotoBytes = 2 * 1024 * 1024; // 2 MB
     const maxVideoBytes = 5 * 1024 * 1024; // 5 MB
 
-    Array.from(files).forEach((file) => {
-      if (type === 'photo' && file.size > maxPhotoBytes) {
-        const mb = (file.size / (1024 * 1024)).toFixed(2);
-        setSubmitError(`Photo "${file.name}" exceeds 2 MB upload limit (${mb} MB). Please choose a photo under 2 MB.`);
+    if (type === 'photo') {
+      const remainingSlots = 3 - photoReferences.length;
+      if (remainingSlots <= 0) {
+        setSubmitError('Maximum 3 photos allowed per inspection.');
+        e.target.value = '';
         return;
       }
-      if (type === 'video' && file.size > maxVideoBytes) {
+      const filesToAdd = Array.from(files).slice(0, remainingSlots);
+      filesToAdd.forEach((file) => {
+        if (file.size > maxPhotoBytes) {
+          const mb = (file.size / (1024 * 1024)).toFixed(2);
+          setSubmitError(`Photo "${file.name}" exceeds 2 MB upload limit (${mb} MB). Please choose a photo under 2 MB.`);
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          const resultUrl = reader.result as string;
+          setPhotoReferences((prev) => prev.length < 3 ? [...prev, { url: resultUrl, name: file.name }] : prev);
+        };
+        reader.readAsDataURL(file);
+      });
+    } else {
+      if (videoReferences.length >= 1) {
+        setSubmitError('Maximum 1 video allowed per inspection.');
+        e.target.value = '';
+        return;
+      }
+      const file = files[0];
+      if (file.size > maxVideoBytes) {
         const mb = (file.size / (1024 * 1024)).toFixed(2);
         setSubmitError(`Video "${file.name}" exceeds 5 MB upload limit (${mb} MB). Please choose a video under 5 MB.`);
+        e.target.value = '';
         return;
       }
-
       const reader = new FileReader();
       reader.onload = () => {
         const resultUrl = reader.result as string;
-        if (type === 'photo') {
-          setPhotoReferences((prev) => [...prev, { url: resultUrl, name: file.name }]);
-        } else {
-          setVideoReferences((prev) => [...prev, { url: resultUrl, name: file.name }]);
-        }
+        setVideoReferences([{ url: resultUrl, name: file.name }]);
       };
       reader.readAsDataURL(file);
-    });
+    }
     e.target.value = '';
   };
 
@@ -494,8 +512,25 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
     e.preventDefault();
     if (!selectedDrone) return;
 
+    const cleanRemarks = notes.trim();
+    if (!cleanRemarks) {
+      setSubmitError('Remarks are mandatory. Please enter "OK Tested" if everything is clear, or describe any issue found.');
+      return;
+    }
+
+    if (photoReferences.length > 3) {
+      setSubmitError('Maximum 3 photos are allowed per inspection.');
+      return;
+    }
+    if (videoReferences.length > 1) {
+      setSubmitError('Maximum 1 video is allowed per inspection.');
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
+
+    const isPassed = overallVerdict === 'PASSED';
 
     const payload = {
       drone_id: selectedDrone.id,
@@ -503,22 +538,22 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
       inspection_type: 'DEPOT_MAINTENANCE',
       stage: 'depot_dispatch',
 
-      body_condition: bodyCondition,
-      propeller_condition: propellerCondition,
-      battery_condition: batteryHealth,
-      landing_gear_condition: landingGearCondition,
-      cargo_bay_condition: cargoBayCondition,
+      body_condition: isPassed ? 'GOOD' : 'CRACKED',
+      propeller_condition: isPassed ? 'GOOD' : 'DAMAGED',
+      battery_condition: 'NORMAL',
+      landing_gear_condition: isPassed ? 'GOOD' : 'DAMAGED',
+      cargo_bay_condition: 'CLEAN_RELEASE',
       field_battery_level: batteryLevel,
-      depot_avionics_cleared: gpsCompassFix === 'HEALTHY_3D_LOCK',
-      ready_for_next_sortie: overallVerdict === 'PASSED',
+      depot_avionics_cleared: isPassed,
+      ready_for_next_sortie: isPassed,
 
-      hover_stability: hoverFlightStability,
-      motor_temperature: motorTempVibration,
-      defect_classification: defectClassification,
-      zero_defect_certified: defectClassification === 'ZERO_DEFECT' && overallVerdict === 'PASSED',
+      hover_stability: isPassed ? 'STABLE_HOVER' : 'UNSTABLE',
+      motor_temperature: 'NORMAL',
+      defect_classification: isPassed ? 'ZERO_DEFECT' : 'GROUNDING_DEFECT',
+      zero_defect_certified: isPassed,
 
       overall_inspection: overallVerdict,
-      remarks: notes || `Depot flight clearance certified by ${currentUser?.name || 'Inspector'}.`,
+      remarks: cleanRemarks,
 
       photo_references: photoReferences,
       video_references: videoReferences,
@@ -1493,425 +1528,130 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
               })()}
             </div>
           ) : (
-            <form onSubmit={handleSubmitInspection} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-8">
+            <form onSubmit={handleSubmitInspection} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
 
-              <div className="space-y-4">
-                <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+              {/* 1. Overall Inspection Verdict */}
+              <div className="space-y-3">
+                <div className="border-b border-slate-100 pb-2.5 flex items-center justify-between">
                   <div>
                     <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                      <Wrench className="w-4 h-4 text-[#5a00b8]" />
-                      1. Physical Airframe & Parts Condition
+                      <ShieldCheck className="w-4 h-4 text-[#5a00b8]" />
+                      1. Inspection Verdict
                     </h4>
                     <p className="text-xs text-slate-500">
-                      Check chassis, motor arms, propellers, and landing skids for physical integrity.
+                      Select whether this airframe is clear for sortie dispatch or flagged for repair.
                     </p>
                   </div>
-                  <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg">
-                    Checklist 1/4
+                  <span className={`text-[11px] font-black px-2.5 py-1 rounded-lg ${
+                    overallVerdict === 'PASSED' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                  }`}>
+                    {overallVerdict === 'PASSED' ? 'Zero Defect' : 'Issue Flagged'}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOverallVerdict('PASSED');
+                      if (!notes.trim() || notes === 'Defect flagged during airframe inspection.') {
+                        setNotes('OK Tested');
+                      }
+                    }}
+                    className={`p-4 rounded-2xl border text-center transition-all cursor-pointer ${
+                      overallVerdict === 'PASSED'
+                        ? 'bg-emerald-600 border-emerald-700 text-white shadow-lg shadow-emerald-600/20 font-black'
+                        : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-300'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-6 h-6 mx-auto mb-1.5" />
+                    <div className="text-sm font-black">PASSED / ZERO DEFECT</div>
+                    <div className="text-[11px] opacity-80 mt-0.5">Airframe Clear & Flight Ready</div>
+                  </button>
 
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <label className="text-xs font-bold text-slate-900 block">
-                      Body & Arms Integrity
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: 'GOOD', label: 'Good / Perfect', sub: 'No visible scratches', color: 'emerald' },
-                        { id: 'MINOR_SCRATCH', label: 'Minor Scratch', sub: 'Minor surface mark', color: 'amber' },
-                        { id: 'CRACKED', label: 'Crack / Bend', sub: 'Cracked or bent', color: 'rose' }
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setBodyCondition(item.id as any)}
-                          className={`p-2.5 rounded-xl text-xs font-bold text-center border transition-all cursor-pointer ${
-                            bodyCondition === item.id
-                              ? 'bg-white border-[#5a00b8] text-[#5a00b8] shadow-xs'
-                              : 'bg-white/60 border-slate-200 text-slate-600 hover:bg-white'
-                          }`}
-                        >
-                          <div>{item.label}</div>
-                          <div className="text-[10px] text-slate-400 font-normal">{item.sub}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <label className="text-xs font-bold text-slate-900 block">
-                      Propellers & Blades
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: 'GOOD', label: 'Free Spin Clean', sub: 'Clean & spins free', color: 'emerald' },
-                        { id: 'HAIRLINE_NICK', label: 'Hairline Nick', sub: 'Hairline nick', color: 'amber' },
-                        { id: 'DAMAGED', label: 'Chipped/Damaged', sub: 'Chipped or damaged', color: 'rose' }
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setPropellerCondition(item.id as any)}
-                          className={`p-2.5 rounded-xl text-xs font-bold text-center border transition-all cursor-pointer ${
-                            propellerCondition === item.id
-                              ? 'bg-white border-[#5a00b8] text-[#5a00b8] shadow-xs'
-                              : 'bg-white/60 border-slate-200 text-slate-600 hover:bg-white'
-                          }`}
-                        >
-                          <div>{item.label}</div>
-                          <div className="text-[10px] text-slate-400 font-normal">{item.sub}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <label className="text-xs font-bold text-slate-900 block">
-                      Landing Gear & Skids
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: 'GOOD', label: 'Stable & Tight', sub: 'Stable & secure', color: 'emerald' },
-                        { id: 'LOOSE', label: 'Loose Screws', sub: 'Loose fasteners', color: 'amber' },
-                        { id: 'DAMAGED', label: 'Bent Skid', sub: 'Bent or damaged', color: 'rose' }
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setLandingGearCondition(item.id as any)}
-                          className={`p-2.5 rounded-xl text-xs font-bold text-center border transition-all cursor-pointer ${
-                            landingGearCondition === item.id
-                              ? 'bg-white border-[#5a00b8] text-[#5a00b8] shadow-xs'
-                              : 'bg-white/60 border-slate-200 text-slate-600 hover:bg-white'
-                          }`}
-                        >
-                          <div>{item.label}</div>
-                          <div className="text-[10px] text-slate-400 font-normal">{item.sub}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <label className="text-xs font-bold text-slate-900 block">
-                      Payload & Cargo Bay Lock
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: 'CLEAN_RELEASE', label: 'Operational Lock', sub: 'Locks securely', color: 'emerald' },
-                        { id: 'LATCH_STICKY', label: 'Sticky Latch', sub: 'Sticky latch', color: 'amber' },
-                        { id: 'DAMAGED', label: 'Faulty / Jammed', sub: 'Faulty or jammed', color: 'rose' }
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setCargoBayCondition(item.id as any)}
-                          className={`p-2.5 rounded-xl text-xs font-bold text-center border transition-all cursor-pointer ${
-                            cargoBayCondition === item.id
-                              ? 'bg-white border-[#5a00b8] text-[#5a00b8] shadow-xs'
-                              : 'bg-white/60 border-slate-200 text-slate-600 hover:bg-white'
-                          }`}
-                        >
-                          <div>{item.label}</div>
-                          <div className="text-[10px] text-slate-400 font-normal">{item.sub}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOverallVerdict('FAILED');
+                      if (notes === 'OK Tested') setNotes('');
+                    }}
+                    className={`p-4 rounded-2xl border text-center transition-all cursor-pointer ${
+                      overallVerdict === 'FAILED'
+                        ? 'bg-rose-600 border-rose-700 text-white shadow-lg shadow-rose-600/20 font-black'
+                        : 'bg-white border-slate-200 text-slate-600 hover:border-rose-300'
+                    }`}
+                  >
+                    <AlertTriangle className="w-6 h-6 mx-auto mb-1.5" />
+                    <div className="text-sm font-black">ISSUE DETECTED / FLAGGED</div>
+                    <div className="text-[11px] opacity-80 mt-0.5">Defect Found · Needs Maintenance</div>
+                  </button>
                 </div>
               </div>
 
-
-              <div className="space-y-4">
-                <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                      <Plane className="w-4 h-4 text-[#5a00b8]" />
-                      2. Flight, Avionics & Battery Test
-                    </h4>
-                    <p className="text-xs text-slate-500">
-                      Hover bench stability, motor vibration, GPS 3D fix, and battery cell health.
-                    </p>
-                  </div>
-                  <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg">
-                    Checklist 2/4
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-900 flex items-center gap-2">
-                        <Battery className="w-4 h-4 text-emerald-600" />
-                        <span>Battery Charge Level %</span>
-                      </label>
-                      <span className="text-xs font-black px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
-                        {batteryLevel}%
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min={20}
-                      max={100}
-                      value={batteryLevel}
-                      onChange={(e) => setBatteryLevel(Number(e.target.value))}
-                      className="w-full accent-[#5a00b8] cursor-pointer"
-                    />
-                    <div className="flex justify-between text-[10px] text-slate-400 font-bold">
-                      <span>Min Safe: 80%</span>
-                      <span>Target: 98%+</span>
-                    </div>
-                  </div>
-
-
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <label className="text-xs font-bold text-slate-900 block">
-                      Battery Cell Health
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: 'NORMAL', label: 'Normal / Cool', sub: 'Cool & normal' },
-                        { id: 'WARM', label: 'Slightly Warm', sub: 'Slightly warm' },
-                        { id: 'SWOLLEN', label: 'Swollen / Reject', sub: 'Swollen / Reject' }
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setBatteryHealth(item.id as any)}
-                          className={`p-2.5 rounded-xl text-xs font-bold text-center border transition-all cursor-pointer ${
-                            batteryHealth === item.id
-                              ? 'bg-white border-[#5a00b8] text-[#5a00b8] shadow-xs'
-                              : 'bg-white/60 border-slate-200 text-slate-600 hover:bg-white'
-                          }`}
-                        >
-                          <div>{item.label}</div>
-                          <div className="text-[10px] text-slate-400 font-normal">{item.sub}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <label className="text-xs font-bold text-slate-900 block">
-                      Hover & Flight Stability
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: 'STABLE_HOVER', label: 'Stable Hover', sub: 'Stable hover' },
-                        { id: 'SLIGHT_DRIFT', label: 'Slight Drift', sub: 'Slight drift' },
-                        { id: 'UNSTABLE', label: 'Oscillation', sub: 'Unstable oscillation' }
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setHoverFlightStability(item.id as any)}
-                          className={`p-2.5 rounded-xl text-xs font-bold text-center border transition-all cursor-pointer ${
-                            hoverFlightStability === item.id
-                              ? 'bg-white border-[#5a00b8] text-[#5a00b8] shadow-xs'
-                              : 'bg-white/60 border-slate-200 text-slate-600 hover:bg-white'
-                          }`}
-                        >
-                          <div>{item.label}</div>
-                          <div className="text-[10px] text-slate-400 font-normal">{item.sub}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <label className="text-xs font-bold text-slate-900 block">
-                      Motor Temp & Vibration
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: 'NORMAL', label: 'Normal Running', sub: 'Smooth & normal' },
-                        { id: 'HIGH_VIBRATION', label: 'High Vibration', sub: 'High vibration' },
-                        { id: 'OVERHEATING', label: 'Overheating', sub: 'Overheating' }
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setMotorTempVibration(item.id as any)}
-                          className={`p-2.5 rounded-xl text-xs font-bold text-center border transition-all cursor-pointer ${
-                            motorTempVibration === item.id
-                              ? 'bg-white border-[#5a00b8] text-[#5a00b8] shadow-xs'
-                              : 'bg-white/60 border-slate-200 text-slate-600 hover:bg-white'
-                          }`}
-                        >
-                          <div>{item.label}</div>
-                          <div className="text-[10px] text-slate-400 font-normal">{item.sub}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-
-              <div className="space-y-4">
-                <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                      <ShieldAlert className="w-4 h-4 text-[#5a00b8]" />
-                      3. Defect Classification & Overall Verdict
-                    </h4>
-                    <p className="text-xs text-slate-500">
-                      Classify technical findings and declare flight readiness clearance.
-                    </p>
-                  </div>
-                  <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg">
-                    Checklist 3/4
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <label className="text-xs font-bold text-slate-900 block">
-                      Defect Classification
-                    </label>
-                    <div className="space-y-2">
-                      {[
-                        {
-                          id: 'ZERO_DEFECT',
-                          label: 'Zero Defect Certified',
-                          desc: '100% clean airframe, ready for all commercial delivery sorties.'
-                        },
-                        {
-                          id: 'MINOR_COSMETIC',
-                          label: 'Minor Cosmetic',
-                          desc: 'Minor paint or surface scratch, does not impact aerodynamics or safety.'
-                        },
-                        {
-                          id: 'GROUNDING_DEFECT',
-                          label: 'Grounding Defect',
-                          desc: 'Critical issue detected. Aircraft must NOT fly until repaired.'
-                        }
-                      ].map((defect) => (
-                        <button
-                          key={defect.id}
-                          type="button"
-                          onClick={() => {
-                            setDefectClassification(defect.id as any);
-                            if (defect.id === 'GROUNDING_DEFECT') setOverallVerdict('FAILED');
-                            if (defect.id === 'ZERO_DEFECT') setOverallVerdict('PASSED');
-                          }}
-                          className={`w-full p-3 rounded-xl text-left border transition-all cursor-pointer ${
-                            defectClassification === defect.id
-                              ? 'bg-white border-[#5a00b8] text-slate-900 ring-2 ring-purple-100'
-                              : 'bg-white/60 border-slate-200 text-slate-600 hover:bg-white'
-                          }`}
-                        >
-                          <div className="text-xs font-black text-slate-900">{defect.label}</div>
-                          <div className="text-[11px] text-slate-500 mt-0.5">{defect.desc}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between space-y-4">
-                    <div>
-                      <label className="text-xs font-bold text-slate-900 block mb-2">
-                        Overall Inspection Verdict
-                      </label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setOverallVerdict('PASSED')}
-                          className={`p-4 rounded-2xl border text-center transition-all cursor-pointer ${
-                            overallVerdict === 'PASSED'
-                              ? 'bg-emerald-600 border-emerald-700 text-white shadow-lg shadow-emerald-600/20 font-black'
-                              : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-300'
-                          }`}
-                        >
-                          <CheckCircle2 className="w-6 h-6 mx-auto mb-1.5" />
-                          <div className="text-sm font-black">PASSED</div>
-                          <div className="text-[11px] opacity-80 mt-0.5">Flight Cleared</div>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setOverallVerdict('FAILED')}
-                          className={`p-4 rounded-2xl border text-center transition-all cursor-pointer ${
-                            overallVerdict === 'FAILED'
-                              ? 'bg-rose-600 border-rose-700 text-white shadow-lg shadow-rose-600/20 font-black'
-                              : 'bg-white border-slate-200 text-slate-600 hover:border-rose-300'
-                          }`}
-                        >
-                          <AlertTriangle className="w-6 h-6 mx-auto mb-1.5" />
-                          <div className="text-sm font-black">FAILED</div>
-                          <div className="text-[11px] opacity-80 mt-0.5">Needs Maintenance</div>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-purple-50 border border-purple-200 text-[11px] text-purple-900">
-                      <strong>QC Clearance Notice:</strong> Passing this inspection marks this drone operational in the
-                      depot and prepares it for secure pilot handover.
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-
-              <div className="space-y-4">
-                <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+              {/* 2. Media Evidence (Max 3 Photos, Max 1 Video) */}
+              <div className="space-y-3">
+                <div className="border-b border-slate-100 pb-2.5 flex items-center justify-between">
                   <div>
                     <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
                       <Camera className="w-4 h-4 text-[#5a00b8]" />
-                      4. Media Evidence & Remarks (Optional)
+                      2. Media Evidence (Up to 3 Photos & 1 Video)
                     </h4>
                     <p className="text-xs text-slate-500">
-                      Photos and videos are strictly <strong>optional / not mandatory</strong>. You can submit without uploading files.
+                      Upload or capture photos (max 2 MB each, up to 3) and video (max 5 MB, up to 1).
                     </p>
                   </div>
-                  <span className="text-[10px] font-black uppercase text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
-                    Optional
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">
+                      {photoReferences.length}/3 Photos
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">
+                      {videoReferences.length}/1 Video
+                    </span>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Photo Box */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                        <Camera className="w-4 h-4 text-purple-600" />
-                        <span>Photos (Optional)</span>
+                        <Camera className="w-4 h-4 text-[#5a00b8]" />
+                        <span>Photos ({photoReferences.length}/3)</span>
                       </label>
-                      <span className="text-[10px] text-slate-400 font-semibold">Max 5 photos</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Max 2 MB / photo</span>
                     </div>
 
-                    <label className="p-4 border-2 border-dashed border-slate-200 hover:border-[#5a00b8] rounded-xl bg-white text-center flex flex-col items-center justify-center cursor-pointer transition-all">
-                      <Upload className="w-5 h-5 text-slate-400 mb-1" />
-                      <span className="text-xs font-bold text-slate-700">Add Photo Evidence (Optional)</span>
-                      <span className="text-[10px] text-slate-400">Click or tap to upload</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        className="hidden"
-                        onChange={(e) => handleEvidenceUpload(e, 'photo')}
-                      />
-                    </label>
+                    {photoReferences.length < 3 ? (
+                      <label className="p-4 border-2 border-dashed border-slate-200 hover:border-[#5a00b8] rounded-xl bg-white text-center flex flex-col items-center justify-center cursor-pointer transition-all">
+                        <Upload className="w-5 h-5 text-purple-600 mb-1" />
+                        <span className="text-xs font-bold text-slate-800">Choose / Upload Photo</span>
+                        <span className="text-[10px] text-slate-400">Up to 3 photos (Max 2 MB each)</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => handleEvidenceUpload(e, 'photo')}
+                        />
+                      </label>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-slate-100 text-slate-500 text-xs font-medium text-center">
+                        Maximum 3 photos reached
+                      </div>
+                    )}
 
                     {photoReferences.length > 0 && (
-                      <div className="flex flex-wrap gap-2 pt-2">
+                      <div className="flex flex-wrap gap-2 pt-1">
                         {photoReferences.map((ref, idx) => (
-                          <div key={idx} className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200">
-                            <img src={ref.url} alt="photo" className="w-full h-full object-cover" />
+                          <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 shadow-xs group">
+                            <img src={ref.url} alt={`evidence-${idx}`} className="w-full h-full object-cover" />
+                            <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded-md bg-black/70 text-white text-[9px] font-bold">
+                              Photo #{idx + 1}
+                            </span>
                             <button
                               type="button"
                               onClick={() => setPhotoReferences((prev) => prev.filter((_, i) => i !== idx))}
-                              className="absolute top-0 right-0 bg-slate-900/80 text-white p-0.5 rounded-bl"
+                              className="absolute top-1 right-1 bg-rose-600 text-white p-1 rounded-full shadow hover:bg-rose-700 transition"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -1921,42 +1661,51 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                     )}
                   </div>
 
-
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                  {/* Video Box */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                        <Video className="w-4 h-4 text-purple-600" />
-                        <span>Video Clip (Optional)</span>
+                        <Video className="w-4 h-4 text-[#5a00b8]" />
+                        <span>Video ({videoReferences.length}/1)</span>
                       </label>
-                      <span className="text-[10px] text-slate-400 font-semibold">Max 10s clip</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Max 5 MB / video</span>
                     </div>
 
-                    <label className="p-4 border-2 border-dashed border-slate-200 hover:border-[#5a00b8] rounded-xl bg-white text-center flex flex-col items-center justify-center cursor-pointer transition-all">
-                      <Upload className="w-5 h-5 text-slate-400 mb-1" />
-                      <span className="text-xs font-bold text-slate-700">Add Short Video (Optional)</span>
-                      <span className="text-[10px] text-slate-400">Click or tap to upload</span>
-                      <input
-                        type="file"
-                        accept="video/*"
-                        className="hidden"
-                        onChange={(e) => handleEvidenceUpload(e, 'video')}
-                      />
-                    </label>
+                    {videoReferences.length < 1 ? (
+                      <label className="p-4 border-2 border-dashed border-slate-200 hover:border-[#5a00b8] rounded-xl bg-white text-center flex flex-col items-center justify-center cursor-pointer transition-all">
+                        <Upload className="w-5 h-5 text-purple-600 mb-1" />
+                        <span className="text-xs font-bold text-slate-800">Choose / Upload Video</span>
+                        <span className="text-[10px] text-slate-400">1 video clip (Max 5 MB)</span>
+                        <input
+                          type="file"
+                          accept="video/*"
+                          className="hidden"
+                          onChange={(e) => handleEvidenceUpload(e, 'video')}
+                        />
+                      </label>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-slate-100 text-slate-500 text-xs font-medium text-center">
+                        Maximum 1 video attached
+                      </div>
+                    )}
 
                     {videoReferences.length > 0 && (
-                      <div className="flex flex-wrap gap-2 pt-2">
+                      <div className="flex flex-wrap gap-2 pt-1">
                         {videoReferences.map((ref, idx) => (
                           <div
                             key={idx}
-                            className="relative px-3 py-1.5 rounded-lg bg-purple-100 text-[#5a00b8] text-xs font-bold flex items-center gap-2"
+                            className="relative w-full p-2.5 rounded-xl bg-purple-50 border border-purple-200 text-[#5a00b8] text-xs font-bold flex items-center justify-between"
                           >
-                            <span>Video #{idx + 1}</span>
+                            <div className="flex items-center gap-2 truncate">
+                              <Video className="w-4 h-4 shrink-0 text-purple-600" />
+                              <span className="truncate">{ref.name || 'Inspection Video Clip'}</span>
+                            </div>
                             <button
                               type="button"
-                              onClick={() => setVideoReferences((prev) => prev.filter((_, i) => i !== idx))}
-                              className="text-slate-500 hover:text-slate-800"
+                              onClick={() => setVideoReferences([])}
+                              className="p-1 rounded-md bg-rose-100 text-rose-600 hover:bg-rose-200 transition"
                             >
-                              <X className="w-3 h-3" />
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         ))}
@@ -1964,22 +1713,58 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                     )}
                   </div>
                 </div>
-
-
-                <div>
-                  <label className="text-xs font-bold text-slate-900 block mb-1.5">
-                    Inspector Notes & Remarks
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Enter any additional observations, battery serial, or maintenance advice..."
-                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#5a00b8] focus:ring-2 focus:ring-purple-200 text-xs text-slate-900 transition-all outline-hidden"
-                  />
-                </div>
               </div>
 
+              {/* 3. Mandatory Remarks */}
+              <div className="space-y-3">
+                <div className="border-b border-slate-100 pb-2.5 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-[#5a00b8]" />
+                      3. Remarks & Observations <span className="text-rose-500">* (MANDATORY)</span>
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      Write <strong>"OK Tested"</strong> if all systems are fine, or describe any defect found.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-black uppercase text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                    Required
+                  </span>
+                </div>
+
+                {/* Quick 1-Tap Chips */}
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    'OK Tested',
+                    'Zero Defect - Flight Ready',
+                    'Airframe & Propellers OK',
+                    'Minor Surface Scratch',
+                    'Propeller Nick / Defect',
+                    'Motor Vibration / Needs Tuning'
+                  ].map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => setNotes(chip)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        notes === chip
+                          ? 'bg-[#5a00b8] text-white border-[#5a00b8] shadow-xs'
+                          : 'bg-slate-50 hover:bg-purple-50 text-slate-700 border-slate-200 hover:border-purple-200'
+                      }`}
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  rows={3}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Enter remarks here... (e.g. OK Tested, or describe any defect observed)"
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#5a00b8] focus:ring-2 focus:ring-purple-200 text-xs text-slate-900 font-medium transition-all outline-hidden"
+                />
+              </div>
 
               {submitError && (
                 <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
@@ -1987,7 +1772,6 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                   <span>{submitError}</span>
                 </div>
               )}
-
 
               <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -1999,7 +1783,7 @@ export const AirframeQCInspectionConsole: React.FC<AirframeQCInspectionConsolePr
                       Certified by: {currentUser?.name || 'Authorized Personnel'}
                     </p>
                     <p className="text-[11px] text-slate-500">
-                      Official Role: {formatRoleLabel(currentUser?.role)} · Timestamp will be digitally signed
+                      Official Role: {formatRoleLabel(currentUser?.role)} · Digitally logged
                     </p>
                   </div>
                 </div>

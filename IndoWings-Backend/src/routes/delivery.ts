@@ -6319,27 +6319,50 @@ router.post('/inspections', async (req, res) => {
       return;
     }
 
+    const cleanRemarks = String(remarks || delivery_handover_notes || '').trim();
+    if (!cleanRemarks) {
+      res.status(400).json({
+        success: false,
+        error: 'Remarks are mandatory. Please enter "OK Tested" if all is clear or describe any issue.'
+      });
+      return;
+    }
+
+    const photosList = Array.isArray(photo_references) ? photo_references : (Array.isArray(req.body.photos) ? req.body.photos : []);
+    const videosList = Array.isArray(req.body.video_references) ? req.body.video_references : (Array.isArray(req.body.videos) ? req.body.videos : []);
+
+    if (photosList.length > 3) {
+      res.status(400).json({ success: false, error: 'Maximum 3 photos are allowed per inspection.' });
+      return;
+    }
+    if (videosList.length > 1) {
+      res.status(400).json({ success: false, error: 'Maximum 1 video is allowed per inspection.' });
+      return;
+    }
+
+    const isPassed = overall_inspection !== 'FAILED';
+
     const saved = await fileDB.saveInspection({
       drone_id: String(drone_id).trim(),
       delivery_id: delivery_id ? String(delivery_id).trim() : null,
       inspection_type,
       stage,
-      cargo_bay_condition,
-      landing_surface,
-      propeller_debris_check,
-      field_battery_level,
-      zero_defect_certified,
-      delivery_handover_notes,
-      body_condition,
-      propeller_condition,
-      battery_condition,
-      landing_gear_condition,
-      depot_avionics_cleared,
-      ready_for_next_sortie,
-      overall_inspection,
-      remarks,
-      photo_references: Array.isArray(photo_references) ? photo_references : (Array.isArray(req.body.photos) ? req.body.photos : []),
-      video_references: Array.isArray(req.body.video_references) ? req.body.video_references : (Array.isArray(req.body.videos) ? req.body.videos : []),
+      cargo_bay_condition: cargo_bay_condition || 'CLEAN_RELEASE',
+      landing_surface: landing_surface || 'SAFE_FLAT',
+      propeller_debris_check: propeller_debris_check || 'FREE_OF_DEBRIS',
+      field_battery_level: field_battery_level != null ? field_battery_level : 98,
+      zero_defect_certified: zero_defect_certified !== undefined ? zero_defect_certified : isPassed,
+      delivery_handover_notes: cleanRemarks,
+      body_condition: body_condition || (isPassed ? 'GOOD' : 'DAMAGED'),
+      propeller_condition: propeller_condition || (isPassed ? 'GOOD' : 'DAMAGED'),
+      battery_condition: battery_condition || 'NORMAL',
+      landing_gear_condition: landing_gear_condition || (isPassed ? 'GOOD' : 'DAMAGED'),
+      depot_avionics_cleared: depot_avionics_cleared !== undefined ? depot_avionics_cleared : true,
+      ready_for_next_sortie: ready_for_next_sortie !== undefined ? ready_for_next_sortie : isPassed,
+      overall_inspection: overall_inspection || 'PASSED',
+      remarks: cleanRemarks,
+      photo_references: photosList,
+      video_references: videosList,
       media_evidence: Array.isArray(req.body.media_evidence) ? req.body.media_evidence : [],
       inspected_by: user.email || user.id,
       inspector_name: user.full_name || user.name || 'Operations Specialist',
