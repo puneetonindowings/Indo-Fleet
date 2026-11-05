@@ -108,9 +108,8 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
 
     const attemptErrors: string[] = [];
 
-    // Strategy 1: Direct hostname transport on configured/preferred ports (465 SSL, then 587 TLS)
-    // This works seamlessly on localhost, Render, and AWS EC2!
-    const primaryPorts = smtpPort === 465 ? [465, 587] : [smtpPort, 465, 587];
+    // Strategy 1: Direct hostname transport on preferred ports (587 TLS first for AWS EC2/cloud compatibility, then 465 SSL)
+    const primaryPorts = [587, 465];
     const uniquePrimaryPorts = Array.from(new Set(primaryPorts));
 
     for (const port of uniquePrimaryPorts) {
@@ -165,7 +164,19 @@ export async function getReceivedSupportAttachment(emailId: string, attachmentId
   throw new Error('Direct file download is supported via customer ticket attachments.');
 }
 
-export async function sendOtpNotification({ email, phone, otp }: { email?: string; phone?: string; otp: string }) {
+export async function sendOtpNotification({
+  email,
+  phone,
+  otp,
+  purpose,
+  orderId
+}: {
+  email?: string;
+  phone?: string;
+  otp: string;
+  purpose?: string;
+  orderId?: string;
+}) {
   let targetEmail = email;
   if (!targetEmail && phone) {
     try {
@@ -178,15 +189,34 @@ export async function sendOtpNotification({ email, phone, otp }: { email?: strin
     }
   }
 
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`[OTP DEBUG] Target: ${targetEmail || phone} | Code: ${otp}`);
-  }
+  console.log(`[OTP DEBUG] Target: ${targetEmail || phone} | Code: ${otp} | Purpose: ${purpose || 'verification'}`);
   let delivered = false;
 
   if (targetEmail && targetEmail.includes('@')) {
-    const subject = `Your IndoWings Verification Code: ${otp}`;
-    const text = `Hello,\n\nYour IndoWings verification code is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share it with anyone.\n\nIf you did not request this login code, please contact ${SUPPORT_EMAIL}.\n\nThanks & Regards,\nIndofleet Team`;
-    const html = `
+    const isHandover = purpose === 'delivery-handover' || purpose === 'customer-delivery';
+    const subject = isHandover
+      ? `IndoFleet Order #${orderId || 'Consignment'} - Your Secure Delivery PIN: ${otp}`
+      : `Your IndoWings Verification Code: ${otp}`;
+
+    const text = isHandover
+      ? `Hello,\n\nYour IndoFleet secure delivery handover PIN for order #${orderId || ''} is: ${otp}\n\nPlease share this 6-digit PIN with your IndoFleet delivery partner upon physical arrival to verify and complete delivery handover.\n\nThanks & Regards,\nIndoWings Flight Operations`
+      : `Hello,\n\nYour IndoWings verification code is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share it with anyone.\n\nIf you did not request this login code, please contact ${SUPPORT_EMAIL}.\n\nThanks & Regards,\nIndofleet Team`;
+
+    const html = isHandover
+      ? `
+<div style="font-family: Arial, Helvetica, sans-serif; font-size: 15px; color: #1e1b4b; line-height: 1.6; max-width: 580px; border: 1px solid #e0e7ff; border-radius: 16px; padding: 24px; background: #ffffff;">
+  <div style="margin-bottom: 16px;">
+    <span style="background: #4f46e5; color: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase;">Secure Consignment Handover</span>
+  </div>
+  <h2 style="color: #1e1b4b; margin: 0 0 12px; font-size: 20px;">Your Delivery Verification PIN</h2>
+  <p style="margin: 0 0 16px; color: #475569;">Your autonomous IndoFleet UAV consignment ${orderId ? `(#${orderId})` : ''} is en route. Please provide the 6-digit PIN below to your delivery partner upon physical arrival:</p>
+  <div style="background: #f5f3ff; border: 2px dashed #7c3aed; border-radius: 12px; padding: 18px; text-align: center; margin: 20px 0;">
+    <span style="font-family: monospace; font-size: 32px; font-weight: 900; letter-spacing: 6px; color: #5a00b8;">${otp}</span>
+  </div>
+  <p style="font-size: 12px; color: #64748b; margin: 16px 0 0;">This PIN ensures zero-defect, certified handover of your 700RPAV hardware consignment.</p>
+</div>
+      `.trim()
+      : `
 <div style="font-family: Arial, Helvetica, sans-serif; font-size: 15px; color: #222222; line-height: 1.6; max-width: 560px;">
   <p>Hello,</p>
   <p>Your IndoWings verification code is: <strong style="font-size: 20px; font-family: monospace; letter-spacing: 2px; color: #000000;">${otp}</strong></p>
@@ -199,7 +229,7 @@ export async function sendOtpNotification({ email, phone, otp }: { email?: strin
     <strong>Indofleet Team</strong>
   </p>
 </div>
-    `.trim();
+      `.trim();
 
     delivered = await sendEmail({ to: targetEmail, subject, text, html });
     if (delivered) {
@@ -449,25 +479,56 @@ export async function sendCustomerBookingEmail(order: any) {
   if (!order.customer_email) return;
   const storeUrl = `${process.env.FRONTEND_URL || 'https://IndoFleet.com'}/profile?tab=orders`;
   const items = (order.items || []).map((item: any) => `- ${item.model} x ${item.quantity}`).join('\n');
+  const deliveryOtp = order.delivery_data?.customer_delivery_otp || order.customer_delivery_otp;
+
+  const pinText = deliveryOtp
+    ? `\n\nYOUR SECURE DELIVERY HANDOVER PIN: ${deliveryOtp}\n(Please keep this 6-digit PIN ready to share with your IndoFleet delivery partner upon physical arrival to verify delivery handover.)`
+    : '';
+
+  const pinHtml = deliveryOtp
+    ? `
+<div style="background: #f5f3ff; border: 2px dashed #7c3aed; border-radius: 12px; padding: 16px; text-align: center; margin: 18px 0;">
+  <div style="font-size: 11px; font-weight: bold; color: #6d28d9; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Secure Delivery Handover PIN</div>
+  <div style="font-family: monospace; font-size: 28px; font-weight: 900; letter-spacing: 5px; color: #5a00b8;">${deliveryOtp}</div>
+  <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Share this PIN with your delivery partner on physical arrival to certify zero-defect receipt.</div>
+</div>
+    `
+    : '';
+
   await sendEmail({
     to: order.customer_email,
-    subject: `IndoFleet booking received: ${order.id}`,
+    subject: `Order #${order.id} Confirmed - IndoFleet Consignment Booking${deliveryOtp ? ` (PIN: ${deliveryOtp})` : ''}`,
     text: `
 Hello ${order.customer_name},
 
-We have received your drone booking request. No payment was taken.
+We have received your drone consignment booking request.
 
 Order ID: ${order.id}
 Items:
 ${items}
 Delivery address: ${order.drop_address}
-Current status: ${order.status}
+Current status: ${order.status}${pinText}
 
 You can view order history and tracking updates here:
 ${storeUrl}
 
-IndoFleet Customer Operations
-`.trim()
+Thanks & Regards,
+IndoFleet Flight Operations
+`.trim(),
+    html: `
+<div style="font-family: Arial, Helvetica, sans-serif; font-size: 15px; color: #1e1b4b; line-height: 1.6; max-width: 580px; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; background: #ffffff;">
+  <h2 style="color: #1e1b4b; margin: 0 0 10px; font-size: 20px;">Booking Confirmed! Order #${order.id}</h2>
+  <p style="color: #475569; margin: 0 0 16px;">Hello <strong>${order.customer_name}</strong>, your IndoFleet drone consignment has been booked and scheduled for dispatch.</p>
+  ${pinHtml}
+  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin: 16px 0;">
+    <div style="font-size: 12px; color: #64748b; font-weight: bold; margin-bottom: 4px;">CONSIGNMENT ITEMS:</div>
+    <div style="font-size: 13px; color: #1e293b; font-weight: 600;">${(order.items || []).map((it: any) => `${it.quantity}x ${it.model}`).join(', ')}</div>
+    <div style="font-size: 12px; color: #64748b; font-weight: bold; margin-top: 10px; margin-bottom: 4px;">DELIVERY ADDRESS:</div>
+    <div style="font-size: 13px; color: #1e293b;">${order.drop_address}</div>
+  </div>
+  <p style="margin: 18px 0 0;"><a href="${storeUrl}" style="display: inline-block; background: #5a00b8; color: #ffffff; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 13px;">View Live Tracking &amp; Orders</a></p>
+</div>
+    `.trim()
   });
 }
 

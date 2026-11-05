@@ -13,15 +13,7 @@ import {
   SafeAreaView,
   StatusBar,
 } from 'react-native';
-import {
-  Lock,
-  User,
-  Eye,
-  EyeOff,
-  ShieldCheck,
-  ChevronRight,
-  AlertCircle,
-} from 'lucide-react-native';
+import { Eye, EyeOff, AlertCircle } from 'lucide-react-native';
 import { IndoFleetLogo } from '../components/IndoFleetLogo';
 import { loginPilot } from '../services/api';
 import { setAuthToken, setUserProfile } from '../config';
@@ -32,6 +24,17 @@ interface LoginScreenProps {
 }
 
 const ALLOWED_ROLES = ['delivery', 'pilot', 'admin'];
+
+const COLORS = {
+  bg: '#FFFFFF',
+  ink: '#16111F',
+  muted: '#7A7587',
+  field: '#F6F5F9',
+  line: '#ECEAF1',
+  brand: '#3B0080',
+  brandDisabled: '#C9B8E0',
+  error: '#B42318',
+};
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [identifier, setIdentifier] = useState('');
@@ -84,9 +87,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.bg} />
       <KeyboardAvoidingView
-        style={styles.container}
+        style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'android' ? 20 : 0}
       >
@@ -95,34 +98,24 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-
-          <View style={styles.brandHero}>
-            <IndoFleetLogo size="large" layout="column" showSubtitle={true} />
-            <View style={styles.roleBadge}>
-              <ShieldCheck size={14} color="#3B0080" />
-              <Text style={styles.roleBadgeText}>Delivery partner app</Text>
+          <View style={styles.content}>
+            <View style={styles.hero}>
+              <IndoFleetLogo size="large" layout="column" showSubtitle={false} />
             </View>
-          </View>
 
-
-          <View style={styles.card}>
-            <Text style={styles.cardHeading}>Sign in</Text>
-            <Text style={styles.cardSubheading}>
-              Use the credentials your admin created for you.
-            </Text>
+            <Text style={styles.heading}>Welcome back</Text>
+            <Text style={styles.subheading}>Sign in with the details your admin gave you.</Text>
 
             {error ? (
-              <View style={styles.errorBox} accessibilityRole="alert" accessibilityLiveRegion="polite">
-                <AlertCircle size={16} color="#B91C1C" style={styles.errorIcon} />
+              <View style={styles.errorRow} accessibilityRole="alert" accessibilityLiveRegion="polite">
+                <AlertCircle size={16} color={COLORS.error} style={styles.errorIcon} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
 
-
             <View style={styles.formGroup}>
               <Text style={styles.inputLabel}>Email, phone or Delivery ID</Text>
               <View style={[styles.inputWrap, focused === 'identifier' && styles.inputWrapFocused]}>
-                <User size={18} color={focused === 'identifier' ? '#3B0080' : '#64748B'} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={identifier}
@@ -132,8 +125,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   }}
                   onFocus={() => setFocused('identifier')}
                   onBlur={() => setFocused(null)}
-                  placeholder="e.g. delivery@indofleet.com"
-                  placeholderTextColor="#94A3B8"
+                  placeholder="delivery@indofleet.com"
+                  placeholderTextColor="#B0ACBA"
                   autoCapitalize="none"
                   autoCorrect={false}
                   autoComplete="username"
@@ -148,11 +141,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               </View>
             </View>
 
-
             <View style={styles.formGroup}>
               <Text style={styles.inputLabel}>Password</Text>
               <View style={[styles.inputWrap, focused === 'password' && styles.inputWrapFocused]}>
-                <Lock size={18} color={focused === 'password' ? '#3B0080' : '#64748B'} style={styles.inputIcon} />
                 <TextInput
                   ref={passwordRef}
                   style={styles.input}
@@ -164,7 +155,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   onFocus={() => setFocused('password')}
                   onBlur={() => setFocused(null)}
                   placeholder="Enter your password"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#B0ACBA"
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -181,17 +172,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   accessibilityRole="button"
                   accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? <EyeOff size={20} color="#64748B" /> : <Eye size={20} color="#64748B" />}
+                  {showPassword ? (
+                    <EyeOff size={19} color={COLORS.muted} />
+                  ) : (
+                    <Eye size={19} color={COLORS.muted} />
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
-
 
             <TouchableOpacity
               style={[styles.loginBtn, !canSubmit && styles.loginBtnDisabled]}
               onPress={handleLogin}
               disabled={!canSubmit}
-              activeOpacity={0.85}
+              activeOpacity={0.88}
               accessibilityRole="button"
               accessibilityLabel="Sign in"
               accessibilityState={{ disabled: !canSubmit, busy: loading }}
@@ -199,19 +193,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <>
-                  <Text style={styles.loginBtnText}>Sign in</Text>
-                  <ChevronRight size={18} color="#FFFFFF" />
-                </>
+                <Text style={styles.loginBtnText}>Sign in</Text>
               )}
             </TouchableOpacity>
-          </View>
 
-
-          <View style={styles.noticeBox}>
-            <Text style={styles.noticeHeading}>Don't have an account?</Text>
-            <Text style={styles.noticeText}>
-              Your admin creates delivery accounts. Contact your dispatcher or the support team to get access.
+            <Text style={styles.footer}>
+              No account yet? Ask your dispatcher or the support team to set one up.
             </Text>
           </View>
         </ScrollView>
@@ -221,163 +208,108 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 };
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   safe: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0,
-  },
-  container: {
-    flex: 1,
+    backgroundColor: COLORS.bg,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 28 : 0,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: 28,
+    paddingVertical: 32,
   },
-  brandHero: {
+  content: {
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
+  },
+  hero: {
     alignItems: 'center',
-    marginBottom: 28,
+    marginBottom: 48,
   },
-  roleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 14,
-    backgroundColor: '#F5F3FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#DDD6FE',
-  },
-  roleBadgeText: {
-    fontSize: 12,
+  heading: {
+    fontSize: 30,
     fontWeight: '700',
-    color: '#5B21B6',
+    letterSpacing: -0.6,
+    color: COLORS.ink,
+    marginBottom: 6,
   },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#3B0080',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 6,
-    marginBottom: 20,
+  subheading: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: COLORS.muted,
+    marginBottom: 32,
   },
-  cardHeading: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#0F172A',
-    marginBottom: 4,
-  },
-  cardSubheading: {
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 18,
-    marginBottom: 20,
-  },
-  errorBox: {
+  errorRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   errorIcon: {
     marginRight: 8,
-    marginTop: 1,
+    marginTop: 2,
   },
   errorText: {
     flex: 1,
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#B91C1C',
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
+    color: COLORS.error,
   },
   formGroup: {
-    marginBottom: 18,
+    marginBottom: 20,
   },
   inputLabel: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#334155',
+    fontWeight: '600',
+    color: COLORS.ink,
     marginBottom: 8,
   },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    height: 54,
     paddingHorizontal: 16,
-    height: 56,
+    borderRadius: 14,
+    backgroundColor: COLORS.field,
+    borderWidth: 1,
+    borderColor: COLORS.field,
   },
   inputWrapFocused: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#3B0080',
-  },
-  inputIcon: {
-    marginRight: 10,
+    backgroundColor: COLORS.bg,
+    borderColor: COLORS.brand,
   },
   input: {
     flex: 1,
-    color: '#0F172A',
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    color: COLORS.ink,
     paddingVertical: 0,
   },
   loginBtn: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#3B0080',
-    borderRadius: 28,
     height: 56,
-    marginTop: 8,
-    shadowColor: '#3B0080',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 5,
+    marginTop: 12,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.brand,
   },
   loginBtnDisabled: {
-    backgroundColor: '#A78BCA',
-    shadowOpacity: 0,
-    elevation: 0,
+    backgroundColor: COLORS.brandDisabled,
   },
   loginBtnText: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '600',
+    letterSpacing: 0.2,
     color: '#FFFFFF',
   },
-  noticeBox: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    alignItems: 'center',
-  },
-  noticeHeading: {
+  footer: {
+    marginTop: 28,
     fontSize: 13,
-    fontWeight: '800',
-    color: '#334155',
-    marginBottom: 4,
-  },
-  noticeText: {
-    fontSize: 12,
-    color: '#64748B',
+    lineHeight: 19,
     textAlign: 'center',
-    lineHeight: 18,
+    color: COLORS.muted,
   },
 });

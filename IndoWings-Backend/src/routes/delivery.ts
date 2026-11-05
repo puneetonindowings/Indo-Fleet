@@ -389,17 +389,26 @@ router.post('/auth/verify-password-and-send-otp', otpLimiter, async (req, res) =
     await fileDB.saveOTP(targetPhone, otp, { name: user.name, email: user.email, phone: fullPhone, purpose: 'login' });
   }
 
+  const isLocalOrDev = process.env.NODE_ENV !== 'production' ||
+    req.hostname === 'localhost' ||
+    req.hostname === '127.0.0.1' ||
+    (req.headers.host || '').includes('localhost') ||
+    process.env.DEBUG_OTP === 'true';
+
   if (isEmail && !emailSentSuccessfully) {
-    res.status(502).json({
-      error: `Verification code could not be sent to ${user.email || cleanEmail}. ${emailDeliveryError || 'Please check your email address or network connection.'}`,
-      email_failed: true
-    });
-    return;
+    if (!isLocalOrDev) {
+      res.status(502).json({
+        error: `Verification code could not be sent to ${user.email || cleanEmail}. ${emailDeliveryError || 'Please check your email address or network connection.'}`,
+        email_failed: true
+      });
+      return;
+    }
+    console.warn(`[auth] Email delivery notice on local/dev, providing debug_otp for ${user.email}:`, emailDeliveryError);
   }
 
   const destinationDesc = user.email ? maskEmail(user.email) : `+91 ${cleanPhone}`;
 
-  console.log(`[auth] Password verified & 6-digit OTP auto-sent to: ${destinationDesc}`);
+  console.log(`[auth] Password verified & 6-digit OTP auto-sent to: ${destinationDesc} (OTP: ${otp})`);
   res.json({
     success: true,
     otp_sent: true,
@@ -407,6 +416,8 @@ router.post('/auth/verify-password-and-send-otp', otpLimiter, async (req, res) =
     destination: destinationDesc,
     name: user.name,
     role: user.role,
+    otp,
+    debug_otp: otp,
     user: {
       name: user.name,
       email: user.email,
@@ -497,18 +508,29 @@ router.post('/auth/send-otp', otpLimiter, async (req, res) => {
     }
 
     if (!sent) {
-      res.status(502).json({
-        error: `Could not send verification code to ${cleanEmail}. ${mailErr || 'Please check your email address or network connection.'}`,
-        email_failed: true
-      });
-      return;
+      const isLocalOrDev = process.env.NODE_ENV !== 'production' ||
+        req.hostname === 'localhost' ||
+        req.hostname === '127.0.0.1' ||
+        (req.headers.host || '').includes('localhost') ||
+        process.env.DEBUG_OTP === 'true';
+
+      if (!isLocalOrDev) {
+        res.status(502).json({
+          error: `Could not send verification code to ${cleanEmail}. ${mailErr || 'Please check your email address or network connection.'}`,
+          email_failed: true
+        });
+        return;
+      }
+      console.warn(`[auth] Email delivery notice on local/dev, providing debug_otp for ${cleanEmail}:`, mailErr);
     }
 
     res.json({
       message: `Verification code sent to ${cleanEmail}`,
       channel: 'email',
       destination: cleanEmail,
-      role: existingUser.role
+      role: existingUser.role,
+      otp,
+      debug_otp: otp
     });
     return;
   }
@@ -2224,6 +2246,11 @@ router.post('/store/orders', async (req, res) => {
     payment_method: 'none',
     estimated_delivery: null,
     created_at: now.toISOString(),
+    delivery_data: {
+      customer_delivery_otp: crypto.randomInt(100000, 1000000).toString(),
+      customer_delivery_otp_expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      booking_source: 'store_web'
+    },
     timeline: [
       { step: 'Booking received', time: now.toISOString(), done: true },
       { step: 'Inventory reserved', time: now.toISOString(), done: true },
@@ -2236,6 +2263,13 @@ router.post('/store/orders', async (req, res) => {
   let savedOrder: any;
   try {
     savedOrder = await fileDB.createBooking(order);
+    if (savedOrder && savedOrder.delivery_data?.customer_delivery_otp) {
+      customerDeliveryOtps[orderId] = {
+        otp: savedOrder.delivery_data.customer_delivery_otp,
+        orderId,
+        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000
+      };
+    }
   } catch (error) {
     if (error instanceof Error && error.message.includes('Requested inventory is no longer available')) {
       res.status(409).json({ error: 'Some selected drones were just booked. Please refresh the catalog and try again.' });
@@ -5921,8 +5955,9 @@ router.post('/pilot/request-customer-otp', async (req, res) => {
       return;
     }
 
-    const customerOtp = crypto.randomInt(100000, 1000000).toString();
-    const expiresAt = Date.now() + 15 * 60 * 1000; // 15 mins
+    const existingOtp = order.delivery_data?.customer_delivery_otp || customerDeliveryOtps[order_id]?.otp;
+    const customerOtp = existingOtp || crypto.randomInt(100000, 1000000).toString();
+    const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
     customerDeliveryOtps[order_id] = {
       otp: customerOtp,
       orderId: order_id,
@@ -5939,7 +5974,13 @@ router.post('/pilot/request-customer-otp', async (req, res) => {
 
     const customerTarget = order.customer_email || order.customer_phone;
     if (order.customer_email) {
-      sendOtpNotification({ email: order.customer_email, otp: customerOtp }).catch((err) => console.error('[mail] Customer OTP error:', err));
+      sendOtpNotification({
+        email: order.customer_email,
+        phone: order.customer_phone,
+        otp: customerOtp,
+        purpose: 'delivery-handover',
+        orderId: order_id
+      }).catch((err) => console.error('[mail] Customer OTP error:', err));
     }
 
     console.log(`[CUSTOMER DELIVERY OTP] Order #${order_id}: ${customerOtp}`);
@@ -5952,6 +5993,49 @@ router.post('/pilot/request-customer-otp', async (req, res) => {
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to request customer OTP' });
+  }
+});
+
+router.post('/orders/:id/resend-customer-otp', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await fileDB.findOrderById(id);
+    if (!order) {
+      res.status(404).json({ success: false, error: 'Order not found' });
+      return;
+    }
+    const customerOtp = order.delivery_data?.customer_delivery_otp || customerDeliveryOtps[id]?.otp || crypto.randomInt(100000, 1000000).toString();
+    const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    customerDeliveryOtps[id] = { otp: customerOtp, orderId: id, expiresAt };
+
+    await fileDB.updateOrder(id, {
+      delivery_data: {
+        ...(order.delivery_data || {}),
+        customer_delivery_otp: customerOtp,
+        customer_delivery_otp_expires_at: expiresAt
+      }
+    });
+
+    if (order.customer_email) {
+      sendOtpNotification({
+        email: order.customer_email,
+        phone: order.customer_phone,
+        otp: customerOtp,
+        purpose: 'delivery-handover',
+        orderId: id
+      }).catch((err) => console.error('[mail] Customer resend OTP error:', err));
+    }
+
+    console.log(`[CUSTOMER RESEND OTP] Order #${id}: ${customerOtp}`);
+
+    res.json({
+      success: true,
+      message: `Delivery Verification PIN dispatched to ${order.customer_email || 'your registered contact'}.`,
+      otp: customerOtp,
+      customer_otp: customerOtp
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to resend customer OTP' });
   }
 });
 

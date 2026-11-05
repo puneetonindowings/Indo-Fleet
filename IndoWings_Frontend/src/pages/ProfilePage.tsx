@@ -1566,6 +1566,22 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                         </div>
                       )}
 
+                      {order.status !== 'delivered' && order.status !== 'cancelled' && order.delivery_data?.customer_delivery_otp && (
+                        <div className="mt-3 py-2.5 px-3.5 bg-purple-50/80 border border-purple-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold text-purple-950 uppercase tracking-wider flex items-center gap-1.5">
+                              🔐 Handover PIN:
+                            </span>
+                            <span className="font-mono text-base font-black text-[#5a00b8] tracking-widest bg-white px-3 py-0.5 rounded-lg border border-purple-200 shadow-2xs">
+                              {order.delivery_data.customer_delivery_otp}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-slate-500 font-medium">
+                            Share with delivery partner upon arrival to confirm receipt
+                          </span>
+                        </div>
+                      )}
+
 
                       <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-2 text-xs">

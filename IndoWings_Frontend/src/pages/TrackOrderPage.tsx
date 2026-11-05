@@ -48,6 +48,40 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
+  const [resendingOtp, setResendingOtp] = useState(false);
+  const [otpSentNotice, setOtpSentNotice] = useState('');
+
+  const handleResendCustomerOtp = async (targetOrderId: string) => {
+    if (!targetOrderId) return;
+    setResendingOtp(true);
+    setOtpSentNotice('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/orders/${encodeURIComponent(targetOrderId)}/resend-customer-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setOtpSentNotice(`✓ OTP sent to ${data.sent_to || 'your registered email'}!`);
+        if (data.otp && order) {
+          setOrder({
+            ...order,
+            delivery_data: {
+              ...(order.delivery_data || {}),
+              customer_delivery_otp: data.otp
+            }
+          });
+        }
+      } else {
+        setOtpSentNotice(data.error || 'Failed to send OTP. Please try again.');
+      }
+    } catch {
+      setOtpSentNotice('Failed to connect to notification service.');
+    } finally {
+      setResendingOtp(false);
+      setTimeout(() => setOtpSentNotice(''), 6000);
+    }
+  };
 
   React.useEffect(() => {
     if (!order || ['delivered', 'cancelled', 'failed'].includes(order.status)) return;
@@ -209,7 +243,7 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
               </div>
               <CustomerOrderLiveMap order={order} className="h-[420px] sm:h-[480px] lg:h-[520px]" />
 
-            {order.delivery_data?.customer_delivery_otp && order.status !== 'delivered' && (
+            {order.status !== 'delivered' && order.status !== 'cancelled' && (
               <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-300 rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 my-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center font-black shrink-0">
@@ -217,11 +251,24 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({ onNavigate, init
                   </div>
                   <div>
                     <p className="text-xs font-black uppercase tracking-wider text-purple-950">Your Secure Delivery Handover PIN</p>
-                    <p className="text-xs text-slate-500 mt-0.5">Please share this 6-digit OTP with your delivery partner upon arrival</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Please share this 6-digit PIN with your delivery partner upon arrival</p>
+                    {otpSentNotice && <p className="text-xs font-bold text-emerald-700 mt-1">{otpSentNotice}</p>}
                   </div>
                 </div>
-                <div className="bg-[#5a00b8] text-white px-5 py-2.5 rounded-xl font-mono text-2xl font-black tracking-widest text-center shadow-md">
-                  {order.delivery_data.customer_delivery_otp}
+                <div className="flex items-center gap-3">
+                  {order.delivery_data?.customer_delivery_otp ? (
+                    <div className="bg-[#5a00b8] text-white px-5 py-2.5 rounded-xl font-mono text-2xl font-black tracking-widest text-center shadow-md">
+                      {order.delivery_data.customer_delivery_otp}
+                    </div>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => handleResendCustomerOtp(order.id)}
+                    disabled={resendingOtp}
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-[#5a00b8] border border-purple-200 hover:bg-purple-100/50 transition-colors cursor-pointer shrink-0"
+                  >
+                    {resendingOtp ? 'Sending...' : 'Resend to Email'}
+                  </button>
                 </div>
               </div>
             )}
