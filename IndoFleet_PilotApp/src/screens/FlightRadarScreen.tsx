@@ -43,6 +43,7 @@ import {
   QrCode,
   ShieldCheck,
   Camera,
+  Phone,
   Building2,
 } from 'lucide-react-native';
 import { DeliveryOrder, TelemetryStats } from '../types';
@@ -159,6 +160,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
   const [mapZoom] = useState<number>(15);
   const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
   const [fullscreen, setFullscreen] = useState(false);
+  const [showMapPreview, setShowMapPreview] = useState(false);
 
   useEffect(() => {
     if (!fullscreen) return;
@@ -1030,7 +1032,7 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
             <View style={styles.mapHeader}>
               <View style={styles.mapTitleRow}>
                 <Radio size={15} color={C.brand} />
-                <Text style={styles.mapTitle}>{order ? 'Driving Route' : 'Live Map'}</Text>
+                <Text style={styles.mapTitle}>{order ? 'Live Mission Navigation' : 'Live GPS Radar'}</Text>
               </View>
               <TouchableOpacity
                 onPress={onRefreshLocation}
@@ -1039,53 +1041,202 @@ export const FlightRadarScreen: React.FC<FlightRadarScreenProps> = ({
               >
                 <View style={[styles.gpsDot, { backgroundColor: hasLiveGpsFix ? C.ok : C.warn }]} />
                 <Text style={[styles.gpsText, { color: hasLiveGpsFix ? '#065F46' : '#92400E' }]}>
-                  {hasLiveGpsFix ? 'GPS locked' : 'Tap to Lock GPS'}
+                  {hasLiveGpsFix ? 'Hardware GPS Active' : 'Acquiring GPS...'}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            <View style={styles.mapFrame}>
-              {renderMapBody(false)}
-              {renderMapToggle()}
-              <TouchableOpacity style={styles.fsBtn} onPress={() => setFullscreen(true)} activeOpacity={0.85}>
-                <Maximize2 size={17} color={C.ink} />
-              </TouchableOpacity>
+            {/* Primary Turn-by-Turn Google Maps Navigation Action */}
+            <View style={{ padding: 14 }}>
               <TouchableOpacity
-                style={[styles.myLocationBtn, isLocating && styles.myLocationBtnActive]}
-                onPress={handleRecenterLocation}
+                style={{
+                  backgroundColor: '#1E1B4B',
+                  borderRadius: 18,
+                  padding: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                  shadowColor: '#1E1B4B',
+                  shadowOffset: { width: 0, height: 6 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 12,
+                  elevation: 8,
+                  marginBottom: 12,
+                }}
+                onPress={handleOpenGoogleMaps}
                 activeOpacity={0.85}
               >
-                <LocateFixed size={20} color={isLocating ? '#059669' : '#1A73E8'} />
+                <View style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: '#059669',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                  <Navigation size={22} color="#FFFFFF" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '800' }}>
+                    Start Live Navigation in Google Maps
+                  </Text>
+                  <Text style={{ color: '#A5B4FC', fontSize: 11.5, marginTop: 2 }}>
+                    Voice guidance, live traffic & fastest road route to customer
+                  </Text>
+                </View>
+                <ChevronRight size={20} color="#94A3B8" />
+              </TouchableOpacity>
+
+              {/* Quick Actions Row */}
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+                {order && (order.customer_phone || (order as any).recipient_phone) && (
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#ECFDF5',
+                      borderRadius: 12,
+                      paddingVertical: 10,
+                      paddingHorizontal: 8,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'row',
+                      gap: 6,
+                      borderWidth: 1,
+                      borderColor: '#A7F3D0',
+                    }}
+                    onPress={() => Linking.openURL(`tel:${order.customer_phone || (order as any).recipient_phone}`)}
+                    activeOpacity={0.8}
+                  >
+                    <Phone size={14} color="#059669" />
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#065F46' }}>Call Customer</Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#F1F5F9',
+                    borderRadius: 12,
+                    paddingVertical: 10,
+                    paddingHorizontal: 8,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 6,
+                    borderWidth: 1,
+                    borderColor: '#E2E8F0',
+                  }}
+                  onPress={handleRecenterLocation}
+                  activeOpacity={0.8}
+                >
+                  <LocateFixed size={14} color="#3B0080" />
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#3B0080' }}>Recenter GPS</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    backgroundColor: isTracking ? '#FEF2F2' : '#F0FDF4',
+                    borderRadius: 12,
+                    paddingVertical: 10,
+                    paddingHorizontal: 8,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 6,
+                    borderWidth: 1,
+                    borderColor: isTracking ? '#FECACA' : '#BBF7D0',
+                  }}
+                  onPress={isTracking ? handleStopAlert : () => { onRefreshLocation ? onRefreshLocation() : Alert.alert('GPS Broadcasting', 'Live GPS is sharing with customers & dispatch.'); }}
+                  activeOpacity={0.8}
+                >
+                  <Radio size={14} color={isTracking ? '#DC2626' : '#16A34A'} />
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: isTracking ? '#DC2626' : '#16A34A' }}>
+                    {isTracking ? 'Pause GPS' : 'Resume GPS'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Live Broadcast Indicator */}
+              <View style={{
+                backgroundColor: '#F8FAFC',
+                borderRadius: 14,
+                padding: 12,
+                borderWidth: 1,
+                borderColor: '#E2E8F0',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                marginBottom: 10,
+              }}>
+                <View style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 5,
+                  backgroundColor: isTracking ? '#10B981' : '#F59E0B',
+                }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#0F172A' }}>
+                    {isTracking ? '📡 Live GPS Broadcast Active' : '⚠️ Live GPS Broadcast Paused'}
+                  </Text>
+                  <Text style={{ fontSize: 10.5, color: '#64748B', marginTop: 1 }}>
+                    Admin Desk, Fleet Manager & Customer are receiving your live position in real-time.
+                  </Text>
+                </View>
+              </View>
+
+              {/* Optional Preview Map Toggle */}
+              <TouchableOpacity
+                style={{
+                  paddingVertical: 8,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={() => setShowMapPreview(!showMapPreview)}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#6366F1' }}>
+                  {showMapPreview ? '▲ Hide In-App Map Preview' : '▼ Show In-App Map Preview'}
+                </Text>
               </TouchableOpacity>
             </View>
+
+            {showMapPreview && (
+              <View style={styles.mapFrame}>
+                {renderMapBody(false)}
+                {renderMapToggle()}
+                <TouchableOpacity style={styles.fsBtn} onPress={() => setFullscreen(true)} activeOpacity={0.85}>
+                  <Maximize2 size={17} color={C.ink} />
+                </TouchableOpacity>
+              </View>
+            )}
 
             <View style={styles.statStrip}>
               <View style={styles.statCell}>
-                <Text style={styles.statLabel}>Location</Text>
+                <Text style={styles.statLabel}>Coordinates</Text>
                 <Text style={styles.statValue} numberOfLines={1}>
                   {currentCoords
-                    ? `${currentCoords.latitude.toFixed(3)}, ${currentCoords.longitude.toFixed(3)}`
-                    : 'Finding…'}
+                    ? `${currentCoords.latitude.toFixed(4)}, ${currentCoords.longitude.toFixed(4)}`
+                    : 'Searching…'}
                 </Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statCell}>
-                <Text style={styles.statLabel}>Heading</Text>
+                <Text style={styles.statLabel}>Speed</Text>
                 <Text style={styles.statValue}>
-                  {telemetry.headingDeg || 0}° {cardinal(telemetry.headingDeg || 0)}
+                  {telemetry.speedKmh || 0} km/h
                 </Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statCell}>
-                <Text style={styles.statLabel}>Live sharing</Text>
+                <Text style={styles.statLabel}>Sharing</Text>
                 <Text style={[styles.statValue, { color: isTracking ? C.ok : C.danger }]}>
-                  {isTracking ? 'On' : 'Paused'}
+                  {isTracking ? 'Broadcasting' : 'Paused'}
                 </Text>
               </View>
             </View>
           </View>
         )}
-
 
         {!order && allOrders.length > 0 && (
           <View style={styles.listCard}>

@@ -40,30 +40,32 @@ interface OrderHistoryScreenProps {
 
 export const getConsignmentDrones = (order: DeliveryOrder): string[] => {
   const ids: string[] = [];
-  if (!order) return ids;
-  if (Array.isArray(order.reserved_inventory_ids)) {
-    order.reserved_inventory_ids.forEach((id: string) => {
-      if (id && !ids.includes(id)) ids.push(id);
-    });
-  }
-  if (Array.isArray((order as any).cancelled_reserved_inventory_ids)) {
-    (order as any).cancelled_reserved_inventory_ids.forEach((id: string) => {
-      if (id && !ids.includes(id)) ids.push(id);
-    });
-  }
-  if (Array.isArray(order.assigned_drone_ids)) {
-    order.assigned_drone_ids.forEach((id: string) => {
-      if (id && !ids.includes(id)) ids.push(id);
-    });
-  }
-  if (Array.isArray(order.drones)) {
-    order.drones.forEach((id: string) => {
-      if (id && !ids.includes(id)) ids.push(id);
-    });
+  if (!order || typeof order !== 'object') return ids;
+  const dd = ((order as any).delivery_data && typeof (order as any).delivery_data === 'object') ? (order as any).delivery_data : {};
+  const arrays = [
+    order.reserved_inventory_ids,
+    dd.reserved_inventory_ids,
+    (order as any).cancelled_reserved_inventory_ids,
+    dd.cancelled_reserved_inventory_ids,
+    order.assigned_drone_ids,
+    dd.assigned_drone_ids,
+    order.drones,
+    dd.drones
+  ];
+  for (const arr of arrays) {
+    if (Array.isArray(arr)) {
+      for (const item of arr) {
+        const val = typeof item === 'string' ? item : (item && typeof item === 'object' ? (item.drone_id || item.id || item.serial_number || '') : '');
+        if (val && typeof val === 'string' && !ids.includes(val)) {
+          ids.push(val);
+        }
+      }
+    }
   }
   if (Array.isArray(order.items)) {
     order.items.forEach((item: any) => {
-      const dId = item.drone_id || item.id || item.serial_number;
+      if (!item) return;
+      const dId = typeof item === 'string' ? item : (item.drone_id || item.id || item.serial_number || '');
       if (dId && typeof dId === 'string' && !ids.includes(dId)) {
         ids.push(dId);
       }
@@ -117,19 +119,22 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
     });
   }, [historyOrders, statusFilter, searchQuery]);
 
-  const formatDate = (isoString?: string) => {
+  const formatDate = (isoString?: any) => {
     if (!isoString) return 'Recent';
     try {
       const d = new Date(isoString);
-      return d.toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      if (isNaN(d.getTime())) return String(isoString);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = months[d.getMonth()] || '';
+      const year = d.getFullYear();
+      let hours = d.getHours();
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'pm' : 'am';
+      hours = hours % 12 || 12;
+      return `${day} ${month} ${year}, ${hours}:${minutes} ${ampm}`;
     } catch {
-      return isoString;
+      return String(isoString || 'Recent');
     }
   };
 
@@ -198,7 +203,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({
         <View style={styles.routeContainer}>
           <View style={styles.routeRow}>
             <View style={styles.dotOrigin} />
-            <Text style={styles.routeText} numberOfLines={1}>
+            <Text style={styles.routeText} numberOfLines={2}>
               {item.pickup_address || 'IndoFleet Base Facility'}
             </Text>
           </View>
@@ -752,7 +757,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 8,
     marginBottom: 10,
   },
   dateRow: {
