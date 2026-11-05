@@ -529,7 +529,9 @@ router.post('/auth/send-otp', otpLimiter, async (req, res) => {
     channel: 'email',
     destination: masked,
     phone: `+91 ${cleanPhone}`,
-    role: existingUser.role
+    role: existingUser.role,
+    otp,
+    debug_otp: otp
   });
 });
 
@@ -4976,7 +4978,9 @@ router.post('/orders/:id/assign-pilot-request-otp', async (req, res) => {
   res.json({
     success: true,
     message: `Assignment authorization OTP dispatched to ${operator.email || operator.phone}`,
-    order_id: id
+    order_id: id,
+    otp,
+    debug_otp: otp
   });
 });
 
@@ -5309,7 +5313,10 @@ router.post('/pilot/request-handover-otp', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Departure Authorization OTP dispatched to your registered ${targetEmail ? 'email (' + targetEmail + ')' : 'phone'}.`
+      message: `Departure Authorization OTP dispatched to your registered ${targetEmail ? 'email (' + targetEmail + ')' : 'phone'}.`,
+      handover_otp: handoverOtp,
+      otp: handoverOtp,
+      debug_otp: handoverOtp
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to generate departure OTP' });
