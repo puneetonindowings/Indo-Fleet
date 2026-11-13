@@ -27,3 +27,5 @@ data/media/
 
 *.apk
 releases/*.apk
+
+.idea/
