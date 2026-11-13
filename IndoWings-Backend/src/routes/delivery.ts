@@ -389,26 +389,17 @@ router.post('/auth/verify-password-and-send-otp', otpLimiter, async (req, res) =
     await fileDB.saveOTP(targetPhone, otp, { name: user.name, email: user.email, phone: fullPhone, purpose: 'login' });
   }
 
-  const isLocalOrDev = process.env.NODE_ENV !== 'production' ||
-    req.hostname === 'localhost' ||
-    req.hostname === '127.0.0.1' ||
-    (req.headers.host || '').includes('localhost') ||
-    process.env.DEBUG_OTP === 'true';
-
   if (isEmail && !emailSentSuccessfully) {
-    if (!isLocalOrDev) {
-      res.status(502).json({
-        error: `Verification code could not be sent to ${user.email || cleanEmail}. ${emailDeliveryError || 'Please check your email address or network connection.'}`,
-        email_failed: true
-      });
-      return;
-    }
-    console.warn(`[auth] Email delivery notice on local/dev, providing debug_otp for ${user.email}:`, emailDeliveryError);
+    res.status(502).json({
+      error: `Verification code could not be sent to ${user.email || cleanEmail}. ${emailDeliveryError || 'Please check your email address or network connection.'}`,
+      email_failed: true
+    });
+    return;
   }
 
   const destinationDesc = user.email ? maskEmail(user.email) : `+91 ${cleanPhone}`;
 
-  console.log(`[auth] Password verified & 6-digit OTP auto-sent to: ${destinationDesc} (OTP: ${otp})`);
+  console.log(`[auth] Password verified & 6-digit OTP auto-sent to: ${destinationDesc}`);
   res.json({
     success: true,
     otp_sent: true,
@@ -416,8 +407,6 @@ router.post('/auth/verify-password-and-send-otp', otpLimiter, async (req, res) =
     destination: destinationDesc,
     name: user.name,
     role: user.role,
-    otp,
-    debug_otp: otp,
     user: {
       name: user.name,
       email: user.email,
@@ -508,29 +497,18 @@ router.post('/auth/send-otp', otpLimiter, async (req, res) => {
     }
 
     if (!sent) {
-      const isLocalOrDev = process.env.NODE_ENV !== 'production' ||
-        req.hostname === 'localhost' ||
-        req.hostname === '127.0.0.1' ||
-        (req.headers.host || '').includes('localhost') ||
-        process.env.DEBUG_OTP === 'true';
-
-      if (!isLocalOrDev) {
-        res.status(502).json({
-          error: `Could not send verification code to ${cleanEmail}. ${mailErr || 'Please check your email address or network connection.'}`,
-          email_failed: true
-        });
-        return;
-      }
-      console.warn(`[auth] Email delivery notice on local/dev, providing debug_otp for ${cleanEmail}:`, mailErr);
+      res.status(502).json({
+        error: `Could not send verification code to ${cleanEmail}. ${mailErr || 'Please check your email address or network connection.'}`,
+        email_failed: true
+      });
+      return;
     }
 
     res.json({
       message: `Verification code sent to ${cleanEmail}`,
       channel: 'email',
       destination: cleanEmail,
-      role: existingUser.role,
-      otp,
-      debug_otp: otp
+      role: existingUser.role
     });
     return;
   }
@@ -551,9 +529,7 @@ router.post('/auth/send-otp', otpLimiter, async (req, res) => {
     channel: 'email',
     destination: masked,
     phone: `+91 ${cleanPhone}`,
-    role: existingUser.role,
-    otp,
-    debug_otp: otp
+    role: existingUser.role
   });
 });
 
@@ -5012,9 +4988,7 @@ router.post('/orders/:id/assign-pilot-request-otp', async (req, res) => {
   res.json({
     success: true,
     message: `Assignment authorization OTP dispatched to ${operator.email || operator.phone}`,
-    order_id: id,
-    otp,
-    debug_otp: otp
+    order_id: id
   });
 });
 
@@ -5347,10 +5321,7 @@ router.post('/pilot/request-handover-otp', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Departure Authorization OTP dispatched to your registered ${targetEmail ? 'email (' + targetEmail + ')' : 'phone'}.`,
-      handover_otp: handoverOtp,
-      otp: handoverOtp,
-      debug_otp: handoverOtp
+      message: `Departure Authorization OTP dispatched to your registered ${targetEmail ? 'email (' + targetEmail + ')' : 'phone'}.`
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to generate departure OTP' });
@@ -6030,9 +6001,7 @@ router.post('/orders/:id/resend-customer-otp', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Delivery Verification PIN dispatched to ${order.customer_email || 'your registered contact'}.`,
-      otp: customerOtp,
-      customer_otp: customerOtp
+      message: `Delivery Verification PIN dispatched to ${order.customer_email || 'your registered contact'}.`
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to resend customer OTP' });

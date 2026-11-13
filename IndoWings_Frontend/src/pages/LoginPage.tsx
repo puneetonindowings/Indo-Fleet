@@ -387,8 +387,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
       setOtpStep(true);
       setResendTimer(60);
       setCanResend(false);
-      const devOtp = data.debug_otp || data.otp;
-      setOtpDigits(devOtp && String(devOtp).length === 6 ? String(devOtp).split('') : ['', '', '', '', '', '']);
+      setOtpDigits(['', '', '', '', '', '']);
       setTimeout(() => otpInputsRef.current[0]?.focus(), 150);
     } catch {
       setError('Cannot connect to authentication server. Please ensure backend service is running.');
@@ -462,8 +461,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
       setOtpStep(true);
       setResendTimer(60);
       setCanResend(false);
-      const devOtp = data.debug_otp || data.otp;
-      setOtpDigits(devOtp && String(devOtp).length === 6 ? String(devOtp).split('') : ['', '', '', '', '', '']);
+      setOtpDigits(['', '', '', '', '', '']);
       setTimeout(() => otpInputsRef.current[0]?.focus(), 150);
     } catch {
       setError('Cannot connect to authentication server. Please check backend service.');
@@ -499,8 +497,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
       setOtpStep(true);
       setResendTimer(60);
       setCanResend(false);
-      const devOtp = data.debug_otp || data.otp;
-      setOtpDigits(devOtp && String(devOtp).length === 6 ? String(devOtp).split('') : ['', '', '', '', '', '']);
+      setOtpDigits(['', '', '', '', '', '']);
       setTimeout(() => otpInputsRef.current[0]?.focus(), 150);
     } catch {
       setError('Cannot connect to authentication server. Please verify backend service.');
@@ -537,8 +534,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onSuccess }) =
       setOtpStep(true);
       setResendTimer(60);
       setCanResend(false);
-      const devOtp = data.debug_otp || data.otp;
-      setOtpDigits(devOtp && String(devOtp).length === 6 ? String(devOtp).split('') : ['', '', '', '', '', '']);
+      setOtpDigits(['', '', '', '', '', '']);
       setTimeout(() => otpInputsRef.current[0]?.focus(), 150);
     } catch {
       setError('Cannot connect to authentication server. Please verify backend service.');
