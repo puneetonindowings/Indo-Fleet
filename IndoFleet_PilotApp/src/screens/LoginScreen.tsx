@@ -76,12 +76,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       }
 
       await setAuthToken(res.token);
-      await setUserProfile(res.user);
+      await setUserProfile(res.user);   
       onLoginSuccess(res.user, res.must_change_password);
     } catch (err: any) {
       setError(err?.message || 'Could not sign in. Check your details and try again.');
     } finally {
-      setLoading(false);
+      setLoading(false);    
     }
   };
 
