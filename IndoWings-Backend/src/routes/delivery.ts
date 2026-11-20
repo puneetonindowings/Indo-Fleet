@@ -10,6 +10,8 @@ import { supabase } from '../supabase.js';
 import { fileDB, loadSosAlertsFromFile, saveSosAlertToFile, deleteSosAlertFromFile } from '../db.js';
 import { buildAnalyticsPayload } from '../analytics.js';
 import {
+  sendEmail,
+  getSmtpConfig,
   sendOtpNotification,
   sendWelcomeEmail,
   sendLoginAlertEmail,
@@ -328,6 +330,37 @@ router.post('/auth/login', authLimiter, async (req, res) => {
     token,
     user: safeUser,
     must_change_password: !!user.must_change_password
+  });
+});
+
+router.get('/test-email', async (req, res) => {
+  const targetEmail = (req.query.to as string) || (process.env.ADMIN_ALERT_EMAIL || 'puneetkushwaha9452@gmail.com');
+  const startTime = Date.now();
+  const cfg = getSmtpConfig();
+  const ok = await sendEmail({
+    to: targetEmail,
+    subject: `[IndoFleet Live Test] SMTP Delivery Check - ${new Date().toLocaleTimeString()}`,
+    text: `IndoFleet SMTP health check completed successfully.\nHost: ${cfg.host}:${cfg.port}\nSender: ${cfg.user}\nRecipient: ${targetEmail}`,
+    html: `<div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+      <h3 style="color: #4f46e5;">IndoFleet SMTP Diagnostic Check</h3>
+      <p>This is a live diagnostic verification email dispatched via IndoFleet's hardened SMTP engine.</p>
+      <ul>
+        <li><strong>Host:</strong> ${cfg.host}:${cfg.port}</li>
+        <li><strong>Sender Account:</strong> ${cfg.user}</li>
+        <li><strong>Recipient:</strong> ${targetEmail}</li>
+        <li><strong>Timestamp:</strong> ${new Date().toISOString()}</li>
+      </ul>
+    </div>`
+  });
+  const durationMs = Date.now() - startTime;
+  res.json({
+    success: ok,
+    recipient: targetEmail,
+    smtpHost: cfg.host,
+    smtpPort: cfg.port,
+    smtpUserConfigured: Boolean(cfg.user && cfg.pass),
+    durationMs,
+    error: ok ? null : (lastMailError || 'Failed to dispatch email')
   });
 });
 

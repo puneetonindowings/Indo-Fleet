@@ -8,15 +8,20 @@ if (typeof (dns as any).setDefaultResultOrder === 'function') {
   (dns as any).setDefaultResultOrder('ipv4first');
 }
 
+export function getSmtpConfig() {
+  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const user = (process.env.SMTP_USER || '').trim();
+  const pass = (process.env.SMTP_PASS || '').trim();
+  const port = parseInt(process.env.SMTP_PORT || '587', 10);
+  const fromName = process.env.MAIL_FROM_NAME || 'IndoFleet Operations';
+  const fromEmail = user || process.env.MAIL_FROM_ADDRESS || 'connect@indowings.com';
+  return { host, user, pass, port, fromName, fromEmail };
+}
+
 const FROM_EMAIL = process.env.SMTP_USER || process.env.MAIL_FROM_ADDRESS || 'connect@indowings.com';
 const SUPPORT_FROM_NAME = process.env.SUPPORT_FROM_NAME || 'IndoWings Support Desk';
 const MAIL_FROM_NAME = process.env.MAIL_FROM_NAME || 'Indofleet';
 export const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'connect@indowings.com';
-
-const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-const smtpUser = process.env.SMTP_USER || '';
-const smtpPass = process.env.SMTP_PASS || '';
-const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
 
 async function getSmtpIpv4Addresses(host: string): Promise<string[]> {
   if (/^(\d{1,3}\.){3}\d{1,3}$/.test(host)) {
@@ -41,44 +46,83 @@ async function getSmtpIpv4Addresses(host: string): Promise<string[]> {
   return ['142.250.183.108', '142.250.183.109', '192.178.158.108', '192.178.158.109'];
 }
 
-function buildDirectTransporter(port: number) {
-  const isSecure = port === 465;
-  return nodemailer.createTransport({
-    host: smtpHost,
-    port,
+let pooledTransporter: any = null;
+let lastPoolKey = '';
+
+function getPooledTransporter(cfg: ReturnType<typeof getSmtpConfig>) {
+  const poolKey = `${cfg.host}:${cfg.port}:${cfg.user}:${cfg.pass}`;
+  if (pooledTransporter && lastPoolKey === poolKey) {
+    return pooledTransporter;
+  }
+
+  const isSecure = cfg.port === 465;
+  pooledTransporter = nodemailer.createTransport({
+    pool: true,
+    maxConnections: 3,
+    maxMessages: 100,
+    rateDelta: 1000,
+    rateLimit: 5,
+    host: cfg.host,
+    port: cfg.port,
     secure: isSecure,
     requireTLS: !isSecure,
+    family: 4, // CRITICAL FOR AWS: Force IPv4 to prevent IPv6 timeout hangs
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
     auth: {
-      user: smtpUser,
-      pass: smtpPass
+      user: cfg.user,
+      pass: cfg.pass
     },
     tls: {
-      rejectUnauthorized: process.env.NODE_ENV === 'production'
+      rejectUnauthorized: false
+    }
+  } as any);
+
+  lastPoolKey = poolKey;
+  return pooledTransporter;
+}
+
+function buildDirectTransporter(cfg: ReturnType<typeof getSmtpConfig>, port: number) {
+  const isSecure = port === 465;
+  return nodemailer.createTransport({
+    host: cfg.host,
+    port,
+    secure: isSecure,
+    requireTLS: !isSecure,
+    family: 4, // CRITICAL FOR AWS: Force IPv4 to prevent IPv6 timeout hangs
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+    auth: {
+      user: cfg.user,
+      pass: cfg.pass
+    },
+    tls: {
+      rejectUnauthorized: false
     }
   } as any);
 }
 
-function buildIpv4Transporter(targetIp: string, port: number) {
+function buildIpv4Transporter(cfg: ReturnType<typeof getSmtpConfig>, targetIp: string, port: number) {
   const isSecure = port === 465;
   return nodemailer.createTransport({
     host: targetIp,
     port,
     secure: isSecure,
     requireTLS: !isSecure,
-    servername: smtpHost,
+    servername: cfg.host,
+    family: 4,
     connectionTimeout: 8000,
     greetingTimeout: 8000,
     socketTimeout: 12000,
     auth: {
-      user: smtpUser,
-      pass: smtpPass
+      user: cfg.user,
+      pass: cfg.pass
     },
     tls: {
-      servername: smtpHost,
-      rejectUnauthorized: process.env.NODE_ENV === 'production'
+      servername: cfg.host,
+      rejectUnauthorized: false
     }
   } as any);
 }
@@ -97,66 +141,85 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
     return false;
   }
 
-  if (smtpUser && smtpPass) {
-    const mailOptions = {
-      from: `"${MAIL_FROM_NAME}" <${smtpUser}>`,
-      to,
-      subject,
-      text,
-      html: html || undefined
-    };
-
-    const attemptErrors: string[] = [];
-
-    // Strategy 1: Direct hostname transport on preferred ports (587 TLS first for AWS EC2/cloud compatibility, then 465 SSL)
-    const primaryPorts = [587, 465];
-    const uniquePrimaryPorts = Array.from(new Set(primaryPorts));
-
-    for (const port of uniquePrimaryPorts) {
-      try {
-        const transporter = buildDirectTransporter(port);
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`[mail] SMTP delivered to ${to} via ${smtpHost}:${port} (ID: ${info.messageId})`);
-        lastMailError = '';
-        return true;
-      } catch (err: any) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.warn(`[mail] Direct delivery via ${smtpHost}:${port} failed: ${msg}`);
-        attemptErrors.push(`${smtpHost}:${port} (${msg})`);
-      }
-    }
-
-    // Strategy 2: Fallback to resolved IPv4 addresses if direct DNS has SNI/firewall quirks
-    try {
-      const ipv4List = await getSmtpIpv4Addresses(smtpHost);
-      const fallbackPorts = [465, 587];
-
-      for (const port of fallbackPorts) {
-        const candidateIps = ipv4List.slice(0, 2);
-        for (const ip of candidateIps) {
-          try {
-            const transporter = buildIpv4Transporter(ip, port);
-            const info = await transporter.sendMail(mailOptions);
-            console.log(`[mail] SMTP delivered to ${to} via fallback IPv4 ${ip}:${port} (ID: ${info.messageId})`);
-            lastMailError = '';
-            return true;
-          } catch (err: any) {
-            const msg = err instanceof Error ? err.message : String(err);
-            attemptErrors.push(`fallback ${ip}:${port} (${msg})`);
-          }
-        }
-      }
-    } catch (fallbackErr: any) {
-      attemptErrors.push(`ipv4 fallback error: ${fallbackErr?.message || fallbackErr}`);
-    }
-
-    lastMailError = attemptErrors.join(' | ');
-    console.error('[mail] SMTP delivery failed on all transports:', lastMailError);
+  const cfg = getSmtpConfig();
+  if (!cfg.user || !cfg.pass) {
+    lastMailError = 'SMTP credentials (SMTP_USER, SMTP_PASS) not configured in backend environment.';
+    console.warn(`[mail] ${lastMailError}`);
     return false;
   }
 
-  lastMailError = 'SMTP credentials (SMTP_USER, SMTP_PASS) not configured in backend environment.';
-  console.warn(`[mail] ${lastMailError}`);
+  const mailOptions = {
+    from: `"${cfg.fromName}" <${cfg.user}>`,
+    to: to.trim(),
+    replyTo: cfg.fromEmail,
+    subject,
+    text,
+    html: html || undefined,
+    headers: {
+      'X-Priority': '1',
+      'X-MSMail-Priority': 'High',
+      'Importance': 'high',
+      'X-Mailer': 'IndoFleet Enterprise Flight Network'
+    }
+  };
+
+  const attemptErrors: string[] = [];
+
+  // Strategy 1: Persistent pooled transporter (Fastest: ~200-500ms, avoids connection churn & AWS throttling)
+  try {
+    const pooled = getPooledTransporter(cfg);
+    const info = await pooled.sendMail(mailOptions);
+    console.log(`[mail] SMTP pooled delivery to ${to} via ${cfg.host}:${cfg.port} (ID: ${info.messageId})`);
+    lastMailError = '';
+    return true;
+  } catch (poolErr: any) {
+    const msg = poolErr instanceof Error ? poolErr.message : String(poolErr);
+    console.warn(`[mail] Pooled transport failed (${msg}), trying direct ports...`);
+    attemptErrors.push(`pool (${msg})`);
+  }
+
+  // Strategy 2: Direct transport on ports [587 (TLS), 465 (SSL)]
+  const portsToTry = [587, 465];
+  for (const port of portsToTry) {
+    try {
+      const transporter = buildDirectTransporter(cfg, port);
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`[mail] SMTP direct delivery to ${to} via ${cfg.host}:${port} (ID: ${info.messageId})`);
+      lastMailError = '';
+      return true;
+    } catch (err: any) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[mail] Direct delivery via ${cfg.host}:${port} failed: ${msg}`);
+      attemptErrors.push(`${cfg.host}:${port} (${msg})`);
+    }
+  }
+
+  // Strategy 3: Fallback to resolved IPv4 addresses if direct DNS has SNI/firewall quirks
+  try {
+    const ipv4List = await getSmtpIpv4Addresses(cfg.host);
+    const fallbackPorts = [587, 465];
+
+    for (const port of fallbackPorts) {
+      const candidateIps = ipv4List.slice(0, 2);
+      for (const ip of candidateIps) {
+        try {
+          const transporter = buildIpv4Transporter(cfg, ip, port);
+          const info = await transporter.sendMail(mailOptions);
+          console.log(`[mail] SMTP delivered to ${to} via fallback IPv4 ${ip}:${port} (ID: ${info.messageId})`);
+          lastMailError = '';
+          return true;
+        } catch (err: any) {
+          const msg = err instanceof Error ? err.message : String(err);
+          attemptErrors.push(`fallback ${ip}:${port} (${msg})`);
+        }
+      }
+    }
+  } catch (fallbackErr: any) {
+    attemptErrors.push(`ipv4 fallback error: ${fallbackErr?.message || fallbackErr}`);
+  }
+
+  lastMailError = attemptErrors.join(' | ');
+  console.error('[mail] SMTP delivery failed on all transports:', lastMailError);
   return false;
 }
 
