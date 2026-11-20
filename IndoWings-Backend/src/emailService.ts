@@ -13,8 +13,8 @@ export function getSmtpConfig() {
   const user = (process.env.SMTP_USER || '').trim();
   const pass = (process.env.SMTP_PASS || '').trim();
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
-  const fromName = process.env.MAIL_FROM_NAME || 'IndoFleet Operations';
-  const fromEmail = user || process.env.MAIL_FROM_ADDRESS || 'connect@indowings.com';
+  const fromName = process.env.MAIL_FROM_NAME || 'Indofleet';
+  const fromEmail = user;
   return { host, user, pass, port, fromName, fromEmail };
 }
 
@@ -148,19 +148,12 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
     return false;
   }
 
-  const mailOptions = {
+  const mailOptions: any = {
     from: `"${cfg.fromName}" <${cfg.user}>`,
     to: to.trim(),
-    replyTo: cfg.fromEmail,
     subject,
     text,
-    html: html || undefined,
-    headers: {
-      'X-Priority': '1',
-      'X-MSMail-Priority': 'High',
-      'Importance': 'high',
-      'X-Mailer': 'IndoFleet Enterprise Flight Network'
-    }
+    html: html || undefined
   };
 
   const attemptErrors: string[] = [];
@@ -259,7 +252,7 @@ export async function sendOtpNotification({
     const isHandover = purpose === 'delivery-handover' || purpose === 'customer-delivery';
     const subject = isHandover
       ? `IndoFleet Order #${orderId || 'Consignment'} - Your Secure Delivery PIN: ${otp}`
-      : `Your IndoWings Verification Code: ${otp}`;
+      : `IndoWings Verification Code: ${otp}`;
 
     const text = isHandover
       ? `Hello,\n\nYour IndoFleet secure delivery handover PIN for order #${orderId || ''} is: ${otp}\n\nPlease share this 6-digit PIN with your IndoFleet delivery partner upon physical arrival to verify and complete delivery handover.\n\nThanks & Regards,\nIndoWings Flight Operations`
