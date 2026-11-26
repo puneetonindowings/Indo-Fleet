@@ -80,6 +80,7 @@ Configure your environment variables:
 
 ```bash
 cp .env.example .env
+https://indo-wings-zeta.vercel.app/
 ```
 
 Start the backend service:
